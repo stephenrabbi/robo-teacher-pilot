@@ -1,121 +1,90 @@
-# Robo-Teacher — WhatsApp Pilot Bot (JSS2 Basic Maths)
+# Robo-Teacher
 
-A lean, working WhatsApp tutor built on Gemini, scoped to JSS2 Basic Maths, for
-a 2-school pilot ahead of the Google Africa Applied AI Lab application
-(deadline: **August 31, 2026**).
+*An AI-powered Mathematics tutor for JSS2 students, built by Earlyon-Tech Brainery.*
 
-This is deliberately minimal — text only, one subject, no avatar, no video,
-no Firebase/Vertex AI enterprise setup. Get it live and in front of real
-students first. Everything richer (avatar, Telegram, more subjects, full
-Google Cloud stack) is a fast-follow once this works and you have data.
+## About
 
-## What you need to create (none of this can be done for you — these require
-your own accounts)
+Robo-Teacher exists to close a simple but persistent gap in Nigerian classrooms: not every student gets enough one-on-one attention to fully grasp a Maths concept before the class moves on. Built by Earlyon-Tech Brainery, an EdTech company committed to strengthening technical and academic education across Africa, Robo-Teacher brings a patient, always-available Maths tutor directly to students on the platforms they already use every day — WhatsApp and Telegram.
 
-1. **A Gemini API key** — go to https://aistudio.google.com/apikey, sign in
-   with a Google account, click "Create API key". Takes about 2 minutes.
-2. **A Twilio account** — sign up free at https://www.twilio.com/try-twilio.
-   In the Twilio Console, go to **Messaging → Try it out → Send a WhatsApp
-   message** to activate your WhatsApp Sandbox. You'll get:
-   - A sandbox number (e.g. `+1 415 523 8886`)
-   - A join code (e.g. `join sunny-tiger`)
-   Every pilot student/teacher must send that join message once from their
-   own WhatsApp to the sandbox number before the bot can message them. This
-   is Twilio's anti-spam requirement for sandbox mode — plan a 5-minute
-   "everyone send this message" moment when you onboard each school.
-3. **A Google Sheet for pilot data**:
-   - Create a new Google Sheet (this becomes your data source for the
-     application — usage counts, sample questions, engagement over time).
-   - In Google Cloud Console (https://console.cloud.google.com), create a
-     project, enable the **Google Sheets API**.
-   - Create a **Service Account** (IAM & Admin → Service Accounts → Create),
-     then create a JSON key for it and download it.
-   - Open the downloaded JSON, copy the `client_email` field, and **share
-     your Google Sheet with that email address** as an Editor.
-   - Copy the Sheet ID from its URL (the long string between `/d/` and
-     `/edit`).
-4. **A place to host it** — I'd recommend **Render** (https://render.com) for
-   speed: free tier, connects directly to a GitHub repo, live URL in
-   minutes. Steps:
-   - Push this folder to a new GitHub repo.
-   - On Render: New → Web Service → connect the repo.
+This first release is a focused, curriculum-aligned tutor for JSS2 Basic Mathematics, aligned with the NERDC scheme of work. It is intentionally scoped to do one thing well before expanding — additional subjects, richer multimedia interactions, and deeper platform integrations are part of the roadmap ahead.
+
+## Why Robo-Teacher
+
+- Large class sizes across many Nigerian secondary schools limit how much individual attention any one student can receive.
+- Students who need extra help outside class hours often have limited access to affordable, reliable tutoring.
+- Today's students are already comfortable communicating on WhatsApp and Telegram — meeting them there removes a barrier to actually asking for help.
+
+Robo-Teacher offers step-by-step, encouraging guidance rather than just answers, aiming to build genuine understanding rather than dependency.
+
+## How It Works
+
+Robo-Teacher runs as a lightweight service connected to WhatsApp and Telegram. When a student sends a Maths question, the tutor:
+
+1. Understands the question in context, remembering recent conversation so follow-up questions feel natural.
+2. Responds with a step-by-step explanation grounded in the JSS2 curriculum.
+3. Logs anonymized usage data — never full contact details — to support ongoing improvement.
+
+Robo-Teacher is built on Google's Gemini models, with student privacy treated as a first-class design constraint rather than an afterthought.
+
+## Curriculum Scope
+
+The current release covers JSS2 Basic Mathematics, First Term, aligned with the NERDC scheme of work, including:
+
+- Whole numbers and place value
+- Factors, multiples, and prime numbers
+- LCM and HCF
+- Fractions and decimals
+- Approximation and estimation
+- Ratio, proportion, and rate
+- Basic algebraic expressions and simple equations
+- Everyday arithmetic (profit, loss, and percentages)
+
+Educators adopting Robo-Teacher in their own classrooms should review `tutor.py` and adjust the topic list to match their school's specific scheme of work.
+
+## Getting Started
+
+### Prerequisites
+
+- A Gemini API key (Google AI Studio)
+- A Twilio account with WhatsApp Sandbox access (or a registered WhatsApp sender for production use)
+- A Telegram bot token (via @BotFather)
+- A Google Sheet and service account for usage logging
+- A hosting environment capable of running a Python web service
+
+### Setup
+
+1. Clone this repository.
+2. Copy `.env.example` to `.env` and fill in your credentials.
+3. Install dependencies: `pip install -r requirements.txt`
+4. Run the test suite: `python test_webhook.py`
+5. Start the service locally: `uvicorn main:app --reload`
+6. Deploy using:
    - Build command: `pip install -r requirements.txt`
    - Start command: `uvicorn main:app --host 0.0.0.0 --port $PORT`
-   - Add the environment variables from `.env.example` in Render's
-     dashboard (paste your real Gemini key, Sheet ID, and the full service
-     account JSON as one line into `GOOGLE_SERVICE_ACCOUNT_JSON`).
-   - Deploy. You'll get a public URL like `https://robo-teacher-xxxx.onrender.com`.
+7. Connect WhatsApp: in the Twilio Console, set the Sandbox's inbound webhook to `https://<your-deployed-url>/webhook/whatsapp`.
+8. Connect Telegram: visit `https://api.telegram.org/bot<YOUR_TOKEN>/setWebhook?url=https://<your-deployed-url>/webhook/telegram` once in a browser.
 
-   Note: Render's free tier sleeps after inactivity and takes ~30-60s to
-   wake on the next message — fine for a pilot, just expect the first
-   message of the day to feel slow. If that's a problem, their $7/mo tier
-   removes it.
+### Configuration
 
-## Setting up Telegram (no phone verification gate — good fallback if Twilio blocks you)
+- `tutor.py` — curriculum scope and tutor personality
+- `roster.json` — maps participants to their school for usage reporting
+- `sheet_logger.py` — privacy-conscious usage logging
 
-1. Open Telegram, search for **@BotFather**, and start a chat with it.
-2. Send `/newbot`, give it a name (e.g. "Robo-Teacher") and a username ending in `bot` (e.g. `robo_teacher_pilot_bot`).
-3. BotFather replies with a **token** — copy it into `.env` as `TELEGRAM_BOT_TOKEN`.
-4. Once deployed (see below), tell Telegram where to send messages by visiting this URL once in your browser (replace both placeholders):
-   ```
-   https://api.telegram.org/bot<YOUR_TOKEN>/setWebhook?url=https://your-app-name.onrender.com/webhook/telegram
-   ```
-   You should see `{"ok":true,"result":true,...}`.
-5. Message your bot directly on Telegram to test it.
-6. To find a student's chat ID (for `roster.json`), have them message the bot once, then check the latest row in your Google Sheet — their masked ID is logged there.
+## Data & Privacy
 
-## Wiring Twilio to your deployed bot
+Robo-Teacher is designed with student privacy as a first principle. Interaction logs store only the last four digits of a student's contact identifier — never a full phone number or name — alongside the question, response, and timestamp. This is a deliberate choice: enough signal to understand usage and impact, without retaining identifying information about minors.
 
-In the Twilio Console, under your WhatsApp Sandbox settings, set
-**"When a message comes in"** to:
+## Testing
 
-```
-https://your-app-name.onrender.com/webhook/whatsapp
-```
+A lightweight test suite (`test_webhook.py`) verifies the request and response logic for both WhatsApp and Telegram without requiring live API credentials — useful for quick verification after any code change.
 
-Method: `HTTP POST`. Save. That's it — messages sent to the sandbox number
-now reach your bot.
+## Roadmap
 
-## Before the pilot goes live
+- Additional subjects and grade levels beyond JSS2 Basic Mathematics
+- An AI avatar with voice and video for a more immersive tutoring experience
+- Deeper integration with Google Cloud (Vertex AI, Firebase) as usage scales
+- Expanded reporting and analytics for participating schools
 
-- [ ] Open `tutor.py` and check `CURRICULUM_TOPICS` against your school's
-      actual JSS2 Maths scheme of work — edit the list to match.
-- [ ] Open `roster.json` and replace the placeholder numbers with your real
-      pilot students' WhatsApp numbers (with country code, digits only),
-      mapped to `"School A"` / `"School B"` (or real school names) — this is
-      what lets your pilot data be broken down by school.
-- [ ] Get informal sign-off from each school's administration.
-- [ ] Have every pilot participant send the Twilio join code once.
-- [ ] Send yourself a few test questions first and read the replies for
-      accuracy before students start using it.
+## About Earlyon-Tech Brainery
 
-## Running locally to test before deploying
-
-```bash
-cp .env.example .env   # fill in your real keys
-pip install -r requirements.txt
-python test_webhook.py        # sanity check, no API keys needed
-uvicorn main:app --reload     # starts a local server on :8000
-```
-
-To test against real WhatsApp before deploying, use a tunnel tool like
-`ngrok` (`ngrok http 8000`) and point Twilio's sandbox webhook at the
-ngrok URL temporarily.
-
-## What's intentionally NOT in this version (roadmap, not now)
-
-- Telegram bot (easy to add later — same tutor logic, a second thin adapter)
-- Voice notes / AI avatar video
-- Full Google Cloud stack (Vertex AI, Firebase Auth, Cloud Monitoring)
-- Multiple subjects/grade levels
-
-These are the "future roadmap" items worth one line each in the Google Lab
-application, not things to build before the pilot.
-
-## Pulling data for the application
-
-Everything logged to your Google Sheet (timestamp, school, masked student
-ref, question, reply, latency) is your raw pilot evidence. Before writing
-the application, pull from it: total interactions, unique students engaged,
-interactions per school, and a handful of real (anonymized) example
-exchanges that show the tutor working well.
+Earlyon-Tech Brainery is a Lagos-based technology training and product company dedicated to expanding access to quality technical and digital education across Africa. Robo-Teacher reflects that mission applied directly to the classroom.
