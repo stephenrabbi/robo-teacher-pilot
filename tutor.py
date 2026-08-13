@@ -80,7 +80,10 @@ def get_tutor_reply(student_id: str, message: str) -> tuple[str, float]:
 
     chat = client.chats.create(
         model=GEMINI_MODEL,
-        config=types.GenerateContentConfig(system_instruction=SYSTEM_PROMPT),
+        config=types.GenerateContentConfig(
+            system_instruction=SYSTEM_PROMPT,
+            max_output_tokens=350,  # keeps replies WhatsApp-length and generates faster
+        ),
         history=history,
     )
 
