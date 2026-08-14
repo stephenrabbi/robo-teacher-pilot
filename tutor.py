@@ -86,7 +86,13 @@ def get_tutor_reply(student_id: str, message: str) -> tuple[str, float]:
         model=GEMINI_MODEL,
         config=types.GenerateContentConfig(
             system_instruction=SYSTEM_PROMPT,
-            max_output_tokens=550,  # enough for a complete step-by-step answer, still capped for speed
+            max_output_tokens=600,
+            # Disable internal "thinking" tokens. Without this, a chunk of the
+            # token budget above gets silently spent on invisible reasoning
+            # before any visible reply is written, which was causing replies
+            # to cut off after just a sentence or two. JSS2 arithmetic doesn't
+            # need deep reasoning, and skipping it also makes replies faster.
+            thinking_config=types.ThinkingConfig(thinking_budget=0),
         ),
         history=history,
     )
