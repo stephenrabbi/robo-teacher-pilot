@@ -19,6 +19,7 @@ import time
 import logging
 from google import genai
 from google.genai import types
+from google.genai import errors as genai_errors
 
 logger = logging.getLogger("robo-teacher.tutor")
 
@@ -76,6 +77,11 @@ def _get_client():
     return _client
 
 
+def _is_rate_limit_error(e: Exception) -> bool:
+    text = str(e)
+    return "429" in text or "RESOURCE_EXHAUSTED" in text or "quota" in text.lower()
+
+
 def get_tutor_reply(student_id: str, message: str) -> tuple[str, float]:
     """
     student_id: a stable per-student key (we use the WhatsApp number).
@@ -88,14 +94,35 @@ def get_tutor_reply(student_id: str, message: str) -> tuple[str, float]:
     start = time.time()
     try:
         text, new_history = _ask(client, history, message)
-    except Exception:
-        # Something about the carried-over conversation history broke this
-        # call. Rather than fail the student's message outright, retry once
-        # with a clean slate. This costs the student their earlier context
-        # for this session, but keeps the bot responsive instead of stuck
-        # failing repeatedly on the same broken history.
+    except Exception as e:
+        if _is_rate_limit_error(e):
+            # We've hit Gemini's free-tier request-rate limit. Retrying
+            # immediately would just burn another request against the same
+            # exhausted quota and make things worse, so don't retry — tell
+            # the student honestly instead.
+            logger.warning(f"Rate limited for {student_id}: {e}")
+            latency = time.time() - start
+            return (
+                "Lots of students are asking me questions right now, so I need a tiny break! "
+                "Please try again in about a minute. 🙂",
+                latency,
+            )
+
+        # Something else went wrong (e.g. a broken carried-over history).
+        # Retry once with a clean slate rather than failing outright.
         logger.exception(f"Gemini call failed with existing history for {student_id}; retrying fresh")
-        text, new_history = _ask(client, [], message)
+        try:
+            text, new_history = _ask(client, [], message)
+        except Exception as e2:
+            if _is_rate_limit_error(e2):
+                logger.warning(f"Rate limited on retry for {student_id}: {e2}")
+                latency = time.time() - start
+                return (
+                    "Lots of students are asking me questions right now, so I need a tiny break! "
+                    "Please try again in about a minute. 🙂",
+                    latency,
+                )
+            raise
     latency = time.time() - start
 
     # Persist trimmed history for the next turn
