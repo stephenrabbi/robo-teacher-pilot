@@ -16,8 +16,11 @@ below before the pilot goes live — it can vary school to school.
 
 import os
 import time
+import logging
 from google import genai
 from google.genai import types
+
+logger = logging.getLogger("robo-teacher.tutor")
 
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
@@ -82,6 +85,49 @@ def get_tutor_reply(student_id: str, message: str) -> tuple[str, float]:
     client = _get_client()
     history = _conversations.get(student_id, [])
 
+    start = time.time()
+    try:
+        text, new_history = _ask(client, history, message)
+    except Exception:
+        # Something about the carried-over conversation history broke this
+        # call. Rather than fail the student's message outright, retry once
+        # with a clean slate. This costs the student their earlier context
+        # for this session, but keeps the bot responsive instead of stuck
+        # failing repeatedly on the same broken history.
+        logger.exception(f"Gemini call failed with existing history for {student_id}; retrying fresh")
+        text, new_history = _ask(client, [], message)
+    latency = time.time() - start
+
+    # Persist trimmed history for the next turn
+    _conversations[student_id] = new_history[-_MAX_TURNS * 2 :]
+
+    return text, latency
+
+
+def _extract_text(response) -> str:
+    """Pull the reply text out of a Gemini response defensively. The .text
+    shortcut only works when the reply is pure plain text; for some question
+    types (e.g. calculations) Gemini can return a mix of part types instead,
+    which breaks that shortcut. This falls back to manually collecting any
+    text parts so a reply can never be lost just because of its shape."""
+    try:
+        if response.text:
+            return response.text
+    except Exception:
+        pass
+
+    try:
+        parts = response.candidates[0].content.parts
+        texts = [p.text for p in parts if getattr(p, "text", None)]
+        if texts:
+            return "\n".join(texts)
+    except Exception:
+        pass
+
+    raise ValueError("Gemini response contained no readable text")
+
+
+def _ask(client, history: list, message: str) -> tuple[str, list]:
     chat = client.chats.create(
         model=GEMINI_MODEL,
         config=types.GenerateContentConfig(
@@ -96,12 +142,5 @@ def get_tutor_reply(student_id: str, message: str) -> tuple[str, float]:
         ),
         history=history,
     )
-
-    start = time.time()
     response = chat.send_message(message)
-    latency = time.time() - start
-
-    # Persist trimmed history for the next turn
-    _conversations[student_id] = chat.get_history()[-_MAX_TURNS * 2 :]
-
-    return response.text, latency
+    return _extract_text(response), chat.get_history()
