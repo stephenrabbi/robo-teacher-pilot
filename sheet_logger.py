@@ -34,7 +34,7 @@ def _get_sheet():
         gc = gspread.service_account_from_dict(creds_dict)
         sh = gc.open_by_key(os.environ["GOOGLE_SHEET_ID"])
         _sheet = sh.sheet1
-        if _sheet.row_count == 0 or not _sheet.get_all_values():
+        if not _sheet.acell("A1").value:
             _sheet.append_row(_HEADER)
     return _sheet
 
