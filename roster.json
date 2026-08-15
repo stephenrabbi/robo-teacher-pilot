@@ -1,11 +1,11 @@
 {
-  "_comment": "Two separate sections because the two platforms identify users differently. WhatsApp: map each pilot student's WhatsApp number (with country code, digits only, e.g. 2348012345678) to their school. Telegram: map each pilot student's numeric chat ID to their school \u2014 a student gets their chat ID by messaging the bot once; check your Sheet log after their first message to find it, then add them here. Anyone not listed still works fine, just logged under 'Unregistered' until you add them.",
+  "_comment": "WhatsApp: map each student's number (country code + digits only, e.g. 2348012345678) to their school. Telegram: map each student's @username (with or without the @, not case-sensitive) to their school \u2014 the student must have a username set in Telegram for this to work. Anyone not listed still gets tutoring, just logged under 'Unregistered' until added here.",
   "whatsapp": {
-    "2348000000001": "School A",
-    "2348000000002": "School B"
+    "2348000000001": "Ise Senior High School, Epe",
+    "2348000000002": "Tio College, Ikorodu"
   },
   "telegram": {
-    "100000001": "School A",
-    "100000002": "School B"
+    "example_username_1": "Ise Senior High School, Epe",
+    "example_username_2": "Tio College, Ikorodu"
   }
 }
