@@ -17,7 +17,8 @@ async def _noop_send(*args, **kwargs):
 
 with patch("tutor.get_tutor_reply", return_value=("2 + 2 = 4. Want to try a harder one?", 0.42)), \
      patch("sheet_logger.log_interaction", return_value=None), \
-     patch("telegram_adapter.send_telegram_message", new=_noop_send):
+     patch("telegram_adapter.send_telegram_message", new=_noop_send), \
+     patch("whatsapp_adapter.send_whatsapp_message", return_value=None):
     import main
     client = TestClient(main.app)
 
@@ -32,8 +33,7 @@ with patch("tutor.get_tutor_reply", return_value=("2 + 2 = 4. Want to try a hard
         data={"From": "whatsapp:+2348000000001", "Body": "what is 2+2"},
     )
     assert r.status_code == 200, r.text
-    assert "4" in r.text, r.text
-    print("Webhook reply OK, TwiML:\n", r.text)
+    print("Webhook accepted OK (reply now sent async via REST, not in TwiML):\n", r.text)
 
     # Empty message should get the friendly prompt, not crash
     r = client.post("/webhook/whatsapp", data={"From": "whatsapp:+2348012345678", "Body": ""})
@@ -43,7 +43,7 @@ with patch("tutor.get_tutor_reply", return_value=("2 + 2 = 4. Want to try a hard
     # Simulated incoming Telegram update
     r = client.post(
         "/webhook/telegram",
-        json={"message": {"chat": {"id": 100000001}, "text": "what is 2+2"}},
+        json={"message": {"chat": {"id": 100000001}, "from": {"username": "example_username_1"}, "text": "what is 2+2"}},
     )
     assert r.status_code == 200, r.text
     print("Telegram webhook accepted OK:", r.json())

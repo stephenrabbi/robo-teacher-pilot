@@ -22,7 +22,7 @@ import json
 import datetime
 import gspread
 
-_HEADER = ["Timestamp (UTC)", "School", "Student Ref", "Question", "Reply (truncated)", "Latency (s)"]
+_HEADER = ["Timestamp (UTC)", "School", "Channel", "Student Ref", "Question", "Reply (truncated)", "Interaction Status", "Latency (s)"]
 
 _sheet = None
 
@@ -44,16 +44,19 @@ def mask_number(whatsapp_number: str) -> str:
     return f"***{digits[-4:]}" if len(digits) >= 4 else "***"
 
 
-def log_interaction(student_id: str, school: str, question: str, reply: str, latency: float) -> None:
+def log_interaction(student_id: str, school: str, question: str, reply: str, latency: float,
+                     channel: str = "", status: str = "Success") -> None:
     """Best-effort logging — must never crash the bot if the sheet is unreachable."""
     try:
         sheet = _get_sheet()
         sheet.append_row([
             datetime.datetime.utcnow().isoformat(timespec="seconds"),
             school,
+            channel,
             mask_number(student_id),
             question[:500],
             reply[:500],
+            status,
             round(latency, 2),
         ])
     except Exception as e:
