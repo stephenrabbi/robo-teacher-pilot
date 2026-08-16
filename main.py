@@ -1,12 +1,13 @@
 """
-Robo-Teacher — WhatsApp pilot bot (JSS2 Basic Maths).
+Robo-Teacher -- WhatsApp + Telegram pilot bot (JSS2 Basic Maths).
 
-Entry point: FastAPI app exposing a single webhook for Twilio's
-WhatsApp Sandbox. See README.md for full setup and deployment steps.
+Entry point: FastAPI app exposing webhooks for Twilio's WhatsApp Sandbox
+and Telegram. New students are auto-registered on first contact via a
+one-time "which school are you from?" question -- see roster_sheet.py.
+See README.md for full setup and deployment steps.
 """
 
-import os
-import json
+import datetime
 import logging
 
 from fastapi import FastAPI, Request, BackgroundTasks
@@ -19,39 +20,46 @@ load_dotenv()
 from tutor import get_tutor_reply
 from sheet_logger import log_interaction
 from telegram_adapter import send_telegram_message
+from roster_sheet import (
+    lookup_student, is_awaiting_school_choice, mark_awaiting_school_choice,
+    parse_school_choice, register_student, ONBOARDING_PROMPT, ONBOARDING_RETRY,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("robo-teacher")
 
 app = FastAPI(title="Robo-Teacher Pilot")
 
-_ROSTER_PATH = os.path.join(os.path.dirname(__file__), "roster.json")
-try:
-    with open(_ROSTER_PATH) as f:
-        _raw_roster = json.load(f)
-        _ROSTER = {
-            "whatsapp": _raw_roster.get("whatsapp", {}),
-            # Telegram usernames are matched case-insensitively.
-            "telegram": {k.lstrip("@").lower(): v for k, v in _raw_roster.get("telegram", {}).items()},
-        }
-except FileNotFoundError:
-    _ROSTER = {"whatsapp": {}, "telegram": {}}
-
-
-def _lookup_school_whatsapp(whatsapp_number: str) -> str:
-    digits = "".join(c for c in whatsapp_number if c.isdigit())
-    return _ROSTER["whatsapp"].get(digits, "Unregistered")
-
-
-def _lookup_school_telegram(username: str) -> str:
-    if not username:
-        return "Unregistered"
-    return _ROSTER["telegram"].get(username.lstrip("@").lower(), "Unregistered")
-
 
 @app.get("/")
 def health_check():
     return {"status": "Robo-Teacher pilot bot is running"}
+
+
+def _get_or_onboard(channel: str, identifier: str, message: str):
+    """
+    Checks whether this student is already registered.
+    Returns either:
+      ("reply", text)                              -- send this directly, no tutor call
+      ("proceed", pilot_id, school, session_id)     -- go ahead and answer their question
+    """
+    student = lookup_student(channel, identifier)
+    if student:
+        pilot_id = student["pilot_id"]
+        school = student["school"]
+        session_id = f"{pilot_id}-{datetime.date.today().isoformat()}"
+        return ("proceed", pilot_id, school, session_id)
+
+    if is_awaiting_school_choice(channel, identifier):
+        choice = parse_school_choice(message)
+        if choice:
+            school, prefix = choice
+            pilot_id = register_student(channel, identifier, school, prefix)
+            return ("reply", f"You're all set, {pilot_id}! \U0001F389 Ask me your first JSS2 Maths question anytime.")
+        return ("reply", ONBOARDING_RETRY)
+
+    mark_awaiting_school_choice(channel, identifier)
+    return ("reply", ONBOARDING_PROMPT)
 
 
 @app.post("/webhook/whatsapp")
@@ -66,7 +74,13 @@ async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks):
         twiml.message("Hi! Send me a Maths question or topic you'd like help with (JSS2 syllabus).")
         return Response(content=str(twiml), media_type="application/xml")
 
-    school = _lookup_school_whatsapp(from_number)
+    outcome = _get_or_onboard("whatsapp", from_number, body)
+
+    if outcome[0] == "reply":
+        twiml.message(outcome[1])
+        return Response(content=str(twiml), media_type="application/xml")
+
+    _, pilot_id, school, session_id = outcome
     status = "Success"
     try:
         reply_text, latency = get_tutor_reply(student_id=from_number, message=body)
@@ -80,12 +94,12 @@ async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks):
     # follow-up API call would be subject to). Logging happens in the
     # background so it never delays the reply itself.
     twiml.message(reply_text)
-    background_tasks.add_task(log_interaction, from_number, school, body, reply_text, latency, "WhatsApp", status)
+    background_tasks.add_task(log_interaction, pilot_id, school, "WhatsApp", session_id, body, reply_text, latency, status)
 
     return Response(content=str(twiml), media_type="application/xml")
 
 
-async def _handle_telegram_message(chat_id: int, text: str, school: str):
+async def _handle_telegram_message(chat_id: int, text: str, pilot_id: str, school: str, session_id: str):
     """Runs after we've already told Telegram '200 OK', so a slow Gemini
     call can never cause Telegram to time out and retry the webhook."""
     status = "Success"
@@ -96,7 +110,7 @@ async def _handle_telegram_message(chat_id: int, text: str, school: str):
         reply_text, latency, status = "Sorry, I had a small technical hiccup. Please try asking again in a moment.", 0.0, "Error"
 
     await send_telegram_message(chat_id, reply_text)
-    log_interaction(str(chat_id), school, text, reply_text, latency, channel="Telegram", status=status)
+    log_interaction(pilot_id, school, "Telegram", session_id, text, reply_text, latency, status)
 
 
 @app.post("/webhook/telegram")
@@ -110,7 +124,6 @@ async def telegram_webhook(request: Request, background_tasks: BackgroundTasks):
     chat_id = message["chat"]["id"]
     username = (message.get("from") or {}).get("username", "")
     text = message["text"].strip()
-    school = _lookup_school_telegram(username)
 
     if not text:
         background_tasks.add_task(
@@ -119,5 +132,20 @@ async def telegram_webhook(request: Request, background_tasks: BackgroundTasks):
         )
         return {"ok": True}
 
-    background_tasks.add_task(_handle_telegram_message, chat_id, text, school)
+    if not username:
+        background_tasks.add_task(
+            send_telegram_message, chat_id,
+            "You'll need a Telegram username set (Settings \u2192 Username) before I can register you \u2014 "
+            "add one, then message me again!"
+        )
+        return {"ok": True}
+
+    outcome = _get_or_onboard("telegram", username, text)
+
+    if outcome[0] == "reply":
+        background_tasks.add_task(send_telegram_message, chat_id, outcome[1])
+        return {"ok": True}
+
+    _, pilot_id, school, session_id = outcome
+    background_tasks.add_task(_handle_telegram_message, chat_id, text, pilot_id, school, session_id)
     return {"ok": True}

@@ -1,20 +1,12 @@
 """
-Logs every tutor interaction to a Google Sheet, so Herbert has
-human-readable pilot data ready for the grant application without
-needing to query a database.
+Logs every tutor interaction to an "Interaction Log" tab in Google Sheets,
+so Herbert has human-readable pilot data ready for the grant application
+without needing to query a database.
 
-Setup required (see README.md):
-1. Create a Google Cloud project, enable the Google Sheets API.
-2. Create a Service Account, download its JSON key.
-3. Create a Google Sheet, share it with the service account's email
-   (found inside the JSON key file) as an Editor.
-4. Put the Sheet's ID (from its URL) in GOOGLE_SHEET_ID.
-5. Put the full JSON key contents (as one line) in GOOGLE_SERVICE_ACCOUNT_JSON.
-
-Privacy note: we deliberately log only the LAST 4 DIGITS of the
-student's WhatsApp number, not the full number, since these are minors.
-That's enough to spot repeat usage without storing identifying contact
-details in a spreadsheet several people may see.
+Privacy note: no phone number, Telegram username, or student name is
+stored here at all -- only the anonymous Pilot ID assigned during
+onboarding (see roster_sheet.py). The mapping from Pilot ID back to a
+real student lives only in the separate Student Roster tab.
 """
 
 import os
@@ -22,38 +14,44 @@ import json
 import datetime
 import gspread
 
-_HEADER = ["Timestamp (UTC)", "School", "Channel", "Student Ref", "Question", "Reply (truncated)", "Interaction Status", "Latency (s)"]
+_HEADER = ["Timestamp (UTC)", "School", "Pilot ID", "Channel", "Session ID",
+           "Question", "Reply (truncated)", "Interaction Status", "Latency (s)"]
 
-_sheet = None
+_client = None
+_log_ws = None
 
 
-def _get_sheet():
-    global _sheet
-    if _sheet is None:
+def _get_client():
+    global _client
+    if _client is None:
         creds_dict = json.loads(os.environ["GOOGLE_SERVICE_ACCOUNT_JSON"])
-        gc = gspread.service_account_from_dict(creds_dict)
-        sh = gc.open_by_key(os.environ["GOOGLE_SHEET_ID"])
-        _sheet = sh.sheet1
-        if not _sheet.acell("A1").value:
-            _sheet.append_row(_HEADER)
-    return _sheet
+        _client = gspread.service_account_from_dict(creds_dict)
+    return _client
 
 
-def mask_number(whatsapp_number: str) -> str:
-    digits = "".join(c for c in whatsapp_number if c.isdigit())
-    return f"***{digits[-4:]}" if len(digits) >= 4 else "***"
+def _get_log_worksheet():
+    global _log_ws
+    if _log_ws is None:
+        sh = _get_client().open_by_key(os.environ["GOOGLE_SHEET_ID"])
+        try:
+            _log_ws = sh.worksheet("Interaction Log")
+        except gspread.WorksheetNotFound:
+            _log_ws = sh.add_worksheet(title="Interaction Log", rows=1000, cols=len(_HEADER))
+            _log_ws.append_row(_HEADER)
+    return _log_ws
 
 
-def log_interaction(student_id: str, school: str, question: str, reply: str, latency: float,
-                     channel: str = "", status: str = "Success") -> None:
-    """Best-effort logging — must never crash the bot if the sheet is unreachable."""
+def log_interaction(pilot_id: str, school: str, channel: str, session_id: str,
+                     question: str, reply: str, latency: float, status: str = "Success") -> None:
+    """Best-effort logging -- must never crash the bot if the sheet is unreachable."""
     try:
-        sheet = _get_sheet()
+        sheet = _get_log_worksheet()
         sheet.append_row([
             datetime.datetime.utcnow().isoformat(timespec="seconds"),
             school,
+            pilot_id,
             channel,
-            mask_number(student_id),
+            session_id,
             question[:500],
             reply[:500],
             status,
