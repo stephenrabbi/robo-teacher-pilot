@@ -10,7 +10,10 @@ the real answer whenever it's actually ready.
 """
 
 import os
+import logging
 from twilio.rest import Client
+
+logger = logging.getLogger("robo-teacher.whatsapp_adapter")
 
 _client = None
 
@@ -26,4 +29,7 @@ def send_whatsapp_message(to_whatsapp_number: str, body: str) -> None:
     """to_whatsapp_number should already include the 'whatsapp:' prefix, e.g. 'whatsapp:+2348012345678'."""
     client = _get_client()
     sandbox_number = os.getenv("TWILIO_WHATSAPP_FROM", "whatsapp:+14155238886")
+    # Masked so the full number doesn't sit in plaintext logs, but the last
+    # 4 digits are enough to compare against the number you actually joined with.
+    logger.info(f"Sending WhatsApp reply: from={sandbox_number} to=...{to_whatsapp_number[-6:]}")
     client.messages.create(from_=sandbox_number, to=to_whatsapp_number, body=body)
