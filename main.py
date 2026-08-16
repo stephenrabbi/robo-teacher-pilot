@@ -19,7 +19,6 @@ load_dotenv()
 from tutor import get_tutor_reply
 from sheet_logger import log_interaction
 from telegram_adapter import send_telegram_message
-from whatsapp_adapter import send_whatsapp_message
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("robo-teacher")
@@ -61,24 +60,13 @@ async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks):
     from_number = form.get("From", "")  # e.g. "whatsapp:+2348012345678"
     body = (form.get("Body") or "").strip()
 
+    twiml = MessagingResponse()
+
     if not body:
-        twiml = MessagingResponse()
         twiml.message("Hi! Send me a Maths question or topic you'd like help with (JSS2 syllabus).")
         return Response(content=str(twiml), media_type="application/xml")
 
     school = _lookup_school_whatsapp(from_number)
-    background_tasks.add_task(_handle_whatsapp_message, from_number, body, school)
-
-    # Acknowledge Twilio immediately with an empty response. The real answer
-    # is sent separately via the REST API once it's actually ready, so a
-    # slow cold start or a slow Gemini call can never cause a silent
-    # failure or force the student to resend their question.
-    return Response(content=str(MessagingResponse()), media_type="application/xml")
-
-
-def _handle_whatsapp_message(from_number: str, body: str, school: str):
-    """Runs after Twilio has already been acknowledged, so a slow Gemini
-    call can never cause a timeout or a dropped first message."""
     status = "Success"
     try:
         reply_text, latency = get_tutor_reply(student_id=from_number, message=body)
@@ -86,13 +74,15 @@ def _handle_whatsapp_message(from_number: str, body: str, school: str):
         logger.exception("Gemini call failed (WhatsApp)")
         reply_text, latency, status = "Sorry, I had a small technical hiccup. Please try asking again in a moment.", 0.0, "Error"
 
-    try:
-        send_whatsapp_message(from_number, reply_text)
-    except Exception:
-        logger.exception("Failed to send WhatsApp reply")
-        status = "Error"
+    # The reply is embedded directly in this same response, which Twilio
+    # treats as a guaranteed direct reply to the message that just came in
+    # (avoiding the separate outbound-message session-window check that a
+    # follow-up API call would be subject to). Logging happens in the
+    # background so it never delays the reply itself.
+    twiml.message(reply_text)
+    background_tasks.add_task(log_interaction, from_number, school, body, reply_text, latency, "WhatsApp", status)
 
-    log_interaction(from_number, school, body, reply_text, latency, channel="WhatsApp", status=status)
+    return Response(content=str(twiml), media_type="application/xml")
 
 
 async def _handle_telegram_message(chat_id: int, text: str, school: str):

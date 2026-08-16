@@ -33,7 +33,8 @@ with patch("tutor.get_tutor_reply", return_value=("2 + 2 = 4. Want to try a hard
         data={"From": "whatsapp:+2348000000001", "Body": "what is 2+2"},
     )
     assert r.status_code == 200, r.text
-    print("Webhook accepted OK (reply now sent async via REST, not in TwiML):\n", r.text)
+    assert "4" in r.text, r.text
+    print("Webhook reply OK, TwiML:\n", r.text)
 
     # Empty message should get the friendly prompt, not crash
     r = client.post("/webhook/whatsapp", data={"From": "whatsapp:+2348012345678", "Body": ""})
