@@ -1,0 +1,13 @@
+.env
+.env.*
+!.env.example
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.log
+.DS_Store
+.vscode/
+.idea/
+*.json.key
+service-account*.json
