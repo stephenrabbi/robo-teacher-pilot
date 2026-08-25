@@ -51,6 +51,7 @@ with patch("tutor.get_tutor_reply", return_value=("2 + 2 = 4. Want to try a hard
      patch("roster_sheet.is_awaiting_school_choice", side_effect=_fake_awaiting), \
      patch("roster_sheet.mark_awaiting_school_choice", side_effect=_fake_mark_awaiting):
     import main
+    from roster_sheet import ONBOARDING_PROMPT
     client = TestClient(main.app)
 
     r = client.get("/")
@@ -76,7 +77,7 @@ with patch("tutor.get_tutor_reply", return_value=("2 + 2 = 4. Want to try a hard
         json={"message": {"chat": {"id": 555}, "from": {"username": "test_student"}, "text": "hello"}},
     )
     assert r.status_code == 200, r.text
-    assert _sent_telegram[-1] == (555, "Which school are you from?\n\n1. Ise Junior High School, Epe\n2. Tio College, Ikorodu\n\nReply with 1 or 2.")
+    assert _sent_telegram[-1] == (555, ONBOARDING_PROMPT)
     print("Telegram new student prompted OK")
 
     r = client.post(
