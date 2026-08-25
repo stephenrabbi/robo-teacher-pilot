@@ -83,7 +83,10 @@ async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks):
     _, pilot_id, school, session_id = outcome
     status = "Success"
     try:
-        reply_text, latency = get_tutor_reply(student_id=from_number, message=body)
+        # Use the anonymous Pilot ID for conversation memory rather than the
+        # student's WhatsApp number. This keeps channel identifiers out of
+        # the tutor's in-memory conversation store.
+        reply_text, latency = get_tutor_reply(student_id=pilot_id, message=body)
     except Exception:
         logger.exception("Gemini call failed (WhatsApp)")
         reply_text, latency, status = "Sorry, I had a small technical hiccup. Please try asking again in a moment.", 0.0, "Error"
@@ -104,7 +107,10 @@ async def _handle_telegram_message(chat_id: int, text: str, pilot_id: str, schoo
     call can never cause Telegram to time out and retry the webhook."""
     status = "Success"
     try:
-        reply_text, latency = get_tutor_reply(student_id=str(chat_id), message=text)
+        # Use the anonymous Pilot ID for conversation memory rather than the
+        # Telegram chat ID. This keeps the platform identifier out of the
+        # tutor's in-memory conversation store.
+        reply_text, latency = get_tutor_reply(student_id=pilot_id, message=text)
     except Exception:
         logger.exception("Gemini call failed (Telegram)")
         reply_text, latency, status = "Sorry, I had a small technical hiccup. Please try asking again in a moment.", 0.0, "Error"
