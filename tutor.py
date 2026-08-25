@@ -23,7 +23,9 @@ from google.genai import errors as genai_errors
 
 logger = logging.getLogger("robo-teacher.tutor")
 
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+# Stable, cost-efficient model configured for the pilot. This can be
+# overridden through GEMINI_MODEL in the deployment environment.
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite")
 
 # ---------------------------------------------------------------------------
 # EDIT THIS to match your school's actual JSS2 Maths scheme of work.
@@ -84,7 +86,7 @@ def _is_rate_limit_error(e: Exception) -> bool:
 
 def get_tutor_reply(student_id: str, message: str) -> tuple[str, float]:
     """
-    student_id: a stable per-student key (we use the WhatsApp number).
+    student_id: a stable anonymous Pilot ID used as the conversation-memory key.
     message: the student's incoming text.
     Returns (reply_text, latency_seconds).
     """
