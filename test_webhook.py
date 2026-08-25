@@ -6,11 +6,9 @@ Covers: a brand-new student's onboarding flow (school question -> choice
 student, on both WhatsApp and Telegram.
 """
 
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from fastapi.testclient import TestClient
 
-# In-memory fake roster so we can exercise the real onboarding logic
-# without hitting Google Sheets.
 _fake_roster = {}
 _fake_next = {"ISE": 1, "TIO": 1}
 
@@ -38,13 +36,16 @@ def _fake_mark_awaiting(channel, identifier):
     _pending.add((channel, identifier))
 
 
-async def _noop_send(*args, **kwargs):
-    return None
+_sent_telegram = []
+
+
+async def _fake_send_telegram_message(chat_id, text):
+    _sent_telegram.append((chat_id, text))
 
 
 with patch("tutor.get_tutor_reply", return_value=("2 + 2 = 4. Want to try a harder one?", 0.42)), \
      patch("sheet_logger.log_interaction", return_value=None), \
-     patch("telegram_adapter.send_telegram_message", new=_noop_send), \
+     patch("telegram_adapter.send_telegram_message", new=_fake_send_telegram_message), \
      patch("roster_sheet.lookup_student", side_effect=_fake_lookup), \
      patch("roster_sheet.register_student", side_effect=_fake_register), \
      patch("roster_sheet.is_awaiting_school_choice", side_effect=_fake_awaiting), \
@@ -52,7 +53,6 @@ with patch("tutor.get_tutor_reply", return_value=("2 + 2 = 4. Want to try a hard
     import main
     client = TestClient(main.app)
 
-    # Health check
     r = client.get("/")
     assert r.status_code == 200, r.text
     print("Health check OK:", r.json())
@@ -76,6 +76,7 @@ with patch("tutor.get_tutor_reply", return_value=("2 + 2 = 4. Want to try a hard
         json={"message": {"chat": {"id": 555}, "from": {"username": "test_student"}, "text": "hello"}},
     )
     assert r.status_code == 200, r.text
+    assert _sent_telegram[-1] == (555, "Which school are you from?\n\n1. Ise Junior High School, Epe\n2. Tio College, Ikorodu\n\nReply with 1 or 2.")
     print("Telegram new student prompted OK")
 
     r = client.post(
@@ -83,14 +84,17 @@ with patch("tutor.get_tutor_reply", return_value=("2 + 2 = 4. Want to try a hard
         json={"message": {"chat": {"id": 555}, "from": {"username": "test_student"}, "text": "2"}},
     )
     assert r.status_code == 200, r.text
-    print("Telegram student registered OK")
+    assert _sent_telegram[-1][0] == 555
+    assert "TIO001" in _sent_telegram[-1][1]
+    print("Telegram student registered OK:", _sent_telegram[-1][1])
 
     r = client.post(
         "/webhook/telegram",
         json={"message": {"chat": {"id": 555}, "from": {"username": "test_student"}, "text": "what is 2+2"}},
     )
     assert r.status_code == 200, r.text
-    print("Telegram registered student got reply OK")
+    assert _sent_telegram[-1] == (555, "2 + 2 = 4. Want to try a harder one?")
+    print("Telegram registered student got tutor reply OK")
 
     # --- Empty message handling ---
     r = client.post("/webhook/whatsapp", data={"From": "whatsapp:+2348012345678", "Body": ""})
