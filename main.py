@@ -9,9 +9,11 @@ See README.md for full setup and deployment steps.
 
 import datetime
 import logging
+import os
 
-from fastapi import FastAPI, Request, BackgroundTasks
+from fastapi import FastAPI, Request, BackgroundTasks, HTTPException
 from fastapi.responses import Response
+from twilio.request_validator import RequestValidator
 from twilio.twiml.messaging_response import MessagingResponse
 from dotenv import load_dotenv
 
@@ -29,6 +31,30 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("robo-teacher")
 
 app = FastAPI(title="Robo-Teacher Pilot")
+
+
+def _validate_twilio_request(request: Request, form) -> None:
+    """Reject forged Twilio webhooks using Twilio's X-Twilio-Signature."""
+    auth_token = os.getenv("TWILIO_AUTH_TOKEN")
+    if not auth_token:
+        raise HTTPException(status_code=500, detail="Twilio authentication is not configured")
+
+    signature = request.headers.get("X-Twilio-Signature", "")
+    validator = RequestValidator(auth_token)
+    url = str(request.url)
+    if not validator.validate(url, dict(form), signature):
+        raise HTTPException(status_code=403, detail="Invalid Twilio signature")
+
+
+def _validate_telegram_request(request: Request) -> None:
+    """Reject requests that do not carry the configured Telegram webhook secret."""
+    secret = os.getenv("TELEGRAM_WEBHOOK_SECRET")
+    if not secret:
+        raise HTTPException(status_code=500, detail="Telegram webhook authentication is not configured")
+
+    supplied = request.headers.get("X-Telegram-Bot-Api-Secret-Token", "")
+    if supplied != secret:
+        raise HTTPException(status_code=403, detail="Invalid Telegram webhook secret")
 
 
 @app.get("/")
@@ -55,7 +81,7 @@ def _get_or_onboard(channel: str, identifier: str, message: str):
         if choice:
             school, prefix = choice
             pilot_id = register_student(channel, identifier, school, prefix)
-            return ("reply", f"You're all set, {pilot_id}! \U0001F389 Ask me your first JSS2 Maths question anytime.")
+            return ("reply", f"You're all set, {pilot_id}! 🎉 Ask me your first JSS2 Maths question anytime.")
         return ("reply", ONBOARDING_RETRY)
 
     mark_awaiting_school_choice(channel, identifier)
@@ -65,7 +91,8 @@ def _get_or_onboard(channel: str, identifier: str, message: str):
 @app.post("/webhook/whatsapp")
 async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks):
     form = await request.form()
-    from_number = form.get("From", "")  # e.g. "whatsapp:+2348012345678"
+    _validate_twilio_request(request, form)
+    from_number = form.get("From", "")
     body = (form.get("Body") or "").strip()
 
     twiml = MessagingResponse()
@@ -83,19 +110,11 @@ async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks):
     _, pilot_id, school, session_id = outcome
     status = "Success"
     try:
-        # Use the anonymous Pilot ID for conversation memory rather than the
-        # student's WhatsApp number. This keeps channel identifiers out of
-        # the tutor's in-memory conversation store.
         reply_text, latency = get_tutor_reply(student_id=pilot_id, message=body)
     except Exception:
         logger.exception("Gemini call failed (WhatsApp)")
         reply_text, latency, status = "Sorry, I had a small technical hiccup. Please try asking again in a moment.", 0.0, "Error"
 
-    # The reply is embedded directly in this same response, which Twilio
-    # treats as a guaranteed direct reply to the message that just came in
-    # (avoiding the separate outbound-message session-window check that a
-    # follow-up API call would be subject to). Logging happens in the
-    # background so it never delays the reply itself.
     twiml.message(reply_text)
     background_tasks.add_task(log_interaction, pilot_id, school, "WhatsApp", session_id, body, reply_text, latency, status)
 
@@ -103,13 +122,9 @@ async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks):
 
 
 async def _handle_telegram_message(chat_id: int, text: str, pilot_id: str, school: str, session_id: str):
-    """Runs after we've already told Telegram '200 OK', so a slow Gemini
-    call can never cause Telegram to time out and retry the webhook."""
+    """Runs after we've already told Telegram '200 OK'."""
     status = "Success"
     try:
-        # Use the anonymous Pilot ID for conversation memory rather than the
-        # Telegram chat ID. This keeps the platform identifier out of the
-        # tutor's in-memory conversation store.
         reply_text, latency = get_tutor_reply(student_id=pilot_id, message=text)
     except Exception:
         logger.exception("Gemini call failed (Telegram)")
@@ -121,11 +136,12 @@ async def _handle_telegram_message(chat_id: int, text: str, pilot_id: str, schoo
 
 @app.post("/webhook/telegram")
 async def telegram_webhook(request: Request, background_tasks: BackgroundTasks):
+    _validate_telegram_request(request)
     update = await request.json()
     message = update.get("message") or update.get("edited_message")
 
     if not message or "text" not in message:
-        return {"ok": True}  # ignore non-text updates (stickers, photos, etc.)
+        return {"ok": True}
 
     chat_id = message["chat"]["id"]
     username = (message.get("from") or {}).get("username", "")
@@ -141,8 +157,7 @@ async def telegram_webhook(request: Request, background_tasks: BackgroundTasks):
     if not username:
         background_tasks.add_task(
             send_telegram_message, chat_id,
-            "You'll need a Telegram username set (Settings \u2192 Username) before I can register you \u2014 "
-            "add one, then message me again!"
+            "You'll need a Telegram username set (Settings → Username) before I can register you — add one, then message me again!"
         )
         return {"ok": True}
 
