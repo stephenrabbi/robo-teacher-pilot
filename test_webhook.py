@@ -1,12 +1,13 @@
 """
 Sanity tests -- mocks Gemini, Sheets, and the roster so this runs with no
-API keys and no internet access. Run with: python test_webhook.py
-Covers: a brand-new student's onboarding flow (school question -> choice
--> registration), and a normal question from an already-registered
-student, on both WhatsApp and Telegram.
+real API credentials or internet access. Run with: python test_webhook.py
+Covers onboarding, registration, normal tutoring requests, webhook
+authentication enforcement, and empty-message handling on both channels.
 """
 
+import os
 from unittest.mock import patch
+
 from fastapi.testclient import TestClient
 
 _fake_roster = {}
@@ -43,7 +44,15 @@ async def _fake_send_telegram_message(chat_id, text):
     _sent_telegram.append((chat_id, text))
 
 
-with patch("tutor.get_tutor_reply", return_value=("2 + 2 = 4. Want to try a harder one?", 0.42)), \
+with patch.dict(
+    os.environ,
+    {
+        "TWILIO_AUTH_TOKEN": "test-twilio-auth-token",
+        "TELEGRAM_WEBHOOK_SECRET": "test-telegram-webhook-secret",
+    },
+    clear=False,
+), \
+     patch("tutor.get_tutor_reply", return_value=("2 + 2 = 4. Want to try a harder one?", 0.42)), \
      patch("sheet_logger.log_interaction", return_value=None), \
      patch("telegram_adapter.send_telegram_message", new=_fake_send_telegram_message), \
      patch("roster_sheet.lookup_student", side_effect=_fake_lookup), \
@@ -52,28 +61,69 @@ with patch("tutor.get_tutor_reply", return_value=("2 + 2 = 4. Want to try a hard
      patch("roster_sheet.mark_awaiting_school_choice", side_effect=_fake_mark_awaiting):
     import main
     from roster_sheet import ONBOARDING_PROMPT
+
     client = TestClient(main.app)
 
     r = client.get("/")
     assert r.status_code == 200, r.text
     print("Health check OK:", r.json())
 
-    # --- New WhatsApp student: full onboarding flow ---
-    r = client.post("/webhook/whatsapp", data={"From": "whatsapp:+2348000000099", "Body": "hi"})
-    assert "which school" in r.text.lower(), r.text
-    print("New student prompted for school OK")
+    # --- Security checks: invalid webhook requests must be rejected ---
+    with patch.object(main.RequestValidator, "validate", return_value=False):
+        r = client.post(
+            "/webhook/whatsapp",
+            data={"From": "whatsapp:+2348000000099", "Body": "hi"},
+        )
+        assert r.status_code == 403, r.text
+        print("Invalid WhatsApp signature rejected OK")
 
-    r = client.post("/webhook/whatsapp", data={"From": "whatsapp:+2348000000099", "Body": "1"})
-    assert "ISE001" in r.text, r.text
-    print("New student registered OK:", r.text)
-
-    r = client.post("/webhook/whatsapp", data={"From": "whatsapp:+2348000000099", "Body": "what is 2+2"})
-    assert "4" in r.text, r.text
-    print("Registered student got tutor reply OK:", r.text)
-
-    # --- New Telegram student: full onboarding flow ---
     r = client.post(
         "/webhook/telegram",
+        headers={"X-Telegram-Bot-Api-Secret-Token": "wrong-secret"},
+        json={"message": {"chat": {"id": 555}, "from": {"username": "test_student"}, "text": "hello"}},
+    )
+    assert r.status_code == 403, r.text
+    print("Invalid Telegram secret rejected OK")
+
+    # For the normal WhatsApp flow, mock Twilio's signature validator so
+    # tests do not need real Twilio credentials or signature generation.
+    with patch.object(main.RequestValidator, "validate", return_value=True):
+        # --- New WhatsApp student: full onboarding flow ---
+        r = client.post(
+            "/webhook/whatsapp",
+            data={"From": "whatsapp:+2348000000099", "Body": "hi"},
+        )
+        assert "which school" in r.text.lower(), r.text
+        print("New student prompted for school OK")
+
+        r = client.post(
+            "/webhook/whatsapp",
+            data={"From": "whatsapp:+2348000000099", "Body": "1"},
+        )
+        assert "ISE001" in r.text, r.text
+        print("New student registered OK:", r.text)
+
+        r = client.post(
+            "/webhook/whatsapp",
+            data={"From": "whatsapp:+2348000000099", "Body": "what is 2+2"},
+        )
+        assert "4" in r.text, r.text
+        print("Registered student got tutor reply OK:", r.text)
+
+        # --- Empty message handling ---
+        r = client.post(
+            "/webhook/whatsapp",
+            data={"From": "whatsapp:+2348012345678", "Body": ""},
+        )
+        assert r.status_code == 200, r.text
+        print("Empty WhatsApp message handling OK")
+
+    # --- New Telegram student: full onboarding flow ---
+    telegram_headers = {"X-Telegram-Bot-Api-Secret-Token": "test-telegram-webhook-secret"}
+
+    r = client.post(
+        "/webhook/telegram",
+        headers=telegram_headers,
         json={"message": {"chat": {"id": 555}, "from": {"username": "test_student"}, "text": "hello"}},
     )
     assert r.status_code == 200, r.text
@@ -82,6 +132,7 @@ with patch("tutor.get_tutor_reply", return_value=("2 + 2 = 4. Want to try a hard
 
     r = client.post(
         "/webhook/telegram",
+        headers=telegram_headers,
         json={"message": {"chat": {"id": 555}, "from": {"username": "test_student"}, "text": "2"}},
     )
     assert r.status_code == 200, r.text
@@ -91,15 +142,19 @@ with patch("tutor.get_tutor_reply", return_value=("2 + 2 = 4. Want to try a hard
 
     r = client.post(
         "/webhook/telegram",
+        headers=telegram_headers,
         json={"message": {"chat": {"id": 555}, "from": {"username": "test_student"}, "text": "what is 2+2"}},
     )
     assert r.status_code == 200, r.text
     assert _sent_telegram[-1] == (555, "2 + 2 = 4. Want to try a harder one?")
     print("Telegram registered student got tutor reply OK")
 
-    # --- Empty message handling ---
-    r = client.post("/webhook/whatsapp", data={"From": "whatsapp:+2348012345678", "Body": ""})
+    r = client.post(
+        "/webhook/telegram",
+        headers=telegram_headers,
+        json={"message": {"chat": {"id": 555}, "from": {"username": "test_student"}, "text": ""}},
+    )
     assert r.status_code == 200, r.text
-    print("Empty-message handling OK")
+    print("Empty Telegram message handling OK")
 
 print("\nAll sanity checks passed.")
