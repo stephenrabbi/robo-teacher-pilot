@@ -1,9 +1,9 @@
 """
-Dynamic student roster, backed by a "Student Roster" tab in the same
-Google Sheet as the interaction log. Replaces the old static roster.json —
-a new student is registered automatically the first time they message the
-bot, via a one-time "which school are you from?" question, no manual
-editing required.
+Dynamic student roster backed by the private Google Sheet.
+
+Existing active students remain authorized. New users are only auto-registered
+when ALLOW_AUTO_ENROLL is explicitly enabled; the closed-pilot default prevents
+unknown users from self-registering.
 """
 
 import os
@@ -11,7 +11,6 @@ import json
 import datetime
 import gspread
 
-# Recognized replies -> (canonical school name, Pilot ID prefix)
 SCHOOLS = {
     "1": ("Ise Senior High School, Epe", "ISE"),
     "ise": ("Ise Senior High School, Epe", "ISE"),
@@ -22,20 +21,25 @@ SCHOOLS = {
 }
 
 ONBOARDING_PROMPT = (
-    "Welcome to Robo-Teacher! \U0001F44B Before we start, which school are you from?\n\n"
-    "1 \u2014 Ise Senior High School, Epe\n"
-    "2 \u2014 Tio College, Ikorodu\n\n"
+    "Welcome to Robo-Teacher! 👋 Before we start, which school are you from?\n\n"
+    "1 — Ise Senior High School, Epe\n"
+    "2 — Tio College, Ikorodu\n\n"
     "Just reply with 1 or 2."
 )
-ONBOARDING_RETRY = "Sorry, I didn't quite catch that \U0001F614 Please reply with just 1 or 2."
+ONBOARDING_RETRY = "Sorry, I didn't quite catch that 😔 Please reply with just 1 or 2."
+ENROLLMENT_CLOSED_PROMPT = (
+    "Robo-Teacher is currently running as a closed school pilot. "
+    "Your account is not yet on the approved student roster. "
+    "Please contact your teacher to be enrolled before using the tutor."
+)
 
 _ROSTER_HEADER = ["Pilot ID", "School", "WhatsApp Number", "Telegram Username", "Active", "Date Onboarded"]
 
 _client = None
 _roster_ws = None
-_cache = None       # {(channel, normalized_identifier): {"pilot_id":.., "school":..}}
-_next_number = {}   # {prefix: next available int}
-_pending = {}        # {(channel, normalized_identifier): True}  awaiting school choice
+_cache = None
+_next_number = {}
+_pending = {}
 
 
 def _get_client():
@@ -74,6 +78,9 @@ def _load_cache():
     for row in ws.get_all_records():
         pilot_id = str(row.get("Pilot ID", "")).strip()
         school = str(row.get("School", "")).strip()
+        active = str(row.get("Active", "Yes")).strip().lower()
+        if active not in {"yes", "true", "1", "active"}:
+            continue
         wa = _normalize("whatsapp", str(row.get("WhatsApp Number", "")))
         tg = _normalize("telegram", str(row.get("Telegram Username", "")))
         if wa:
@@ -87,7 +94,7 @@ def _load_cache():
 
 
 def lookup_student(channel: str, identifier: str):
-    """Returns {'pilot_id':..., 'school':...} if already registered, else None."""
+    """Return an active registered participant or None."""
     _load_cache()
     return _cache.get((channel, _normalize(channel, identifier)))
 
@@ -101,12 +108,15 @@ def mark_awaiting_school_choice(channel: str, identifier: str) -> None:
 
 
 def parse_school_choice(text: str):
-    """Returns (school_name, prefix) if recognized, else None."""
     return SCHOOLS.get(text.strip().lower())
 
 
+def auto_enrollment_enabled() -> bool:
+    """Auto-enrollment is opt-in; the closed-pilot default is safer."""
+    return os.getenv("ALLOW_AUTO_ENROLL", "false").strip().lower() in {"1", "true", "yes", "on"}
+
+
 def register_student(channel: str, identifier: str, school: str, prefix: str) -> str:
-    """Registers a new student in the Sheet, returns their new Pilot ID."""
     _load_cache()
     n = _next_number.get(prefix, 1)
     pilot_id = f"{prefix}{n:03d}"

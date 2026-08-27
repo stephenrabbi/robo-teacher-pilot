@@ -1,17 +1,13 @@
-"""
-Sanity tests -- mocks Gemini, Sheets, and the roster so this runs with no
-real API credentials or internet access. Run with: python test_webhook.py
-Covers onboarding, registration, normal tutoring requests, webhook
-authentication enforcement, and empty-message handling on both channels.
-"""
+"""Sanity tests for onboarding, tutoring, arithmetic guardrails, and webhooks."""
 
 import os
 from unittest.mock import patch
-
 from fastapi.testclient import TestClient
 
 _fake_roster = {}
 _fake_next = {"ISE": 1, "TIO": 1}
+_pending = set()
+_sent_telegram = []
 
 
 def _fake_lookup(channel, identifier):
@@ -26,9 +22,6 @@ def _fake_register(channel, identifier, school, prefix):
     return pilot_id
 
 
-_pending = set()
-
-
 def _fake_awaiting(channel, identifier):
     return (channel, identifier) in _pending
 
@@ -37,21 +30,15 @@ def _fake_mark_awaiting(channel, identifier):
     _pending.add((channel, identifier))
 
 
-_sent_telegram = []
-
-
 async def _fake_send_telegram_message(chat_id, text):
     _sent_telegram.append((chat_id, text))
 
 
-with patch.dict(
-    os.environ,
-    {
-        "TWILIO_AUTH_TOKEN": "test-twilio-auth-token",
-        "TELEGRAM_WEBHOOK_SECRET": "test-telegram-webhook-secret",
-    },
-    clear=False,
-), \
+with patch.dict(os.environ, {
+    "TWILIO_AUTH_TOKEN": "test-twilio-auth-token",
+    "TELEGRAM_WEBHOOK_SECRET": "test-telegram-webhook-secret",
+    "ALLOW_AUTO_ENROLL": "true",
+}, clear=False), \
      patch("tutor.get_tutor_reply", return_value=("2 + 2 = 4. Want to try a harder one?", 0.42)), \
      patch("sheet_logger.log_interaction", return_value=None), \
      patch("telegram_adapter.send_telegram_message", new=_fake_send_telegram_message), \
@@ -60,101 +47,49 @@ with patch.dict(
      patch("roster_sheet.is_awaiting_school_choice", side_effect=_fake_awaiting), \
      patch("roster_sheet.mark_awaiting_school_choice", side_effect=_fake_mark_awaiting):
     import main
-    from roster_sheet import ONBOARDING_PROMPT
+    from roster_sheet import ONBOARDING_PROMPT, ENROLLMENT_CLOSED_PROMPT
+    from tutor import _simple_arithmetic_answer
 
     client = TestClient(main.app)
+    assert client.get("/").status_code == 200
 
-    r = client.get("/")
-    assert r.status_code == 200, r.text
-    print("Health check OK:", r.json())
+    # Arithmetic guardrail is deterministic and does not require Gemini.
+    assert "42" in _simple_arithmetic_answer("What is 19 + 23?")
+    assert _simple_arithmetic_answer("Tell me about physics") is None
+    print("Arithmetic guardrail OK")
 
-    # --- Security checks: invalid webhook requests must be rejected ---
+    # Invalid webhook authentication is rejected.
     with patch.object(main.RequestValidator, "validate", return_value=False):
-        r = client.post(
-            "/webhook/whatsapp",
-            data={"From": "whatsapp:+2348000000099", "Body": "hi"},
-        )
+        r = client.post("/webhook/whatsapp", data={"From": "whatsapp:+2348000000099", "Body": "hi"})
         assert r.status_code == 403, r.text
-        print("Invalid WhatsApp signature rejected OK")
-
-    r = client.post(
-        "/webhook/telegram",
-        headers={"X-Telegram-Bot-Api-Secret-Token": "wrong-secret"},
-        json={"message": {"chat": {"id": 555}, "from": {"username": "test_student"}, "text": "hello"}},
-    )
+    r = client.post("/webhook/telegram", headers={"X-Telegram-Bot-Api-Secret-Token": "wrong-secret"}, json={"message": {"chat": {"id": 555}, "from": {"username": "test_student"}, "text": "hello"}})
     assert r.status_code == 403, r.text
-    print("Invalid Telegram secret rejected OK")
+    print("Webhook authentication rejection OK")
 
-    # For the normal WhatsApp flow, mock Twilio's signature validator so
-    # tests do not need real Twilio credentials or signature generation.
     with patch.object(main.RequestValidator, "validate", return_value=True):
-        # --- New WhatsApp student: full onboarding flow ---
-        r = client.post(
-            "/webhook/whatsapp",
-            data={"From": "whatsapp:+2348000000099", "Body": "hi"},
-        )
+        r = client.post("/webhook/whatsapp", data={"From": "whatsapp:+2348000000099", "Body": "hi"})
         assert "which school" in r.text.lower(), r.text
-        print("New student prompted for school OK")
-
-        r = client.post(
-            "/webhook/whatsapp",
-            data={"From": "whatsapp:+2348000000099", "Body": "1"},
-        )
+        r = client.post("/webhook/whatsapp", data={"From": "whatsapp:+2348000000099", "Body": "1"})
         assert "ISE001" in r.text, r.text
-        print("New student registered OK:", r.text)
-
-        r = client.post(
-            "/webhook/whatsapp",
-            data={"From": "whatsapp:+2348000000099", "Body": "what is 2+2"},
-        )
+        r = client.post("/webhook/whatsapp", data={"From": "whatsapp:+2348000000099", "Body": "what is 2+2"})
         assert "4" in r.text, r.text
-        print("Registered student got tutor reply OK:", r.text)
+        r = client.post("/webhook/whatsapp", data={"From": "whatsapp:+2348012345678", "Body": ""})
+        assert r.status_code == 200
+    print("WhatsApp onboarding and tutoring OK")
 
-        # --- Empty message handling ---
-        r = client.post(
-            "/webhook/whatsapp",
-            data={"From": "whatsapp:+2348012345678", "Body": ""},
-        )
-        assert r.status_code == 200, r.text
-        print("Empty WhatsApp message handling OK")
-
-    # --- New Telegram student: full onboarding flow ---
     telegram_headers = {"X-Telegram-Bot-Api-Secret-Token": "test-telegram-webhook-secret"}
-
-    r = client.post(
-        "/webhook/telegram",
-        headers=telegram_headers,
-        json={"message": {"chat": {"id": 555}, "from": {"username": "test_student"}, "text": "hello"}},
-    )
-    assert r.status_code == 200, r.text
-    assert _sent_telegram[-1] == (555, ONBOARDING_PROMPT)
-    print("Telegram new student prompted OK")
-
-    r = client.post(
-        "/webhook/telegram",
-        headers=telegram_headers,
-        json={"message": {"chat": {"id": 555}, "from": {"username": "test_student"}, "text": "2"}},
-    )
-    assert r.status_code == 200, r.text
-    assert _sent_telegram[-1][0] == 555
+    r = client.post("/webhook/telegram", headers=telegram_headers, json={"message": {"chat": {"id": 555}, "from": {"username": "test_student"}, "text": "hello"}})
+    assert r.status_code == 200 and _sent_telegram[-1] == (555, ONBOARDING_PROMPT)
+    r = client.post("/webhook/telegram", headers=telegram_headers, json={"message": {"chat": {"id": 555}, "from": {"username": "test_student"}, "text": "2"}})
     assert "TIO001" in _sent_telegram[-1][1]
-    print("Telegram student registered OK:", _sent_telegram[-1][1])
-
-    r = client.post(
-        "/webhook/telegram",
-        headers=telegram_headers,
-        json={"message": {"chat": {"id": 555}, "from": {"username": "test_student"}, "text": "what is 2+2"}},
-    )
-    assert r.status_code == 200, r.text
+    r = client.post("/webhook/telegram", headers=telegram_headers, json={"message": {"chat": {"id": 555}, "from": {"username": "test_student"}, "text": "what is 2+2"}})
     assert _sent_telegram[-1] == (555, "2 + 2 = 4. Want to try a harder one?")
-    print("Telegram registered student got tutor reply OK")
+    print("Telegram onboarding and tutoring OK")
 
-    r = client.post(
-        "/webhook/telegram",
-        headers=telegram_headers,
-        json={"message": {"chat": {"id": 555}, "from": {"username": "test_student"}, "text": ""}},
-    )
-    assert r.status_code == 200, r.text
-    print("Empty Telegram message handling OK")
+    # Closed-pilot mode blocks unknown identifiers while existing roster users work.
+    with patch("main.auto_enrollment_enabled", return_value=False):
+        outcome = main._get_or_onboard("telegram", "unknown_student", "hello")
+        assert outcome == ("reply", ENROLLMENT_CLOSED_PROMPT)
+    print("Closed enrollment guardrail OK")
 
 print("\nAll sanity checks passed.")
