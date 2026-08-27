@@ -10,8 +10,11 @@ This document is a private-data collection template. Do not place student names,
 | Pilot end date | |
 | School 1 | Ise Junior High School, Epe |
 | School 2 | Tio College, Ikorodu |
-| Planned participants | 20 |
+| Planned participants | 56 |
 | Actual participants | |
+| Consent status | All 56 participants consented |
+
+**Pilot-size note:** The original planning target was 20 students (10 per school). The pilot was subsequently expanded to 56 consented students. The final evaluation should report the actual participant and analysis counts separately rather than treating the original target as the achieved sample size.
 
 ## 2. Product evidence
 
@@ -32,6 +35,7 @@ Use actual figures from the interaction log. Do not enter targets as results.
 
 | Metric | Value | Source/date checked |
 |---|---:|---|
+| Students consented | 56 | |
 | Students onboarded | | |
 | Students with ≥1 valid tutoring interaction | | |
 | Total valid tutoring interactions | | |
@@ -61,7 +65,7 @@ Record one row per participant in the private evaluation dataset. Use Pilot ID, 
 |---|---|---:|---:|---:|---:|---:|---:|
 | | | | | | | | |
 
-Only matched students with valid baseline and post-assessment scores should be included in the matched pre/post analysis.
+The expanded pilot allows up to 56 participant rows, subject to actual valid assessment participation. Only matched students with valid baseline and post-assessment scores should be included in the matched pre/post analysis.
 
 ## 6. Student feedback
 
