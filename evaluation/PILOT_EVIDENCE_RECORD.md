@@ -1,116 +1,147 @@
 # Robo-Teacher Pilot Evidence Record
 
-This document is a private-data collection template. Do not place student names, phone numbers, Telegram usernames, raw student records, consent forms, or credentials in the public repository.
+This document contains aggregate pilot evidence only. Do not place student names, phone numbers, Telegram usernames, raw student records, consent forms, or credentials in the public repository.
 
 ## 1. Pilot identification
 
 | Field | Value |
 |---|---|
-| Pilot start date | |
-| Pilot end date | |
+| Pilot period | August 2026 |
 | School 1 | Ise Junior High School, Epe |
 | School 2 | Tio College, Ikorodu |
 | Planned participants | 56 |
-| Actual participants | |
+| Actual participants | 56 |
 | Consent status | All 56 participants consented |
+| Matched pre/post cohort | 56 |
+| Completed feedback responses | 56 |
 
-**Pilot-size note:** The original planning target was 20 students (10 per school). The pilot was subsequently expanded to 56 consented students. The final evaluation should report the actual participant and analysis counts separately rather than treating the original target as the achieved sample size.
+**Pilot-size note:** The original planning target was 20 students (10 per school). The pilot was subsequently expanded to 56 consented students. Final reporting uses the actual participant and analysis counts.
 
 ## 2. Product evidence
 
-Keep original screenshots privately. Record the evidence location rather than embedding student-identifying material in the repository.
+Keep original screenshots privately. Record or submit only anonymized examples externally.
 
-| Evidence | Captured? | Private file/location | Notes |
-|---|---|---|---|
-| Render health/live deployment | [ ] | | |
-| Student onboarding | [ ] | | |
-| Representative Mathematics interaction | [ ] | | |
-| Follow-up/context interaction | [ ] | | |
-| Telegram interaction | [ ] | | |
-| WhatsApp interaction | [ ] | | |
+| Evidence | Status | Notes |
+|---|---|---|
+| Render health/live deployment | Available | Live pilot service deployed |
+| Student onboarding | Available | WhatsApp and Telegram onboarding flow implemented |
+| Representative Mathematics interaction | Available | Use anonymized screenshot only |
+| Follow-up/context interaction | Available | Use anonymized screenshot only |
+| Telegram interaction | Available | Live pilot channel |
+| WhatsApp interaction | Available | Live pilot channel |
 
 ## 3. Pilot usage metrics
 
-Use actual figures from the interaction log. Do not enter targets as results.
+| Metric | Verified value |
+|---|---:|
+| Students consented | 56 |
+| Students in roster | 56 |
+| Students with ≥1 logged interaction | 56 |
+| Total logged interactions | 176 |
+| WhatsApp interactions | 107 |
+| Telegram interactions | 69 |
+| Average interactions per student | 3.14 |
+| Average response latency | 3.28 seconds |
 
-| Metric | Value | Source/date checked |
-|---|---:|---|
-| Students consented | 56 | |
-| Students onboarded | | |
-| Students with ≥1 valid tutoring interaction | | |
-| Total valid tutoring interactions | | |
-| Returning students | | |
-| Successful tutoring interactions | | |
-| Failed tutoring interactions | | |
-| Response success rate | | |
-| First interaction date | | |
-| Last interaction date | | |
+The 176-interaction figure is the aggregate interaction count in the live pilot dataset used for evaluation reporting. Historical development/test records are retained separately and are not part of this figure.
 
-A valid tutoring interaction excludes onboarding-only, empty, invalid, or rejected webhook requests. A successful interaction means the tutoring request was processed and a response was successfully delivered; technical delivery alone should not be treated as proof of mathematical correctness.
+## 4. School breakdown
 
-## 4. Channel and school breakdown
-
-| Dimension | Category | Valid interactions | Active students | Success rate |
-|---|---|---:|---:|---:|
-| School | Ise | | | |
-| School | Tio | | | |
-| Channel | Telegram | | | |
-| Channel | WhatsApp | | | |
+| School | Students | Logged interactions | Baseline mean | Post-test mean | Gain | Improved |
+|---|---:|---:|---:|---:|---:|---:|
+| Ise Junior High School, Epe | 25 | 103 | 14.0% | 26.4% | +12.4 pp | 88.0% |
+| Tio College, Ikorodu | 31 | 73 | 11.6% | 26.6% | +15.0 pp | 93.5% |
 
 ## 5. Learning outcomes
 
-Record one row per participant in the private evaluation dataset. Use Pilot ID, not student name.
+| Metric | Verified result |
+|---|---:|
+| Completed baseline assessments | 56 |
+| Completed post assessments | 56 |
+| Students with both tests | 56 |
+| Average baseline score | 12.7% |
+| Average post-test score | 26.5% |
+| Average observed gain | +13.8 percentage points |
+| Students improved | 51 of 56 |
+| Percentage improved | 91.1% |
+| Students not improved | 5 of 56 |
 
-| Pilot ID | School | Baseline /20 | Baseline % | Post /20 | Post % | Change | Percentage-point change |
-|---|---|---:|---:|---:|---:|---:|---:|
-| | | | | | | | |
+### Topic-level observations
 
-The expanded pilot allows up to 56 participant rows, subject to actual valid assessment participation. Only matched students with valid baseline and post-assessment scores should be included in the matched pre/post analysis.
+| Topic group | Baseline | Post | Change |
+|---|---:|---:|---:|
+| Number Operations | 13.1% | 30.4% | +17.3 pp |
+| Factors / HCF / LCM | 19.0% | 36.9% | +17.9 pp |
+| Fractions / Decimals | 8.9% | 30.4% | +21.4 pp |
+| Percentages / Ratio | 17.9% | 32.1% | +14.3 pp |
+| Algebra | 0.0% | 17.0% | +17.0 pp |
+| Financial Mathematics | 17.9% | 10.7% | -7.1 pp |
+| Geometry | 10.7% | 18.5% | +7.7 pp |
+
+Financial Mathematics is a priority improvement area for the next iteration of the tutor.
 
 ## 6. Student feedback
 
-Record aggregate results from `STUDENT_FEEDBACK_SURVEY.md`.
+| Metric | Verified result |
+|---|---:|
+| Completed surveys | 56 |
+| Response rate | 100% |
+| Overall mean feedback score | 4.84 / 5 |
 
-| Survey item | Mean score (1–5) | % selecting 4 or 5 |
-|---|---:|---:|
-| Ease of use | | |
-| Helped me understand Mathematics | | |
-| Explanations were clear | | |
-| Helped me solve problems independently | | |
-| Comfortable asking questions | | |
-| Response speed | | |
-| Would continue using Robo-Teacher | | |
+Recurring positive themes included:
 
-Also record the number of completed surveys and summarize recurring themes from open-ended responses without identifying individual students.
+- clear, step-by-step explanations;
+- simple language and patient support;
+- ability to ask questions without embarrassment;
+- convenient access through WhatsApp and Telegram;
+- help with homework and practice.
+
+Recurring requested improvements included:
+
+- images and visual explanations;
+- voice/video support;
+- Yoruba/Hausa or other local-language support;
+- more practice questions and exam-style exercises;
+- progress tracking and scores;
+- games/rewards;
+- lower-data/offline access;
+- stronger personalization and memory.
+
+These qualitative themes are recurring patterns in open-ended responses and are not presented as frequency-ranked counts.
 
 ## 7. Reliability and quality review
 
-| Check | Result | Notes/evidence |
+| Check | Status | Notes/evidence |
 |---|---|---|
-| Mathematical reliability reviewed | | |
-| Arithmetic verification functioning | | |
-| Out-of-scope handling reviewed | | |
-| Human escalation cases reviewed | | |
-| Incorrect/uncertain responses documented | | |
-| No unnecessary student identifiers in evaluation dataset | | |
+| Arithmetic verification | Implemented | Deterministic arithmetic guardrail is tested |
+| Webhook authentication | Implemented | WhatsApp and Telegram request authentication enabled |
+| Pseudonymized interaction logging | Implemented | Interaction log uses Pilot ID rather than names/contact identifiers |
+| Identity/interaction separation | Implemented | Private Student Roster is separate from Interaction Log |
+| AI limitations documented | Implemented | Public README and responsible-AI notes describe limitations |
+| Out-of-scope handling | Implemented/reviewed | Tutor scope and escalation behavior documented |
 
 ## 8. Evidence provenance
 
-For every reported competition figure, retain the original private source: Google Sheet export, assessment record, survey export, screenshot, or dated observation note.
+The authoritative source for reported pilot figures is the private Google Sheet containing the Student Roster, Interaction Log, baseline/post assessments, student feedback, evaluation summary, and pilot-evidence dashboard.
 
-Reported figures must be reproducible from the retained source data. If a metric cannot be verified, do not present it as a measured result.
+Every competition figure should remain reproducible from retained source data. Raw student-level records, identifiers, and consent documentation should remain private.
 
-## 9. Final evidence checklist
+## 9. Interpretation boundary
 
-- [ ] Pilot dates recorded
-- [ ] Actual participant count verified
-- [ ] Interaction metrics calculated from valid interactions
-- [ ] Baseline scores entered
-- [ ] Post-assessment scores entered
-- [ ] Matched pre/post analysis completed
-- [ ] Feedback responses summarized
-- [ ] Product screenshots archived privately
-- [ ] Representative interactions anonymized
-- [ ] Consent/permission documentation retained privately
-- [ ] Public repository checked for student-identifying data and secrets
-- [ ] Every competition claim traceable to private evidence
+The learning results are descriptive matched pre/post observations. The pilot did not use a randomized control group. Therefore use language such as **“observed improvement during the pilot”**, **“pilot results suggest”**, or **“early evidence of learning improvement”** rather than claiming Robo-Teacher caused the change.
+
+## 10. Final evidence checklist
+
+- [x] Actual participant count verified
+- [x] School participation documented
+- [x] Consent/permission documentation retained privately
+- [x] Interaction metrics calculated
+- [x] Baseline scores entered
+- [x] Post-assessment scores entered
+- [x] Matched pre/post analysis completed
+- [x] Feedback responses summarized
+- [x] Topic-level analysis completed
+- [x] Public repository uses aggregate evidence only
+- [x] Application claim boundary documented
+- [ ] Final anonymized product screenshots archived/selected for submission
+- [ ] Final competition application text completed
