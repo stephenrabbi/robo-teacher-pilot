@@ -4,49 +4,59 @@ This checklist defines the evidence package for Robo-Teacher. Store sensitive/ra
 
 ## Problem and context
 
-- [ ] Short problem statement grounded in the Nigerian classroom context
-- [ ] Description of target learners and JSS2 Mathematics scope
-- [ ] Explanation of why WhatsApp/Telegram access matters for the pilot context
+- [x] Short problem statement grounded in the Nigerian classroom context
+- [x] Description of target learners and JSS2 Mathematics scope
+- [x] Explanation of why WhatsApp/Telegram access matters for the pilot context
 
 ## Product evidence
 
-- [ ] Live deployment/health-check evidence
-- [ ] Screenshot of student onboarding
-- [ ] Screenshot of a representative Mathematics interaction
-- [ ] Screenshot of a follow-up/contextual interaction
-- [ ] Telegram evidence
-- [ ] WhatsApp evidence, if/when the channel is active
-- [ ] GitHub repository URL
-- [ ] Technical appendix/source-code documentation
+- [x] Live deployment/health-check evidence
+- [x] Student onboarding flow implemented and tested
+- [x] Representative Mathematics interactions available privately
+- [x] Follow-up/contextual interactions available privately
+- [x] Telegram pilot evidence available
+- [x] WhatsApp pilot evidence available
+- [x] GitHub repository available
+- [x] Technical architecture/source-code documentation available
+- [ ] Final anonymized screenshot set selected for submission
 
 ## Pilot evidence
 
-- [ ] School participation documented
-- [ ] Consent/permission documentation retained privately
-- [ ] Number of students onboarded
-- [ ] Number of students with at least one valid tutoring interaction
-- [ ] Total valid tutoring interactions
-- [ ] Returning-student measure
-- [ ] Interaction success rate
-- [ ] Usage period/date range
+- [x] School participation documented: Ise Junior High School, Epe and Tio College, Ikorodu
+- [x] Consent/permission documentation retained privately for all 56 participants
+- [x] Number of students in pilot verified: 56
+- [x] Students with at least one logged interaction verified: 56
+- [x] Total logged interactions verified: 176
+- [x] Channel breakdown verified: 107 WhatsApp, 69 Telegram
+- [x] School interaction breakdown verified: 103 Ise, 73 Tio
+- [x] Average response latency calculated: 3.28 seconds
+- [ ] Final returning-student measure documented for submission, if needed
+- [ ] Final success-rate metric documented only if the interaction-status definition is validated for the reporting period
 
 ## Learning evidence
 
-- [ ] Baseline assessment administered
-- [ ] Baseline results recorded by Pilot ID
-- [ ] Post-assessment administered after the defined pilot period
-- [ ] Matched pre/post analysis
-- [ ] Student feedback survey completed
-- [ ] Aggregate feedback results
+- [x] Baseline assessment administered
+- [x] Baseline results recorded by Pilot ID
+- [x] Post-assessment administered after the pilot exposure period
+- [x] Matched pre/post analysis completed for 56 students
+- [x] Average baseline verified: 12.7%
+- [x] Average post-test verified: 26.5%
+- [x] Observed average gain verified: +13.8 percentage points
+- [x] Students improved verified: 51 of 56 (91.1%)
+- [x] Topic-level analysis completed
+- [x] Student feedback survey completed by 56 students
+- [x] Aggregate feedback verified: 4.84 / 5
+- [x] Qualitative feedback themes summarized without identifying students
 
 ## Responsible AI and privacy
 
-- [ ] Student identity data kept separate from interaction data
-- [ ] Public repository contains no student roster or credentials
-- [ ] Webhook authentication enabled for deployed channels
-- [ ] AI limitations documented
-- [ ] Out-of-scope questions handled appropriately
-- [ ] Application claims use only traceable evidence
+- [x] Student identity data kept separate from interaction data
+- [x] Public repository contains no live student roster/contact identifiers
+- [x] Webhook authentication enabled for deployed channels
+- [x] AI limitations documented
+- [x] Out-of-scope handling documented
+- [x] Application claims use only traceable aggregate evidence
+- [x] Pre/post results explicitly described as observational rather than causal
 
 ## Evidence quality rules
 
@@ -56,6 +66,8 @@ This checklist defines the evidence package for Robo-Teacher. Store sensitive/ra
 4. Distinguish observed usage from measured learning outcomes.
 5. Describe pre/post changes as observed pilot changes, not causal proof, unless the study design supports a causal claim.
 6. Keep original screenshots and raw exports privately so every reported figure can be verified.
+7. Report the 13.8-point gain as **percentage points**, not as a 13.8% relative increase.
+8. Treat the 4.84/5 feedback score as student self-report, not as proof of learning impact.
 
 ## Recommended final package
 
@@ -67,3 +79,4 @@ This checklist defines the evidence package for Robo-Teacher. Store sensitive/ra
 6. Selected anonymized interaction examples
 7. Privacy and responsible-AI note
 8. GitHub repository
+9. Competition/application narrative using the verified evidence above
