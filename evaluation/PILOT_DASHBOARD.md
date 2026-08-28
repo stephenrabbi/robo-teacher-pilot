@@ -1,64 +1,77 @@
 # Pilot Evaluation Dashboard
 
-This is the reporting structure for the Robo-Teacher pilot. Populate it from the private Google Sheet and assessment/feedback datasets. **Do not commit student-level personal data to this repository.**
+This dashboard summarizes aggregate evidence from the private Robo-Teacher pilot dataset. **Do not commit student-level personal data to this repository.**
 
 ## Pilot snapshot
 
 | Metric | Value |
 |---|---:|
-| Students onboarded | — |
-| Students with ≥1 Mathematics interaction | — |
-| Returning students | — |
-| Schools represented | — |
-| Telegram users | — |
-| WhatsApp users | — |
-| Total valid interactions | — |
-| Successful interactions | — |
-| Response success rate | — |
+| Students in roster | 56 |
+| Students with ≥1 logged interaction | 56 |
+| Schools represented | 2 |
+| Total logged interactions | 176 |
+| WhatsApp interactions | 107 |
+| Telegram interactions | 69 |
+| Average interactions per student | 3.14 |
+| Average response latency | 3.28 seconds |
+
+## School participation
+
+| School | Students | Logged interactions |
+|---|---:|---:|
+| Ise Junior High School, Epe | 25 | 103 |
+| Tio College, Ikorodu | 31 | 73 |
 
 ## Learning outcomes
 
 | Metric | Value |
 |---|---:|
-| Students with baseline assessment | — |
-| Students with post-assessment | — |
-| Average baseline score (%) | — |
-| Average post-assessment score (%) | — |
-| Average improvement (percentage points) | — |
+| Students with baseline assessment | 56 |
+| Students with post-assessment | 56 |
+| Students with matched baseline + post | 56 |
+| Average baseline score | 12.7% |
+| Average post-assessment score | 26.5% |
+| Average observed improvement | +13.8 percentage points |
+| Students who improved | 51 of 56 |
+| Percentage who improved | 91.1% |
+| Students not improved | 5 of 56 |
+
+### School-level learning outcomes
+
+| School | Baseline | Post-test | Gain | Students improved |
+|---|---:|---:|---:|---:|
+| Ise Junior High School, Epe | 14.0% | 26.4% | +12.4 percentage points | 88.0% |
+| Tio College, Ikorodu | 11.6% | 26.6% | +15.0 percentage points | 93.5% |
 
 ## Student perception
 
 | Metric | Value |
 |---|---:|
-| Survey respondents | — |
-| Overall mean feedback score (1–5) | — |
-| % agreeing Robo-Teacher was easy to access | — |
-| % agreeing explanations improved understanding | — |
-| % saying they would use it again | — |
+| Survey respondents | 56 |
+| Feedback completion rate | 100% |
+| Overall mean feedback score | 4.84 / 5 |
 
-## Engagement
+Recurring qualitative themes in the open-ended feedback included appreciation for clear step-by-step explanations, simple language, patient/non-judgmental support, availability through familiar messaging channels, and help with practice/homework.
 
-Track at minimum:
+Frequently requested improvements included richer visuals, voice/video support, local-language support, more practice questions, progress tracking, gamification, personalization, and lower-data/offline access.
 
-- Interactions by day
-- Interactions by school
-- Interactions by channel
-- Unique active students by day/week
-- Returning students
-- Interactions per active student
+## Topic-level learning observations
 
-## Reliability
+The parallel baseline/post assessments showed the strongest positive observed changes in:
 
-Calculate:
+- Fractions / Decimals: +21.4 percentage points
+- Factors / HCF / LCM: +17.9 percentage points
+- Number Operations: +17.3 percentage points
+- Algebra: +17.0 percentage points
+- Percentages / Ratio: +14.3 percentage points
+- Geometry: +7.7 percentage points
 
-`Response success rate = successful valid interactions / total valid interactions × 100`
+Financial Mathematics declined by 7.1 percentage points and is therefore a priority area for content and tutoring improvement.
 
-Do not count onboarding prompts or invalid/empty webhook requests as successful tutoring interactions.
+## Interpretation boundary
 
-## Learning gain
+The learning figures are descriptive pre/post pilot results. They show an **observed change during the pilot**, not a causal estimate. The pilot did not use a randomized control group, so the project should not claim that Robo-Teacher alone caused the improvement.
 
-Calculate:
+A defensible competition-ready statement is:
 
-`Student improvement = post-test percentage − baseline percentage`
-
-Report the mean improvement and, where sample size allows, the range/distribution. Do not imply causation from a simple pre/post comparison; describe it as an observed change during the pilot.
+> In a 56-student pilot across two Lagos schools, average mathematics assessment performance increased from 12.7% at baseline to 26.5% at post-test, an observed gain of 13.8 percentage points. Fifty-one of 56 students (91.1%) recorded a higher post-test score, while all 56 feedback respondents rated the experience an average of 4.84 out of 5.
