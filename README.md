@@ -10,9 +10,20 @@ The pilot is intentionally focused on JSS2 Basic Mathematics and aligned with th
 
 ## Pilot status
 
-Robo-Teacher is a live pilot system used by students from participating schools. The project records pseudonymized interaction evidence for evaluation while keeping participant identity data separate from the interaction log.
+Robo-Teacher is a live pilot system used by students from **Ise Junior High School, Epe** and **Tio College, Ikorodu**. The project records pseudonymized interaction evidence for evaluation while keeping participant identity data separate from the interaction log.
 
-Pilot results are reported from the private evaluation data rather than hard-coded in this repository. See `evaluation/` for the assessment, feedback, analysis, and evidence protocols.
+### Verified aggregate pilot results
+
+- **56 students** participated across the two schools.
+- All **56 students completed matched baseline and post-test assessments**.
+- Mean Mathematics assessment performance increased from **12.7% at baseline to 26.5% at post-test**, an observed gain of **13.8 percentage points**.
+- **51 of 56 students (91.1%)** recorded a higher post-test score than baseline.
+- All **56 students completed the feedback survey**, with an overall mean rating of **4.84/5**.
+- The evaluation dataset contains **176 logged student interactions** across WhatsApp and Telegram.
+
+These are descriptive pilot results. Because the evaluation did not use a randomized control group, the pre/post change should be interpreted as **observed improvement during the pilot**, not as proof that Robo-Teacher alone caused the improvement.
+
+See `evaluation/PILOT_DASHBOARD.md` and `evaluation/PILOT_EVIDENCE_RECORD.md` for the aggregate evidence summary. Student-level results remain in private evaluation records and are not committed to this public repository.
 
 ## How It Works
 
@@ -67,8 +78,10 @@ The Student Roster and Interaction Log are separate. The roster contains the map
 The repository includes an evaluation protocol under `evaluation/`:
 
 - `BASELINE_ASSESSMENT.md` — 20-question JSS2 Mathematics baseline
+- `POST_ASSESSMENT.md` — parallel 20-question post-assessment
 - `STUDENT_FEEDBACK_SURVEY.md` — structured 1–5 student feedback instrument
-- `PILOT_DASHBOARD.md` — aggregate reporting structure
+- `PILOT_DASHBOARD.md` — verified aggregate pilot results
+- `PILOT_EVIDENCE_RECORD.md` — evidence provenance and reporting record
 - `ANALYSIS_TEMPLATE.md` — engagement, reliability, learning-gain, and feedback analysis rules
 - `TOPIC_CATEGORIES.md` — consistent topic classification for interaction analysis
 - `COMPETITION_EVIDENCE_CHECKLIST.md` — evidence package checklist
@@ -177,12 +190,16 @@ The interaction log does **not** store phone numbers, Telegram usernames, or stu
 - The current evaluation is a pilot and should not be presented as a controlled causal study unless the study design supports that claim.
 - WhatsApp availability depends on the selected Twilio/WhatsApp service configuration.
 - Gemini responses can be imperfect; the tutor is scoped to the documented JSS2 Mathematics topics and encourages students to seek teacher support when appropriate.
+- Financial Mathematics showed weaker post-test performance than baseline in the topic-level analysis and is a priority area for improvement.
 
 ## Roadmap
 
 - Additional subjects and grade levels
 - Richer multimedia tutoring
 - AI voice and video experiences
+- Local-language support
+- Adaptive practice and progress tracking
+- Low-data/offline-friendly access
 - Deeper Google Cloud integration
 - Expanded school-level reporting and learning analytics
 
