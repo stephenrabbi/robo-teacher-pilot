@@ -12,9 +12,9 @@ import datetime
 import gspread
 
 SCHOOLS = {
-    "1": ("Ise Senior High School, Epe", "ISE"),
-    "ise": ("Ise Senior High School, Epe", "ISE"),
-    "epe": ("Ise Senior High School, Epe", "ISE"),
+    "1": ("Ise Junior High School, Epe", "ISE"),
+    "ise": ("Ise Junior High School, Epe", "ISE"),
+    "epe": ("Ise Junior High School, Epe", "ISE"),
     "2": ("Tio College, Ikorodu", "TIO"),
     "tio": ("Tio College, Ikorodu", "TIO"),
     "ikorodu": ("Tio College, Ikorodu", "TIO"),
@@ -22,7 +22,7 @@ SCHOOLS = {
 
 ONBOARDING_PROMPT = (
     "Welcome to Robo-Teacher! 👋 Before we start, which school are you from?\n\n"
-    "1 — Ise Senior High School, Epe\n"
+    "1 — Ise Junior High School, Epe\n"
     "2 — Tio College, Ikorodu\n\n"
     "Just reply with 1 or 2."
 )
