@@ -37,20 +37,20 @@ Keep original screenshots privately. Record or submit only anonymized examples e
 | Students consented | 56 |
 | Students in roster | 56 |
 | Students with ≥1 logged interaction | 56 |
-| Total logged interactions | 176 |
-| WhatsApp interactions | 107 |
+| Total logged interactions | 188 |
+| WhatsApp interactions | 119 |
 | Telegram interactions | 69 |
-| Average interactions per student | 3.14 |
-| Average response latency | 3.28 seconds |
+| Average interactions per student | 3.36 |
+| Average response latency | 3.17 seconds |
 
-The 176-interaction figure is the aggregate interaction count in the live pilot dataset used for evaluation reporting. Historical development/test records are retained separately and are not part of this figure.
+The 188-interaction figure is the current aggregate interaction count in the live pilot dataset. The approved students continued using Robo-Teacher after the baseline/post evaluation window; learning outcomes remain based on the matched 56-student baseline/post cohort. Historical development/test records and controlled test interactions are retained separately or excluded and are not part of this figure.
 
 ## 4. School breakdown
 
 | School | Students | Logged interactions | Baseline mean | Post-test mean | Gain | Improved |
 |---|---:|---:|---:|---:|---:|---:|
-| Ise Junior High School, Epe | 25 | 103 | 14.0% | 26.4% | +12.4 pp | 88.0% |
-| Tio College, Ikorodu | 31 | 73 | 11.6% | 26.6% | +15.0 pp | 93.5% |
+| Ise Junior High School, Epe | 25 | 112 | 14.0% | 26.4% | +12.4 pp | 88.0% |
+| Tio College, Ikorodu | 31 | 76 | 11.6% | 26.6% | +15.0 pp | 93.5% |
 
 ## 5. Learning outcomes
 
@@ -143,5 +143,5 @@ The learning results are descriptive matched pre/post observations. The pilot di
 - [x] Topic-level analysis completed
 - [x] Public repository uses aggregate evidence only
 - [x] Application claim boundary documented
-- [ ] Final anonymized product screenshots archived/selected for submission
+- [x] Final anonymized product screenshots archived/selected for submission
 - [ ] Final competition application text completed
