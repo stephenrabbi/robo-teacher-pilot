@@ -9,18 +9,18 @@ This dashboard summarizes aggregate evidence from the private Robo-Teacher pilot
 | Students in roster | 56 |
 | Students with ≥1 logged interaction | 56 |
 | Schools represented | 2 |
-| Total logged interactions | 176 |
-| WhatsApp interactions | 107 |
+| Total logged interactions | 188 |
+| WhatsApp interactions | 119 |
 | Telegram interactions | 69 |
-| Average interactions per student | 3.14 |
-| Average response latency | 3.28 seconds |
+| Average interactions per student | 3.36 |
+| Average response latency | 3.17 seconds |
 
 ## School participation
 
 | School | Students | Logged interactions |
 |---|---:|---:|
-| Ise Junior High School, Epe | 25 | 103 |
-| Tio College, Ikorodu | 31 | 73 |
+| Ise Junior High School, Epe | 25 | 112 |
+| Tio College, Ikorodu | 31 | 76 |
 
 ## Learning outcomes
 
@@ -74,4 +74,4 @@ The learning figures are descriptive pre/post pilot results. They show an **obse
 
 A defensible competition-ready statement is:
 
-> In a 56-student pilot across two Lagos schools, average mathematics assessment performance increased from 12.7% at baseline to 26.5% at post-test, an observed gain of 13.8 percentage points. Fifty-one of 56 students (91.1%) recorded a higher post-test score, while all 56 feedback respondents rated the experience an average of 4.84 out of 5.
+> In a 56-student pilot across two Lagos schools, average mathematics assessment performance increased from 12.7% at baseline to 26.5% at post-test, an observed gain of 13.8 percentage points. Fifty-one of 56 students (91.1%) recorded a higher post-test score, while all 56 feedback respondents rated the experience an average of 4.84 out of 5. The live pilot dataset currently contains 188 logged interactions across WhatsApp and Telegram.
