@@ -19,7 +19,7 @@ Robo-Teacher is a live pilot system used by students from **Ise Junior High Scho
 - Mean Mathematics assessment performance increased from **12.7% at baseline to 26.5% at post-test**, an observed gain of **13.8 percentage points**.
 - **51 of 56 students (91.1%)** recorded a higher post-test score than baseline.
 - All **56 students completed the feedback survey**, with an overall mean rating of **4.84/5**.
-- The evaluation dataset contains **176 logged student interactions** across WhatsApp and Telegram.
+- The live pilot dataset currently contains **188 logged student interactions** across WhatsApp and Telegram (**119 WhatsApp, 69 Telegram**).
 
 These are descriptive pilot results. Because the evaluation did not use a randomized control group, the pre/post change should be interpreted as **observed improvement during the pilot**, not as proof that Robo-Teacher alone caused the improvement.
 
