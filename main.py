@@ -25,6 +25,23 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("robo-teacher")
 app = FastAPI(title="Robo-Teacher Pilot")
 
+WHATSAPP_MIGRATION_MESSAGE = (
+    "Robo-Teacher WhatsApp Pilot Update\n\n"
+    "Our WhatsApp pilot has now ended while we improve Robo-Teacher.\n\n"
+    "Please continue learning with Robo-Teacher FREE on Telegram:\n"
+    "https://t.me/RoboTeacherAfricaBot\n\n"
+    "Open the link, tap Start, and continue asking your Maths questions there.\n\n"
+    "Thank you for being part of the Robo-Teacher journey.\n"
+    "Every learner. Their own AI teacher."
+)
+
+
+def whatsapp_migration_mode_enabled() -> bool:
+    """Keep WhatsApp in migration-only mode unless explicitly disabled."""
+    return os.getenv("WHATSAPP_MIGRATION_MODE", "true").strip().lower() in {
+        "1", "true", "yes", "on"
+    }
+
 
 def _validate_twilio_request(request: Request, form) -> None:
     auth_token = os.getenv("TWILIO_AUTH_TOKEN")
@@ -79,9 +96,18 @@ def _get_or_onboard(channel: str, identifier: str, message: str):
 async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks):
     form = await request.form()
     _validate_twilio_request(request, form)
+    twiml = MessagingResponse()
+
+    # Temporary migration mode: WhatsApp no longer calls Gemini, performs
+    # onboarding, or logs a tutoring interaction. It only directs users to
+    # the active Telegram bot. This keeps the Telegram learning service live
+    # while the completed WhatsApp pilot is being wound down.
+    if whatsapp_migration_mode_enabled():
+        twiml.message(WHATSAPP_MIGRATION_MESSAGE)
+        return Response(content=str(twiml), media_type="application/xml")
+
     from_number = form.get("From", "")
     body = (form.get("Body") or "").strip()
-    twiml = MessagingResponse()
 
     if not body:
         twiml.message("Hi! Send me a Maths question or topic you'd like help with (JSS2 syllabus).")
