@@ -38,6 +38,7 @@ with patch.dict(os.environ, {
     "TWILIO_AUTH_TOKEN": "test-twilio-auth-token",
     "TELEGRAM_WEBHOOK_SECRET": "test-telegram-webhook-secret",
     "ALLOW_AUTO_ENROLL": "true",
+    "WHATSAPP_MIGRATION_MODE": "false",
 }, clear=False), \
      patch("tutor.get_tutor_reply", return_value=("2 + 2 = 4. Want to try a harder one?", 0.42)), \
      patch("sheet_logger.log_interaction", return_value=None), \
@@ -65,6 +66,15 @@ with patch.dict(os.environ, {
     r = client.post("/webhook/telegram", headers={"X-Telegram-Bot-Api-Secret-Token": "wrong-secret"}, json={"message": {"chat": {"id": 555}, "from": {"username": "test_student"}, "text": "hello"}})
     assert r.status_code == 403, r.text
     print("Webhook authentication rejection OK")
+
+    # Migration mode bypasses Gemini/onboarding and sends only the Telegram handoff.
+    with patch.object(main.RequestValidator, "validate", return_value=True), \
+         patch.dict(os.environ, {"WHATSAPP_MIGRATION_MODE": "true"}, clear=False):
+        r = client.post("/webhook/whatsapp", data={"From": "whatsapp:+2348000000099", "Body": "what is 2+2"})
+        assert r.status_code == 200
+        assert "RoboTeacherAfricaBot" in r.text, r.text
+        assert "pilot has now ended" in r.text.lower(), r.text
+    print("WhatsApp migration handoff OK")
 
     with patch.object(main.RequestValidator, "validate", return_value=True):
         r = client.post("/webhook/whatsapp", data={"From": "whatsapp:+2348000000099", "Body": "hi"})
