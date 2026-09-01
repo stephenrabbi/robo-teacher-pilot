@@ -33,12 +33,12 @@ DEFAULT_PROFILE = {
 }
 
 _TOPIC_PATTERNS = [
-    ("Factors/HCF/LCM", r"\b(factor|multiple|prime|hcf|lcm)\b"),
-    ("Fractions/Decimals", r"\b(fraction|decimal|numerator|denominator)\b|\d+\s*/\s*\d+"),
-    ("Percentages/Ratio", r"\b(percent|percentage|ratio|proportion|rate)\b|%"),
-    ("Algebra", r"\b(algebra|equation|expression|variable|coefficient)\b|\bsolve\s+[a-z]\b"),
+    ("Factors/HCF/LCM", r"\b(factors?|multiples?|prime|hcf|lcm)\b"),
+    ("Fractions/Decimals", r"\b(fractions?|decimals?|numerator|denominator)\b|\d+\s*/\s*\d+"),
+    ("Percentages/Ratio", r"\b(percent|percentage|percentages|ratio|ratios|proportion|proportions|rate|rates)\b|%"),
+    ("Algebra", r"\b(algebra|equations?|expressions?|variables?|coefficients?)\b|\bsolve\s+[a-z]\b"),
     ("Financial Mathematics", r"\b(profit|loss|discount|interest|cost price|selling price)\b"),
-    ("Number Operations", r"\b(add|subtract|multiply|divide|addition|subtraction|multiplication|division|whole number|place value)\b"),
+    ("Number Operations", r"\b(add|subtract|multiply|divide|addition|subtraction|multiplication|division|whole numbers?|place value)\b"),
 ]
 
 _client = None
