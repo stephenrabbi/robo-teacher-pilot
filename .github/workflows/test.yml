@@ -29,4 +29,5 @@ jobs:
       - name: Run V2 adaptive-memory tests
         run: python test_v2_profile.py
 
-      # V2 branch CI intentionally runs both legacy-pilot and new adaptive-memory checks.
+      - name: Run V2 multimodal safety tests
+        run: python test_v2_multimodal.py
