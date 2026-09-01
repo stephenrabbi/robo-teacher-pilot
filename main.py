@@ -14,7 +14,7 @@ load_dotenv()
 
 from tutor import get_tutor_reply
 from sheet_logger import log_interaction
-from telegram_adapter import send_telegram_message
+from telegram_adapter import send_telegram_message, configure_telegram_webhook
 from roster_sheet import (
     lookup_student, is_awaiting_school_choice, mark_awaiting_school_choice,
     parse_school_choice, register_student, auto_enrollment_enabled,
@@ -34,6 +34,17 @@ WHATSAPP_MIGRATION_MESSAGE = (
     "Thank you for being part of the Robo-Teacher journey.\n"
     "Every learner. Their own AI teacher."
 )
+
+
+@app.on_event("startup")
+async def _sync_telegram_webhook_on_startup():
+    try:
+        await configure_telegram_webhook()
+        logger.info("Telegram webhook synchronized successfully")
+    except Exception:
+        # Keep the app available for health checks/WhatsApp migration even if
+        # Telegram registration fails; Render logs will show the failure.
+        logger.exception("Telegram webhook synchronization failed")
 
 
 def whatsapp_migration_mode_enabled() -> bool:
