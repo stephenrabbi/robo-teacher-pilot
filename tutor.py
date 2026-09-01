@@ -1,11 +1,7 @@
-"""
-Robo-Teacher — JSS2 Basic Maths tutor logic.
+"""Robo-Teacher — JSS2 Basic Maths tutor logic.
 
-V2 adds pseudonymous adaptive learner memory while preserving the existing
-reliability guardrails:
-1. A deterministic calculator path for unambiguous arithmetic expressions.
-2. An explicit escalation marker for questions outside scope or too uncertain.
-3. A durable learner profile keyed only by Pilot ID to adapt style and pacing.
+V2 adds pseudonymous adaptive learner memory and multimodal homework support
+while preserving deterministic arithmetic and explicit escalation guardrails.
 """
 
 import ast
@@ -18,16 +14,12 @@ import time
 from google import genai
 from google.genai import types
 
-from learner_profile import (
-    DEFAULT_PROFILE,
-    load_profile,
-    profile_prompt_context,
-    update_profile_from_message,
-)
+from learner_profile import DEFAULT_PROFILE, load_profile, profile_prompt_context, update_profile_from_message
 
 logger = logging.getLogger("robo-teacher.tutor")
-
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite")
+SUPPORTED_IMAGE_MIME_TYPES = {"image/jpeg", "image/png", "image/webp"}
+MAX_IMAGE_BYTES = 8 * 1024 * 1024
 
 CURRICULUM_TOPICS = """
 - Revision of JSS1 topics: whole numbers and place value
@@ -56,16 +48,16 @@ Your job is to help students understand Basic Mathematics topics from the JSS2 f
 
 How to behave:
 - Explain things step by step, in simple language a 10-13 year old can follow.
-- Use relatable, everyday Nigerian examples (naira, market trading, school life, familiar objects) when useful.
-- Always show complete step-by-step working. Finish the whole explanation in one message.
-- Use emojis naturally and warmly, without overdoing them.
-- NEVER use LaTeX or markdown formatting. Write maths in plain text.
+- Use relatable, everyday Nigerian examples when useful.
+- Always show complete step-by-step working.
+- NEVER use LaTeX. Write maths in plain text.
 - Keep replies reasonably short and easy to read on a phone screen.
-- Be encouraging and make students comfortable asking questions.
-- Adapt explanation style, pacing, examples, and challenge level using the learner profile supplied with each turn.
-- Treat profile signals as hints, not proof of mastery. Never claim a student has mastered a topic solely because they asked several questions about it.
-- If the question is outside the listed JSS2 Maths scope, or you are not sufficiently confident that you can answer it reliably, do not guess. Begin your response with exactly {ESCALATION_MARKER} on its own line.
-- Do not use the escalation marker merely because a problem is difficult; use it when the question is genuinely outside scope, ambiguous in a way that prevents a reliable answer, or you cannot establish a trustworthy solution.
+- Adapt style, pacing, examples, and challenge level using the supplied learner profile.
+- Treat profile signals as hints, not proof of mastery.
+- For an uploaded homework image, first read only the educational content needed for the question. Ignore faces, names, phone numbers, school IDs, addresses, or other personal details that may appear in the image. Never identify a person from an image.
+- If an image is blurry, cropped, unreadable, or the Maths problem cannot be established reliably, ask the learner to send a clearer photo instead of guessing.
+- When solving from an image, teach through the problem step by step rather than returning only a final answer.
+- If the question is outside the listed JSS2 Maths scope, or you cannot answer it reliably, begin your response with exactly {ESCALATION_MARKER} on its own line.
 """
 
 _MAX_TURNS = 6
@@ -86,23 +78,11 @@ def _is_rate_limit_error(e: Exception) -> bool:
 
 
 def _safe_arithmetic(expression: str):
-    """Evaluate only numeric arithmetic; never executes arbitrary Python."""
-    allowed = {
-        ast.Add: operator.add,
-        ast.Sub: operator.sub,
-        ast.Mult: operator.mul,
-        ast.Div: operator.truediv,
-        ast.FloorDiv: operator.floordiv,
-        ast.Mod: operator.mod,
-        ast.Pow: operator.pow,
-        ast.USub: operator.neg,
-        ast.UAdd: operator.pos,
-    }
+    allowed = {ast.Add: operator.add, ast.Sub: operator.sub, ast.Mult: operator.mul, ast.Div: operator.truediv, ast.FloorDiv: operator.floordiv, ast.Mod: operator.mod, ast.Pow: operator.pow, ast.USub: operator.neg, ast.UAdd: operator.pos}
     try:
         tree = ast.parse(expression, mode="eval")
         if sum(1 for _ in ast.walk(tree)) > 40:
             return None
-
         def evaluate(node):
             if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)) and not isinstance(node.value, bool):
                 return node.value
@@ -114,7 +94,6 @@ def _safe_arithmetic(expression: str):
                     raise ValueError("power too large")
                 return allowed[type(node.op)](left, right)
             raise ValueError("unsupported expression")
-
         value = evaluate(tree.body)
         if isinstance(value, (int, float)) and abs(value) < 1e12 and value == value:
             return value
@@ -124,13 +103,9 @@ def _safe_arithmetic(expression: str):
 
 
 def _simple_arithmetic_answer(message: str):
-    """Return a deterministic answer for simple arithmetic-only questions."""
     text = message.strip().lower().replace("×", "*").replace("÷", "/")
-    text = re.sub(r"^(what is|calculate|compute|solve)\s+", "", text)
-    text = text.rstrip("?.!")
-    if not re.fullmatch(r"[0-9\s+\-*/().%]+", text):
-        return None
-    if "%" in text:
+    text = re.sub(r"^(what is|calculate|compute|solve)\s+", "", text).rstrip("?.!")
+    if not re.fullmatch(r"[0-9\s+\-*/().%]+", text) or "%" in text:
         return None
     if not re.search(r"\d\s*[+\-*/]\s*\d", text):
         return None
@@ -143,13 +118,10 @@ def _simple_arithmetic_answer(message: str):
 
 
 def _clean_model_reply(text: str) -> str:
-    if text.strip().startswith(ESCALATION_MARKER):
-        return ESCALATION_RESPONSE
-    return text.strip()
+    return ESCALATION_RESPONSE if text.strip().startswith(ESCALATION_MARKER) else text.strip()
 
 
 def _safe_profile_update(student_id: str, message: str) -> dict:
-    """Adaptive memory must never make tutoring unavailable if Sheets is down."""
     try:
         return update_profile_from_message(student_id, message)
     except Exception:
@@ -160,36 +132,6 @@ def _safe_profile_update(student_id: str, message: str) -> dict:
             return dict(DEFAULT_PROFILE)
 
 
-def get_tutor_reply(student_id: str, message: str) -> tuple[str, float]:
-    profile = _safe_profile_update(student_id, message)
-
-    deterministic = _simple_arithmetic_answer(message)
-    if deterministic is not None:
-        return deterministic, 0.0
-
-    client = _get_client()
-    history = _conversations.get(student_id, [])
-    start = time.time()
-    try:
-        text, new_history = _ask(client, history, message, profile)
-    except Exception as e:
-        if _is_rate_limit_error(e):
-            latency = time.time() - start
-            return ("Lots of students are asking me questions right now, so I need a tiny break! Please try again in about a minute. 🙂", latency)
-        logger.exception("Gemini call failed with existing history for %s; retrying fresh", student_id)
-        try:
-            text, new_history = _ask(client, [], message, profile)
-        except Exception as e2:
-            if _is_rate_limit_error(e2):
-                latency = time.time() - start
-                return ("Lots of students are asking me questions right now, so I need a tiny break! Please try again in about a minute. 🙂", latency)
-            raise
-    latency = time.time() - start
-    text = _clean_model_reply(text)
-    _conversations[student_id] = new_history[-_MAX_TURNS * 2 :]
-    return text, latency
-
-
 def _extract_text(response) -> str:
     try:
         if response.text:
@@ -197,8 +139,7 @@ def _extract_text(response) -> str:
     except Exception:
         pass
     try:
-        parts = response.candidates[0].content.parts
-        texts = [p.text for p in parts if getattr(p, "text", None)]
+        texts = [p.text for p in response.candidates[0].content.parts if getattr(p, "text", None)]
         if texts:
             return "\n".join(texts)
     except Exception:
@@ -206,18 +147,62 @@ def _extract_text(response) -> str:
     raise ValueError("Gemini response contained no readable text")
 
 
+def get_tutor_reply(student_id: str, message: str) -> tuple[str, float]:
+    profile = _safe_profile_update(student_id, message)
+    deterministic = _simple_arithmetic_answer(message)
+    if deterministic is not None:
+        return deterministic, 0.0
+    client = _get_client()
+    history = _conversations.get(student_id, [])
+    start = time.time()
+    try:
+        text, new_history = _ask(client, history, message, profile)
+    except Exception as e:
+        if _is_rate_limit_error(e):
+            return "Lots of students are asking me questions right now, so I need a tiny break! Please try again in about a minute. 🙂", time.time() - start
+        text, new_history = _ask(client, [], message, profile)
+    latency = time.time() - start
+    _conversations[student_id] = new_history[-_MAX_TURNS * 2:]
+    return _clean_model_reply(text), latency
+
+
+def get_tutor_image_reply(student_id: str, image_bytes: bytes, mime_type: str, caption: str = "") -> tuple[str, float]:
+    """Teach from a learner-provided Maths image without persisting image bytes."""
+    if mime_type not in SUPPORTED_IMAGE_MIME_TYPES:
+        raise ValueError("Unsupported image type")
+    if not image_bytes or len(image_bytes) > MAX_IMAGE_BYTES:
+        raise ValueError("Image is empty or too large")
+
+    learning_message = caption.strip() or "Please help me understand the Maths problem in this image."
+    profile = _safe_profile_update(student_id, learning_message)
+    adaptive_context = profile_prompt_context(profile)
+    prompt = (
+        f"{adaptive_context}\n\n"
+        "The learner sent a homework or Maths image. Read the Maths problem carefully. "
+        "Ignore personal information and non-educational details. If the problem is not clear enough to solve reliably, ask for a clearer photo. "
+        "Otherwise explain it step by step and help the learner understand the method.\n\n"
+        f"Learner caption: {learning_message}"
+    )
+    client = _get_client()
+    start = time.time()
+    response = client.models.generate_content(
+        model=GEMINI_MODEL,
+        contents=[prompt, types.Part.from_bytes(data=image_bytes, mime_type=mime_type)],
+        config=types.GenerateContentConfig(
+            system_instruction=SYSTEM_PROMPT,
+            max_output_tokens=700,
+            thinking_config=types.ThinkingConfig(thinking_budget=0),
+        ),
+    )
+    return _clean_model_reply(_extract_text(response)), time.time() - start
+
+
 def _ask(client, history: list, message: str, profile: dict) -> tuple[str, list]:
     adaptive_context = profile_prompt_context(profile)
     chat = client.chats.create(
         model=GEMINI_MODEL,
-        config=types.GenerateContentConfig(
-            system_instruction=SYSTEM_PROMPT,
-            max_output_tokens=600,
-            thinking_config=types.ThinkingConfig(thinking_budget=0),
-        ),
+        config=types.GenerateContentConfig(system_instruction=SYSTEM_PROMPT, max_output_tokens=600, thinking_config=types.ThinkingConfig(thinking_budget=0)),
         history=history,
     )
-    response = chat.send_message(
-        f"{adaptive_context}\n\nCurrent student message:\n{message}"
-    )
+    response = chat.send_message(f"{adaptive_context}\n\nCurrent student message:\n{message}")
     return _extract_text(response), chat.get_history()
