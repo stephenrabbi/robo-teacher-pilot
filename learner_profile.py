@@ -1,7 +1,7 @@
 """Pseudonymous adaptive learner profiles for Robo-Teacher V2.
 
-Stores only learning-related signals keyed by Pilot ID. It deliberately avoids
-names, phone numbers, Telegram usernames, and other direct identifiers.
+Stores learning-related signals keyed by Pilot ID. Recent-question memory is
+redacted before durable storage to reduce accidental retention of direct PII.
 """
 
 import datetime
@@ -41,6 +41,12 @@ _TOPIC_PATTERNS = [
     ("Number Operations", r"\b(add|subtract|multiply|divide|addition|subtraction|multiplication|division|whole numbers?|place value)\b"),
 ]
 
+# Conservative patterns for common direct identifiers learners may accidentally
+# type into a Maths message. This is minimization, not a claim of perfect PII detection.
+_EMAIL_RE = re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE)
+_PHONE_RE = re.compile(r"(?<!\w)(?:\+?234|0)[\s-]?[789][01][\s-]?\d{3}[\s-]?\d{4}(?!\w)")
+_TELEGRAM_HANDLE_RE = re.compile(r"(?<!\w)@[A-Za-z0-9_]{5,32}\b")
+
 _client = None
 _profile_ws = None
 _cache: dict[str, dict] = {}
@@ -72,6 +78,15 @@ def classify_topic(message: str) -> str:
         if re.search(pattern, text):
             return topic
     return "General Mathematics"
+
+
+def redact_recent_question(message: str) -> str:
+    """Redact common direct identifiers before storing short-term learning context."""
+    text = message.strip()
+    text = _EMAIL_RE.sub("[email redacted]", text)
+    text = _PHONE_RE.sub("[phone redacted]", text)
+    text = _TELEGRAM_HANDLE_RE.sub("[handle redacted]", text)
+    return text[:180]
 
 
 def _infer_preferences(profile: dict, message: str) -> None:
@@ -141,7 +156,7 @@ def _serialize_row(pilot_id: str, profile: dict) -> list:
         profile.get("preferred_explanation_style", "step-by-step"),
         profile.get("difficulty_level", "standard"),
         profile.get("language_preference", "English"),
-        datetime.datetime.utcnow().isoformat(timespec="seconds"),
+        datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
     ]
 
 
@@ -168,7 +183,7 @@ def update_profile_from_message(pilot_id: str, message: str) -> dict:
     profile["last_topic"] = topic
 
     recent = list(profile.get("recent_questions", []))
-    recent.append(message.strip()[:180])
+    recent.append(redact_recent_question(message))
     profile["recent_questions"] = recent[-5:]
 
     _infer_preferences(profile, message)
@@ -177,7 +192,7 @@ def update_profile_from_message(pilot_id: str, message: str) -> dict:
 
 
 def profile_prompt_context(profile: dict) -> str:
-    """Convert stored profile signals into compact, non-PII tutoring context."""
+    """Convert stored profile signals into compact tutoring context with minimized PII."""
     counts = profile.get("topic_counts", {})
     frequent = sorted(counts.items(), key=lambda item: item[1], reverse=True)[:3]
     frequent_text = ", ".join(f"{topic} ({count})" for topic, count in frequent) or "none yet"
