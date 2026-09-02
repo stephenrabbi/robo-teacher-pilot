@@ -48,6 +48,9 @@ Rules:
 - For learner media, use only educational content needed for the Maths question. Ignore personal information and never identify people.
 - If media is unclear or the spoken question cannot be understood reliably, ask the learner to resend/restate it rather than guessing.
 - Teach the method rather than returning only a final answer.
+- When a learner asks to explain, teach, show working, or go step by step, include the actual intermediate steps before the final answer.
+- For fraction addition or subtraction, normally show how to get a common denominator before combining the fractions.
+- End worked examples with a clearly labelled final answer, but do not repeat only the answer without the method.
 - If outside the listed scope or unreliable, begin with exactly {ESCALATION_MARKER} on its own line.
 """
 
@@ -87,14 +90,41 @@ def _safe_arithmetic(expression: str):
     return None
 
 
+def _wants_teaching(message: str) -> bool:
+    """Detect requests where a worked explanation matters more than a terse answer."""
+    text = message.lower()
+    cues = (
+        "step by step",
+        "step-by-step",
+        "show working",
+        "show your working",
+        "show the working",
+        "explain",
+        "teach me",
+        "help me understand",
+        "how do",
+        "how to",
+        "why",
+    )
+    return any(cue in text for cue in cues)
+
+
 def _simple_arithmetic_answer(message: str):
+    """Give deterministic answers only when the learner is asking for a short result.
+
+    Explanatory requests deliberately go through the tutor model so Robo-Teacher
+    can provide pedagogy and intermediate steps instead of merely evaluating the
+    Python-like arithmetic expression.
+    """
+    if _wants_teaching(message):
+        return None
     text = message.strip().lower().replace("×", "*").replace("÷", "/")
     text = re.sub(r"^(what is|calculate|compute|solve)\s+", "", text).rstrip("?.!")
     if not re.fullmatch(r"[0-9\s+\-*/().%]+", text) or "%" in text or not re.search(r"\d\s*[+\-*/]\s*\d", text): return None
     value = _safe_arithmetic(text)
     if value is None: return None
     if isinstance(value, float) and value.is_integer(): value = int(value)
-    return f"Let's work it out step by step.\n\n{message.strip()} = {value}\n\nAnswer: {value}"
+    return f"{message.strip()} = {value}\n\nAnswer: {value}"
 
 
 def _clean_model_reply(text: str) -> str:
