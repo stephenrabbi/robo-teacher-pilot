@@ -23,7 +23,8 @@ async def _sync_telegram_webhook_on_startup():
     try:
         await configure_telegram_webhook()
         logger.info("Telegram webhook synchronized successfully")
-    except Exception: logger.exception("Telegram webhook synchronization failed")
+    except Exception as exc:
+        logger.error("Telegram webhook synchronization failed (%s)", type(exc).__name__)
 
 def whatsapp_migration_mode_enabled(): return os.getenv("WHATSAPP_MIGRATION_MODE", "true").strip().lower() in {"1","true","yes","on"}
 def _validate_twilio_request(request, form):
@@ -64,14 +65,14 @@ async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks):
     if outcome[0] == "reply": twiml.message(outcome[1]); return Response(content=str(twiml), media_type="application/xml")
     _, pilot_id, school, session_id = outcome; status = "Success"
     try: reply_text, latency = get_tutor_reply(pilot_id, body)
-    except Exception: logger.exception("Gemini call failed (WhatsApp)"); reply_text, latency, status = "Sorry, I had a small technical hiccup. Please try asking again in a moment.", 0.0, "Error"
+    except Exception as exc: logger.error("Gemini call failed (WhatsApp) (%s)", type(exc).__name__); reply_text, latency, status = "Sorry, I had a small technical hiccup. Please try asking again in a moment.", 0.0, "Error"
     twiml.message(reply_text); background_tasks.add_task(log_interaction, pilot_id, school, "WhatsApp", session_id, body, reply_text, latency, status)
     return Response(content=str(twiml), media_type="application/xml")
 
 async def _handle_telegram_message(chat_id, text, pilot_id, school, session_id):
     status="Success"
     try: reply_text, latency = get_tutor_reply(pilot_id, text)
-    except Exception: logger.exception("Gemini call failed (Telegram)"); reply_text, latency, status = "Sorry, I had a small technical hiccup. Please try asking again in a moment.",0.0,"Error"
+    except Exception as exc: logger.error("Gemini call failed (Telegram) (%s)", type(exc).__name__); reply_text, latency, status = "Sorry, I had a small technical hiccup. Please try asking again in a moment.",0.0,"Error"
     await send_telegram_message(chat_id, reply_text); log_interaction(pilot_id, school, "Telegram", session_id, text, reply_text, latency, status)
 
 async def _handle_telegram_image(chat_id, file_id, caption, pilot_id, school, session_id):
@@ -79,7 +80,7 @@ async def _handle_telegram_image(chat_id, file_id, caption, pilot_id, school, se
     try:
         media, mime = await download_telegram_image(file_id); reply_text, latency = get_tutor_image_reply(pilot_id, media, mime, caption)
     except ValueError as exc: reply_text, latency, status = f"I couldn't use that image safely: {exc}. Please send a clear JPG, PNG, or WEBP photo of the Maths question.",0.0,"RejectedImage"
-    except Exception: logger.exception("Image tutoring failed (Telegram)"); reply_text, latency, status = "Sorry, I couldn't read that image just now. Please try again with a clear photo or type the Maths question.",0.0,"Error"
+    except Exception as exc: logger.error("Image tutoring failed (Telegram) (%s)", type(exc).__name__); reply_text, latency, status = "Sorry, I couldn't read that image just now. Please try again with a clear photo or type the Maths question.",0.0,"Error"
     await send_telegram_message(chat_id, reply_text); log_interaction(pilot_id, school, "Telegram", session_id, "[Maths image received]" + (f" Caption: {caption[:180]}" if caption else ""), reply_text, latency, status)
 
 async def _handle_telegram_audio(chat_id, file_id, mime_type, pilot_id, school, session_id):
@@ -88,16 +89,20 @@ async def _handle_telegram_audio(chat_id, file_id, mime_type, pilot_id, school, 
     try:
         audio, resolved_mime = await download_telegram_audio(file_id, mime_type); reply_text, latency = get_tutor_audio_reply(pilot_id, audio, resolved_mime)
     except ValueError as exc: reply_text, latency, status = f"I couldn't use that voice note safely: {exc}. Please send a shorter clear voice note or type your Maths question.",0.0,"RejectedAudio"
-    except Exception: logger.exception("Voice tutoring failed (Telegram)"); reply_text, latency, status = "Sorry, I couldn't understand that voice note just now. Please try again or type the Maths question.",0.0,"Error"
+    except Exception as exc: logger.error("Voice tutoring failed (Telegram) (%s)", type(exc).__name__); reply_text, latency, status = "Sorry, I couldn't understand that voice note just now. Please try again or type the Maths question.",0.0,"Error"
     await send_telegram_message(chat_id, reply_text); log_interaction(pilot_id, school, "Telegram", session_id, "[Maths voice note received]", reply_text, latency, status)
 
 @app.post("/webhook/telegram")
 async def telegram_webhook(request: Request, background_tasks: BackgroundTasks):
     _validate_telegram_request(request); update = await request.json(); message = update.get("message") or update.get("edited_message")
-    if not message: return {"ok":True}
-    chat_id = message["chat"]["id"]; username = (message.get("from") or {}).get("username", ""); text = (message.get("text") or message.get("caption") or "").strip()
+    if not isinstance(message, dict): return {"ok":True}
+    chat = message.get("chat")
+    if not isinstance(chat, dict) or chat.get("id") is None:
+        logger.warning("Ignoring malformed Telegram update without chat id")
+        return {"ok":True}
+    chat_id = chat["id"]; username = (message.get("from") or {}).get("username", ""); text = (message.get("text") or message.get("caption") or "").strip()
     photos = message.get("photo") or []; document = message.get("document") or {}; document_mime = str(document.get("mime_type", ""))
-    image_file_id = photos[-1]["file_id"] if photos else (document.get("file_id") if document_mime in {"image/jpeg","image/png","image/webp"} else None)
+    image_file_id = photos[-1].get("file_id") if photos and isinstance(photos[-1], dict) else (document.get("file_id") if document_mime in {"image/jpeg","image/png","image/webp"} else None)
     voice = message.get("voice") or {}; audio = message.get("audio") or {}; audio_obj = voice or audio
     audio_mime = str(audio_obj.get("mime_type", "")); audio_file_id = audio_obj.get("file_id") if audio_obj and (not audio_mime or audio_mime in SUPPORTED_AUDIO_MIME_TYPES) else None
     if not username: background_tasks.add_task(send_telegram_message, chat_id, "You'll need a Telegram username set (Settings → Username) before I can register you — add one, then message me again!"); return {"ok":True}
