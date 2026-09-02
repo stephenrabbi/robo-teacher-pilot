@@ -2,7 +2,7 @@ name: Robo-Teacher Tests
 
 on:
   push:
-    branches: [main]
+    branches: [main, v2-development]
   workflow_dispatch:
 
 permissions:
@@ -23,5 +23,20 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Run sanity tests
+      - name: Run pilot sanity tests
         run: python test_webhook.py
+
+      - name: Run V2 adaptive-memory tests
+        run: python test_v2_profile.py
+
+      - name: Run V2 multimodal safety tests
+        run: python test_v2_multimodal.py
+
+      - name: Run V2 voice safety tests
+        run: python test_v2_voice.py
+
+      - name: Run V2 resilience/fallback tests
+        run: python test_v2_resilience.py
+
+      - name: Run V2 Telegram webhook authentication tests
+        run: python test_v2_webhook_security.py
