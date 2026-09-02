@@ -1,7 +1,7 @@
 """Offline safety/contract tests for Robo-Teacher V2 multimodal tutoring."""
 
 import asyncio
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import telegram_adapter
 import tutor
@@ -22,11 +22,14 @@ except ValueError:
     pass
 
 async def test_download_contract():
-    fake_meta = AsyncMock()
-    fake_meta.raise_for_status.return_value = None
+    # httpx Response methods/properties are synchronous even when the client call is async.
+    fake_meta = MagicMock()
+    fake_meta.is_success = True
     fake_meta.json.return_value = {"ok": True, "result": {"file_path": "photos/test.jpg"}}
-    fake_image = AsyncMock()
-    fake_image.raise_for_status.return_value = None
+
+    fake_image = MagicMock()
+    fake_image.is_success = True
+    fake_image.status_code = 200
     fake_image.content = b"jpeg-bytes"
 
     fake_client = AsyncMock()
