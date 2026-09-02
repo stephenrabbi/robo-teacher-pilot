@@ -44,12 +44,12 @@ _TOPIC_PATTERNS = [
 # Conservative patterns for common direct identifiers learners may accidentally
 # type into a Maths message. This is minimization, not a claim of perfect PII detection.
 _EMAIL_RE = re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE)
-# Nigerian mobile numbers: local 11-digit form (e.g. 0802...) or +234/234 form.
-# Separators are allowed between digit groups while preserving surrounding Maths numbers.
+# Nigerian mobile numbers: local 11-digit form (e.g. 08024909868) or +234/234 form.
+# Separators are allowed between the network prefix, subscriber block, and final block.
 _PHONE_RE = re.compile(
     r"(?<!\w)(?:"
-    r"0[789][01][\s-]?\d{3}[\s-]?\d{4}"
-    r"|\+?234[\s-]?[789][01][\s-]?\d{3}[\s-]?\d{4}"
+    r"0[789]\d{2}[\s-]?\d{3}[\s-]?\d{4}"
+    r"|\+?234[\s-]?[789]\d{2}[\s-]?\d{3}[\s-]?\d{4}"
     r")(?!\w)"
 )
 _TELEGRAM_HANDLE_RE = re.compile(r"(?<!\w)@[A-Za-z0-9_]{5,32}\b")
