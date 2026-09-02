@@ -70,6 +70,21 @@ def test_retry_failure_returns_safe_fallback():
         assert latency >= 0
 
 
+def test_failed_retry_does_not_mutate_conversation_history():
+    student_id = "TEST-HISTORY"
+    original_history = ["existing-user-turn", "existing-model-turn"]
+    tutor._conversations[student_id] = list(original_history)
+    profile_patch, client_patch = _patched_tutor_context()
+    try:
+        with profile_patch, client_patch, \
+             patch.object(tutor, "_ask", side_effect=[RuntimeError("temporary provider failure"), RuntimeError("provider still unavailable")]):
+            reply, _ = tutor.get_tutor_reply(student_id, "Please explain ratio")
+        assert "technical hiccup" in reply.lower()
+        assert tutor._conversations[student_id] == original_history
+    finally:
+        tutor._conversations.pop(student_id, None)
+
+
 def test_retry_rate_limit_returns_rate_limit_fallback():
     profile_patch, client_patch = _patched_tutor_context()
     with profile_patch, client_patch, \
@@ -93,6 +108,7 @@ asyncio.run(test_telegram_image_fallback())
 asyncio.run(test_telegram_audio_fallback())
 test_rate_limit_fallback()
 test_retry_failure_returns_safe_fallback()
+test_failed_retry_does_not_mutate_conversation_history()
 test_retry_rate_limit_returns_rate_limit_fallback()
 test_client_initialization_failure_returns_safe_fallback()
 print("V2 controlled resilience/fallback tests passed.")
