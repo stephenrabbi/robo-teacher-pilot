@@ -12,6 +12,18 @@ assert learner_profile.classify_topic("Solve x + 4 = 10") == "Algebra"
 assert learner_profile.classify_topic("A trader made a profit of 500 naira") == "Financial Mathematics"
 print("Topic classification OK")
 
+redacted = learner_profile.redact_recent_question(
+    "Email me at learner@example.com or call 08024909868; my Telegram is @Jollygf. Solve 1/2 + 1/4."
+)
+assert "learner@example.com" not in redacted
+assert "08024909868" not in redacted
+assert "@Jollygf" not in redacted
+assert "[email redacted]" in redacted
+assert "[phone redacted]" in redacted
+assert "[handle redacted]" in redacted
+assert "1/2 + 1/4" in redacted
+print("Recent-question PII minimization OK")
+
 base = dict(learner_profile.DEFAULT_PROFILE)
 base["topic_counts"] = {}
 base["recent_questions"] = []
