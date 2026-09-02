@@ -135,8 +135,8 @@ def _clean_model_reply(text: str) -> str:
 
 def _safe_profile_update(student_id: str, message: str) -> dict:
     try: return update_profile_from_message(student_id, message)
-    except Exception:
-        logger.exception("Learner profile update failed for %s; continuing with defaults", student_id)
+    except Exception as exc:
+        logger.error("Learner profile update failed for %s (%s); continuing with defaults", student_id, type(exc).__name__)
         try: return load_profile(student_id)
         except Exception: return dict(DEFAULT_PROFILE)
 
@@ -159,8 +159,8 @@ def get_tutor_reply(student_id: str, message: str) -> tuple[str, float]:
     start = time.time()
     try:
         client = _get_client()
-    except Exception:
-        logger.exception("Gemini client initialization failed")
+    except Exception as exc:
+        logger.error("Gemini client initialization failed (%s)", type(exc).__name__)
         return TECHNICAL_FALLBACK_RESPONSE, time.time() - start
 
     history = _conversations.get(student_id, [])
@@ -169,13 +169,13 @@ def get_tutor_reply(student_id: str, message: str) -> tuple[str, float]:
     except Exception as first_error:
         if _is_rate_limit_error(first_error):
             return RATE_LIMIT_RESPONSE, time.time() - start
-        logger.warning("Gemini request failed; retrying once without conversation history: %s", type(first_error).__name__)
+        logger.warning("Gemini request failed; retrying once without conversation history (%s)", type(first_error).__name__)
         try:
             text, new_history = _ask(client, [], message, profile)
         except Exception as retry_error:
             if _is_rate_limit_error(retry_error):
                 return RATE_LIMIT_RESPONSE, time.time() - start
-            logger.exception("Gemini retry failed; returning safe technical fallback")
+            logger.error("Gemini retry failed; returning safe technical fallback (%s)", type(retry_error).__name__)
             return TECHNICAL_FALLBACK_RESPONSE, time.time() - start
 
     _conversations[student_id] = new_history[-_MAX_TURNS * 2:]
