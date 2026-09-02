@@ -68,9 +68,9 @@ def _normalize(channel: str, identifier: str) -> str:
     return identifier.lstrip("@").strip().lower()
 
 
-def _load_cache():
+def _load_cache(force: bool = False):
     global _cache, _next_number
-    if _cache is not None:
+    if _cache is not None and not force:
         return
     ws = _get_roster_worksheet()
     _cache = {}
@@ -94,9 +94,20 @@ def _load_cache():
 
 
 def lookup_student(channel: str, identifier: str):
-    """Return an active registered participant or None."""
+    """Return an active registered participant or None.
+
+    The roster is cached for normal requests, but a cache miss triggers one
+    fresh Sheet read so newly approved students can use the bot without a
+    service restart or redeploy.
+    """
+    key = (channel, _normalize(channel, identifier))
     _load_cache()
-    return _cache.get((channel, _normalize(channel, identifier)))
+    student = _cache.get(key)
+    if student is not None:
+        return student
+
+    _load_cache(force=True)
+    return _cache.get(key)
 
 
 def is_awaiting_school_choice(channel: str, identifier: str) -> bool:
