@@ -44,12 +44,47 @@ async def test_telegram_audio_fallback():
         assert logged.call_args.args[-1] == "Error"
 
 
+def _patched_tutor_context():
+    return (
+        patch.object(tutor, "_safe_profile_update", return_value=dict(tutor.DEFAULT_PROFILE)),
+        patch.object(tutor, "_get_client", return_value=object()),
+    )
+
+
 def test_rate_limit_fallback():
-    with patch.object(tutor, "_safe_profile_update", return_value=dict(tutor.DEFAULT_PROFILE)), \
-         patch.object(tutor, "_get_client", return_value=object()), \
+    profile_patch, client_patch = _patched_tutor_context()
+    with profile_patch, client_patch, \
          patch.object(tutor, "_ask", side_effect=RuntimeError("429 RESOURCE_EXHAUSTED quota")):
         reply, latency = tutor.get_tutor_reply("TEST001", "Please explain ratio")
         assert "try again in about a minute" in reply.lower()
+        assert latency >= 0
+
+
+def test_retry_failure_returns_safe_fallback():
+    profile_patch, client_patch = _patched_tutor_context()
+    with profile_patch, client_patch, \
+         patch.object(tutor, "_ask", side_effect=[RuntimeError("temporary provider failure"), RuntimeError("provider still unavailable")]) as ask:
+        reply, latency = tutor.get_tutor_reply("TEST001", "Please explain ratio")
+        assert "technical hiccup" in reply.lower()
+        assert ask.call_count == 2
+        assert latency >= 0
+
+
+def test_retry_rate_limit_returns_rate_limit_fallback():
+    profile_patch, client_patch = _patched_tutor_context()
+    with profile_patch, client_patch, \
+         patch.object(tutor, "_ask", side_effect=[RuntimeError("temporary provider failure"), RuntimeError("429 RESOURCE_EXHAUSTED quota")]) as ask:
+        reply, latency = tutor.get_tutor_reply("TEST001", "Please explain ratio")
+        assert "try again in about a minute" in reply.lower()
+        assert ask.call_count == 2
+        assert latency >= 0
+
+
+def test_client_initialization_failure_returns_safe_fallback():
+    with patch.object(tutor, "_safe_profile_update", return_value=dict(tutor.DEFAULT_PROFILE)), \
+         patch.object(tutor, "_get_client", side_effect=KeyError("GEMINI_API_KEY")):
+        reply, latency = tutor.get_tutor_reply("TEST001", "Please explain ratio")
+        assert "technical hiccup" in reply.lower()
         assert latency >= 0
 
 
@@ -57,4 +92,7 @@ asyncio.run(test_telegram_text_fallback())
 asyncio.run(test_telegram_image_fallback())
 asyncio.run(test_telegram_audio_fallback())
 test_rate_limit_fallback()
+test_retry_failure_returns_safe_fallback()
+test_retry_rate_limit_returns_rate_limit_fallback()
+test_client_initialization_failure_returns_safe_fallback()
 print("V2 controlled resilience/fallback tests passed.")
