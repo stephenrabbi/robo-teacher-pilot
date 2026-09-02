@@ -1,208 +1,339 @@
-# Robo-Teacher
+# Robo-Teacher V2
 
-*An AI-powered Mathematics tutor for JSS2 students, built by Earlyon-Tech Brainery.*
+**A Gemini-powered, adaptive and multimodal Mathematics tutor for African learners, built by Earlyon-Tech Brainery.**
 
-## About
+Robo-Teacher is an AI tutoring system designed to extend individualized learning support beyond the classroom. The current production release focuses on **JSS2 Basic Mathematics** and combines curriculum-focused tutoring with adaptive learner profiles, text tutoring, homework-image support, voice questions, privacy-conscious analytics, and authenticated messaging integrations.
 
-Robo-Teacher addresses a persistent gap in Nigerian classrooms: large class sizes can limit the individual attention students receive. It provides a patient, always-available Mathematics tutor through platforms students already use — WhatsApp and Telegram.
+> **Current status:** Robo-Teacher V2 has been merged into the production `main` branch, passed the automated CI test suite, and is deployed to production on Render.
 
-The pilot is intentionally focused on JSS2 Basic Mathematics and aligned with the NERDC scheme of work. Future expansion can include additional subjects, grade levels, multimedia interactions, and platform integrations.
+## Why Robo-Teacher
 
-## Pilot status
+Large classes can limit the amount of individualized explanation, practice and feedback each learner receives. Robo-Teacher is being developed as an always-available AI learning layer that can provide patient, step-by-step support through channels learners already know how to use.
 
-Robo-Teacher is a live pilot system used by students from **Ise Junior High School, Epe** and **Tio College, Ikorodu**. The project records pseudonymized interaction evidence for evaluation while keeping participant identity data separate from the interaction log.
+The long-term product vision is a **multilingual, multimodal AI virtual teacher** that can see, listen, speak, teach, demonstrate, assess and personalize learning across African curricula, subjects and education levels.
 
-### Verified aggregate pilot results
+## V2 Capabilities
+
+### Adaptive learner profiles
+
+Robo-Teacher maintains a lightweight learner profile keyed by pseudonymous Pilot ID. The profile can track:
+
+- topic interaction counts
+- last topic studied
+- recent-question context
+- preferred explanation style
+- difficulty level
+- language preference
+
+Recent-question data is minimized before durable storage, including redaction of common email addresses, Nigerian mobile numbers and Telegram handles.
+
+### Step-by-step Mathematics tutoring
+
+The Gemini-powered tutor is prompted to teach rather than simply provide answers. It supports worked explanations, misconception correction, Socratic guidance and multi-turn follow-up within the documented Mathematics scope.
+
+### Homework-image tutoring
+
+Students can submit supported homework images through Telegram. Robo-Teacher can use Gemini's multimodal capability to interpret a readable Mathematics problem and explain it step by step.
+
+Image handling includes download-size limits and defensive processing. If an image is too unclear to interpret reliably, the tutor is designed to request a clearer image rather than inventing the missing content.
+
+### Voice-question tutoring
+
+Students can send supported voice/audio questions through Telegram and receive a text tutoring response. The voice pathway includes instructions to verify important numbers, signs and operators and to ask the learner to resend or type the question when the audio is ambiguous.
+
+### Conversation continuity
+
+The tutor maintains lightweight in-memory conversation history so follow-up questions can retain context during a running session. Conversation history is only updated after a successful model response, helping prevent provider failures from corrupting the active history.
+
+### Safe fallback behaviour
+
+The tutor includes bounded retry and fallback handling for model-provider errors and rate limits. Provider failures do not trigger unlimited retries, and user-facing responses avoid exposing internal technical details.
+
+## Verified Pilot Evidence
+
+The original evaluation involved students from **Ise Junior High School, Epe** and **Tio College, Ikorodu**.
+
+### Frozen evaluation snapshot
 
 - **56 students** participated across the two schools.
 - All **56 students completed matched baseline and post-test assessments**.
-- Mean Mathematics assessment performance increased from **12.7% at baseline to 26.5% at post-test**, an observed gain of **13.8 percentage points**.
+- Mean Mathematics assessment performance increased from **12.7% at baseline to 26.5% at post-test** — an observed gain of **13.8 percentage points**.
 - **51 of 56 students (91.1%)** recorded a higher post-test score than baseline.
-- All **56 students completed the feedback survey**, with an overall mean rating of **4.84/5**.
-- The live pilot dataset currently contains **188 logged student interactions** across WhatsApp and Telegram (**119 WhatsApp, 69 Telegram**).
+- All **56 students completed the feedback survey**.
+- Overall mean student-feedback rating: **4.84/5**.
+- The frozen evaluation snapshot contains **188 successful student interactions**: **119 WhatsApp** and **69 Telegram**.
 
-These are descriptive pilot results. Because the evaluation did not use a randomized control group, the pre/post change should be interpreted as **observed improvement during the pilot**, not as proof that Robo-Teacher alone caused the improvement.
+These are **descriptive pilot results**. The evaluation did not use a randomized control group, so the pre/post change should be interpreted as **observed improvement during the pilot**, not proof that Robo-Teacher alone caused the improvement.
 
-See `evaluation/PILOT_DASHBOARD.md` and `evaluation/PILOT_EVIDENCE_RECORD.md` for the aggregate evidence summary. Student-level results remain in private evaluation records and are not committed to this public repository.
+The pilot evidence remains separate from later V2 development and controlled staging tests. New development activity is not retroactively added to the frozen evaluation dataset.
 
-## How It Works
+See `evaluation/PILOT_DASHBOARD.md` and `evaluation/PILOT_EVIDENCE_RECORD.md` for the aggregate evidence record. Student-level results and identifiers remain in private records and are not committed to this public repository.
 
-When a student sends a Mathematics question, Robo-Teacher:
+## Current Architecture
 
-1. Receives the question through WhatsApp or Telegram.
-2. Authenticates the incoming webhook request.
-3. Looks up or onboards the participant through the Google Sheets-backed roster.
-4. Uses Google's Gemini model to generate a curriculum-focused, step-by-step response.
-5. Maintains lightweight conversation context using the anonymous Pilot ID as the memory key.
-6. Records pseudonymized pilot interaction data in Google Sheets for evaluation.
+```text
+Learner
+   |
+   v
+Telegram / WhatsApp migration path
+   |
+   v
+Authenticated FastAPI webhooks (`main.py`)
+   |
+   +--> learner identity / roster (`roster_sheet.py`)
+   |
+   +--> text / image / voice input handling
+   |
+   v
+Tutor orchestrator (`tutor.py`)
+   |
+   +--> adaptive learner profile (`learner_profile.py`)
+   |
+   +--> conversation context
+   |
+   v
+Google Gemini
+   |
+   v
+Pedagogical response / safe fallback
+   |
+   v
+Learner response
+   |
+   v
+Pseudonymized analytics (`sheet_logger.py`) --> Google Sheets
+```
 
-Student identity data used for onboarding is kept separately from the interaction log.
+The production architecture separates participant identity data from pseudonymized interaction records.
+
+## Messaging Channels
+
+### Telegram
+
+Telegram is the primary production tutoring channel for the current V2 release. The Telegram webhook supports authenticated text, image and voice/audio interactions.
+
+### WhatsApp
+
+The original pilot used the Twilio WhatsApp Sandbox as well as Telegram. The current production code keeps WhatsApp webhook authentication in place and supports a migration/redirect path rather than silently reactivating unrestricted WhatsApp tutoring.
+
+This distinction is important: the original pilot evidence includes WhatsApp interactions, while current V2 multimodal development is centered on Telegram.
 
 ## Curriculum Scope
 
-The current tutor covers JSS2 Basic Mathematics, including:
+The production tutor remains deliberately scoped to **JSS2 Basic Mathematics**, aligned with the NERDC scheme of work. Topics include:
 
-- Whole numbers and place value
-- Factors, multiples, and prime numbers
+- whole numbers and place value
+- factors, multiples and prime numbers
 - LCM and HCF
-- Fractions and decimals
-- Approximation and estimation
-- Ratio, proportion, and rate
-- Basic algebraic expressions and simple equations
-- Everyday arithmetic, including profit, loss, and percentages
+- fractions and decimals
+- approximation and estimation
+- ratio, proportion and rate
+- basic algebraic expressions and simple equations
+- percentages and everyday arithmetic
+- introductory financial Mathematics
+- relevant JSS2 geometry
 
-The curriculum prompt is maintained in `tutor.py`.
+The curriculum and pedagogical instructions are maintained in `tutor.py`.
 
-## Architecture
+## Data and Privacy
 
-```text
-Student
-   ↓
-WhatsApp / Telegram
-   ↓
-Authenticated FastAPI webhook (`main.py`)
-   ↓
-Student lookup / onboarding (`roster_sheet.py`)
-   ↓
-Gemini tutor (`tutor.py`)
-   ↓
-Response via WhatsApp / Telegram
-   ↓
-Pseudonymized interaction log → Google Sheets
+Robo-Teacher uses **pseudonymization**, not a claim of full anonymity.
+
+The private Student Roster contains the information required to recognize authorized learners. Interaction records use a Pilot ID rather than directly storing a learner's phone number, Telegram username or name.
+
+The interaction log can include:
+
+- UTC timestamp
+- school
+- Pilot ID
+- channel
+- session ID
+- learner question
+- truncated tutor response
+- interaction status
+- response latency
+
+Because a Pilot ID can be linked back to the separately protected roster, the dataset must be treated as pseudonymized.
+
+Adaptive-memory storage also applies PII-minimization rules to recent-question text before durable storage.
+
+## Security Controls
+
+Current controls include:
+
+- Twilio `X-Twilio-Signature` validation for WhatsApp requests
+- Telegram `X-Telegram-Bot-Api-Secret-Token` validation before processing Telegram updates
+- webhook-secret format validation
+- HTTPS validation for configured Telegram webhook URLs
+- safe handling of malformed Telegram updates
+- streamed Telegram media downloads with accumulated-byte limits
+- sanitized provider/API error logging to reduce credential, URL and payload leakage
+- secrets supplied through deployment environment variables rather than committed files
+- closed-pilot roster behaviour by default
+- separation of production and staging data/configuration
+
+Never commit `.env`, API keys, bot tokens, service-account JSON or other credentials to this repository.
+
+## Automated Testing and CI
+
+The GitHub Actions workflow runs credential-free automated tests using mocks and synthetic data. Current CI coverage includes:
+
+- pilot sanity tests
+- adaptive-memory and learner-profile tests
+- PII-redaction regression tests
+- multimodal/media safety tests
+- voice safety tests
+- resilience, retry and fallback tests
+- conversation-history integrity on provider failure
+- Telegram webhook authentication tests
+- malformed Telegram update handling
+
+The production V2 merge passed the full automated suite before and after promotion to `main`.
+
+Useful local commands include:
+
+```bash
+python test_webhook.py
+python test_v2_profile.py
+python test_v2_multimodal.py
+python test_v2_voice.py
+python test_v2_resilience.py
+python test_v2_webhook_security.py
 ```
 
-The Student Roster and Interaction Log are separate. The roster contains the mapping needed to recognize pilot participants, while the interaction log uses the Pilot ID and does not store phone numbers, Telegram usernames, or student names.
+## Production and Staging
 
-## Evaluation
+Development and release validation use separate environments:
 
-The repository includes an evaluation protocol under `evaluation/`:
+- `v2-development` was used to isolate V2 development from the original production branch.
+- a separate Render staging service and staging Google Sheet were used for controlled V2 validation.
+- the tested V2 release was promoted to `main` only after automated tests and staging checks passed.
+- Render automatically deploys the production service from `main`.
 
-- `BASELINE_ASSESSMENT.md` — 20-question JSS2 Mathematics baseline
-- `POST_ASSESSMENT.md` — parallel 20-question post-assessment
-- `STUDENT_FEEDBACK_SURVEY.md` — structured 1–5 student feedback instrument
-- `PILOT_DASHBOARD.md` — verified aggregate pilot results
-- `PILOT_EVIDENCE_RECORD.md` — evidence provenance and reporting record
-- `ANALYSIS_TEMPLATE.md` — engagement, reliability, learning-gain, and feedback analysis rules
-- `TOPIC_CATEGORIES.md` — consistent topic classification for interaction analysis
-- `COMPETITION_EVIDENCE_CHECKLIST.md` — evidence package checklist
-
-Student-level results and contact identifiers remain in private pilot records and are not committed to this public repository.
+This workflow reduces the risk of experimental changes directly affecting the live system.
 
 ## Getting Started
 
 ### Prerequisites
 
-- Gemini API key (Google AI Studio)
-- Twilio account with WhatsApp Sandbox access or a production WhatsApp sender
-- Telegram bot token from BotFather
-- Google Sheet and service account for the pilot roster and interaction log
-- Python hosting environment capable of running a FastAPI service
+- Python 3
+- Gemini API key
+- Telegram bot token
+- Telegram webhook secret
+- Google Sheet and Google service-account credentials
+- Twilio credentials if operating the WhatsApp integration
+- a Python hosting environment capable of running FastAPI
 
 ### Setup
 
-1. Clone this repository.
-2. Copy `.env.example` to `.env` and fill in the required environment variables.
-3. Install dependencies:
+1. Clone the repository.
+2. Copy `.env.example` to `.env`.
+3. Add the required local environment variables. Do not commit the completed `.env` file.
+4. Install dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-4. Run the automated sanity tests:
-
-```bash
-python test_webhook.py
-```
-
-5. Start locally:
+5. Run the automated tests.
+6. Start locally:
 
 ```bash
 uvicorn main:app --reload
 ```
 
-6. Deploy the service using:
+For deployment:
 
 ```bash
 pip install -r requirements.txt
 uvicorn main:app --host 0.0.0.0 --port $PORT
 ```
 
-7. Configure the Twilio WhatsApp webhook as:
-
-```text
-https://<your-deployed-url>/webhook/whatsapp
-```
-
-8. Configure the Telegram webhook at:
-
-```text
-https://api.telegram.org/bot<YOUR_TOKEN>/setWebhook?url=https://<your-deployed-url>/webhook/telegram
-```
-
-## Security
-
-The WhatsApp webhook validates Twilio's `X-Twilio-Signature` using `TWILIO_AUTH_TOKEN`.
-
-The Telegram webhook validates `X-Telegram-Bot-Api-Secret-Token` using `TELEGRAM_WEBHOOK_SECRET`.
-
-These secrets belong in the deployment environment and must never be committed to the repository. The automated test suite includes both valid-authentication and rejection-path checks.
-
-## Configuration
-
-- `tutor.py` — Gemini model, tutor behaviour, curriculum scope, and conversation context
-- `roster_sheet.py` — student onboarding and Google Sheets roster management
-- `sheet_logger.py` — privacy-conscious interaction logging
-- `whatsapp_adapter.py` — Twilio WhatsApp responses
-- `telegram_adapter.py` — Telegram responses
-- `main.py` — authenticated FastAPI webhooks and application flow
-
-`roster.json` remains as a placeholder/example file only. Live pilot participant data should be maintained in the private Google Sheet, not committed to this public repository.
-
 ## Environment Variables
 
-Use `.env.example` as the template. **Never commit `.env` or service-account credentials to GitHub.** The repository includes a `.gitignore` to help prevent accidental commits of local secrets.
+Use `.env.example` as the configuration template. Relevant variables include:
 
-## Data & Privacy
+```env
+GEMINI_API_KEY=
+GEMINI_MODEL=gemini-3.1-flash-lite
+GOOGLE_SHEET_ID=
+GOOGLE_SERVICE_ACCOUNT_JSON=
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_WEBHOOK_SECRET=
+TWILIO_ACCOUNT_SID=
+TWILIO_AUTH_TOKEN=
+ALLOW_AUTO_ENROLL=false
+```
 
-Robo-Teacher uses a pseudonymization model for pilot evaluation. Participant identity data is kept separately from interaction data.
+Keep `ALLOW_AUTO_ENROLL=false` for a controlled/closed pilot unless there is a deliberate decision to change the enrollment model.
 
-The private **Student Roster** contains the information required to onboard and recognize pilot participants. The **Interaction Log** stores:
+## Repository Components
 
-- UTC timestamp
-- school
-- anonymous Pilot ID
-- channel
-- session ID
-- student question
-- tutor response (truncated)
-- interaction status
-- response latency
+- `main.py` — FastAPI application, authenticated webhooks and channel flow
+- `tutor.py` — Gemini orchestration, curriculum, pedagogy, multimodal prompts and fallback behaviour
+- `roster_sheet.py` — Google Sheets-backed learner recognition/onboarding
+- `learner_profile.py` — adaptive learner profile and PII-minimized recent-question memory
+- `sheet_logger.py` — pseudonymized interaction logging
+- `telegram_adapter.py` — Telegram messaging integration
+- `whatsapp_adapter.py` — Twilio WhatsApp integration
+- `evaluation/` — pilot instruments, evidence summaries and evaluation documentation
+- `.github/workflows/test.yml` — automated CI test workflow
 
-The interaction log does **not** store phone numbers, Telegram usernames, or student names. Because the Pilot ID can be linked back to the private roster, the interaction dataset should be treated as **pseudonymized rather than fully anonymous**.
+`roster.json` is only a placeholder/example. Live participant records must not be committed to the public repository.
 
-## Testing
+## Known Limitations
 
-`test_webhook.py` runs without live API credentials. It uses mocked Gemini, Google Sheets, WhatsApp, and Telegram components to test onboarding, registration, normal tutoring requests, empty-message handling, and webhook authentication/rejection paths.
+Robo-Teacher V2 is a production-deployed early-stage system, not a finished autonomous teacher.
 
-## Limitations
-
-- The pilot uses lightweight in-memory conversation context, which resets when the server restarts.
-- The current evaluation is a pilot and should not be presented as a controlled causal study unless the study design supports that claim.
-- WhatsApp availability depends on the selected Twilio/WhatsApp service configuration.
-- Gemini responses can be imperfect; the tutor is scoped to the documented JSS2 Mathematics topics and encourages students to seek teacher support when appropriate.
-- Financial Mathematics showed weaker post-test performance than baseline in the topic-level analysis and is a priority area for improvement.
+- Conversation history is currently in memory and can reset when the service restarts.
+- Adaptive profiles are lightweight and should not be interpreted as a complete learner model.
+- Image interpretation depends on image quality and model capability.
+- Voice understanding can fail when audio is noisy or numbers/operators are ambiguous.
+- Gemini responses can still be imperfect; automated guardrails reduce risk but do not eliminate model error.
+- The pilot evaluation was not a randomized controlled trial.
+- The original post-test mean of 26.5% remains low in absolute terms despite the observed improvement.
+- Financial Mathematics declined in the topic-level pilot analysis and remains an identified improvement area.
+- Current production scope is intentionally narrow rather than claiming support for every curriculum, subject or learner level.
 
 ## Roadmap
 
-- Additional subjects and grade levels
-- Richer multimedia tutoring
-- AI voice and video experiences
-- Local-language support
-- Adaptive practice and progress tracking
-- Low-data/offline-friendly access
-- Deeper Google Cloud integration
-- Expanded school-level reporting and learning analytics
+### V2.5 — Interactive AI teacher experience
+
+Planned work includes:
+
+- interactive teacher/avatar interface
+- richer visual explanations and demonstrations
+- improved voice interaction
+- stronger image/handwriting understanding
+- local-language support, beginning with priority Nigerian languages
+
+### V2.6 — School and commercialization layer
+
+Planned work includes:
+
+- school administration tools
+- teacher dashboards
+- learner progress reporting
+- expanded evaluation and safeguarding controls
+- school-level deployment and pricing workflows
+- additional subjects and grade levels
+
+### Longer-term vision
+
+Robo-Teacher is intended to evolve from a messaging-based tutor into an **AI learning layer for African education**: a multilingual, multimodal virtual teacher that can personalize instruction while keeping teachers, schools and responsible evaluation central to deployment.
+
+## Responsible Evidence Policy
+
+This repository distinguishes among:
+
+1. **verified pilot evidence** — results from the documented 56-student evaluation;
+2. **controlled development/staging tests** — used to validate new capabilities but not counted as pilot outcomes; and
+3. **future product plans** — clearly described as roadmap items rather than completed capabilities.
+
+This distinction is intentional. Robo-Teacher's public claims should remain traceable to evidence rather than treating prototypes, mockups or future plans as completed outcomes.
 
 ## About Earlyon-Tech Brainery
 
-Earlyon-Tech Brainery is a technology training and product initiative focused on expanding access to quality technical and digital education across Africa. Robo-Teacher applies that mission directly to classroom learning.
+Earlyon-Tech Brainery is a Nigerian education-technology initiative focused on expanding access to quality technical and digital education. Robo-Teacher represents the organization's transition from delivering technology-enabled learning primarily through human-led programs toward building scalable AI-powered education infrastructure.
+
+**Product direction:** *Every learner. Their own AI teacher.*
