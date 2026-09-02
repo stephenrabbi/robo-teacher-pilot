@@ -7,6 +7,8 @@ while keeping bot credentials out of logs and never persisting learner media.
 import logging
 import os
 import re
+from urllib.parse import urlparse
+
 import httpx
 
 logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -48,12 +50,20 @@ def _ensure_telegram_ok(resp: httpx.Response, operation: str) -> dict:
     return payload
 
 
+def _validate_webhook_url(webhook_url: str) -> None:
+    """Require an absolute HTTPS webhook URL before sending it to Telegram."""
+    parsed = urlparse(webhook_url)
+    if parsed.scheme.lower() != "https" or not parsed.netloc:
+        raise ValueError("TELEGRAM_WEBHOOK_URL must be an absolute HTTPS URL")
+
+
 async def configure_telegram_webhook() -> None:
     token = os.environ["TELEGRAM_BOT_TOKEN"]
     secret = os.environ["TELEGRAM_WEBHOOK_SECRET"]
     if not _WEBHOOK_SECRET_RE.fullmatch(secret):
         raise ValueError("TELEGRAM_WEBHOOK_SECRET must be 1-256 characters using only letters, numbers, underscore, or hyphen")
     webhook_url = os.getenv("TELEGRAM_WEBHOOK_URL", "https://robo-teacher-jfg7.onrender.com/webhook/telegram")
+    _validate_webhook_url(webhook_url)
     url = _TELEGRAM_API.format(token=token, method="setWebhook")
     async with httpx.AsyncClient(timeout=30) as client:
         resp = await client.post(url, json={"url": webhook_url, "secret_token": secret, "drop_pending_updates": False})
@@ -69,6 +79,7 @@ async def send_telegram_message(chat_id: int | str, text: str) -> None:
 
 
 async def _download_telegram_file(file_id: str, max_bytes: int) -> tuple[bytes, str]:
+    """Stream one Telegram file and abort before buffering more than max_bytes."""
     token = os.environ["TELEGRAM_BOT_TOKEN"]
     get_file_url = _TELEGRAM_API.format(token=token, method="getFile")
     async with httpx.AsyncClient(timeout=30) as client:
@@ -78,15 +89,25 @@ async def _download_telegram_file(file_id: str, max_bytes: int) -> tuple[bytes, 
         if not file_path:
             raise RuntimeError("Telegram did not return a downloadable file path")
         file_url = _TELEGRAM_FILE_API.format(token=token, file_path=file_path)
-        media_resp = await client.get(file_url)
-        if not media_resp.is_success:
-            raise RuntimeError(f"Telegram media download failed ({media_resp.status_code})") from None
-        media_bytes = media_resp.content
-    if not media_bytes:
+        chunks = bytearray()
+        async with client.stream("GET", file_url) as media_resp:
+            if not media_resp.is_success:
+                raise RuntimeError(f"Telegram media download failed ({media_resp.status_code})") from None
+            content_length = media_resp.headers.get("content-length")
+            if content_length:
+                try:
+                    if int(content_length) > max_bytes:
+                        raise ValueError("The uploaded file is too large")
+                except ValueError as exc:
+                    if str(exc) == "The uploaded file is too large":
+                        raise
+            async for chunk in media_resp.aiter_bytes():
+                if len(chunks) + len(chunk) > max_bytes:
+                    raise ValueError("The uploaded file is too large")
+                chunks.extend(chunk)
+    if not chunks:
         raise ValueError("The uploaded file was empty")
-    if len(media_bytes) > max_bytes:
-        raise ValueError("The uploaded file is too large")
-    return media_bytes, file_path
+    return bytes(chunks), file_path
 
 
 async def download_telegram_image(file_id: str) -> tuple[bytes, str]:
