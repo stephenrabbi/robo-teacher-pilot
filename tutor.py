@@ -189,10 +189,11 @@ def get_tutor_audio_reply(student_id: str, audio_bytes: bytes, mime_type: str) -
     if not audio_bytes or len(audio_bytes) > MAX_AUDIO_BYTES: raise ValueError("Audio is empty or too large")
     profile_message = "Learner used a voice note for a Maths question."
     prompt = (
-        "Listen carefully to this learner voice note. Determine the spoken Maths question without inventing missing words. "
-        "If speech is unclear, incomplete, or not a JSS2 Maths question, ask the learner to resend the voice note or type the question. "
-        "If clear, answer the spoken question as a patient teacher: explain the method step by step in text. "
-        "Do not reproduce unrelated personal information that may be spoken in the recording."
+        "Listen to the learner voice note with a safety-first transcription rule. Before solving, silently verify every spoken number, sign, operator, and equation term from the audio itself. "
+        "Do not infer a number because it makes the Maths easier or seems more likely. Pay special attention to easily confused spoken numbers such as seven versus seventeen, four versus fourteen, six versus sixteen, and similar pairs. "
+        "If any number, operator, or important word is muffled, clipped, masked by background noise, or could plausibly have been heard another way, DO NOT solve the problem. Instead say that you may not have heard the question correctly and ask the learner to resend the voice note more clearly or type the equation. "
+        "Only when every essential Maths token is clear should you answer the spoken question as a patient teacher and explain the method step by step in text. "
+        "Never invent missing words or digits, and do not reproduce unrelated personal information that may be spoken in the recording."
     )
     return _media_reply(student_id, audio_bytes, mime_type, prompt, profile_message)
 
