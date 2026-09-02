@@ -37,6 +37,8 @@ CURRICULUM_TOPICS = """
 
 ESCALATION_RESPONSE = "I don't want to guess and give you a wrong answer. This question is outside the Mathematics topics I'm currently set up to support. Please ask your teacher for help, or send me a JSS2 Maths question from the topics I support."
 ESCALATION_MARKER = "[ESCALATE]"
+TECHNICAL_FALLBACK_RESPONSE = "Sorry, I had a small technical hiccup while working on that. Please try the question again in a moment."
+RATE_LIMIT_RESPONSE = "Lots of students are asking me questions right now, so I need a tiny break! Please try again in about a minute. 🙂"
 SYSTEM_PROMPT = f"""You are Robo-Teacher, a warm, patient AI Maths tutor for JSS2 students in Nigeria, built by Earlyon-Tech Brainery.
 Topics in scope:\n{CURRICULUM_TOPICS}
 Rules:
@@ -154,11 +156,28 @@ def get_tutor_reply(student_id: str, message: str) -> tuple[str, float]:
     profile = _safe_profile_update(student_id, message)
     deterministic = _simple_arithmetic_answer(message)
     if deterministic is not None: return deterministic, 0.0
-    client, history, start = _get_client(), _conversations.get(student_id, []), time.time()
-    try: text, new_history = _ask(client, history, message, profile)
-    except Exception as e:
-        if _is_rate_limit_error(e): return "Lots of students are asking me questions right now, so I need a tiny break! Please try again in about a minute. 🙂", time.time() - start
-        text, new_history = _ask(client, [], message, profile)
+    start = time.time()
+    try:
+        client = _get_client()
+    except Exception:
+        logger.exception("Gemini client initialization failed")
+        return TECHNICAL_FALLBACK_RESPONSE, time.time() - start
+
+    history = _conversations.get(student_id, [])
+    try:
+        text, new_history = _ask(client, history, message, profile)
+    except Exception as first_error:
+        if _is_rate_limit_error(first_error):
+            return RATE_LIMIT_RESPONSE, time.time() - start
+        logger.warning("Gemini request failed; retrying once without conversation history: %s", type(first_error).__name__)
+        try:
+            text, new_history = _ask(client, [], message, profile)
+        except Exception as retry_error:
+            if _is_rate_limit_error(retry_error):
+                return RATE_LIMIT_RESPONSE, time.time() - start
+            logger.exception("Gemini retry failed; returning safe technical fallback")
+            return TECHNICAL_FALLBACK_RESPONSE, time.time() - start
+
     _conversations[student_id] = new_history[-_MAX_TURNS * 2:]
     return _clean_model_reply(text), time.time() - start
 
