@@ -50,19 +50,25 @@
           <select id="language" aria-label="Teaching language"><option>English</option><option>Yorùbá</option></select>
         </div>
         <div id="canvas" class="teaching-canvas">
-          <div class="canvas-empty"><strong>Teaching Canvas</strong><p>Worked examples, equations, diagrams, images and learning resources will appear here.</p></div>
+          <div id="canvasEmpty" class="canvas-empty"><strong>Teaching Canvas</strong><p>Upload or photograph a Maths problem. Your image and Robo-Teacher’s guidance will appear here.</p></div>
+          <div id="canvasWork" class="canvas-work hidden">
+            <img id="problemPreview" alt="Learner's Maths problem" />
+            <div><span id="canvasStatus" class="canvas-status">Image ready</span><p id="canvasAnswer"></p></div>
+          </div>
         </div>
         <div id="messages" class="messages" aria-live="polite">
           <div class="message teacher">Hello! I’m your Robo-Teacher. Ask me a Maths question and we’ll work through it together.</div>
         </div>
         <form id="chatForm" class="composer">
-          <button type="button" class="tool" title="Upload image">＋</button>
+          <button id="uploadButton" type="button" class="tool" title="Upload image" aria-label="Upload Maths image">＋</button>
+          <input id="imageUpload" class="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" />
+          <input id="cameraCapture" class="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" />
           <input id="question" autocomplete="off" placeholder="Ask your teacher a question…" aria-label="Question" />
           <button type="button" class="tool" title="Microphone">🎙</button>
           <button type="submit" class="send">Send</button>
         </form>
         <nav class="class-tools" aria-label="Classroom tools">
-          <button>💬 Chat</button><button>📷 Camera</button><button>🎙 Mic</button><button>▣ Whiteboard</button><button>🌐 Language</button>
+          <button type="button">💬 Chat</button><button id="cameraButton" type="button">📷 Camera</button><button type="button" disabled title="Coming next">🎙 Mic</button><button type="button" disabled title="Coming next">▣ Whiteboard</button><button type="button">🌐 Language</button>
         </nav>
       </section>
     </section>

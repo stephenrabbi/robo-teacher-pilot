@@ -7,7 +7,17 @@ const form=document.getElementById('chatForm');
 const question=document.getElementById('question');
 const messages=document.getElementById('messages');
 const sendButton=form.querySelector('.send');
+const uploadButton=document.getElementById('uploadButton');
+const cameraButton=document.getElementById('cameraButton');
+const imageUpload=document.getElementById('imageUpload');
+const cameraCapture=document.getElementById('cameraCapture');
+const canvasEmpty=document.getElementById('canvasEmpty');
+const canvasWork=document.getElementById('canvasWork');
+const problemPreview=document.getElementById('problemPreview');
+const canvasStatus=document.getElementById('canvasStatus');
+const canvasAnswer=document.getElementById('canvasAnswer');
 let sessionToken=null;
+let previewUrl=null;
 
 async function ensureSession(){
   if(sessionToken)return sessionToken;
@@ -33,6 +43,39 @@ toggle.addEventListener('click',()=>{
 function addMessage(text,role){
   const el=document.createElement('div');el.className=`message ${role}`;el.textContent=text;
   messages.appendChild(el);messages.scrollTop=messages.scrollHeight;return el;
+}
+
+uploadButton.addEventListener('click',()=>imageUpload.click());
+cameraButton.addEventListener('click',()=>cameraCapture.click());
+imageUpload.addEventListener('change',()=>handleImage(imageUpload.files[0]));
+cameraCapture.addEventListener('change',()=>handleImage(cameraCapture.files[0]));
+
+async function handleImage(file){
+  if(!file)return;
+  if(!['image/jpeg','image/png','image/webp'].includes(file.type)){
+    addMessage('Please choose a JPEG, PNG, or WebP image.','teacher');return;
+  }
+  if(file.size>8*1024*1024){addMessage('Please choose an image no larger than 8 MB.','teacher');return;}
+  if(previewUrl)URL.revokeObjectURL(previewUrl);
+  previewUrl=URL.createObjectURL(file);problemPreview.src=previewUrl;
+  canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');
+  canvasStatus.textContent='Robo-Teacher is reading your image…';canvasAnswer.textContent='';
+  const thinking=addMessage('I’m reading the Maths problem in your image…','teacher');
+  uploadButton.disabled=true;cameraButton.disabled=true;
+  try{
+    const token=await ensureSession();
+    const body=new FormData();body.append('session_token',token);body.append('image',file);
+    const caption=question.value.trim();if(caption)body.append('caption',caption);
+    const response=await fetch('/api/classroom/image',{method:'POST',headers:{'Accept':'application/json'},body});
+    const data=await response.json();
+    if(response.status===401){sessionToken=null;throw new Error('session');}
+    if(!response.ok)throw new Error(data.detail||'request');
+    thinking.textContent=data.reply;canvasAnswer.textContent=data.reply;canvasStatus.textContent='Teaching response ready';
+    question.value='';
+  }catch(err){
+    const message=err.message&&err.message!=='request'&&err.message!=='session'?err.message:'I could not read that image. Please try a clearer photo.';
+    thinking.textContent=message;canvasStatus.textContent='Image needs attention';
+  }finally{uploadButton.disabled=false;cameraButton.disabled=false;imageUpload.value='';cameraCapture.value='';}
 }
 
 form.addEventListener('submit',async(e)=>{

@@ -11,10 +11,10 @@ import secrets
 import time
 from collections import defaultdict, deque
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from pydantic import BaseModel, Field
 
-from tutor import get_tutor_reply
+from tutor import MAX_IMAGE_BYTES, SUPPORTED_IMAGE_MIME_TYPES, get_tutor_image_reply, get_tutor_reply
 
 router = APIRouter(prefix="/api/classroom", tags=["classroom"])
 _SESSION_TTL_SECONDS = 60 * 60 * 4
@@ -84,5 +84,30 @@ def classroom_chat(question: ClassroomQuestion, request: Request):
         reply, latency = get_tutor_reply(student_id, message)
     except Exception as exc:
         # Never expose provider details, prompts, credentials, or stack traces to learners.
+        raise HTTPException(status_code=503, detail="Robo-Teacher is temporarily unavailable") from exc
+    return {"reply": reply, "latency_seconds": round(float(latency), 3), "learner_id": student_id}
+
+
+@router.post("/image")
+async def classroom_image(
+    session_token: str = Form(..., min_length=20, max_length=300),
+    image: UploadFile = File(...),
+    caption: str = Form("", max_length=500),
+):
+    student_id = _verify_session(session_token)
+    _enforce_rate_limit(student_id)
+    mime_type = (image.content_type or "").lower()
+    if mime_type not in SUPPORTED_IMAGE_MIME_TYPES:
+        raise HTTPException(status_code=415, detail="Please upload a JPEG, PNG, or WebP image")
+    image_bytes = await image.read(MAX_IMAGE_BYTES + 1)
+    if not image_bytes:
+        raise HTTPException(status_code=422, detail="The image is empty")
+    if len(image_bytes) > MAX_IMAGE_BYTES:
+        raise HTTPException(status_code=413, detail="The image must be 8 MB or smaller")
+    try:
+        reply, latency = get_tutor_image_reply(student_id, image_bytes, mime_type, caption.strip())
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail="The image could not be processed") from exc
+    except Exception as exc:
         raise HTTPException(status_code=503, detail="Robo-Teacher is temporarily unavailable") from exc
     return {"reply": reply, "latency_seconds": round(float(latency), 3), "learner_id": student_id}

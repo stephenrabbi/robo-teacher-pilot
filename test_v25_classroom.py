@@ -42,9 +42,34 @@ def test_provider_exception_is_sanitized():
     assert 'secret provider detail' not in response.text
 
 
+def test_classroom_image_uses_same_pseudonymous_identity():
+    session = client.post('/api/classroom/session').json()
+    with patch.object(classroom_api, 'get_tutor_image_reply', return_value=('The image shows 2 + 3. Final answer: 5', 0.2)) as tutor:
+        response = client.post('/api/classroom/image', data={'session_token':session['session_token'], 'caption':'Explain this'}, files={'image':('maths.png', b'fake-png', 'image/png')})
+    assert response.status_code == 200
+    assert response.json()['reply'].endswith('5')
+    assert tutor.call_args.args[0] == session['learner_id']
+
+
+def test_classroom_image_rejects_unsupported_type():
+    session = client.post('/api/classroom/session').json()
+    response = client.post('/api/classroom/image', data={'session_token':session['session_token']}, files={'image':('notes.txt', b'not-an-image', 'text/plain')})
+    assert response.status_code == 415
+
+
+def test_classroom_image_rejects_oversized_file():
+    session = client.post('/api/classroom/session').json()
+    oversized = b'x' * (classroom_api.MAX_IMAGE_BYTES + 1)
+    response = client.post('/api/classroom/image', data={'session_token':session['session_token']}, files={'image':('large.jpg', oversized, 'image/jpeg')})
+    assert response.status_code == 413
+
+
 if __name__ == '__main__':
     test_session_and_chat_use_pseudonymous_identity()
     test_tampered_session_is_rejected()
     test_question_length_is_bounded()
     test_provider_exception_is_sanitized()
+    test_classroom_image_uses_same_pseudonymous_identity()
+    test_classroom_image_rejects_unsupported_type()
+    test_classroom_image_rejects_oversized_file()
     print('V2.5 classroom API safety tests passed.')
