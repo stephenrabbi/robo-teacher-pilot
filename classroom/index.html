@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Robo-Teacher Classroom</title>
+  <link rel="stylesheet" href="/classroom/styles.css" />
+</head>
+<body>
+  <main class="app-shell">
+    <header class="brandbar">
+      <div class="brandmark" aria-label="Robo-Teacher logo">
+        <span class="bars"><i></i><i></i><i></i></span>
+        <div><strong>ROBO-TEACHER</strong><small>AI-POWERED LEARNING FOR EVERYONE</small></div>
+      </div>
+      <span class="version">V2.5.1 Classroom Foundation</span>
+    </header>
+
+    <section id="welcome" class="screen welcome-screen">
+      <div class="founder-panel">
+        <div class="avatar-placeholder founder-avatar" role="img" aria-label="Founder welcome avatar">
+          <span>Founder Avatar</span>
+        </div>
+        <span class="status">● Online & Ready</span>
+      </div>
+      <div class="welcome-copy">
+        <p class="eyebrow">WELCOME TO YOUR AI CLASSROOM</p>
+        <h1>Welcome to <span>Robo-Teacher</span></h1>
+        <div class="speech-card">
+          <h2>Hello there! 👋</h2>
+          <p>I’m Stephen, the founder of Robo-Teacher. I’ll help you get started, then introduce you to your AI teacher.</p>
+          <p>Ask questions, show your work, speak naturally and learn step by step.</p>
+        </div>
+        <button id="startLearning" class="primary">Start Learning Now →</button>
+        <p class="privacy-note">Your learning experience is designed with privacy and safety in mind.</p>
+      </div>
+    </section>
+
+    <section id="classroom" class="screen classroom-screen hidden">
+      <aside id="teacherPanel" class="teacher-panel">
+        <div class="teacher-toolbar">
+          <strong>Your AI Teacher</strong>
+          <button id="toggleTeacher" class="icon-button" aria-label="Minimize teacher">↙</button>
+        </div>
+        <div class="avatar-placeholder teacher-avatar" role="img" aria-label="Female AI teacher avatar"><span>AI Teacher</span></div>
+        <div class="teacher-caption">Ready to guide you step by step.</div>
+      </aside>
+
+      <section class="learning-area">
+        <div class="lesson-header">
+          <div><p class="eyebrow">ROBO-TEACHER CLASSROOM</p><h2>What would you like to learn today?</h2></div>
+          <select id="language" aria-label="Teaching language"><option>English</option><option>Yorùbá</option></select>
+        </div>
+        <div id="canvas" class="teaching-canvas">
+          <div class="canvas-empty"><strong>Teaching Canvas</strong><p>Worked examples, equations, diagrams, images and learning resources will appear here.</p></div>
+        </div>
+        <div id="messages" class="messages" aria-live="polite">
+          <div class="message teacher">Hello! I’m your Robo-Teacher. Ask me a Maths question and we’ll work through it together.</div>
+        </div>
+        <form id="chatForm" class="composer">
+          <button type="button" class="tool" title="Upload image">＋</button>
+          <input id="question" autocomplete="off" placeholder="Ask your teacher a question…" aria-label="Question" />
+          <button type="button" class="tool" title="Microphone">🎙</button>
+          <button type="submit" class="send">Send</button>
+        </form>
+        <nav class="class-tools" aria-label="Classroom tools">
+          <button>💬 Chat</button><button>📷 Camera</button><button>🎙 Mic</button><button>▣ Whiteboard</button><button>🌐 Language</button>
+        </nav>
+      </section>
+    </section>
+  </main>
+  <script src="/classroom/app.js"></script>
+</body>
+</html>
