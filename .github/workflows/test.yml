@@ -2,7 +2,9 @@ name: Robo-Teacher Tests
 
 on:
   push:
-    branches: [main, v2-development]
+    branches: [main, v2-development, v2.5-classroom]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -40,3 +42,6 @@ jobs:
 
       - name: Run V2 Telegram webhook authentication tests
         run: python test_v2_webhook_security.py
+
+      - name: Run V2.5 classroom API safety tests
+        run: python test_v25_classroom.py
