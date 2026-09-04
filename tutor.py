@@ -110,7 +110,7 @@ LOCALIZED_ANSWERS = {
     "Hausa": ("Amsa", HAUSA_NUMBER_WORDS),
 }
 
-TTS_VOICES = {"female": "Kore", "male": "Charon"}
+TTS_VOICES = {"female": "Aoede", "male": "Charon"}
 TTS_LANGUAGE_NAMES = {"English": "English", "Yoruba": "Yorùbá", "Igbo": "Igbo", "Hausa": "Hausa"}
 
 
@@ -142,8 +142,8 @@ def generate_tutor_speech(text: str, language: str = "English", voice_gender: st
     language_name = TTS_LANGUAGE_NAMES.get(language, "English")
     prompt = (
         "Synthesize speech for the transcript below. Do not read these directions aloud. "
-        f"Use a warm, natural {gender} teacher voice speaking {language_name}. "
-        "Sound patient and conversational, with a gentle Nigerian classroom tone. "
+        f"Use an unmistakably adult {gender} teacher voice speaking {language_name}. "
+        "Sound warm, patient and conversational, with a gentle Nigerian classroom tone and a friendly vocal smile. "
         "Use the written punctuation for natural pauses, vary emphasis slightly, and avoid a stiff announcer cadence.\n\n"
         f"TRANSCRIPT:\n{text.strip()}"
     )

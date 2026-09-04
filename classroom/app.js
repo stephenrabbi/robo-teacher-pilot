@@ -118,39 +118,6 @@ toggle.addEventListener('click',()=>{
   toggle.setAttribute('aria-expanded',String(!mini));
 });
 
-const speechLocales={English:'en-NG',Yoruba:'yo-NG',Igbo:'ig-NG',Hausa:'ha-NG'};
-const voiceNameHints={
-  female:['female','woman','aria','ava','emma','jenny','libby','michelle','natasha','samantha','salli','sonia','zira'],
-  male:['male','man','alex','daniel','david','george','guy','james','mark','matthew','ryan']
-};
-
-function voiceGenderScore(voice,gender){
-  const name=voice.name.toLowerCase();
-  if(voiceNameHints[gender].some(hint=>name.includes(hint)))return 4;
-  const opposite=gender==='female'?'male':'female';
-  if(voiceNameHints[opposite].some(hint=>name.includes(hint)))return -8;
-  return 0;
-}
-
-function selectTeacherVoice(locale,gender){
-  const voices=window.speechSynthesis.getVoices();
-  if(!voices.length)return null;
-  const exact=locale.toLowerCase();const language=exact.split('-')[0];
-  const candidates=voices.filter(voice=>voiceGenderScore(voice,gender)>0);
-  if(!candidates.length)return null;
-  return [...candidates].sort((a,b)=>{
-    const score=voice=>{
-      const voiceLocale=voice.lang.toLowerCase();const name=voice.name.toLowerCase();
-      return (voiceLocale===exact?30:voiceLocale.startsWith(`${language}-`)?22:0)
-        +voiceGenderScore(voice,gender)
-        +(name.includes('natural')||name.includes('neural')?8:0)
-        +(name.includes('google')||name.includes('microsoft')?3:0)
-        +(voice.default?1:0);
-    };
-    return score(b)-score(a);
-  })[0];
-}
-
 function prepareSpeechText(text){
   return text
     .replace(/\*\*/g,'')
@@ -171,27 +138,7 @@ function setTeacherSpeaking(speaking){
 function stopTeacherAudio(){
   if(teacherAudio){teacherAudio.pause();teacherAudio=null}
   if(teacherAudioUrl){URL.revokeObjectURL(teacherAudioUrl);teacherAudioUrl=null}
-  if('speechSynthesis' in window)window.speechSynthesis.cancel();
   setTeacherSpeaking(false);
-}
-
-function speakWithBrowserFallback(text){
-  if(!('speechSynthesis' in window))return false;
-  const locale=speechLocales[language.value]||'en-NG';
-  const gender=teacherPanel.dataset.voiceGender==='male'?'male':'female';
-  const utterance=new SpeechSynthesisUtterance(prepareSpeechText(text));
-  const selectedVoice=selectTeacherVoice(locale,gender);
-  if(!selectedVoice)return false;
-  utterance.lang=locale;
-  utterance.voice=selectedVoice;
-  utterance.rate=.88;
-  utterance.pitch=gender==='female'?1.04:.96;
-  utterance.volume=1;
-  utterance.onstart=()=>setTeacherSpeaking(true);
-  utterance.onend=()=>setTeacherSpeaking(false);
-  utterance.onerror=()=>setTeacherSpeaking(false);
-  window.speechSynthesis.speak(utterance);
-  return true;
 }
 
 async function speakText(text){
@@ -207,12 +154,12 @@ async function speakText(text){
     await teacherAudio.play();
   }catch(_error){
     stopTeacherAudio();
-    if(!speakWithBrowserFallback(text))addMessage('The natural teacher voice is temporarily unavailable. You can continue reading the worked answer on the Teaching Canvas.','teacher');
+    addMessage('The natural teacher voice is temporarily unavailable. You can continue reading the worked answer on the Teaching Canvas.','teacher');
   }
 }
 
 readAnswerButton.addEventListener('click',()=>{
-  if(teacherAudio||('speechSynthesis' in window&&window.speechSynthesis.speaking)){stopTeacherAudio();return;}
+  if(teacherAudio){stopTeacherAudio();return;}
   speakText(canvasAnswer.textContent);
 });
 
