@@ -59,6 +59,7 @@ class PracticeStart(BaseModel):
         "Statistics & Probability",
     ]
     difficulty: Literal["Easy", "Medium", "Challenge"]
+    question_count: Literal[5, 10, 20] = 5
 
 
 class PracticeAnswer(BaseModel):
@@ -98,12 +99,12 @@ def _verify_session(token: str) -> str:
     return student_id
 
 
-def _enforce_rate_limit(student_id: str) -> None:
+def _enforce_rate_limit(student_id: str, scope: str = "tutor", max_requests: int = _RATE_MAX_REQUESTS) -> None:
     now = time.time()
-    bucket = _request_times[student_id]
+    bucket = _request_times[f"{scope}:{student_id}"]
     while bucket and now - bucket[0] > _RATE_WINDOW_SECONDS:
         bucket.popleft()
-    if len(bucket) >= _RATE_MAX_REQUESTS:
+    if len(bucket) >= max_requests:
         raise HTTPException(status_code=429, detail="Please wait a moment before asking another question")
     bucket.append(now)
 
@@ -122,9 +123,9 @@ def practice_options():
 @router.post("/practice/start")
 def classroom_practice_start(selection: PracticeStart):
     student_id = _verify_session(selection.session_token)
-    _enforce_rate_limit(student_id)
+    _enforce_rate_limit(student_id, "practice", 60)
     try:
-        return start_practice(student_id, selection.topic, selection.difficulty)
+        return start_practice(student_id, selection.topic, selection.difficulty, selection.question_count)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail="Choose a supported topic and difficulty") from exc
 
@@ -132,7 +133,7 @@ def classroom_practice_start(selection: PracticeStart):
 @router.post("/practice/answer")
 def classroom_practice_answer(submission: PracticeAnswer):
     student_id = _verify_session(submission.session_token)
-    _enforce_rate_limit(student_id)
+    _enforce_rate_limit(student_id, "practice", 60)
     try:
         return answer_practice(student_id, submission.answer)
     except LookupError as exc:
@@ -144,7 +145,7 @@ def classroom_practice_answer(submission: PracticeAnswer):
 @router.post("/practice/next")
 def classroom_practice_next(request: PracticeNext):
     student_id = _verify_session(request.session_token)
-    _enforce_rate_limit(student_id)
+    _enforce_rate_limit(student_id, "practice", 60)
     try:
         return next_question(student_id)
     except LookupError as exc:

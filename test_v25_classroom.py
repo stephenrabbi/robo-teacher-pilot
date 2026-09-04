@@ -55,6 +55,44 @@ def test_practice_mode_marks_answers_and_tracks_score():
         assert next_question.json()['score'] == 1
 
 
+def test_five_question_session_returns_final_results_and_missed_review():
+    session = client.post('/api/classroom/session').json()
+    fixed = ("What is 2 + 3?", "Count on from 2.", "5", "Step 1: Add 2 and 3.\nStep 2: The result is 5.")
+    final_result = None
+    with patch.object(practice, '_choose_question', return_value=fixed):
+        started = client.post('/api/classroom/practice/start', json={
+            'session_token': session['session_token'], 'topic': 'Whole Numbers',
+            'difficulty': 'Easy', 'question_count': 5,
+        })
+        assert started.json()['total_questions'] == 5
+        for index in range(5):
+            final_result = client.post('/api/classroom/practice/answer', json={
+                'session_token': session['session_token'], 'answer': '5' if index < 3 else '4'
+            }).json()
+            if index < 4:
+                assert final_result['completed'] is False
+                client.post('/api/classroom/practice/next', json={'session_token': session['session_token']})
+
+    assert final_result['completed'] is True
+    summary = final_result['summary']
+    assert summary['score'] == 3
+    assert summary['attempted'] == 5
+    assert summary['percentage'] == 60
+    assert len(summary['missed']) == 2
+    assert summary['recommendation']
+    blocked = client.post('/api/classroom/practice/next', json={'session_token': session['session_token']})
+    assert blocked.status_code == 409
+
+
+def test_practice_session_rejects_unsupported_question_count():
+    session = client.post('/api/classroom/session').json()
+    response = client.post('/api/classroom/practice/start', json={
+        'session_token': session['session_token'], 'topic': 'Algebra',
+        'difficulty': 'Easy', 'question_count': 7,
+    })
+    assert response.status_code == 422
+
+
 def test_practice_mode_prevents_skipping_and_duplicate_marking():
     session = client.post('/api/classroom/session').json()
     client.post('/api/classroom/practice/start', json={

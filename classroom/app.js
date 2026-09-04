@@ -35,6 +35,7 @@ const practiceSetup=document.getElementById('practiceSetup');
 const practiceQuestion=document.getElementById('practiceQuestion');
 const practiceTopic=document.getElementById('practiceTopic');
 const practiceDifficulty=document.getElementById('practiceDifficulty');
+const practiceCount=document.getElementById('practiceCount');
 const startPracticeButton=document.getElementById('startPractice');
 const practiceProgress=document.getElementById('practiceProgress');
 const practiceScore=document.getElementById('practiceScore');
@@ -46,7 +47,16 @@ const showHintButton=document.getElementById('showHint');
 const nextPracticeButton=document.getElementById('nextPractice');
 const closePracticeButton=document.getElementById('closePractice');
 const practiceFeedback=document.getElementById('practiceFeedback');
+const practiceResults=document.getElementById('practiceResults');
+const resultPercentage=document.getElementById('resultPercentage');
+const resultScore=document.getElementById('resultScore');
+const resultRecommendation=document.getElementById('resultRecommendation');
+const missedReview=document.getElementById('missedReview');
+const practiceAgainButton=document.getElementById('practiceAgain');
+const changePracticeTopicButton=document.getElementById('changePracticeTopic');
+const exitPracticeResultsButton=document.getElementById('exitPracticeResults');
 let currentPractice=null;
+let currentPracticeSummary=null;
 let sessionToken=null;
 let previewUrl=null;
 let mediaRecorder=null;
@@ -136,11 +146,15 @@ practiceForm.addEventListener('submit',submitPracticeAnswer);
 showHintButton.addEventListener('click',showPracticeHint);
 nextPracticeButton.addEventListener('click',loadNextPracticeQuestion);
 closePracticeButton.addEventListener('click',closePractice);
+practiceAgainButton.addEventListener('click',startPracticeSession);
+changePracticeTopicButton.addEventListener('click',resetPracticeSetup);
+exitPracticeResultsButton.addEventListener('click',closePractice);
 
 function openPractice(){
   whiteboardArea.classList.add('hidden');canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');practiceArea.classList.remove('hidden');
-  if(currentPractice){practiceSetup.classList.add('hidden');practiceQuestion.classList.remove('hidden');practiceAnswer.focus()}
-  else{practiceSetup.classList.remove('hidden');practiceQuestion.classList.add('hidden')}
+  if(currentPracticeSummary)renderPracticeResults(currentPracticeSummary);
+  else if(currentPractice){practiceSetup.classList.add('hidden');practiceQuestion.classList.remove('hidden');practiceResults.classList.add('hidden');practiceAnswer.focus()}
+  else resetPracticeSetup();
 }
 
 function closePractice(){
@@ -149,12 +163,12 @@ function closePractice(){
 }
 
 function renderPracticeQuestion(data){
-  currentPractice=data;practiceSetup.classList.add('hidden');practiceQuestion.classList.remove('hidden');
-  practiceProgress.textContent=`Question ${data.question_number}`;practiceScore.textContent=`Score: ${data.score}/${data.attempted}`;
+  currentPractice=data;currentPracticeSummary=null;practiceSetup.classList.add('hidden');practiceResults.classList.add('hidden');practiceQuestion.classList.remove('hidden');
+  practiceProgress.textContent=`Question ${data.question_number} of ${data.total_questions}`;practiceScore.textContent=`Score: ${data.score}/${data.attempted}`;
   practiceContext.textContent=`${data.topic} · ${data.difficulty}`;practicePrompt.textContent=data.question;
   practiceAnswer.value='';practiceAnswer.disabled=false;practiceForm.querySelector('button').disabled=false;
   practiceFeedback.textContent='';practiceFeedback.className='practice-feedback hidden';showHintButton.disabled=false;
-  showHintButton.textContent='Show Hint';nextPracticeButton.classList.add('hidden');practiceAnswer.focus();
+  showHintButton.textContent='Show Hint';nextPracticeButton.textContent='Next Question →';nextPracticeButton.classList.add('hidden');practiceAnswer.focus();
 }
 
 async function practiceRequest(path,body){
@@ -165,7 +179,7 @@ async function practiceRequest(path,body){
 
 async function startPracticeSession(){
   startPracticeButton.disabled=true;startPracticeButton.textContent='Preparing…';
-  try{renderPracticeQuestion(await practiceRequest('start',{topic:practiceTopic.value,difficulty:practiceDifficulty.value}))}
+  try{renderPracticeQuestion(await practiceRequest('start',{topic:practiceTopic.value,difficulty:practiceDifficulty.value,question_count:Number(practiceCount.value)}))}
   catch(err){addMessage(err.message,'teacher')}
   finally{startPracticeButton.disabled=false;startPracticeButton.textContent='Start Practice →'}
 }
@@ -182,14 +196,35 @@ async function submitPracticeAnswer(event){
     practiceScore.textContent=`Score: ${result.score}/${result.attempted} (${result.percentage}%)`;
     practiceFeedback.textContent=result.correct?`${result.message}\n\n${result.explanation}`:`${result.message}\n\n${result.explanation}\n\nCorrect answer: ${result.expected_answer}`;
     practiceFeedback.className=`practice-feedback ${result.correct?'correct':'incorrect'}`;nextPracticeButton.classList.remove('hidden');showHintButton.disabled=true;
+    if(result.completed){currentPracticeSummary=result.summary;nextPracticeButton.textContent='View Results →'}
   }catch(err){practiceFeedback.textContent=err.message;practiceFeedback.className='practice-feedback incorrect';checkButton.disabled=false}
 }
 
 async function loadNextPracticeQuestion(){
+  if(currentPracticeSummary){renderPracticeResults(currentPracticeSummary);return}
   nextPracticeButton.disabled=true;
   try{renderPracticeQuestion(await practiceRequest('next',{}))}
   catch(err){practiceFeedback.textContent=err.message;practiceFeedback.className='practice-feedback incorrect'}
   finally{nextPracticeButton.disabled=false}
+}
+
+function resetPracticeSetup(){
+  currentPractice=null;currentPracticeSummary=null;practiceQuestion.classList.add('hidden');practiceResults.classList.add('hidden');practiceSetup.classList.remove('hidden');
+}
+
+function renderPracticeResults(summary){
+  currentPracticeSummary=summary;practiceSetup.classList.add('hidden');practiceQuestion.classList.add('hidden');practiceResults.classList.remove('hidden');
+  resultPercentage.textContent=`${summary.percentage}%`;resultScore.textContent=`${summary.score} out of ${summary.attempted} correct`;
+  resultRecommendation.textContent=summary.recommendation;missedReview.replaceChildren();
+  const heading=document.createElement('h4');heading.textContent=summary.missed.length?'Questions to review':'Perfect score!';missedReview.appendChild(heading);
+  if(!summary.missed.length){const note=document.createElement('p');note.textContent='You answered every question correctly. Excellent work!';missedReview.appendChild(note);return}
+  summary.missed.forEach((item,index)=>{
+    const card=document.createElement('article');
+    const title=document.createElement('strong');title.textContent=`${index+1}. ${item.question}`;
+    const answers=document.createElement('p');answers.textContent=`Your answer: ${item.learner_answer || 'No answer'} · Correct answer: ${item.correct_answer}`;
+    const explanation=document.createElement('p');explanation.textContent=item.explanation;
+    card.append(title,answers,explanation);missedReview.appendChild(card);
+  });
 }
 
 function clearWhiteboard(){

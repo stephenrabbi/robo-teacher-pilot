@@ -1,7 +1,7 @@
 """Deterministic, pseudonymous Maths practice sessions for the V2.5 classroom."""
 
 import secrets
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from fractions import Fraction
 
 
@@ -171,10 +171,12 @@ class PracticeState:
     hint: str
     expected: str
     explanation: str
+    target_count: int = 5
     correct: int = 0
     attempted: int = 0
     question_number: int = 1
     answered: bool = False
+    missed: list[dict] = field(default_factory=list)
 
 
 _sessions: dict[str, PracticeState] = {}
@@ -192,11 +194,13 @@ def _choose_question(topic: str, difficulty: str, previous: str = ""):
     return secrets.choice(available)
 
 
-def start_practice(student_id: str, topic: str, difficulty: str) -> dict:
+def start_practice(student_id: str, topic: str, difficulty: str, question_count: int = 5) -> dict:
     if topic not in QUESTION_BANK or difficulty not in QUESTION_BANK[topic]:
         raise ValueError("Unsupported practice selection")
+    if question_count not in {5, 10, 20}:
+        raise ValueError("Unsupported question count")
     question, hint, expected, explanation = _choose_question(topic, difficulty)
-    state = PracticeState(topic, difficulty, question, hint, expected, explanation)
+    state = PracticeState(topic, difficulty, question, hint, expected, explanation, target_count=question_count)
     _sessions[student_id] = state
     return _public_question(state)
 
@@ -225,7 +229,15 @@ def answer_practice(student_id: str, answer: str) -> dict:
     state.attempted += 1
     state.correct += int(correct)
     state.answered = True
-    return {
+    if not correct:
+        state.missed.append({
+            "question": state.question,
+            "learner_answer": answer.strip(),
+            "correct_answer": state.expected,
+            "explanation": state.explanation,
+        })
+    completed = state.attempted >= state.target_count
+    result = {
         "correct": correct,
         "message": secrets.choice(PRAISE_MESSAGES) if correct else "Good attempt. Let’s work through it step by step.",
         "expected_answer": state.expected,
@@ -233,7 +245,11 @@ def answer_practice(student_id: str, answer: str) -> dict:
         "score": state.correct,
         "attempted": state.attempted,
         "percentage": round(state.correct / state.attempted * 100),
+        "completed": completed,
     }
+    if completed:
+        result["summary"] = _summary(state)
+    return result
 
 
 def next_question(student_id: str) -> dict:
@@ -242,6 +258,8 @@ def next_question(student_id: str) -> dict:
         raise LookupError("No active practice session")
     if not state.answered:
         raise RuntimeError("Answer the current question first")
+    if state.attempted >= state.target_count:
+        raise RuntimeError("Practice session is complete")
     question, hint, expected, explanation = _choose_question(state.topic, state.difficulty, state.question)
     state.question, state.hint, state.expected, state.explanation = question, hint, expected, explanation
     state.question_number += 1
@@ -258,4 +276,24 @@ def _public_question(state: PracticeState) -> dict:
         "question_number": state.question_number,
         "score": state.correct,
         "attempted": state.attempted,
+        "total_questions": state.target_count,
+    }
+
+
+def _summary(state: PracticeState) -> dict:
+    percentage = round(state.correct / state.attempted * 100) if state.attempted else 0
+    if percentage >= 80:
+        recommendation = f"Strong work in {state.topic}. Try the next difficulty level when you are ready."
+    elif percentage >= 50:
+        recommendation = f"You are making progress in {state.topic}. Review the missed questions and practise once more."
+    else:
+        recommendation = f"Review the worked examples for {state.topic}, then try an easier session before moving up."
+    return {
+        "topic": state.topic,
+        "difficulty": state.difficulty,
+        "score": state.correct,
+        "attempted": state.attempted,
+        "percentage": percentage,
+        "missed": state.missed,
+        "recommendation": recommendation,
     }
