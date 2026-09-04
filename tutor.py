@@ -60,6 +60,52 @@ _MAX_TURNS = 6
 _conversations: dict[str, list] = {}
 _client = None
 
+YORUBA_NUMBER_WORDS = {
+    0: "Òdo",
+    1: "Ọ̀kan",
+    2: "Èjì",
+    3: "Ẹ̀ta",
+    4: "Ẹ̀rin",
+    5: "Àrún",
+    6: "Ẹ̀fà",
+    7: "Èje",
+    8: "Ẹ̀jọ",
+    9: "Ẹ̀sán",
+    10: "Ẹ̀wá",
+    11: "Ọ̀kanlá",
+    12: "Èjìlá",
+    13: "Ẹ̀tàlá",
+    14: "Ẹ̀rìnlá",
+    15: "Ẹ̀ẹ́dógún",
+    16: "Ẹ̀rìndínlógún",
+    17: "Ẹ̀tàdínlógún",
+    18: "Èjìdínlógún",
+    19: "Ọ̀kàndínlógún",
+    20: "Ogún",
+}
+
+IGBO_NUMBER_WORDS = {
+    0: "Efu", 1: "Otu", 2: "Abụọ", 3: "Atọ", 4: "Anọ", 5: "Ise",
+    6: "Isii", 7: "Asaa", 8: "Asatọ", 9: "Itoolu", 10: "Iri",
+    11: "Iri na otu", 12: "Iri na abụọ", 13: "Iri na atọ", 14: "Iri na anọ",
+    15: "Iri na ise", 16: "Iri na isii", 17: "Iri na asaa", 18: "Iri na asatọ",
+    19: "Iri na itoolu", 20: "Iri abụọ",
+}
+
+HAUSA_NUMBER_WORDS = {
+    0: "Sifili", 1: "Ɗaya", 2: "Biyu", 3: "Uku", 4: "Huɗu", 5: "Biyar",
+    6: "Shida", 7: "Bakwai", 8: "Takwas", 9: "Tara", 10: "Goma",
+    11: "Goma sha ɗaya", 12: "Goma sha biyu", 13: "Goma sha uku",
+    14: "Goma sha huɗu", 15: "Goma sha biyar", 16: "Goma sha shida",
+    17: "Goma sha bakwai", 18: "Goma sha takwas", 19: "Goma sha tara", 20: "Ashirin",
+}
+
+LOCALIZED_ANSWERS = {
+    "Yoruba": ("Ìdáhùn", YORUBA_NUMBER_WORDS),
+    "Igbo": ("Azịza", IGBO_NUMBER_WORDS),
+    "Hausa": ("Amsa", HAUSA_NUMBER_WORDS),
+}
+
 
 def _get_client():
     global _client
@@ -111,7 +157,7 @@ def _wants_teaching(message: str) -> bool:
     return any(cue in text for cue in cues)
 
 
-def _simple_arithmetic_answer(message: str):
+def _simple_arithmetic_answer(message: str, response_language: str = "English"):
     """Give deterministic answers only when the learner is asking for a short result.
 
     Explanatory requests deliberately go through the tutor model so Robo-Teacher
@@ -126,6 +172,11 @@ def _simple_arithmetic_answer(message: str):
     value = _safe_arithmetic(text)
     if value is None: return None
     if isinstance(value, float) and value.is_integer(): value = int(value)
+    localized = LOCALIZED_ANSWERS.get(response_language)
+    if localized:
+        answer_label, number_words = localized
+        localized_value = number_words.get(value, str(value))
+        return f"{message.strip()} = {value}\n\n{answer_label}: {localized_value}"
     return f"{message.strip()} = {value}\n\nAnswer: {value}"
 
 
@@ -152,10 +203,33 @@ def _extract_text(response) -> str:
     raise ValueError("Gemini response contained no readable text")
 
 
-def get_tutor_reply(student_id: str, message: str) -> tuple[str, float]:
+def _language_instruction(response_language: str) -> str:
+    language_details = {
+        "Yoruba": ("Yorùbá", "Yorùbá"),
+        "Igbo": ("Igbo", "Igbo"),
+        "Hausa": ("Hausa", "Hausa"),
+    }
+    if response_language in language_details:
+        language_name, number_word_language = language_details[response_language]
+        return (
+            f"The learner may ask the Maths question in {language_name} or English. Understand both languages, "
+            f"but reply entirely in clear, natural {language_name} suitable for a Nigerian JSS2 learner. "
+            "Keep mathematical symbols and numerals in the working, but write the final-answer value "
+            f"as a {number_word_language} number word."
+        )
+    return (
+        "Detect whether the learner's current Maths question is in English, Yorùbá, Igbo, or Hausa. "
+        "Reply entirely in the language used in the question. When replying in Yorùbá, Igbo, or Hausa, "
+        "keep mathematical symbols and numerals in the working, but write the final-answer value as a "
+        "number word in that language. Use language suitable for a Nigerian JSS2 learner."
+    )
+
+
+def get_tutor_reply(student_id: str, message: str, response_language: str = "English") -> tuple[str, float]:
     profile = _safe_profile_update(student_id, message)
-    deterministic = _simple_arithmetic_answer(message)
-    if deterministic is not None: return deterministic, 0.0
+    deterministic = _simple_arithmetic_answer(message, response_language)
+    if deterministic is not None:
+        return deterministic, 0.0
     start = time.time()
     try:
         client = _get_client()
@@ -165,13 +239,13 @@ def get_tutor_reply(student_id: str, message: str) -> tuple[str, float]:
 
     history = _conversations.get(student_id, [])
     try:
-        text, new_history = _ask(client, history, message, profile)
+        text, new_history = _ask(client, history, message, profile, response_language)
     except Exception as first_error:
         if _is_rate_limit_error(first_error):
             return RATE_LIMIT_RESPONSE, time.time() - start
         logger.warning("Gemini request failed; retrying once without conversation history (%s)", type(first_error).__name__)
         try:
-            text, new_history = _ask(client, [], message, profile)
+            text, new_history = _ask(client, [], message, profile, response_language)
         except Exception as retry_error:
             if _is_rate_limit_error(retry_error):
                 return RATE_LIMIT_RESPONSE, time.time() - start
@@ -194,21 +268,21 @@ def _media_reply(student_id: str, media_bytes: bytes, mime_type: str, prompt: st
     return _clean_model_reply(_extract_text(response)), time.time() - start
 
 
-def get_tutor_image_reply(student_id: str, image_bytes: bytes, mime_type: str, caption: str = "") -> tuple[str, float]:
+def get_tutor_image_reply(student_id: str, image_bytes: bytes, mime_type: str, caption: str = "", response_language: str = "English") -> tuple[str, float]:
     if mime_type not in SUPPORTED_IMAGE_MIME_TYPES: raise ValueError("Unsupported image type")
     if not image_bytes or len(image_bytes) > MAX_IMAGE_BYTES: raise ValueError("Image is empty or too large")
     learning_message = caption.strip() or "Please help me understand the Maths problem in this image."
-    prompt = f"The learner sent a Maths image. Read only the educational content. If unclear, request a clearer photo. Otherwise teach the method step by step.\nLearner caption: {learning_message}"
+    prompt = f"{_language_instruction(response_language)}\nThe learner sent a Maths image. Read only the educational content. If unclear, request a clearer photo. Otherwise teach the method step by step.\nLearner caption: {learning_message}"
     return _media_reply(student_id, image_bytes, mime_type, prompt, learning_message)
 
 
-def get_tutor_audio_reply(student_id: str, audio_bytes: bytes, mime_type: str) -> tuple[str, float]:
+def get_tutor_audio_reply(student_id: str, audio_bytes: bytes, mime_type: str, response_language: str = "English") -> tuple[str, float]:
     """Understand a learner's voice note and answer the spoken Maths question in text."""
     if mime_type not in SUPPORTED_AUDIO_MIME_TYPES: raise ValueError("Unsupported audio type")
     if not audio_bytes or len(audio_bytes) > MAX_AUDIO_BYTES: raise ValueError("Audio is empty or too large")
     profile_message = "Learner used a voice note for a Maths question."
     prompt = (
-        "Listen to the learner voice note with a safety-first transcription rule. Before solving, silently verify every spoken number, sign, operator, and equation term from the audio itself. "
+        f"{_language_instruction(response_language)} Listen to the learner voice note in English, Yorùbá, Igbo, or Hausa with a safety-first transcription rule. Before solving, silently verify every spoken number, sign, operator, and equation term from the audio itself. "
         "Do not infer a number because it makes the Maths easier or seems more likely. Pay special attention to easily confused spoken numbers such as seven versus seventeen, four versus fourteen, six versus sixteen, and similar pairs. "
         "If any number, operator, or important word is muffled, clipped, masked by background noise, or could plausibly have been heard another way, DO NOT solve the problem. Instead say that you may not have heard the question correctly and ask the learner to resend the voice note more clearly or type the equation. "
         "Only when every essential Maths token is clear should you answer the spoken question as a patient teacher and explain the method step by step in text. "
@@ -217,7 +291,7 @@ def get_tutor_audio_reply(student_id: str, audio_bytes: bytes, mime_type: str) -
     return _media_reply(student_id, audio_bytes, mime_type, prompt, profile_message)
 
 
-def _ask(client, history: list, message: str, profile: dict) -> tuple[str, list]:
+def _ask(client, history: list, message: str, profile: dict, response_language: str = "English") -> tuple[str, list]:
     chat = client.chats.create(model=GEMINI_MODEL, config=types.GenerateContentConfig(system_instruction=SYSTEM_PROMPT, max_output_tokens=600, thinking_config=types.ThinkingConfig(thinking_budget=0)), history=history)
-    response = chat.send_message(f"{profile_prompt_context(profile)}\n\nCurrent student message:\n{message}")
+    response = chat.send_message(f"{profile_prompt_context(profile)}\n\n{_language_instruction(response_language)}\n\nCurrent student message:\n{message}")
     return _extract_text(response), chat.get_history()
