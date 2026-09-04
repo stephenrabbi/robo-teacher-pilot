@@ -18,11 +18,22 @@ const canvasWork=document.getElementById('canvasWork');
 const problemPreview=document.getElementById('problemPreview');
 const canvasStatus=document.getElementById('canvasStatus');
 const canvasAnswer=document.getElementById('canvasAnswer');
+const whiteboardButton=document.getElementById('whiteboardButton');
+const whiteboardArea=document.getElementById('whiteboardArea');
+const whiteboard=document.getElementById('whiteboard');
+const penTool=document.getElementById('penTool');
+const eraserTool=document.getElementById('eraserTool');
+const clearBoardButton=document.getElementById('clearBoard');
+const closeBoardButton=document.getElementById('closeBoard');
+const submitBoardButton=document.getElementById('submitBoard');
 let sessionToken=null;
 let previewUrl=null;
 let mediaRecorder=null;
 let micStream=null;
 let recordedChunks=[];
+let drawing=false;
+let drawingTool='pen';
+const boardContext=whiteboard.getContext('2d');
 
 async function ensureSession(){
   if(sessionToken)return sessionToken;
@@ -51,7 +62,7 @@ function addMessage(text,role){
 }
 
 function showCanvasAnswer(answer,status='Worked solution'){
-  canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');
+  whiteboardArea.classList.add('hidden');canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');
   canvasStatus.textContent=status;renderLesson(canvasAnswer,answer);
 }
 
@@ -77,6 +88,66 @@ imageUpload.addEventListener('change',()=>handleImage(imageUpload.files[0]));
 cameraCapture.addEventListener('change',()=>handleImage(cameraCapture.files[0]));
 micButton.addEventListener('click',toggleRecording);
 navMicButton.addEventListener('click',toggleRecording);
+whiteboardButton.addEventListener('click',openWhiteboard);
+closeBoardButton.addEventListener('click',closeWhiteboard);
+penTool.addEventListener('click',()=>selectDrawingTool('pen'));
+eraserTool.addEventListener('click',()=>selectDrawingTool('eraser'));
+clearBoardButton.addEventListener('click',clearWhiteboard);
+submitBoardButton.addEventListener('click',submitWhiteboard);
+whiteboard.addEventListener('pointerdown',startDrawing);
+whiteboard.addEventListener('pointermove',drawOnWhiteboard);
+whiteboard.addEventListener('pointerup',stopDrawing);
+whiteboard.addEventListener('pointercancel',stopDrawing);
+
+function clearWhiteboard(){
+  boardContext.save();boardContext.fillStyle='#ffffff';boardContext.fillRect(0,0,whiteboard.width,whiteboard.height);boardContext.restore();
+}
+
+function openWhiteboard(){
+  canvasEmpty.classList.add('hidden');canvasWork.classList.add('hidden');whiteboardArea.classList.remove('hidden');
+  if(!whiteboard.dataset.ready){clearWhiteboard();whiteboard.dataset.ready='true'}
+}
+
+function closeWhiteboard(){
+  whiteboardArea.classList.add('hidden');
+  if(canvasAnswer.textContent.trim())canvasWork.classList.remove('hidden');else canvasEmpty.classList.remove('hidden');
+}
+
+function selectDrawingTool(tool){
+  drawingTool=tool;penTool.classList.toggle('active',tool==='pen');eraserTool.classList.toggle('active',tool==='eraser');
+}
+
+function boardPoint(event){
+  const rect=whiteboard.getBoundingClientRect();
+  return {x:(event.clientX-rect.left)*whiteboard.width/rect.width,y:(event.clientY-rect.top)*whiteboard.height/rect.height};
+}
+
+function startDrawing(event){
+  drawing=true;whiteboard.setPointerCapture(event.pointerId);const point=boardPoint(event);
+  boardContext.beginPath();boardContext.moveTo(point.x,point.y);event.preventDefault();
+}
+
+function drawOnWhiteboard(event){
+  if(!drawing)return;const point=boardPoint(event);
+  boardContext.lineCap='round';boardContext.lineJoin='round';
+  boardContext.strokeStyle=drawingTool==='eraser'?'#ffffff':'#10203a';
+  boardContext.lineWidth=drawingTool==='eraser'?34:6;
+  boardContext.lineTo(point.x,point.y);boardContext.stroke();event.preventDefault();
+}
+
+function stopDrawing(event){
+  if(!drawing)return;drawOnWhiteboard(event);drawing=false;boardContext.closePath();
+}
+
+function submitWhiteboard(){
+  submitBoardButton.disabled=true;submitBoardButton.textContent='Preparing…';
+  whiteboard.toBlob(async blob=>{
+    if(!blob){addMessage('I could not prepare the whiteboard. Please try again.','teacher');submitBoardButton.disabled=false;submitBoardButton.textContent='Ask Teacher →';return;}
+    const file=new File([blob],'whiteboard-maths.png',{type:'image/png'});
+    await handleImage(file);
+    submitBoardButton.disabled=false;submitBoardButton.textContent='Ask Teacher →';
+  },'image/png');
+}
 
 function setRecordingState(recording){
   micButton.classList.toggle('recording',recording);navMicButton.classList.toggle('recording',recording);
@@ -140,6 +211,7 @@ async function handleImage(file){
   if(previewUrl)URL.revokeObjectURL(previewUrl);
   previewUrl=URL.createObjectURL(file);problemPreview.src=previewUrl;
   canvasWork.classList.remove('text-only');problemPreview.hidden=false;
+  whiteboardArea.classList.add('hidden');
   canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');
   canvasStatus.textContent='Robo-Teacher is reading your image…';canvasAnswer.textContent='';
   const thinking=addMessage('I’m reading the Maths problem in your image…','teacher');

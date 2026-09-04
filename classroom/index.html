@@ -55,6 +55,17 @@
             <img id="problemPreview" alt="Learner's Maths problem" />
             <div><span id="canvasStatus" class="canvas-status">Image ready</span><div id="canvasAnswer" class="canvas-answer"></div></div>
           </div>
+          <div id="whiteboardArea" class="whiteboard-area hidden">
+            <div class="whiteboard-toolbar" aria-label="Whiteboard drawing tools">
+              <button id="penTool" type="button" class="active">✏ Pen</button>
+              <button id="eraserTool" type="button">⌫ Eraser</button>
+              <button id="clearBoard" type="button">Clear</button>
+              <span class="whiteboard-hint">Write a Maths problem or show your working</span>
+              <button id="closeBoard" type="button">Close</button>
+              <button id="submitBoard" type="button" class="ask-board">Ask Teacher →</button>
+            </div>
+            <canvas id="whiteboard" width="1200" height="600" aria-label="Interactive Maths whiteboard"></canvas>
+          </div>
         </div>
         <div id="messages" class="messages" aria-live="polite">
           <div class="message teacher">Hello! I’m your Robo-Teacher. Ask me a Maths question and we’ll work through it together.</div>
@@ -68,7 +79,7 @@
           <button type="submit" class="send">Send</button>
         </form>
         <nav class="class-tools" aria-label="Classroom tools">
-          <button type="button">💬 Chat</button><button id="cameraButton" type="button">📷 Camera</button><button id="navMicButton" type="button">🎙 Mic</button><button type="button" disabled title="Coming next">▣ Whiteboard</button><button type="button">🌐 Language</button>
+          <button type="button">💬 Chat</button><button id="cameraButton" type="button">📷 Camera</button><button id="navMicButton" type="button">🎙 Mic</button><button id="whiteboardButton" type="button">▣ Whiteboard</button><button type="button">🌐 Language</button>
         </nav>
       </section>
     </section>
