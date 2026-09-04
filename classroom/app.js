@@ -180,7 +180,7 @@ async function submitPracticeAnswer(event){
   try{
     const result=await practiceRequest('answer',{answer});practiceAnswer.disabled=true;
     practiceScore.textContent=`Score: ${result.score}/${result.attempted} (${result.percentage}%)`;
-    practiceFeedback.textContent=result.correct?`Correct! ${result.explanation}`:`Not quite. The correct answer is ${result.expected_answer}. ${result.explanation}`;
+    practiceFeedback.textContent=result.correct?`${result.message}\n\n${result.explanation}`:`${result.message}\n\n${result.explanation}\n\nCorrect answer: ${result.expected_answer}`;
     practiceFeedback.className=`practice-feedback ${result.correct?'correct':'incorrect'}`;nextPracticeButton.classList.remove('hidden');showHintButton.disabled=true;
   }catch(err){practiceFeedback.textContent=err.message;practiceFeedback.className='practice-feedback incorrect';checkButton.disabled=false}
 }

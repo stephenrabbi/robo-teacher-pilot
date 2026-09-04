@@ -27,6 +27,7 @@ def test_practice_mode_marks_answers_and_tracks_score():
         })
         assert marked.status_code == 200
         assert marked.json()['correct'] is True
+        assert marked.json()['message'] in practice.PRAISE_MESSAGES
         assert marked.json()['score'] == 1
         assert marked.json()['attempted'] == 1
 
@@ -46,6 +47,23 @@ def test_practice_mode_prevents_skipping_and_duplicate_marking():
     client.post('/api/classroom/practice/answer', json={'session_token': session['session_token'], 'answer': 'wrong'})
     duplicate = client.post('/api/classroom/practice/answer', json={'session_token': session['session_token'], 'answer': 'wrong'})
     assert duplicate.status_code == 409
+
+
+def test_incorrect_practice_answer_returns_teaching_steps():
+    session = client.post('/api/classroom/session').json()
+    fixed = ("What is 9 × 7?", "Think of equal groups.", "63", "Step 1: Use 9 groups of 7.\nStep 2: 9 × 7 = 63.")
+    with patch.object(practice, '_choose_question', return_value=fixed):
+        client.post('/api/classroom/practice/start', json={
+            'session_token': session['session_token'], 'topic': 'Whole Numbers', 'difficulty': 'Easy'
+        })
+        marked = client.post('/api/classroom/practice/answer', json={
+            'session_token': session['session_token'], 'answer': '50'
+        })
+    data = marked.json()
+    assert data['correct'] is False
+    assert data['message'].startswith('Good attempt')
+    assert 'Step 1:' in data['explanation']
+    assert 'Step 2:' in data['explanation']
 
 
 def test_yoruba_deterministic_answer_uses_yoruba_number_word():
