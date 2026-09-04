@@ -8,7 +8,7 @@ from v25_app import app
 import classroom_api
 import practice
 import practice_progress
-from tutor import GEMINI_STREAMING_TTS_MODEL, GEMINI_TTS_MODEL, TTS_VOICES, _language_instruction, _pcm_to_wav, _speech_chunks, _spoken_excerpt, get_tutor_reply
+from tutor import GEMINI_STREAMING_TTS_MODEL, GEMINI_TTS_MODEL, TTS_VOICES, _language_instruction, _pcm_to_wav, _prepare_spoken_transcript, _speech_chunks, _spoken_excerpt, get_tutor_reply
 
 client = TestClient(app)
 PROJECT_ROOT = Path(__file__).parent
@@ -47,6 +47,18 @@ def test_avatar_genders_use_distinct_gemini_voices():
     assert TTS_VOICES == {'female': 'Aoede', 'male': 'Charon'}
     assert GEMINI_TTS_MODEL == 'gemini-2.5-flash-preview-tts'
     assert GEMINI_STREAMING_TTS_MODEL == 'gemini-3.1-flash-tts-preview'
+
+
+def test_yoruba_speech_localizes_numbers_and_maths_operators():
+    spoken = _prepare_spoken_transcript('2 × 3 = 6. Then 20 + 5 = 25.', 'Yoruba')
+    assert spoken == 'Èjì ìlọ́po Ẹ̀ta dọ́gba pẹ̀lú Ẹ̀fà. Then Ogún pẹ̀lú Àrún dọ́gba pẹ̀lú Ẹ̀ẹ́dọ́gbọ̀n.'
+    assert not any(character.isdigit() for character in spoken)
+    decimal = _prepare_spoken_transcript('2.5 + 1 = 3.5', 'Yoruba')
+    assert decimal == 'Èjì àmì Àrún pẹ̀lú Ọ̀kan dọ́gba pẹ̀lú Ẹ̀ta àmì Àrún'
+    larger = _prepare_spoken_transcript('127 + 1,000', 'Yoruba')
+    assert larger == 'Ọ̀kan Èjì Èje pẹ̀lú Ọ̀kan Òdo Òdo Òdo'
+    assert not any(character.isdigit() for character in larger)
+    assert _prepare_spoken_transcript('2 + 3 = 5', 'English') == '2 + 3 = 5'
 
 
 def test_long_speech_is_split_into_short_voice_consistent_chunks():

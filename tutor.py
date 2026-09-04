@@ -87,6 +87,23 @@ YORUBA_NUMBER_WORDS = {
     18: "Èjìdínlógún",
     19: "Ọ̀kàndínlógún",
     20: "Ogún",
+    21: "Ọ̀kanlélógún",
+    22: "Èjìlélógún",
+    23: "Ẹ̀talélógún",
+    24: "Ẹ̀rinlélógún",
+    25: "Ẹ̀ẹ́dọ́gbọ̀n",
+    26: "Ẹ̀rìndínlọ́gbọ̀n",
+    27: "Ẹ̀tàdínlọ́gbọ̀n",
+    28: "Èjìdínlọ́gbọ̀n",
+    29: "Ọ̀kàndínlọ́gbọ̀n",
+    30: "Ọgbọ̀n",
+    40: "Ogójì",
+    50: "Àádọ́ta",
+    60: "Ọgọ́ta",
+    70: "Àádọ́rin",
+    80: "Ọgọ́rin",
+    90: "Àádọ́rùn",
+    100: "Ọgọ́rùn-ún",
 }
 
 IGBO_NUMBER_WORDS = {
@@ -166,14 +183,48 @@ def _spoken_excerpt(text: str, max_chars: int = 650) -> str:
     return excerpt[:boundary + 1] if boundary >= max_chars // 2 else cleaned[:max_chars].rstrip() + "…"
 
 
+def _yoruba_integer_word(raw: str) -> str:
+    value = int(raw)
+    if value in YORUBA_NUMBER_WORDS:
+        return YORUBA_NUMBER_WORDS[value]
+    return " ".join(YORUBA_NUMBER_WORDS[int(digit)] for digit in str(value))
+
+
+def _yoruba_spoken_number(match: re.Match) -> str:
+    raw = match.group(0).replace(",", "")
+    if "." in raw:
+        whole, decimal = raw.split(".", 1)
+        whole_word = _yoruba_integer_word(whole)
+        decimal_words = " ".join(YORUBA_NUMBER_WORDS.get(int(digit), digit) for digit in decimal)
+        return f"{whole_word} àmì {decimal_words}"
+    return _yoruba_integer_word(raw)
+
+
+def _prepare_spoken_transcript(text: str, language: str) -> str:
+    """Localize numbers and Maths operators before the TTS model sees them."""
+    if language != "Yoruba":
+        return text
+    spoken = re.sub(r"\b\d[\d,]*(?:\.\d+)?\b", _yoruba_spoken_number, text)
+    replacements = (
+        ("×", " ìlọ́po "), ("*", " ìlọ́po "),
+        ("÷", " pín pẹ̀lú "), ("/", " pín pẹ̀lú "),
+        ("+", " pẹ̀lú "), ("−", " yọ "), ("-", " yọ "),
+        ("=", " dọ́gba pẹ̀lú "), ("%", " ìdá ọgọ́rùn-ún "),
+    )
+    for symbol, wording in replacements:
+        spoken = spoken.replace(symbol, wording)
+    return " ".join(spoken.split())
+
+
 def stream_tutor_speech(text: str, language: str = "English", voice_gender: str = "female"):
     """Yield raw 24 kHz mono PCM as Gemini produces it for low-latency playback."""
     gender = "male" if voice_gender == "male" else "female"
     language_name = TTS_LANGUAGE_NAMES.get(language, "English")
-    transcript = _spoken_excerpt(text)
+    transcript = _spoken_excerpt(_prepare_spoken_transcript(text, language))
     prompt = (
         "Synthesize speech for the transcript below. Do not read these directions aloud. "
         f"Use the same unmistakably adult {gender} teacher voice speaking {language_name}. "
+        "When speaking Yorùbá, pronounce every number and Maths operation only in Yorùbá, never in English. "
         "Sound warm, patient and conversational, with a gentle Nigerian classroom tone and a friendly vocal smile. "
         "Use punctuation for natural pauses and keep the delivery fluid.\n\n"
         f"TRANSCRIPT:\n{transcript}"
@@ -327,7 +378,8 @@ def _language_instruction(response_language: str) -> str:
             f"but reply entirely in clear, natural {language_name} suitable for a Nigerian JSS2 learner. "
             "Write as a warm human teacher would speak: use complete sentences, natural punctuation, and short paragraphs. "
             "Use commas and full stops to create clear pauses when the answer is read aloud. "
-            "Keep mathematical symbols and numerals in the working, but write the final-answer value "
+            f"Use {number_word_language} number words whenever referring to values in explanatory sentences. "
+            "Numerals may remain in written equations, but write the final-answer value "
             f"as a {number_word_language} number word."
         )
     return (
