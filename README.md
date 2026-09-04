@@ -6,6 +6,21 @@ Robo-Teacher is an AI tutoring system designed to extend individualized learning
 
 > **Current status:** Robo-Teacher V2 has been merged into the production `main` branch, passed the automated CI test suite, and is deployed to production on Render.
 
+## Active Development Update — 4 September 2026
+
+Robo-Teacher remains in active development following the completed 56-student pilot. The current **V2.5 staging release** expands the project from a messaging tutor into a multilingual, multimodal AI classroom with:
+
+- text, camera/image, voice and interactive-whiteboard Mathematics tutoring;
+- English, Yorùbá, Igbo and Hausa questions and responses;
+- Practice Mode covering 11 JSS2 Mathematics topic groups at Easy, Medium and Challenge levels;
+- varied 5-, 10- and 20-question sessions without repeated prompts;
+- praise for correct answers, worked explanations for mistakes and missed-question review; and
+- persistent, pseudonymous learner-progress tracking with topic performance and recommended next steps.
+
+**[Test the latest Robo-Teacher V2.5 classroom](https://robo-teacher-v25-staging.onrender.com/classroom-app)**
+
+V2.5 is being validated on the unmerged `v2.5-classroom` branch through draft PR #9. These are controlled staging capabilities—not additions to the frozen pilot dataset—and the production application remains unchanged.
+
 ## Why Robo-Teacher
 
 Large classes can limit the amount of individualized explanation, practice and feedback each learner receives. Robo-Teacher is being developed as an always-available AI learning layer that can provide patient, step-by-step support through channels learners already know how to use.
