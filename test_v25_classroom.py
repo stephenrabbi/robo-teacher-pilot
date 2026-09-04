@@ -51,12 +51,12 @@ def test_avatar_genders_use_distinct_gemini_voices():
 
 def test_yoruba_speech_localizes_numbers_and_maths_operators():
     spoken = _prepare_spoken_transcript('2 × 3 = 6. Then 20 + 5 = 25.', 'Yoruba')
-    assert spoken == 'Èjì ìlọ́po Ẹ̀ta dọ́gba pẹ̀lú Ẹ̀fà. Then Ogún pẹ̀lú Àrún dọ́gba pẹ̀lú Ẹ̀ẹ́dọ́gbọ̀n.'
+    assert spoken == 'Méjì times Mẹ́ta jẹ́ Mẹ́fà. Then Ogún plus Márùn-ún jẹ́ Ẹ̀ẹ́dọ́gbọ̀n.'
     assert not any(character.isdigit() for character in spoken)
     decimal = _prepare_spoken_transcript('2.5 + 1 = 3.5', 'Yoruba')
-    assert decimal == 'Èjì àmì Àrún pẹ̀lú Ọ̀kan dọ́gba pẹ̀lú Ẹ̀ta àmì Àrún'
+    assert decimal == 'Méjì point Márùn-ún plus Ọ̀kan jẹ́ Mẹ́ta point Márùn-ún'
     larger = _prepare_spoken_transcript('127 + 1,000', 'Yoruba')
-    assert larger == 'Ọ̀kan Èjì Èje pẹ̀lú Ọ̀kan Òdo Òdo Òdo'
+    assert larger == 'Ọ̀kan Méjì Méje plus Ọ̀kan Odo Odo Odo'
     assert not any(character.isdigit() for character in larger)
     assert _prepare_spoken_transcript('2 + 3 = 5', 'English') == '2 + 3 = 5'
 
@@ -312,6 +312,9 @@ def test_language_instructions_accept_typed_and_spoken_yoruba():
     assert "reply entirely in clear, natural Yorùbá" in selected
     assert "natural punctuation" in selected
     assert "clear pauses when the answer is read aloud" in selected
+    assert "simple, modern conversational Yorùbá" in selected
+    assert "Avoid deep or literary Yorùbá" in selected
+    assert "Never say the numbers in English" in selected
 
 
 def test_igbo_and_hausa_language_instructions_cover_text_and_voice():

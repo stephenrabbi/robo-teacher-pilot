@@ -106,6 +106,14 @@ YORUBA_NUMBER_WORDS = {
     100: "Ọgọ́rùn-ún",
 }
 
+# Conversational counting forms sound more natural to children in a Lagos classroom.
+YORUBA_SPOKEN_NUMBER_WORDS = {
+    **YORUBA_NUMBER_WORDS,
+    0: "Odo", 1: "Ọ̀kan", 2: "Méjì", 3: "Mẹ́ta", 4: "Mẹ́rin",
+    5: "Márùn-ún", 6: "Mẹ́fà", 7: "Méje", 8: "Mẹ́jọ",
+    9: "Mẹ́sàn-án", 10: "Mẹ́wàá",
+}
+
 IGBO_NUMBER_WORDS = {
     0: "Efu", 1: "Otu", 2: "Abụọ", 3: "Atọ", 4: "Anọ", 5: "Ise",
     6: "Isii", 7: "Asaa", 8: "Asatọ", 9: "Itoolu", 10: "Iri",
@@ -141,7 +149,7 @@ LOCALIZED_ANSWERS = {
 TTS_VOICES = {"female": "Aoede", "male": "Charon"}
 TTS_LANGUAGE_NAMES = {"English": "English", "Yoruba": "Yorùbá", "Igbo": "Igbo", "Hausa": "Hausa"}
 SPOKEN_MATH = {
-    "Yoruba": (YORUBA_NUMBER_WORDS, "àmì", (("×", "ìlọ́po"), ("*", "ìlọ́po"), ("÷", "pín pẹ̀lú"), ("/", "pín pẹ̀lú"), ("+", "pẹ̀lú"), ("−", "yọ"), ("-", "yọ"), ("=", "dọ́gba pẹ̀lú"), ("%", "ìdá ọgọ́rùn-ún"))),
+    "Yoruba": (YORUBA_SPOKEN_NUMBER_WORDS, "point", (("×", "times"), ("*", "times"), ("÷", "divide by"), ("/", "divide by"), ("+", "plus"), ("−", "minus"), ("-", "minus"), ("=", "jẹ́"), ("%", "percent"))),
     "Igbo": (IGBO_NUMBER_WORDS, "ntụpọ", (("×", "ugboro"), ("*", "ugboro"), ("÷", "kewaa site na"), ("/", "kewaa site na"), ("+", "gbakwunyere"), ("−", "wepụ"), ("-", "wepụ"), ("=", "ha nhata"), ("%", "pasent"))),
     "Hausa": (HAUSA_NUMBER_WORDS, "ɗigo", (("×", "sau"), ("*", "sau"), ("÷", "raba da"), ("/", "raba da"), ("+", "da"), ("−", "cire"), ("-", "cire"), ("=", "daidai yake da"), ("%", "kashi ɗari"))),
 }
@@ -221,9 +229,12 @@ def _prepare_spoken_transcript(text: str, language: str) -> str:
     if not settings:
         return text
     number_words, decimal_word, replacements = settings
-    spoken = re.sub(r"\b\d[\d,]*(?:\.\d+)?\b", lambda match: _localized_spoken_number(match, number_words, decimal_word), text)
+    # Replace operators first so hyphens inside generated words such as
+    # "Márùn-ún" are not mistaken for subtraction signs.
+    spoken = text
     for symbol, wording in replacements:
         spoken = spoken.replace(symbol, f" {wording} ")
+    spoken = re.sub(r"\b\d[\d,]*(?:\.\d+)?\b", lambda match: _localized_spoken_number(match, number_words, decimal_word), spoken)
     return " ".join(spoken.split())
 
 
@@ -236,11 +247,17 @@ def stream_tutor_speech(text: str, language: str = "English", voice_gender: str 
         f"When speaking {language_name}, pronounce every number and Maths operation only in {language_name}, never in English. "
         if language in SPOKEN_MATH else ""
     )
+    delivery_style = (
+        "Use simple modern Lagos classroom Yorùbá. Speak like a friendly young teacher, not a formal broadcaster. "
+        "Avoid deep vocabulary, proverbs and old-fashioned expressions. It is acceptable to use familiar English Maths words such as plus, minus, times, divide, point and percent, but every number must remain in Yorùbá. "
+        if language == "Yoruba" else
+        "Sound warm, patient and conversational, with a gentle Nigerian classroom tone and a friendly vocal smile. "
+    )
     prompt = (
         "Synthesize speech for the transcript below. Do not read these directions aloud. "
         f"Use the same unmistakably adult {gender} teacher voice speaking {language_name}. "
         f"{local_number_direction}"
-        "Sound warm, patient and conversational, with a gentle Nigerian classroom tone and a friendly vocal smile. "
+        f"{delivery_style}"
         "Use punctuation for natural pauses and keep the delivery fluid.\n\n"
         f"TRANSCRIPT:\n{transcript}"
     )
@@ -388,9 +405,17 @@ def _language_instruction(response_language: str) -> str:
     }
     if response_language in language_details:
         language_name, number_word_language = language_details[response_language]
+        simplicity = (
+            "Use simple, modern conversational Yorùbá commonly understood by JSS2 learners in Lagos. "
+            "Use short direct sentences. Avoid deep or literary Yorùbá, proverbs, idioms and uncommon traditional terms. "
+            "You may naturally code-switch only familiar school Maths words such as plus, minus, times, divide, fraction, decimal and percent. "
+            "Never say the numbers in English; use familiar conversational Yorùbá counting forms such as ọ̀kan, méjì, mẹ́ta, márùn-ún and mẹ́fà. "
+            if response_language == "Yoruba" else ""
+        )
         return (
             f"The learner may ask the Maths question in {language_name} or English. Understand both languages, "
             f"but reply entirely in clear, natural {language_name} suitable for a Nigerian JSS2 learner. "
+            f"{simplicity}"
             "Write as a warm human teacher would speak: use complete sentences, natural punctuation, and short paragraphs. "
             "Use commas and full stops to create clear pauses when the answer is read aloud. "
             f"Use {number_word_language} number words whenever referring to values in explanatory sentences. "
