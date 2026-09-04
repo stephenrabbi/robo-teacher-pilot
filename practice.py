@@ -62,6 +62,104 @@ QUESTION_BANK = {
             ("A quantity rises from 240 to 300. What is the percentage increase?", "Find the increase, divide by the original, then multiply by 100.", "25", "Step 1: Find the increase: 300 - 240 = 60.\nStep 2: Divide by the original value: 60 ÷ 240 = 0.25.\nStep 3: Convert to a percentage: 0.25 × 100 = 25%.\nTherefore, the increase is 25%."),
         ],
     },
+    "Factors, Multiples & Roots": {
+        "Easy": [
+            ("Find the HCF of 12 and 18.", "List the factors common to both numbers.", "6", "Step 1: Factors of 12 are 1, 2, 3, 4, 6, 12.\nStep 2: Factors of 18 are 1, 2, 3, 6, 9, 18.\nThe highest common factor is 6."),
+            ("What is the square root of 81?", "Find the number that multiplies by itself to give 81.", "9", "Step 1: 9 × 9 = 81.\nTherefore, √81 = 9."),
+        ],
+        "Medium": [
+            ("Find the LCM of 8 and 12.", "Write the multiples until you find the first common one.", "24", "Step 1: Multiples of 8 are 8, 16, 24.\nStep 2: Multiples of 12 are 12, 24.\nThe lowest common multiple is 24."),
+            ("Express 84 as a product of prime factors.", "Divide repeatedly by the smallest prime numbers.", "2*2*3*7", "Step 1: 84 ÷ 2 = 42 and 42 ÷ 2 = 21.\nStep 2: 21 = 3 × 7.\nTherefore, 84 = 2 × 2 × 3 × 7."),
+        ],
+        "Challenge": [
+            ("Find the smallest number divisible by 6, 8 and 15.", "This is an LCM question.", "120", "Step 1: 6 = 2 × 3, 8 = 2³, and 15 = 3 × 5.\nStep 2: Use the highest powers: 2³ × 3 × 5 = 120.\nTherefore, the LCM is 120."),
+            ("What is √196 + √64?", "Find each square root before adding.", "22", "Step 1: √196 = 14.\nStep 2: √64 = 8.\nTherefore, 14 + 8 = 22."),
+        ],
+    },
+    "Decimals & Approximation": {
+        "Easy": [
+            ("Round 47.68 to the nearest whole number.", "Look at the tenths digit.", "48", "Step 1: The tenths digit is 6.\nStep 2: Since 6 is at least 5, round 47 up.\nTherefore, 47.68 rounds to 48."),
+            ("Calculate 3.5 + 2.47.", "Align the decimal points.", "5.97", "Step 1: Write 3.50 + 2.47.\nStep 2: Add each place value.\nTherefore, the sum is 5.97."),
+        ],
+        "Medium": [
+            ("Round 8.746 to 2 decimal places.", "Check the third decimal digit.", "8.75", "Step 1: The hundredths digit is 4 and the next digit is 6.\nStep 2: Round the 4 up to 5.\nTherefore, 8.746 becomes 8.75."),
+            ("Write 0.00072 in standard form.", "Move the decimal point until the first number is between 1 and 10.", "7.2*10^-4", "Step 1: Move the decimal point 4 places right to get 7.2.\nStep 2: A rightward move gives a negative power.\nTherefore, 0.00072 = 7.2 × 10⁻⁴."),
+        ],
+        "Challenge": [
+            ("Estimate 19.8 × 5.1 by rounding each number to 1 significant figure.", "Round first, then multiply.", "100", "Step 1: 19.8 rounds to 20.\nStep 2: 5.1 rounds to 5.\nTherefore, the estimate is 20 × 5 = 100."),
+            ("Calculate 4.56 ÷ 0.12.", "Multiply both numbers by 100 to remove decimals.", "38", "Step 1: 4.56 ÷ 0.12 = 456 ÷ 12.\nStep 2: 456 ÷ 12 = 38.\nTherefore, the answer is 38."),
+        ],
+    },
+    "Directed Numbers": {
+        "Easy": [
+            ("Calculate -6 + 9.", "Move 9 steps right from -6 on a number line.", "3", "Step 1: Start at -6.\nStep 2: Moving 9 places right reaches 3.\nTherefore, -6 + 9 = 3."),
+            ("Calculate 5 - 12.", "Subtracting 12 means moving left.", "-7", "Step 1: Start at 5.\nStep 2: Move 12 places left.\nTherefore, 5 - 12 = -7."),
+        ],
+        "Medium": [
+            ("Calculate (-7) × 6.", "A negative times a positive is negative.", "-42", "Step 1: 7 × 6 = 42.\nStep 2: The signs are different, so the result is negative.\nTherefore, (-7) × 6 = -42."),
+            ("Calculate (-48) ÷ (-8).", "Dividing numbers with the same sign gives a positive result.", "6", "Step 1: 48 ÷ 8 = 6.\nStep 2: Both signs are negative, so the result is positive.\nTherefore, the answer is 6."),
+        ],
+        "Challenge": [
+            ("Calculate -4 × (7 - 10).", "Work inside the brackets first.", "12", "Step 1: 7 - 10 = -3.\nStep 2: -4 × -3 = 12 because two negative signs give a positive result.\nTherefore, the answer is 12."),
+            ("Calculate (-36 ÷ 6) - (-8).", "Complete the division before subtraction.", "2", "Step 1: -36 ÷ 6 = -6.\nStep 2: -6 - (-8) = -6 + 8.\nTherefore, the answer is 2."),
+        ],
+    },
+    "Commercial Arithmetic": {
+        "Easy": [
+            ("A trader buys an item for ₦800 and sells it for ₦950. Find the profit.", "Profit equals selling price minus cost price.", "150", "Step 1: Profit = selling price - cost price.\nStep 2: ₦950 - ₦800 = ₦150.\nTherefore, the profit is ₦150."),
+            ("Find the simple interest on ₦2,000 at 5% per year for 1 year.", "Use I = PRT/100.", "100", "Step 1: I = 2,000 × 5 × 1 ÷ 100.\nStep 2: I = 100.\nTherefore, the interest is ₦100."),
+        ],
+        "Medium": [
+            ("An item costing ₦4,000 is sold at a 15% profit. Find the selling price.", "Find the profit, then add it to the cost price.", "4600", "Step 1: 15% of ₦4,000 = ₦600.\nStep 2: ₦4,000 + ₦600 = ₦4,600.\nTherefore, the selling price is ₦4,600."),
+            ("Find the simple interest on ₦12,000 at 8% per year for 2 years.", "Use I = PRT/100.", "1920", "Step 1: I = 12,000 × 8 × 2 ÷ 100.\nStep 2: I = 1,920.\nTherefore, the interest is ₦1,920."),
+        ],
+        "Challenge": [
+            ("A trader marks an item at ₦10,000 and gives a 12% discount. Find the selling price.", "Subtract the discount from the marked price.", "8800", "Step 1: 12% of ₦10,000 = ₦1,200.\nStep 2: ₦10,000 - ₦1,200 = ₦8,800.\nTherefore, the selling price is ₦8,800."),
+            ("An item is sold for ₦5,400 at a 10% loss. Find its cost price.", "The selling price represents 90% of the cost price.", "6000", "Step 1: 90% of the cost price is ₦5,400.\nStep 2: Cost price = 5,400 ÷ 0.9.\nTherefore, the cost price is ₦6,000."),
+        ],
+    },
+    "Inequalities & Graphs": {
+        "Easy": [
+            ("Solve x + 3 < 9. What is the greatest whole-number value of x?", "Subtract 3 from both sides.", "5", "Step 1: x + 3 < 9.\nStep 2: Subtract 3: x < 6.\nThe greatest whole number less than 6 is 5."),
+            ("For y = 2x + 1, find y when x = 3.", "Substitute 3 for x.", "7", "Step 1: y = 2(3) + 1.\nStep 2: y = 6 + 1.\nTherefore, y = 7."),
+        ],
+        "Medium": [
+            ("Solve 3x ≤ 18. What is the greatest possible value of x?", "Divide both sides by 3.", "6", "Step 1: Divide both sides by positive 3.\nStep 2: x ≤ 6.\nTherefore, the greatest possible value is 6."),
+            ("The point (4, y) lies on y = 3x - 2. Find y.", "Substitute x = 4.", "10", "Step 1: y = 3(4) - 2.\nStep 2: y = 12 - 2.\nTherefore, y = 10."),
+        ],
+        "Challenge": [
+            ("Solve -2x > 10.", "Reverse the inequality sign when dividing by a negative number.", "x<-5", "Step 1: Divide both sides by -2.\nStep 2: Reverse > to <.\nTherefore, x < -5."),
+            ("Find the gradient between (1, 3) and (5, 11).", "Use change in y divided by change in x.", "2", "Step 1: Change in y = 11 - 3 = 8.\nStep 2: Change in x = 5 - 1 = 4.\nGradient = 8 ÷ 4 = 2."),
+        ],
+    },
+    "Geometry & Mensuration": {
+        "Easy": [
+            ("Find the perimeter of a rectangle 8 cm long and 5 cm wide.", "Use 2(length + width).", "26", "Step 1: Add length and width: 8 + 5 = 13.\nStep 2: Multiply by 2: 2 × 13 = 26.\nTherefore, the perimeter is 26 cm."),
+            ("Find the area of a triangle with base 10 cm and height 6 cm.", "Use 1/2 × base × height.", "30", "Step 1: Area = 1/2 × 10 × 6.\nStep 2: Area = 30.\nTherefore, the area is 30 cm²."),
+        ],
+        "Medium": [
+            ("Find the circumference of a circle with radius 7 cm. Use π = 22/7.", "Use C = 2πr.", "44", "Step 1: C = 2 × 22/7 × 7.\nStep 2: Cancel 7, giving 2 × 22.\nTherefore, the circumference is 44 cm."),
+            ("A map uses a scale of 1 cm to 5 km. What distance does 7 cm represent?", "Multiply the map length by 5 km.", "35", "Step 1: Every 1 cm represents 5 km.\nStep 2: 7 × 5 = 35.\nTherefore, 7 cm represents 35 km."),
+        ],
+        "Challenge": [
+            ("Find the volume of a cylinder with radius 7 cm and height 10 cm. Use π = 22/7.", "Use V = πr²h.", "1540", "Step 1: V = 22/7 × 7² × 10.\nStep 2: V = 22 × 7 × 10.\nTherefore, the volume is 1,540 cm³."),
+            ("A right-angled triangle has shorter sides 6 cm and 8 cm. Find the hypotenuse.", "Use Pythagoras: c² = a² + b².", "10", "Step 1: c² = 6² + 8² = 36 + 64 = 100.\nStep 2: c = √100.\nTherefore, the hypotenuse is 10 cm."),
+        ],
+    },
+    "Statistics & Probability": {
+        "Easy": [
+            ("Find the mean of 4, 6 and 8.", "Add the values and divide by how many there are.", "6", "Step 1: 4 + 6 + 8 = 18.\nStep 2: There are 3 values, so 18 ÷ 3 = 6.\nTherefore, the mean is 6."),
+            ("A fair coin is tossed once. What is the probability of getting a head? Give a fraction.", "There is one favourable result out of two possible results.", "1/2", "Step 1: A coin has 2 equally likely outcomes.\nStep 2: One outcome is a head.\nTherefore, P(head) = 1/2."),
+        ],
+        "Medium": [
+            ("Find the median of 3, 9, 5, 7 and 1.", "Arrange the numbers in order first.", "5", "Step 1: Order the values: 1, 3, 5, 7, 9.\nStep 2: The middle value is 5.\nTherefore, the median is 5."),
+            ("A bag contains 3 red and 5 blue balls. What is the probability of choosing a red ball?", "Use favourable outcomes divided by total outcomes.", "3/8", "Step 1: Total balls = 3 + 5 = 8.\nStep 2: There are 3 red balls.\nTherefore, P(red) = 3/8."),
+        ],
+        "Challenge": [
+            ("The mean of 6, 8, x and 10 is 9. Find x.", "Use total = mean × number of values.", "12", "Step 1: The required total is 9 × 4 = 36.\nStep 2: Known values total 6 + 8 + 10 = 24.\nStep 3: x = 36 - 24 = 12."),
+            ("Two fair coins are tossed. What is the probability of getting two heads?", "List HH, HT, TH and TT.", "1/4", "Step 1: There are 4 equally likely outcomes: HH, HT, TH, TT.\nStep 2: Only HH gives two heads.\nTherefore, the probability is 1/4."),
+        ],
+    },
 }
 
 

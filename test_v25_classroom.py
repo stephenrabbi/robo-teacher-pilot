@@ -11,6 +11,24 @@ from tutor import _language_instruction, get_tutor_reply
 client = TestClient(app)
 
 
+def test_practice_bank_covers_jss2_curriculum_strands():
+    expected_topics = {
+        'Whole Numbers', 'Fractions', 'Algebra', 'Ratio & Percentage',
+        'Factors, Multiples & Roots', 'Decimals & Approximation', 'Directed Numbers',
+        'Commercial Arithmetic', 'Inequalities & Graphs', 'Geometry & Mensuration',
+        'Statistics & Probability',
+    }
+    assert set(practice.QUESTION_BANK) == expected_topics
+    for levels in practice.QUESTION_BANK.values():
+        assert set(levels) == {'Easy', 'Medium', 'Challenge'}
+        assert all(len(questions) >= 2 for questions in levels.values())
+        assert all('Step 1:' in item[3] for questions in levels.values() for item in questions)
+
+    options = client.get('/api/classroom/practice/options')
+    assert options.status_code == 200
+    assert set(options.json()['topics']) == expected_topics
+
+
 def test_practice_mode_marks_answers_and_tracks_score():
     session = client.post('/api/classroom/session').json()
     fixed = ("What is 2 + 3?", "Count on from 2.", "5", "2 + 3 = 5.")

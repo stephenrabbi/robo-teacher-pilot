@@ -52,7 +52,12 @@ class ClassroomWhiteboard(BaseModel):
 
 class PracticeStart(BaseModel):
     session_token: str = Field(min_length=20, max_length=300)
-    topic: Literal["Whole Numbers", "Fractions", "Algebra", "Ratio & Percentage"]
+    topic: Literal[
+        "Whole Numbers", "Fractions", "Algebra", "Ratio & Percentage",
+        "Factors, Multiples & Roots", "Decimals & Approximation", "Directed Numbers",
+        "Commercial Arithmetic", "Inequalities & Graphs", "Geometry & Mensuration",
+        "Statistics & Probability",
+    ]
     difficulty: Literal["Easy", "Medium", "Challenge"]
 
 
