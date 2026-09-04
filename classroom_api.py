@@ -14,7 +14,7 @@ import time
 from collections import defaultdict, deque
 from typing import Literal
 
-from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, Request, UploadFile
+from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, Request, Response, UploadFile
 from pydantic import BaseModel, Field
 from practice import QUESTION_BANK, answer_practice, next_question, start_practice
 from practice_progress import build_dashboard, save_result
@@ -27,6 +27,7 @@ from tutor import (
     get_tutor_audio_reply,
     get_tutor_image_reply,
     get_tutor_reply,
+    generate_tutor_speech,
 )
 
 router = APIRouter(prefix="/api/classroom", tags=["classroom"])
@@ -53,6 +54,13 @@ class ClassroomWhiteboard(BaseModel):
     session_token: str = Field(min_length=20, max_length=300)
     caption: str = Field(default="", max_length=500)
     language: SupportedLanguage = "English"
+
+
+class ClassroomSpeech(BaseModel):
+    text: str = Field(min_length=1, max_length=6000)
+    session_token: str = Field(min_length=20, max_length=300)
+    language: SupportedLanguage = "English"
+    voice_gender: Literal["female", "male"] = "female"
 
 
 class PracticeStart(BaseModel):
@@ -186,6 +194,19 @@ def classroom_chat(question: ClassroomQuestion, request: Request):
         # Never expose provider details, prompts, credentials, or stack traces to learners.
         raise HTTPException(status_code=503, detail="Robo-Teacher is temporarily unavailable") from exc
     return {"reply": reply, "latency_seconds": round(float(latency), 3), "learner_id": student_id}
+
+
+@router.post("/speech", response_class=Response)
+def classroom_speech(speech: ClassroomSpeech):
+    student_id = _verify_session(speech.session_token)
+    _enforce_rate_limit(student_id)
+    try:
+        wav_audio = generate_tutor_speech(
+            speech.text.strip(), speech.language, speech.voice_gender
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Natural teacher voice is temporarily unavailable") from exc
+    return Response(content=wav_audio, media_type="audio/wav", headers={"Cache-Control": "no-store"})
 
 
 @router.post("/image")

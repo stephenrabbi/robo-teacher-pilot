@@ -5,11 +5,14 @@ preserving deterministic arithmetic and explicit escalation guardrails.
 """
 
 import ast
+import base64
+import io
 import logging
 import operator
 import os
 import re
 import time
+import wave
 
 from google import genai
 from google.genai import types
@@ -17,6 +20,7 @@ from learner_profile import DEFAULT_PROFILE, load_profile, profile_prompt_contex
 
 logger = logging.getLogger("robo-teacher.tutor")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite")
+GEMINI_TTS_MODEL = os.getenv("GEMINI_TTS_MODEL", "gemini-3.1-flash-tts-preview")
 SUPPORTED_IMAGE_MIME_TYPES = {"image/jpeg", "image/png", "image/webp"}
 SUPPORTED_AUDIO_MIME_TYPES = {"audio/ogg", "audio/opus", "audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav", "audio/aac", "audio/flac", "audio/m4a", "audio/webm"}
 MAX_IMAGE_BYTES = 8 * 1024 * 1024
@@ -106,6 +110,9 @@ LOCALIZED_ANSWERS = {
     "Hausa": ("Amsa", HAUSA_NUMBER_WORDS),
 }
 
+TTS_VOICES = {"female": "Kore", "male": "Charon"}
+TTS_LANGUAGE_NAMES = {"English": "English", "Yoruba": "Yorùbá", "Igbo": "Igbo", "Hausa": "Hausa"}
+
 
 def _get_client():
     global _client
@@ -117,6 +124,47 @@ def _get_client():
 def _is_rate_limit_error(e: Exception) -> bool:
     text = str(e)
     return "429" in text or "RESOURCE_EXHAUSTED" in text or "quota" in text.lower()
+
+
+def _pcm_to_wav(pcm: bytes) -> bytes:
+    output = io.BytesIO()
+    with wave.open(output, "wb") as wav_file:
+        wav_file.setnchannels(1)
+        wav_file.setsampwidth(2)
+        wav_file.setframerate(24000)
+        wav_file.writeframes(pcm)
+    return output.getvalue()
+
+
+def generate_tutor_speech(text: str, language: str = "English", voice_gender: str = "female") -> bytes:
+    """Generate expressive teacher speech as a WAV file using Gemini TTS."""
+    gender = "male" if voice_gender == "male" else "female"
+    language_name = TTS_LANGUAGE_NAMES.get(language, "English")
+    prompt = (
+        "Synthesize speech for the transcript below. Do not read these directions aloud. "
+        f"Use a warm, natural {gender} teacher voice speaking {language_name}. "
+        "Sound patient and conversational, with a gentle Nigerian classroom tone. "
+        "Use the written punctuation for natural pauses, vary emphasis slightly, and avoid a stiff announcer cadence.\n\n"
+        f"TRANSCRIPT:\n{text.strip()}"
+    )
+    client = _get_client()
+    last_error = None
+    for _attempt in range(2):
+        try:
+            interaction = client.interactions.create(
+                model=GEMINI_TTS_MODEL,
+                input=prompt,
+                response_format={"type": "audio"},
+                generation_config={"speech_config": [{"voice": TTS_VOICES[gender]}]},
+            )
+            encoded = interaction.output_audio.data
+            pcm = base64.b64decode(encoded) if isinstance(encoded, str) else bytes(encoded)
+            if not pcm:
+                raise ValueError("Gemini TTS returned empty audio")
+            return _pcm_to_wav(pcm)
+        except Exception as exc:
+            last_error = exc
+    raise RuntimeError("Gemini TTS could not generate audio") from last_error
 
 
 def _safe_arithmetic(expression: str):

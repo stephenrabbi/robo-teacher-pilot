@@ -82,6 +82,8 @@ let previewUrl=null;
 let mediaRecorder=null;
 let micStream=null;
 let recordedChunks=[];
+let teacherAudio=null;
+let teacherAudioUrl=null;
 let drawing=false;
 let drawingTool='pen';
 let boardHasInk=false;
@@ -134,8 +136,7 @@ function selectTeacherVoice(locale,gender){
   const voices=window.speechSynthesis.getVoices();
   if(!voices.length)return null;
   const exact=locale.toLowerCase();const language=exact.split('-')[0];
-  const eligible=voices.filter(voice=>voiceGenderScore(voice,gender)>=0);
-  const candidates=eligible.length?eligible:voices.filter(voice=>voiceGenderScore(voice,gender)>0);
+  const candidates=voices.filter(voice=>voiceGenderScore(voice,gender)>0);
   if(!candidates.length)return null;
   return [...candidates].sort((a,b)=>{
     const score=voice=>{
@@ -167,15 +168,22 @@ function setTeacherSpeaking(speaking){
   readAnswerButton.setAttribute('aria-label',speaking?'Stop reading the answer':'Read the current answer aloud');
 }
 
-function speakText(text){
-  if(!('speechSynthesis' in window)||!text.trim())return;
-  window.speechSynthesis.cancel();
+function stopTeacherAudio(){
+  if(teacherAudio){teacherAudio.pause();teacherAudio=null}
+  if(teacherAudioUrl){URL.revokeObjectURL(teacherAudioUrl);teacherAudioUrl=null}
+  if('speechSynthesis' in window)window.speechSynthesis.cancel();
+  setTeacherSpeaking(false);
+}
+
+function speakWithBrowserFallback(text){
+  if(!('speechSynthesis' in window))return false;
   const locale=speechLocales[language.value]||'en-NG';
   const gender=teacherPanel.dataset.voiceGender==='male'?'male':'female';
   const utterance=new SpeechSynthesisUtterance(prepareSpeechText(text));
   const selectedVoice=selectTeacherVoice(locale,gender);
+  if(!selectedVoice)return false;
   utterance.lang=locale;
-  if(selectedVoice)utterance.voice=selectedVoice;
+  utterance.voice=selectedVoice;
   utterance.rate=.88;
   utterance.pitch=gender==='female'?1.04:.96;
   utterance.volume=1;
@@ -183,11 +191,28 @@ function speakText(text){
   utterance.onend=()=>setTeacherSpeaking(false);
   utterance.onerror=()=>setTeacherSpeaking(false);
   window.speechSynthesis.speak(utterance);
+  return true;
+}
+
+async function speakText(text){
+  if(!text.trim())return;
+  stopTeacherAudio();setTeacherSpeaking(true);
+  try{
+    const token=await ensureSession();
+    const response=await fetch('/api/classroom/speech',{method:'POST',headers:{'Content-Type':'application/json','Accept':'audio/wav'},body:JSON.stringify({text:prepareSpeechText(text),session_token:token,language:language.value,voice_gender:teacherPanel.dataset.voiceGender==='male'?'male':'female'})});
+    if(response.status===401){sessionToken=null;throw new Error('session')}
+    if(!response.ok)throw new Error('natural voice unavailable');
+    teacherAudioUrl=URL.createObjectURL(await response.blob());teacherAudio=new Audio(teacherAudioUrl);
+    teacherAudio.addEventListener('ended',stopTeacherAudio,{once:true});teacherAudio.addEventListener('error',stopTeacherAudio,{once:true});
+    await teacherAudio.play();
+  }catch(_error){
+    stopTeacherAudio();
+    if(!speakWithBrowserFallback(text))addMessage('The natural teacher voice is temporarily unavailable. You can continue reading the worked answer on the Teaching Canvas.','teacher');
+  }
 }
 
 readAnswerButton.addEventListener('click',()=>{
-  if(!('speechSynthesis' in window))return;
-  if(window.speechSynthesis.speaking){window.speechSynthesis.cancel();setTeacherSpeaking(false);return;}
+  if(teacherAudio||('speechSynthesis' in window&&window.speechSynthesis.speaking)){stopTeacherAudio();return;}
   speakText(canvasAnswer.textContent);
 });
 
@@ -199,7 +224,7 @@ function addMessage(text,role){
 function showCanvasAnswer(answer,status='Worked solution'){
   whiteboardArea.classList.add('hidden');practiceArea.classList.add('hidden');progressArea.classList.add('hidden');canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');
   canvasStatus.textContent=status;renderLesson(canvasAnswer,answer);
-  readAnswerButton.disabled=!answer.trim()||!('speechSynthesis' in window);
+  readAnswerButton.disabled=!answer.trim();
 }
 
 function renderLesson(container,text){

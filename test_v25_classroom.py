@@ -8,7 +8,7 @@ from v25_app import app
 import classroom_api
 import practice
 import practice_progress
-from tutor import _language_instruction, get_tutor_reply
+from tutor import _language_instruction, _pcm_to_wav, get_tutor_reply
 
 client = TestClient(app)
 PROJECT_ROOT = Path(__file__).parent
@@ -18,7 +18,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260904-voice2' in html
+    assert '20260904-tts1' in html
     assert 'id="readAnswer"' in html
     assert 'aria-expanded="true"' in html
     assert '@media(max-width:600px)' in css
@@ -33,6 +33,30 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert 'selectTeacherVoice(locale,gender)' in script
     assert 'prepareSpeechText(text)' in script
     assert "utterance.rate=.88" in script
+    assert "fetch('/api/classroom/speech'" in script
+    assert "voice_gender:teacherPanel.dataset.voiceGender" in script
+    assert "if(!selectedVoice)return false" in script
+
+
+def test_pcm_audio_is_wrapped_as_playable_wav():
+    wav_audio = _pcm_to_wav(b'\x00\x00' * 240)
+    assert wav_audio.startswith(b'RIFF')
+    assert b'WAVE' in wav_audio[:16]
+
+
+def test_natural_speech_endpoint_uses_female_avatar_voice():
+    session = client.post('/api/classroom/session').json()
+    with patch.object(classroom_api, 'generate_tutor_speech', return_value=b'RIFF-test') as tts:
+        response = client.post('/api/classroom/speech', json={
+            'text': 'Let us solve this carefully.',
+            'session_token': session['session_token'],
+            'language': 'English',
+            'voice_gender': 'female',
+        })
+    assert response.status_code == 200
+    assert response.headers['content-type'] == 'audio/wav'
+    assert response.content == b'RIFF-test'
+    assert tts.call_args.args[1:] == ('English', 'female')
 
 
 def test_stable_anonymous_key_restores_progress_without_exposing_identity():
