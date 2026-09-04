@@ -26,6 +26,7 @@ const eraserTool=document.getElementById('eraserTool');
 const clearBoardButton=document.getElementById('clearBoard');
 const closeBoardButton=document.getElementById('closeBoard');
 const submitBoardButton=document.getElementById('submitBoard');
+const backToWhiteboard=document.getElementById('backToWhiteboard');
 let sessionToken=null;
 let previewUrl=null;
 let mediaRecorder=null;
@@ -99,6 +100,7 @@ whiteboard.addEventListener('pointerdown',startDrawing);
 whiteboard.addEventListener('pointermove',drawOnWhiteboard);
 whiteboard.addEventListener('pointerup',stopDrawing);
 whiteboard.addEventListener('pointercancel',stopDrawing);
+backToWhiteboard.addEventListener('click',openWhiteboard);
 
 function clearWhiteboard(){
   boardContext.save();boardContext.fillStyle='#ffffff';boardContext.fillRect(0,0,whiteboard.width,whiteboard.height);boardContext.restore();
@@ -148,7 +150,7 @@ function submitWhiteboard(){
   whiteboard.toBlob(async blob=>{
     if(!blob){addMessage('I could not prepare the whiteboard. Please try again.','teacher');submitBoardButton.disabled=false;submitBoardButton.textContent='Ask Teacher →';return;}
     const file=new File([blob],'whiteboard-maths.png',{type:'image/png'});
-    await handleImage(file);
+    await handleImage(file,'whiteboard');
     submitBoardButton.disabled=false;submitBoardButton.textContent='Ask Teacher →';
   },'image/png');
 }
@@ -198,6 +200,7 @@ async function finishRecording(){
     if(response.status===401){sessionToken=null;throw new Error('session');}
     if(!response.ok)throw new Error(data.detail||'request');
     canvasWork.classList.add('text-only');problemPreview.hidden=true;
+    backToWhiteboard.classList.add('hidden');
     showCanvasAnswer(data.reply,'Voice question explained');
     thinking.textContent='I’ve placed the complete answer to your voice question on the Teaching Canvas.';
   }catch(err){
@@ -206,7 +209,7 @@ async function finishRecording(){
   }finally{micButton.disabled=false;navMicButton.disabled=false;}
 }
 
-async function handleImage(file){
+async function handleImage(file,source='upload'){
   if(!file)return;
   if(!['image/jpeg','image/png','image/webp'].includes(file.type)){
     addMessage('Please choose a JPEG, PNG, or WebP image.','teacher');return;
@@ -215,6 +218,7 @@ async function handleImage(file){
   if(previewUrl)URL.revokeObjectURL(previewUrl);
   previewUrl=URL.createObjectURL(file);problemPreview.src=previewUrl;
   canvasWork.classList.remove('text-only');problemPreview.hidden=false;
+  backToWhiteboard.classList.toggle('hidden',source!=='whiteboard');
   whiteboardArea.classList.add('hidden');
   canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');
   canvasStatus.textContent='Robo-Teacher is reading your image…';canvasAnswer.textContent='';
@@ -248,6 +252,7 @@ form.addEventListener('submit',async(e)=>{
     if(response.status===401){sessionToken=null;throw new Error('session');}
     if(!response.ok)throw new Error(data.detail||'request');
     canvasWork.classList.add('text-only');problemPreview.hidden=true;
+    backToWhiteboard.classList.add('hidden');
     showCanvasAnswer(data.reply,'Worked solution');
     thinking.textContent='I’ve placed the complete worked solution on the Teaching Canvas.';
   }catch(err){
