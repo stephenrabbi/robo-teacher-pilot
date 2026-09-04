@@ -3,6 +3,8 @@ name: Robo-Teacher Tests
 on:
   push:
     branches: [main, v2-development]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
