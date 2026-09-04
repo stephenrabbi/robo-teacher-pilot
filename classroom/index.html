@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Robo-Teacher Classroom</title>
-  <link rel="stylesheet" href="/classroom/styles.css?v=20260904-progress1" />
+  <link rel="stylesheet" href="/classroom/styles.css?v=20260904-mobile1" />
 </head>
 <body>
   <main class="app-shell">
@@ -38,10 +38,16 @@
       <aside id="teacherPanel" class="teacher-panel">
         <div class="teacher-toolbar">
           <strong>Your AI Teacher</strong>
-          <button id="toggleTeacher" class="icon-button" aria-label="Minimize teacher">↙</button>
+          <div class="teacher-actions">
+            <button id="readAnswer" class="icon-button read-answer" type="button" aria-label="Read the current answer aloud" disabled>🔊 <span>Read answer</span></button>
+            <button id="toggleTeacher" class="icon-button" type="button" aria-label="Minimize teacher" aria-expanded="true">↙</button>
+          </div>
         </div>
-        <img class="teacher-avatar" src="/classroom/assets/ai-maths-teacher.jpg" alt="Robo-Teacher AI Mathematics teacher" />
-        <div class="teacher-caption">Ready to guide you step by step.</div>
+        <div class="teacher-portrait">
+          <img class="teacher-avatar" src="/classroom/assets/ai-maths-teacher.jpg" alt="Robo-Teacher AI Mathematics teacher" />
+          <span id="teacherVoiceStatus" class="teacher-voice-status" aria-live="polite">Ready</span>
+        </div>
+        <div class="teacher-caption">Ready to guide you step by step. Voice questions receive spoken answers.</div>
       </aside>
 
       <section class="learning-area">
@@ -123,6 +129,6 @@
       </section>
     </section>
   </main>
-  <script src="/classroom/app.js?v=20260904-progress1"></script>
+  <script src="/classroom/app.js?v=20260904-mobile1"></script>
 </body>
 </html>

@@ -1,5 +1,6 @@
 """Controlled tests for the V2.5 browser classroom API; no live services used."""
 import base64
+from pathlib import Path
 from unittest.mock import patch
 from fastapi.testclient import TestClient
 
@@ -10,6 +11,22 @@ import practice_progress
 from tutor import _language_instruction, get_tutor_reply
 
 client = TestClient(app)
+PROJECT_ROOT = Path(__file__).parent
+
+
+def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
+    html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
+    css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
+    script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
+    assert '20260904-mobile1' in html
+    assert 'id="readAnswer"' in html
+    assert 'aria-expanded="true"' in html
+    assert '@media(max-width:600px)' in css
+    assert '.teacher-panel{grid-template-columns:82px 1fr' in css
+    assert '.founder-avatar{height:205px!important}' in css
+    assert 'min-height:44px' in css
+    assert "speechLocales={English:'en-NG',Yoruba:'yo-NG',Igbo:'ig-NG',Hausa:'ha-NG'}" in script
+    assert 'speakText(data.reply)' in script
 
 
 def test_stable_anonymous_key_restores_progress_without_exposing_identity():

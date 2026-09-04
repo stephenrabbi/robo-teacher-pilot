@@ -3,6 +3,8 @@ const classroom=document.getElementById('classroom');
 const start=document.getElementById('startLearning');
 const toggle=document.getElementById('toggleTeacher');
 const teacherPanel=document.getElementById('teacherPanel');
+const readAnswerButton=document.getElementById('readAnswer');
+const teacherVoiceStatus=document.getElementById('teacherVoiceStatus');
 const form=document.getElementById('chatForm');
 const question=document.getElementById('question');
 const messages=document.getElementById('messages');
@@ -111,6 +113,34 @@ toggle.addEventListener('click',()=>{
   classroom.classList.toggle('teacher-min',mini);
   toggle.textContent=mini?'↗':'↙';
   toggle.setAttribute('aria-label',mini?'Maximize teacher':'Minimize teacher');
+  toggle.setAttribute('aria-expanded',String(!mini));
+});
+
+const speechLocales={English:'en-NG',Yoruba:'yo-NG',Igbo:'ig-NG',Hausa:'ha-NG'};
+
+function setTeacherSpeaking(speaking){
+  teacherPanel.classList.toggle('speaking',speaking);
+  teacherVoiceStatus.textContent=speaking?'Speaking…':'Ready';
+  readAnswerButton.innerHTML=speaking?'■ <span>Stop</span>':'🔊 <span>Read answer</span>';
+  readAnswerButton.setAttribute('aria-label',speaking?'Stop reading the answer':'Read the current answer aloud');
+}
+
+function speakText(text){
+  if(!('speechSynthesis' in window)||!text.trim())return;
+  window.speechSynthesis.cancel();
+  const utterance=new SpeechSynthesisUtterance(text);
+  utterance.lang=speechLocales[language.value]||'en-NG';
+  utterance.rate=.92;
+  utterance.onstart=()=>setTeacherSpeaking(true);
+  utterance.onend=()=>setTeacherSpeaking(false);
+  utterance.onerror=()=>setTeacherSpeaking(false);
+  window.speechSynthesis.speak(utterance);
+}
+
+readAnswerButton.addEventListener('click',()=>{
+  if(!('speechSynthesis' in window))return;
+  if(window.speechSynthesis.speaking){window.speechSynthesis.cancel();setTeacherSpeaking(false);return;}
+  speakText(canvasAnswer.textContent);
 });
 
 function addMessage(text,role){
@@ -121,6 +151,7 @@ function addMessage(text,role){
 function showCanvasAnswer(answer,status='Worked solution'){
   whiteboardArea.classList.add('hidden');practiceArea.classList.add('hidden');progressArea.classList.add('hidden');canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');
   canvasStatus.textContent=status;renderLesson(canvasAnswer,answer);
+  readAnswerButton.disabled=!answer.trim()||!('speechSynthesis' in window);
 }
 
 function renderLesson(container,text){
@@ -412,6 +443,7 @@ async function finishRecording(){
     canvasWork.classList.add('text-only');problemPreview.hidden=true;
     backToWhiteboard.classList.add('hidden');
     showCanvasAnswer(data.reply,'Voice question explained');
+    speakText(data.reply);
     thinking.textContent='I’ve placed the complete answer to your voice question on the Teaching Canvas.';
   }catch(err){
     const detail=err.message||'';
