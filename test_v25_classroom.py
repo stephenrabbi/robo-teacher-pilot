@@ -64,6 +64,28 @@ def test_classroom_image_rejects_oversized_file():
     assert response.status_code == 413
 
 
+def test_classroom_audio_uses_same_pseudonymous_identity():
+    session = client.post('/api/classroom/session').json()
+    with patch.object(classroom_api, 'get_tutor_audio_reply', return_value=('Subtract 4, then divide by 2. Final answer: 6', 0.3)) as tutor:
+        response = client.post('/api/classroom/audio', data={'session_token':session['session_token']}, files={'audio':('question.webm', b'fake-audio', 'audio/webm;codecs=opus')})
+    assert response.status_code == 200
+    assert response.json()['reply'].endswith('6')
+    assert tutor.call_args.args[0] == session['learner_id']
+
+
+def test_classroom_audio_rejects_unsupported_type():
+    session = client.post('/api/classroom/session').json()
+    response = client.post('/api/classroom/audio', data={'session_token':session['session_token']}, files={'audio':('question.txt', b'not-audio', 'text/plain')})
+    assert response.status_code == 415
+
+
+def test_classroom_audio_rejects_oversized_file():
+    session = client.post('/api/classroom/session').json()
+    oversized = b'x' * (classroom_api.MAX_AUDIO_BYTES + 1)
+    response = client.post('/api/classroom/audio', data={'session_token':session['session_token']}, files={'audio':('large.webm', oversized, 'audio/webm')})
+    assert response.status_code == 413
+
+
 if __name__ == '__main__':
     test_session_and_chat_use_pseudonymous_identity()
     test_tampered_session_is_rejected()
@@ -72,4 +94,7 @@ if __name__ == '__main__':
     test_classroom_image_uses_same_pseudonymous_identity()
     test_classroom_image_rejects_unsupported_type()
     test_classroom_image_rejects_oversized_file()
+    test_classroom_audio_uses_same_pseudonymous_identity()
+    test_classroom_audio_rejects_unsupported_type()
+    test_classroom_audio_rejects_oversized_file()
     print('V2.5 classroom API safety tests passed.')

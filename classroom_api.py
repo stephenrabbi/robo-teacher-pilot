@@ -14,7 +14,15 @@ from collections import defaultdict, deque
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from pydantic import BaseModel, Field
 
-from tutor import MAX_IMAGE_BYTES, SUPPORTED_IMAGE_MIME_TYPES, get_tutor_image_reply, get_tutor_reply
+from tutor import (
+    MAX_AUDIO_BYTES,
+    MAX_IMAGE_BYTES,
+    SUPPORTED_AUDIO_MIME_TYPES,
+    SUPPORTED_IMAGE_MIME_TYPES,
+    get_tutor_audio_reply,
+    get_tutor_image_reply,
+    get_tutor_reply,
+)
 
 router = APIRouter(prefix="/api/classroom", tags=["classroom"])
 _SESSION_TTL_SECONDS = 60 * 60 * 4
@@ -108,6 +116,30 @@ async def classroom_image(
         reply, latency = get_tutor_image_reply(student_id, image_bytes, mime_type, caption.strip())
     except ValueError as exc:
         raise HTTPException(status_code=422, detail="The image could not be processed") from exc
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Robo-Teacher is temporarily unavailable") from exc
+    return {"reply": reply, "latency_seconds": round(float(latency), 3), "learner_id": student_id}
+
+
+@router.post("/audio")
+async def classroom_audio(
+    session_token: str = Form(..., min_length=20, max_length=300),
+    audio: UploadFile = File(...),
+):
+    student_id = _verify_session(session_token)
+    _enforce_rate_limit(student_id)
+    mime_type = (audio.content_type or "").split(";", 1)[0].lower()
+    if mime_type not in SUPPORTED_AUDIO_MIME_TYPES:
+        raise HTTPException(status_code=415, detail="Please record or upload a supported audio file")
+    audio_bytes = await audio.read(MAX_AUDIO_BYTES + 1)
+    if not audio_bytes:
+        raise HTTPException(status_code=422, detail="The recording is empty")
+    if len(audio_bytes) > MAX_AUDIO_BYTES:
+        raise HTTPException(status_code=413, detail="The recording must be 12 MB or smaller")
+    try:
+        reply, latency = get_tutor_audio_reply(student_id, audio_bytes, mime_type)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail="The recording could not be processed") from exc
     except Exception as exc:
         raise HTTPException(status_code=503, detail="Robo-Teacher is temporarily unavailable") from exc
     return {"reply": reply, "latency_seconds": round(float(latency), 3), "learner_id": student_id}

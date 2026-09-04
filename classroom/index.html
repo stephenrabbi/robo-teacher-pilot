@@ -64,11 +64,11 @@
           <input id="imageUpload" class="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" />
           <input id="cameraCapture" class="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" />
           <input id="question" autocomplete="off" placeholder="Ask your teacher a question…" aria-label="Question" />
-          <button type="button" class="tool" title="Microphone">🎙</button>
+          <button id="micButton" type="button" class="tool" title="Record voice question" aria-label="Start voice question">🎙</button>
           <button type="submit" class="send">Send</button>
         </form>
         <nav class="class-tools" aria-label="Classroom tools">
-          <button type="button">💬 Chat</button><button id="cameraButton" type="button">📷 Camera</button><button type="button" disabled title="Coming next">🎙 Mic</button><button type="button" disabled title="Coming next">▣ Whiteboard</button><button type="button">🌐 Language</button>
+          <button type="button">💬 Chat</button><button id="cameraButton" type="button">📷 Camera</button><button id="navMicButton" type="button">🎙 Mic</button><button type="button" disabled title="Coming next">▣ Whiteboard</button><button type="button">🌐 Language</button>
         </nav>
       </section>
     </section>
