@@ -33,6 +33,7 @@ let micStream=null;
 let recordedChunks=[];
 let drawing=false;
 let drawingTool='pen';
+let boardHasInk=false;
 const boardContext=whiteboard.getContext('2d');
 
 async function ensureSession(){
@@ -101,6 +102,7 @@ whiteboard.addEventListener('pointercancel',stopDrawing);
 
 function clearWhiteboard(){
   boardContext.save();boardContext.fillStyle='#ffffff';boardContext.fillRect(0,0,whiteboard.width,whiteboard.height);boardContext.restore();
+  boardHasInk=false;
 }
 
 function openWhiteboard(){
@@ -133,6 +135,7 @@ function drawOnWhiteboard(event){
   boardContext.strokeStyle=drawingTool==='eraser'?'#ffffff':'#10203a';
   boardContext.lineWidth=drawingTool==='eraser'?34:6;
   boardContext.lineTo(point.x,point.y);boardContext.stroke();event.preventDefault();
+  if(drawingTool==='pen')boardHasInk=true;
 }
 
 function stopDrawing(event){
@@ -140,6 +143,7 @@ function stopDrawing(event){
 }
 
 function submitWhiteboard(){
+  if(!boardHasInk){addMessage('Please write a Maths problem or show some working on the whiteboard first.','teacher');return;}
   submitBoardButton.disabled=true;submitBoardButton.textContent='Preparing…';
   whiteboard.toBlob(async blob=>{
     if(!blob){addMessage('I could not prepare the whiteboard. Please try again.','teacher');submitBoardButton.disabled=false;submitBoardButton.textContent='Ask Teacher →';return;}
