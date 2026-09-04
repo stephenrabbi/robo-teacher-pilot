@@ -29,6 +29,24 @@ const submitBoardButton=document.getElementById('submitBoard');
 const backToWhiteboard=document.getElementById('backToWhiteboard');
 const language=document.getElementById('language');
 const languageButton=document.getElementById('languageButton');
+const practiceButton=document.getElementById('practiceButton');
+const practiceArea=document.getElementById('practiceArea');
+const practiceSetup=document.getElementById('practiceSetup');
+const practiceQuestion=document.getElementById('practiceQuestion');
+const practiceTopic=document.getElementById('practiceTopic');
+const practiceDifficulty=document.getElementById('practiceDifficulty');
+const startPracticeButton=document.getElementById('startPractice');
+const practiceProgress=document.getElementById('practiceProgress');
+const practiceScore=document.getElementById('practiceScore');
+const practiceContext=document.getElementById('practiceContext');
+const practicePrompt=document.getElementById('practicePrompt');
+const practiceForm=document.getElementById('practiceForm');
+const practiceAnswer=document.getElementById('practiceAnswer');
+const showHintButton=document.getElementById('showHint');
+const nextPracticeButton=document.getElementById('nextPractice');
+const closePracticeButton=document.getElementById('closePractice');
+const practiceFeedback=document.getElementById('practiceFeedback');
+let currentPractice=null;
 let sessionToken=null;
 let previewUrl=null;
 let mediaRecorder=null;
@@ -68,7 +86,7 @@ function addMessage(text,role){
 }
 
 function showCanvasAnswer(answer,status='Worked solution'){
-  whiteboardArea.classList.add('hidden');canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');
+  whiteboardArea.classList.add('hidden');practiceArea.classList.add('hidden');canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');
   canvasStatus.textContent=status;renderLesson(canvasAnswer,answer);
 }
 
@@ -112,6 +130,67 @@ language.addEventListener('change',()=>{
   question.focus();
 });
 languageButton.addEventListener('click',()=>language.focus());
+practiceButton.addEventListener('click',openPractice);
+startPracticeButton.addEventListener('click',startPracticeSession);
+practiceForm.addEventListener('submit',submitPracticeAnswer);
+showHintButton.addEventListener('click',showPracticeHint);
+nextPracticeButton.addEventListener('click',loadNextPracticeQuestion);
+closePracticeButton.addEventListener('click',closePractice);
+
+function openPractice(){
+  whiteboardArea.classList.add('hidden');canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');practiceArea.classList.remove('hidden');
+  if(currentPractice){practiceSetup.classList.add('hidden');practiceQuestion.classList.remove('hidden');practiceAnswer.focus()}
+  else{practiceSetup.classList.remove('hidden');practiceQuestion.classList.add('hidden')}
+}
+
+function closePractice(){
+  practiceArea.classList.add('hidden');
+  if(canvasAnswer.textContent.trim())canvasWork.classList.remove('hidden');else canvasEmpty.classList.remove('hidden');
+}
+
+function renderPracticeQuestion(data){
+  currentPractice=data;practiceSetup.classList.add('hidden');practiceQuestion.classList.remove('hidden');
+  practiceProgress.textContent=`Question ${data.question_number}`;practiceScore.textContent=`Score: ${data.score}/${data.attempted}`;
+  practiceContext.textContent=`${data.topic} · ${data.difficulty}`;practicePrompt.textContent=data.question;
+  practiceAnswer.value='';practiceAnswer.disabled=false;practiceForm.querySelector('button').disabled=false;
+  practiceFeedback.textContent='';practiceFeedback.className='practice-feedback hidden';showHintButton.disabled=false;
+  showHintButton.textContent='Show Hint';nextPracticeButton.classList.add('hidden');practiceAnswer.focus();
+}
+
+async function practiceRequest(path,body){
+  const token=await ensureSession();
+  const response=await fetch(`/api/classroom/practice/${path}`,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({session_token:token,...body})});
+  const data=await response.json();if(response.status===401)sessionToken=null;if(!response.ok)throw new Error(data.detail||'Practice request failed');return data;
+}
+
+async function startPracticeSession(){
+  startPracticeButton.disabled=true;startPracticeButton.textContent='Preparing…';
+  try{renderPracticeQuestion(await practiceRequest('start',{topic:practiceTopic.value,difficulty:practiceDifficulty.value}))}
+  catch(err){addMessage(err.message,'teacher')}
+  finally{startPracticeButton.disabled=false;startPracticeButton.textContent='Start Practice →'}
+}
+
+function showPracticeHint(){
+  if(!currentPractice)return;practiceFeedback.textContent=`Hint: ${currentPractice.hint}`;practiceFeedback.className='practice-feedback';showHintButton.disabled=true;showHintButton.textContent='Hint shown';
+}
+
+async function submitPracticeAnswer(event){
+  event.preventDefault();const answer=practiceAnswer.value.trim();if(!answer)return;
+  const checkButton=practiceForm.querySelector('button');checkButton.disabled=true;
+  try{
+    const result=await practiceRequest('answer',{answer});practiceAnswer.disabled=true;
+    practiceScore.textContent=`Score: ${result.score}/${result.attempted} (${result.percentage}%)`;
+    practiceFeedback.textContent=result.correct?`Correct! ${result.explanation}`:`Not quite. The correct answer is ${result.expected_answer}. ${result.explanation}`;
+    practiceFeedback.className=`practice-feedback ${result.correct?'correct':'incorrect'}`;nextPracticeButton.classList.remove('hidden');showHintButton.disabled=true;
+  }catch(err){practiceFeedback.textContent=err.message;practiceFeedback.className='practice-feedback incorrect';checkButton.disabled=false}
+}
+
+async function loadNextPracticeQuestion(){
+  nextPracticeButton.disabled=true;
+  try{renderPracticeQuestion(await practiceRequest('next',{}))}
+  catch(err){practiceFeedback.textContent=err.message;practiceFeedback.className='practice-feedback incorrect'}
+  finally{nextPracticeButton.disabled=false}
+}
 
 function clearWhiteboard(){
   boardContext.save();boardContext.fillStyle='#ffffff';boardContext.fillRect(0,0,whiteboard.width,whiteboard.height);boardContext.restore();
@@ -119,7 +198,7 @@ function clearWhiteboard(){
 }
 
 function openWhiteboard(){
-  canvasEmpty.classList.add('hidden');canvasWork.classList.add('hidden');whiteboardArea.classList.remove('hidden');
+  canvasEmpty.classList.add('hidden');canvasWork.classList.add('hidden');practiceArea.classList.add('hidden');whiteboardArea.classList.remove('hidden');
   if(!whiteboard.dataset.ready){clearWhiteboard();whiteboard.dataset.ready='true'}
 }
 

@@ -66,6 +66,25 @@
             </div>
             <canvas id="whiteboard" width="1200" height="600" aria-label="Interactive Maths whiteboard"></canvas>
           </div>
+          <section id="practiceArea" class="practice-area hidden" aria-labelledby="practiceTitle">
+            <div id="practiceSetup" class="practice-setup">
+              <p class="practice-kicker">PRACTICE MODE</p>
+              <h3 id="practiceTitle">Choose what you want to practise</h3>
+              <div class="practice-selectors">
+                <label>Topic<select id="practiceTopic"><option>Whole Numbers</option><option>Fractions</option><option>Algebra</option><option>Ratio &amp; Percentage</option></select></label>
+                <label>Difficulty<select id="practiceDifficulty"><option>Easy</option><option>Medium</option><option>Challenge</option></select></label>
+              </div>
+              <button id="startPractice" type="button" class="practice-primary">Start Practice →</button>
+            </div>
+            <div id="practiceQuestion" class="practice-question hidden">
+              <div class="practice-meta"><span id="practiceProgress">Question 1</span><strong id="practiceScore">Score: 0/0</strong></div>
+              <p id="practiceContext" class="practice-context"></p>
+              <h3 id="practicePrompt"></h3>
+              <form id="practiceForm" class="practice-answer-form"><input id="practiceAnswer" autocomplete="off" placeholder="Type your answer" aria-label="Practice answer" /><button type="submit">Check Answer</button></form>
+              <div class="practice-actions"><button id="showHint" type="button">Show Hint</button><button id="nextPractice" type="button" class="hidden">Next Question →</button><button id="closePractice" type="button">Exit Practice</button></div>
+              <p id="practiceFeedback" class="practice-feedback hidden" aria-live="polite"></p>
+            </div>
+          </section>
         </div>
         <div id="messages" class="messages" aria-live="polite">
           <div class="message teacher">Hello! I’m your Robo-Teacher. Ask me a Maths question and we’ll work through it together.</div>
@@ -79,7 +98,7 @@
           <button type="submit" class="send">Send</button>
         </form>
         <nav class="class-tools" aria-label="Classroom tools">
-          <button type="button">💬 Chat</button><button id="cameraButton" type="button">📷 Camera</button><button id="navMicButton" type="button">🎙 Mic</button><button id="whiteboardButton" type="button">▣ Whiteboard</button><button id="languageButton" type="button">🌐 Language</button>
+          <button type="button">💬 Chat</button><button id="practiceButton" type="button">🧠 Practice</button><button id="cameraButton" type="button">📷 Camera</button><button id="navMicButton" type="button">🎙 Mic</button><button id="whiteboardButton" type="button">▣ Whiteboard</button><button id="languageButton" type="button">🌐 Language</button>
         </nav>
       </section>
     </section>

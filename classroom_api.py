@@ -16,6 +16,7 @@ from typing import Literal
 
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from pydantic import BaseModel, Field
+from practice import QUESTION_BANK, answer_practice, next_question, start_practice
 
 from tutor import (
     MAX_AUDIO_BYTES,
@@ -47,6 +48,21 @@ class ClassroomWhiteboard(BaseModel):
     session_token: str = Field(min_length=20, max_length=300)
     caption: str = Field(default="", max_length=500)
     language: SupportedLanguage = "English"
+
+
+class PracticeStart(BaseModel):
+    session_token: str = Field(min_length=20, max_length=300)
+    topic: Literal["Whole Numbers", "Fractions", "Algebra", "Ratio & Percentage"]
+    difficulty: Literal["Easy", "Medium", "Challenge"]
+
+
+class PracticeAnswer(BaseModel):
+    session_token: str = Field(min_length=20, max_length=300)
+    answer: str = Field(min_length=1, max_length=100)
+
+
+class PracticeNext(BaseModel):
+    session_token: str = Field(min_length=20, max_length=300)
 
 
 def _sign(payload: str) -> str:
@@ -91,6 +107,45 @@ def _enforce_rate_limit(student_id: str) -> None:
 def create_classroom_session():
     student_id, token = _new_session()
     return {"session_token": token, "learner_id": student_id, "expires_in": _SESSION_TTL_SECONDS}
+
+
+@router.get("/practice/options")
+def practice_options():
+    return {"topics": list(QUESTION_BANK), "difficulties": ["Easy", "Medium", "Challenge"]}
+
+
+@router.post("/practice/start")
+def classroom_practice_start(selection: PracticeStart):
+    student_id = _verify_session(selection.session_token)
+    _enforce_rate_limit(student_id)
+    try:
+        return start_practice(student_id, selection.topic, selection.difficulty)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail="Choose a supported topic and difficulty") from exc
+
+
+@router.post("/practice/answer")
+def classroom_practice_answer(submission: PracticeAnswer):
+    student_id = _verify_session(submission.session_token)
+    _enforce_rate_limit(student_id)
+    try:
+        return answer_practice(student_id, submission.answer)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail="Start a practice session first") from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=409, detail="Move to the next question before answering again") from exc
+
+
+@router.post("/practice/next")
+def classroom_practice_next(request: PracticeNext):
+    student_id = _verify_session(request.session_token)
+    _enforce_rate_limit(student_id)
+    try:
+        return next_question(student_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail="Start a practice session first") from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=409, detail="Answer the current question first") from exc
 
 
 @router.post("/chat")

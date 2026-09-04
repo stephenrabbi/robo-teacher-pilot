@@ -5,9 +5,47 @@ from fastapi.testclient import TestClient
 
 from v25_app import app
 import classroom_api
+import practice
 from tutor import _language_instruction, get_tutor_reply
 
 client = TestClient(app)
+
+
+def test_practice_mode_marks_answers_and_tracks_score():
+    session = client.post('/api/classroom/session').json()
+    fixed = ("What is 2 + 3?", "Count on from 2.", "5", "2 + 3 = 5.")
+    with patch.object(practice, '_choose_question', return_value=fixed):
+        started = client.post('/api/classroom/practice/start', json={
+            'session_token': session['session_token'], 'topic': 'Whole Numbers', 'difficulty': 'Easy'
+        })
+        assert started.status_code == 200
+        assert started.json()['question'] == fixed[0]
+        assert 'expected' not in started.json()
+
+        marked = client.post('/api/classroom/practice/answer', json={
+            'session_token': session['session_token'], 'answer': '5'
+        })
+        assert marked.status_code == 200
+        assert marked.json()['correct'] is True
+        assert marked.json()['score'] == 1
+        assert marked.json()['attempted'] == 1
+
+        next_question = client.post('/api/classroom/practice/next', json={'session_token': session['session_token']})
+        assert next_question.status_code == 200
+        assert next_question.json()['question_number'] == 2
+        assert next_question.json()['score'] == 1
+
+
+def test_practice_mode_prevents_skipping_and_duplicate_marking():
+    session = client.post('/api/classroom/session').json()
+    client.post('/api/classroom/practice/start', json={
+        'session_token': session['session_token'], 'topic': 'Fractions', 'difficulty': 'Medium'
+    })
+    skipped = client.post('/api/classroom/practice/next', json={'session_token': session['session_token']})
+    assert skipped.status_code == 409
+    client.post('/api/classroom/practice/answer', json={'session_token': session['session_token'], 'answer': 'wrong'})
+    duplicate = client.post('/api/classroom/practice/answer', json={'session_token': session['session_token'], 'answer': 'wrong'})
+    assert duplicate.status_code == 409
 
 
 def test_yoruba_deterministic_answer_uses_yoruba_number_word():
