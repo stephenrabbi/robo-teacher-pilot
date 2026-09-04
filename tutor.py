@@ -21,6 +21,7 @@ from learner_profile import DEFAULT_PROFILE, load_profile, profile_prompt_contex
 logger = logging.getLogger("robo-teacher.tutor")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite")
 GEMINI_TTS_MODEL = os.getenv("GEMINI_TTS_MODEL", "gemini-2.5-flash-preview-tts")
+GEMINI_STREAMING_TTS_MODEL = os.getenv("GEMINI_STREAMING_TTS_MODEL", "gemini-3.1-flash-tts-preview")
 SUPPORTED_IMAGE_MIME_TYPES = {"image/jpeg", "image/png", "image/webp"}
 SUPPORTED_AUDIO_MIME_TYPES = {"audio/ogg", "audio/opus", "audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav", "audio/aac", "audio/flac", "audio/m4a", "audio/webm"}
 MAX_IMAGE_BYTES = 8 * 1024 * 1024
@@ -153,6 +154,44 @@ def _speech_chunks(text: str, max_chars: int = 700) -> list[str]:
     if current:
         chunks.append(current)
     return chunks
+
+
+def _spoken_excerpt(text: str, max_chars: int = 650) -> str:
+    """Keep spoken feedback useful and short while the full lesson stays visible."""
+    cleaned = " ".join(text.split())
+    if len(cleaned) <= max_chars:
+        return cleaned
+    excerpt = cleaned[:max_chars + 1]
+    boundary = max(excerpt.rfind(". "), excerpt.rfind("! "), excerpt.rfind("? "))
+    return excerpt[:boundary + 1] if boundary >= max_chars // 2 else cleaned[:max_chars].rstrip() + "…"
+
+
+def stream_tutor_speech(text: str, language: str = "English", voice_gender: str = "female"):
+    """Yield raw 24 kHz mono PCM as Gemini produces it for low-latency playback."""
+    gender = "male" if voice_gender == "male" else "female"
+    language_name = TTS_LANGUAGE_NAMES.get(language, "English")
+    transcript = _spoken_excerpt(text)
+    prompt = (
+        "Synthesize speech for the transcript below. Do not read these directions aloud. "
+        f"Use the same unmistakably adult {gender} teacher voice speaking {language_name}. "
+        "Sound warm, patient and conversational, with a gentle Nigerian classroom tone and a friendly vocal smile. "
+        "Use punctuation for natural pauses and keep the delivery fluid.\n\n"
+        f"TRANSCRIPT:\n{transcript}"
+    )
+    stream = _get_client().interactions.create(
+        model=GEMINI_STREAMING_TTS_MODEL,
+        input=prompt,
+        response_format={"type": "audio"},
+        generation_config={"speech_config": [{"voice": TTS_VOICES[gender]}]},
+        stream=True,
+    )
+    for event in stream:
+        delta = getattr(event, "delta", None)
+        if getattr(event, "event_type", "") != "step.delta" or getattr(delta, "type", "") != "audio":
+            continue
+        encoded = getattr(delta, "data", None)
+        if encoded:
+            yield base64.b64decode(encoded) if isinstance(encoded, str) else bytes(encoded)
 
 
 def generate_tutor_speech(text: str, language: str = "English", voice_gender: str = "female") -> bytes:

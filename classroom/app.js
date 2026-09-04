@@ -82,10 +82,11 @@ let previewUrl=null;
 let mediaRecorder=null;
 let micStream=null;
 let recordedChunks=[];
-let teacherAudio=null;
-let teacherAudioUrl=null;
 let teacherSpeechController=null;
 let teacherSpeechRequest=0;
+let teacherAudioContext=null;
+const teacherAudioSources=new Set();
+let teacherStreamComplete=false;
 let drawing=false;
 let drawingTool='pen';
 let boardHasInk=false;
@@ -140,9 +141,30 @@ function setTeacherSpeaking(speaking){
 function stopTeacherAudio(){
   teacherSpeechRequest+=1;
   if(teacherSpeechController){teacherSpeechController.abort();teacherSpeechController=null}
-  if(teacherAudio){teacherAudio.pause();teacherAudio=null}
-  if(teacherAudioUrl){URL.revokeObjectURL(teacherAudioUrl);teacherAudioUrl=null}
+  teacherAudioSources.forEach(source=>{try{source.stop()}catch(_error){/* Already stopped. */}});teacherAudioSources.clear();
+  if(teacherAudioContext){teacherAudioContext.close().catch(()=>{});teacherAudioContext=null}
+  teacherStreamComplete=false;
   setTeacherSpeaking(false);
+}
+
+async function playPcmStream(response,requestId){
+  const AudioContextClass=window.AudioContext||window.webkitAudioContext;
+  if(!AudioContextClass)throw new Error('Web Audio is unavailable');
+  teacherAudioContext=new AudioContextClass({sampleRate:24000});await teacherAudioContext.resume();
+  const context=teacherAudioContext;const reader=response.body.getReader();let pending=new Uint8Array(0);let nextStart=context.currentTime+.06;
+  const finishIfDone=()=>{if(teacherStreamComplete&&!teacherAudioSources.size&&requestId===teacherSpeechRequest)stopTeacherAudio()};
+  while(requestId===teacherSpeechRequest){
+    const {done,value}=await reader.read();if(done)break;
+    const joined=new Uint8Array(pending.length+value.length);joined.set(pending);joined.set(value,pending.length);
+    const evenLength=joined.length-joined.length%2;pending=joined.slice(evenLength);
+    if(!evenLength)continue;
+    const samples=evenLength/2;const buffer=context.createBuffer(1,samples,24000);const channel=buffer.getChannelData(0);const view=new DataView(joined.buffer,joined.byteOffset,evenLength);
+    for(let index=0;index<samples;index++)channel[index]=view.getInt16(index*2,true)/32768;
+    const source=context.createBufferSource();source.buffer=buffer;source.connect(context.destination);teacherAudioSources.add(source);
+    source.addEventListener('ended',()=>{teacherAudioSources.delete(source);finishIfDone()},{once:true});
+    const startAt=Math.max(nextStart,context.currentTime+.025);source.start(startAt);nextStart=startAt+buffer.duration;
+  }
+  teacherStreamComplete=true;finishIfDone();
 }
 
 async function speakText(text){
@@ -153,14 +175,11 @@ async function speakText(text){
   try{
     const token=await ensureSession();
     if(requestId!==teacherSpeechRequest)return;
-    const response=await fetch('/api/classroom/speech',{method:'POST',headers:{'Content-Type':'application/json','Accept':'audio/wav'},body:JSON.stringify({text:prepareSpeechText(text),session_token:token,language:language.value,voice_gender:teacherPanel.dataset.voiceGender==='male'?'male':'female'}),signal:teacherSpeechController.signal});
+    const response=await fetch('/api/classroom/speech',{method:'POST',headers:{'Content-Type':'application/json','Accept':'audio/L16'},body:JSON.stringify({text:prepareSpeechText(text),session_token:token,language:language.value,voice_gender:teacherPanel.dataset.voiceGender==='male'?'male':'female'}),signal:teacherSpeechController.signal});
     if(response.status===401){sessionToken=null;throw new Error('session')}
     if(!response.ok)throw new Error('natural voice unavailable');
-    const audioBlob=await response.blob();
-    if(requestId!==teacherSpeechRequest)return;
-    teacherSpeechController=null;teacherAudioUrl=URL.createObjectURL(audioBlob);teacherAudio=new Audio(teacherAudioUrl);
-    teacherAudio.addEventListener('ended',stopTeacherAudio,{once:true});teacherAudio.addEventListener('error',stopTeacherAudio,{once:true});
-    await teacherAudio.play();
+    if(!response.body)throw new Error('stream unavailable');
+    await playPcmStream(response,requestId);
   }catch(error){
     if(error.name==='AbortError'||requestId!==teacherSpeechRequest)return;
     stopTeacherAudio();

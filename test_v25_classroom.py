@@ -8,7 +8,7 @@ from v25_app import app
 import classroom_api
 import practice
 import practice_progress
-from tutor import GEMINI_TTS_MODEL, TTS_VOICES, _language_instruction, _pcm_to_wav, _speech_chunks, get_tutor_reply
+from tutor import GEMINI_STREAMING_TTS_MODEL, GEMINI_TTS_MODEL, TTS_VOICES, _language_instruction, _pcm_to_wav, _speech_chunks, _spoken_excerpt, get_tutor_reply
 
 client = TestClient(app)
 PROJECT_ROOT = Path(__file__).parent
@@ -18,7 +18,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260904-tts3' in html
+    assert '20260904-stream1' in html
     assert 'id="readAnswer"' in html
     assert 'aria-expanded="true"' in html
     assert '@media(max-width:600px)' in css
@@ -33,6 +33,8 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert 'speechSynthesis' not in script
     assert 'teacherSpeechController.abort()' in script
     assert "error.name==='AbortError'" in script
+    assert 'response.body.getReader()' in script
+    assert 'createBuffer(1,samples,24000)' in script
 
 
 def test_pcm_audio_is_wrapped_as_playable_wav():
@@ -44,17 +46,21 @@ def test_pcm_audio_is_wrapped_as_playable_wav():
 def test_avatar_genders_use_distinct_gemini_voices():
     assert TTS_VOICES == {'female': 'Aoede', 'male': 'Charon'}
     assert GEMINI_TTS_MODEL == 'gemini-2.5-flash-preview-tts'
+    assert GEMINI_STREAMING_TTS_MODEL == 'gemini-3.1-flash-tts-preview'
 
 
 def test_long_speech_is_split_into_short_voice_consistent_chunks():
     chunks = _speech_chunks(('This is a complete teaching sentence. ' * 80).strip())
     assert len(chunks) > 1
     assert all(len(chunk) <= 700 for chunk in chunks)
+    excerpt = _spoken_excerpt(('This sentence should be spoken naturally. ' * 40).strip())
+    assert len(excerpt) <= 650
+    assert excerpt.endswith('.')
 
 
 def test_natural_speech_endpoint_uses_female_avatar_voice():
     session = client.post('/api/classroom/session').json()
-    with patch.object(classroom_api, 'generate_tutor_speech', return_value=b'RIFF-test') as tts:
+    with patch.object(classroom_api, 'stream_tutor_speech', return_value=iter([b'pcm-', b'audio'])) as tts:
         response = client.post('/api/classroom/speech', json={
             'text': 'Let us solve this carefully.',
             'session_token': session['session_token'],
@@ -62,8 +68,8 @@ def test_natural_speech_endpoint_uses_female_avatar_voice():
             'voice_gender': 'female',
         })
     assert response.status_code == 200
-    assert response.headers['content-type'] == 'audio/wav'
-    assert response.content == b'RIFF-test'
+    assert response.headers['content-type'].startswith('audio/l16')
+    assert response.content == b'pcm-audio'
     assert tts.call_args.args[1:] == ('English', 'female')
 
 
