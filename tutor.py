@@ -181,8 +181,17 @@ def _extract_text(response) -> str:
 
 def _language_instruction(response_language: str) -> str:
     if response_language == "Yoruba":
-        return "Reply entirely in clear, natural Yorùbá suitable for a Nigerian JSS2 learner. Keep mathematical symbols and numerals in the working, but write the final-answer value as a Yorùbá number word."
-    return "Reply in clear English suitable for a Nigerian JSS2 learner."
+        return (
+            "The learner may ask the Maths question in Yorùbá or English. Understand both languages, "
+            "but reply entirely in clear, natural Yorùbá suitable for a Nigerian JSS2 learner. "
+            "Keep mathematical symbols and numerals in the working, but write the final-answer value "
+            "as a Yorùbá number word."
+        )
+    return (
+        "Detect whether the learner's current Maths question is in English or Yorùbá. "
+        "If it is in Yorùbá, reply entirely in clear, natural Yorùbá; otherwise reply in clear English. "
+        "Use language suitable for a Nigerian JSS2 learner."
+    )
 
 
 def get_tutor_reply(student_id: str, message: str, response_language: str = "English") -> tuple[str, float]:

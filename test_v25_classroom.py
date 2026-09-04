@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 
 from v25_app import app
 import classroom_api
-from tutor import get_tutor_reply
+from tutor import _language_instruction, get_tutor_reply
 
 client = TestClient(app)
 
@@ -14,6 +14,15 @@ def test_yoruba_deterministic_answer_uses_yoruba_number_word():
     reply, latency = get_tutor_reply("WEB-language-test", "2*3", "Yoruba")
     assert reply == "2*3 = 6\n\nÌdáhùn: Ẹ̀fà"
     assert latency == 0.0
+
+
+def test_language_instructions_accept_typed_and_spoken_yoruba():
+    automatic = _language_instruction("English")
+    selected = _language_instruction("Yoruba")
+    assert "current Maths question is in English or Yorùbá" in automatic
+    assert "If it is in Yorùbá, reply entirely" in automatic
+    assert "may ask the Maths question in Yorùbá or English" in selected
+    assert "reply entirely in clear, natural Yorùbá" in selected
 
 
 def test_session_and_chat_use_pseudonymous_identity():
