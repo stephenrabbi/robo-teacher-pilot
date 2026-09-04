@@ -1,4 +1,5 @@
 """Controlled tests for the V2.5 browser classroom API; no live services used."""
+import base64
 from unittest.mock import patch
 from fastapi.testclient import TestClient
 
@@ -62,6 +63,29 @@ def test_classroom_image_rejects_oversized_file():
     oversized = b'x' * (classroom_api.MAX_IMAGE_BYTES + 1)
     response = client.post('/api/classroom/image', data={'session_token':session['session_token']}, files={'image':('large.jpg', oversized, 'image/jpeg')})
     assert response.status_code == 413
+
+
+def test_classroom_whiteboard_uses_json_canvas_and_pseudonymous_identity():
+    session = client.post('/api/classroom/session').json()
+    encoded = base64.b64encode(b'fake-png').decode()
+    with patch.object(classroom_api, 'get_tutor_image_reply', return_value=('Two times seven is 14.', 0.2)) as tutor:
+        response = client.post('/api/classroom/whiteboard', json={
+            'session_token': session['session_token'],
+            'image_data': f'data:image/png;base64,{encoded}',
+            'caption': 'Explain my working',
+        })
+    assert response.status_code == 200
+    assert response.json()['reply'].endswith('14.')
+    assert tutor.call_args.args[:4] == (session['learner_id'], b'fake-png', 'image/png', 'Explain my working')
+
+
+def test_classroom_whiteboard_rejects_invalid_data():
+    session = client.post('/api/classroom/session').json()
+    response = client.post('/api/classroom/whiteboard', json={
+        'session_token': session['session_token'],
+        'image_data': 'data:image/png;base64,this-is-not-base64!',
+    })
+    assert response.status_code == 422
 
 
 def test_classroom_audio_uses_same_pseudonymous_identity():

@@ -4,6 +4,8 @@ The browser receives a short-lived signed pseudonymous session. No Gemini key or
 provider credential is ever exposed to JavaScript. The server reuses the same
 Robo-Teacher tutoring engine used by the messaging channels.
 """
+import base64
+import binascii
 import hashlib
 import hmac
 import os
@@ -35,6 +37,12 @@ _request_times: dict[str, deque] = defaultdict(deque)
 class ClassroomQuestion(BaseModel):
     message: str = Field(min_length=1, max_length=1200)
     session_token: str = Field(min_length=20, max_length=300)
+
+
+class ClassroomWhiteboard(BaseModel):
+    image_data: str = Field(min_length=30, max_length=MAX_IMAGE_BYTES * 2)
+    session_token: str = Field(min_length=20, max_length=300)
+    caption: str = Field(default="", max_length=500)
 
 
 def _sign(payload: str) -> str:
@@ -116,6 +124,33 @@ async def classroom_image(
         reply, latency = get_tutor_image_reply(student_id, image_bytes, mime_type, caption.strip())
     except ValueError as exc:
         raise HTTPException(status_code=422, detail="The image could not be processed") from exc
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Robo-Teacher is temporarily unavailable") from exc
+    return {"reply": reply, "latency_seconds": round(float(latency), 3), "learner_id": student_id}
+
+
+@router.post("/whiteboard")
+def classroom_whiteboard(board: ClassroomWhiteboard):
+    """Accept a browser canvas without relying on multipart File construction."""
+    student_id = _verify_session(board.session_token)
+    _enforce_rate_limit(student_id)
+    prefix = "data:image/png;base64,"
+    if not board.image_data.startswith(prefix):
+        raise HTTPException(status_code=415, detail="The whiteboard must be a PNG image")
+    try:
+        image_bytes = base64.b64decode(board.image_data[len(prefix):], validate=True)
+    except (binascii.Error, ValueError) as exc:
+        raise HTTPException(status_code=422, detail="The whiteboard image is invalid") from exc
+    if not image_bytes:
+        raise HTTPException(status_code=422, detail="The whiteboard image is empty")
+    if len(image_bytes) > MAX_IMAGE_BYTES:
+        raise HTTPException(status_code=413, detail="The whiteboard image must be 8 MB or smaller")
+    try:
+        reply, latency = get_tutor_image_reply(
+            student_id, image_bytes, "image/png", board.caption.strip()
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail="The whiteboard could not be processed") from exc
     except Exception as exc:
         raise HTTPException(status_code=503, detail="Robo-Teacher is temporarily unavailable") from exc
     return {"reply": reply, "latency_seconds": round(float(latency), 3), "learner_id": student_id}

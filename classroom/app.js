@@ -144,15 +144,28 @@ function stopDrawing(event){
   if(!drawing)return;drawOnWhiteboard(event);drawing=false;boardContext.closePath();
 }
 
-function submitWhiteboard(){
+async function submitWhiteboard(){
   if(!boardHasInk){addMessage('Please write a Maths problem or show some working on the whiteboard first.','teacher');return;}
   submitBoardButton.disabled=true;submitBoardButton.textContent='Preparing…';
-  whiteboard.toBlob(async blob=>{
-    if(!blob){addMessage('I could not prepare the whiteboard. Please try again.','teacher');submitBoardButton.disabled=false;submitBoardButton.textContent='Ask Teacher →';return;}
-    const file=new File([blob],'whiteboard-maths.png',{type:'image/png'});
-    await handleImage(file,'whiteboard');
-    submitBoardButton.disabled=false;submitBoardButton.textContent='Ask Teacher →';
-  },'image/png');
+  const imageData=whiteboard.toDataURL('image/png');
+  problemPreview.src=imageData;canvasWork.classList.remove('text-only');problemPreview.hidden=false;
+  backToWhiteboard.classList.remove('hidden');whiteboardArea.classList.add('hidden');
+  canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');
+  canvasStatus.textContent='Robo-Teacher is reading your whiteboard…';canvasAnswer.textContent='';
+  const thinking=addMessage('I’m reading the Maths work on your whiteboard…','teacher');
+  try{
+    const token=await ensureSession();
+    const response=await fetch('/api/classroom/whiteboard',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({session_token:token,image_data:imageData,caption:question.value.trim()})});
+    const data=await response.json();
+    if(response.status===401){sessionToken=null;throw new Error('session');}
+    if(!response.ok)throw new Error(data.detail||'request');
+    showCanvasAnswer(data.reply,'Whiteboard solution ready');
+    thinking.textContent='I’ve placed the complete whiteboard explanation on the Teaching Canvas.';question.value='';
+  }catch(err){
+    const detail=err.message||'';
+    thinking.textContent=detail&&!['request','session','Failed to fetch'].includes(detail)?detail:'I could not send that whiteboard. Please return to it and try again.';
+    canvasStatus.textContent='Whiteboard needs attention';
+  }finally{submitBoardButton.disabled=false;submitBoardButton.textContent='Ask Teacher →';}
 }
 
 function setRecordingState(recording){
@@ -236,7 +249,7 @@ async function handleImage(file,source='upload'){
     thinking.textContent='I’ve placed the complete image explanation on the Teaching Canvas.';
     question.value='';
   }catch(err){
-    const message=err.message&&err.message!=='request'&&err.message!=='session'?err.message:'I could not read that image. Please try a clearer photo.';
+    const message=err.message&&!['request','session','Failed to fetch'].includes(err.message)?err.message:'I could not read that image. Please try a clearer photo.';
     thinking.textContent=message;canvasStatus.textContent='Image needs attention';
   }finally{uploadButton.disabled=false;cameraButton.disabled=false;imageUpload.value='';cameraCapture.value='';}
 }
