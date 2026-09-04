@@ -84,6 +84,8 @@ let micStream=null;
 let recordedChunks=[];
 let teacherAudio=null;
 let teacherAudioUrl=null;
+let teacherSpeechController=null;
+let teacherSpeechRequest=0;
 let drawing=false;
 let drawingTool='pen';
 let boardHasInk=false;
@@ -136,6 +138,8 @@ function setTeacherSpeaking(speaking){
 }
 
 function stopTeacherAudio(){
+  teacherSpeechRequest+=1;
+  if(teacherSpeechController){teacherSpeechController.abort();teacherSpeechController=null}
   if(teacherAudio){teacherAudio.pause();teacherAudio=null}
   if(teacherAudioUrl){URL.revokeObjectURL(teacherAudioUrl);teacherAudioUrl=null}
   setTeacherSpeaking(false);
@@ -144,22 +148,28 @@ function stopTeacherAudio(){
 async function speakText(text){
   if(!text.trim())return;
   stopTeacherAudio();setTeacherSpeaking(true);
+  const requestId=teacherSpeechRequest;
+  teacherSpeechController=new AbortController();
   try{
     const token=await ensureSession();
-    const response=await fetch('/api/classroom/speech',{method:'POST',headers:{'Content-Type':'application/json','Accept':'audio/wav'},body:JSON.stringify({text:prepareSpeechText(text),session_token:token,language:language.value,voice_gender:teacherPanel.dataset.voiceGender==='male'?'male':'female'})});
+    if(requestId!==teacherSpeechRequest)return;
+    const response=await fetch('/api/classroom/speech',{method:'POST',headers:{'Content-Type':'application/json','Accept':'audio/wav'},body:JSON.stringify({text:prepareSpeechText(text),session_token:token,language:language.value,voice_gender:teacherPanel.dataset.voiceGender==='male'?'male':'female'}),signal:teacherSpeechController.signal});
     if(response.status===401){sessionToken=null;throw new Error('session')}
     if(!response.ok)throw new Error('natural voice unavailable');
-    teacherAudioUrl=URL.createObjectURL(await response.blob());teacherAudio=new Audio(teacherAudioUrl);
+    const audioBlob=await response.blob();
+    if(requestId!==teacherSpeechRequest)return;
+    teacherSpeechController=null;teacherAudioUrl=URL.createObjectURL(audioBlob);teacherAudio=new Audio(teacherAudioUrl);
     teacherAudio.addEventListener('ended',stopTeacherAudio,{once:true});teacherAudio.addEventListener('error',stopTeacherAudio,{once:true});
     await teacherAudio.play();
-  }catch(_error){
+  }catch(error){
+    if(error.name==='AbortError'||requestId!==teacherSpeechRequest)return;
     stopTeacherAudio();
     addMessage('The natural teacher voice is temporarily unavailable. You can continue reading the worked answer on the Teaching Canvas.','teacher');
   }
 }
 
 readAnswerButton.addEventListener('click',()=>{
-  if(teacherAudio){stopTeacherAudio();return;}
+  if(teacherPanel.classList.contains('speaking')){stopTeacherAudio();return;}
   speakText(canvasAnswer.textContent);
 });
 

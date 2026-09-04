@@ -8,7 +8,7 @@ from v25_app import app
 import classroom_api
 import practice
 import practice_progress
-from tutor import TTS_VOICES, _language_instruction, _pcm_to_wav, get_tutor_reply
+from tutor import GEMINI_TTS_MODEL, TTS_VOICES, _language_instruction, _pcm_to_wav, _speech_chunks, get_tutor_reply
 
 client = TestClient(app)
 PROJECT_ROOT = Path(__file__).parent
@@ -18,20 +18,21 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260904-tts2' in html
+    assert '20260904-tts3' in html
     assert 'id="readAnswer"' in html
     assert 'aria-expanded="true"' in html
     assert '@media(max-width:600px)' in css
     assert '.teacher-panel{grid-template-columns:82px 1fr' in css
     assert '.founder-avatar{height:205px!important}' in css
     assert 'min-height:44px' in css
-    assert "speechLocales={English:'en-NG',Yoruba:'yo-NG',Igbo:'ig-NG',Hausa:'ha-NG'}" in script
     assert 'speakText(data.reply)' in script
     assert 'data-voice-gender="female"' in html
     assert 'prepareSpeechText(text)' in script
     assert "fetch('/api/classroom/speech'" in script
     assert "voice_gender:teacherPanel.dataset.voiceGender" in script
     assert 'speechSynthesis' not in script
+    assert 'teacherSpeechController.abort()' in script
+    assert "error.name==='AbortError'" in script
 
 
 def test_pcm_audio_is_wrapped_as_playable_wav():
@@ -42,6 +43,13 @@ def test_pcm_audio_is_wrapped_as_playable_wav():
 
 def test_avatar_genders_use_distinct_gemini_voices():
     assert TTS_VOICES == {'female': 'Aoede', 'male': 'Charon'}
+    assert GEMINI_TTS_MODEL == 'gemini-2.5-flash-preview-tts'
+
+
+def test_long_speech_is_split_into_short_voice_consistent_chunks():
+    chunks = _speech_chunks(('This is a complete teaching sentence. ' * 80).strip())
+    assert len(chunks) > 1
+    assert all(len(chunk) <= 700 for chunk in chunks)
 
 
 def test_natural_speech_endpoint_uses_female_avatar_voice():

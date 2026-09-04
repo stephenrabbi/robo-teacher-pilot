@@ -20,7 +20,7 @@ from learner_profile import DEFAULT_PROFILE, load_profile, profile_prompt_contex
 
 logger = logging.getLogger("robo-teacher.tutor")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite")
-GEMINI_TTS_MODEL = os.getenv("GEMINI_TTS_MODEL", "gemini-3.1-flash-tts-preview")
+GEMINI_TTS_MODEL = os.getenv("GEMINI_TTS_MODEL", "gemini-2.5-flash-preview-tts")
 SUPPORTED_IMAGE_MIME_TYPES = {"image/jpeg", "image/png", "image/webp"}
 SUPPORTED_AUDIO_MIME_TYPES = {"audio/ogg", "audio/opus", "audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav", "audio/aac", "audio/flac", "audio/m4a", "audio/webm"}
 MAX_IMAGE_BYTES = 8 * 1024 * 1024
@@ -136,35 +136,59 @@ def _pcm_to_wav(pcm: bytes) -> bytes:
     return output.getvalue()
 
 
+def _speech_chunks(text: str, max_chars: int = 700) -> list[str]:
+    """Keep each TTS performance short enough to preserve one stable voice."""
+    sentences = re.split(r"(?<=[.!?])\s+", text.strip())
+    chunks: list[str] = []
+    current = ""
+    for sentence in sentences:
+        pieces = [sentence[i:i + max_chars] for i in range(0, len(sentence), max_chars)] or [""]
+        for piece in pieces:
+            candidate = f"{current} {piece}".strip()
+            if current and len(candidate) > max_chars:
+                chunks.append(current)
+                current = piece
+            else:
+                current = candidate
+    if current:
+        chunks.append(current)
+    return chunks
+
+
 def generate_tutor_speech(text: str, language: str = "English", voice_gender: str = "female") -> bytes:
     """Generate expressive teacher speech as a WAV file using Gemini TTS."""
     gender = "male" if voice_gender == "male" else "female"
     language_name = TTS_LANGUAGE_NAMES.get(language, "English")
-    prompt = (
-        "Synthesize speech for the transcript below. Do not read these directions aloud. "
-        f"Use an unmistakably adult {gender} teacher voice speaking {language_name}. "
-        "Sound warm, patient and conversational, with a gentle Nigerian classroom tone and a friendly vocal smile. "
-        "Use the written punctuation for natural pauses, vary emphasis slightly, and avoid a stiff announcer cadence.\n\n"
-        f"TRANSCRIPT:\n{text.strip()}"
-    )
     client = _get_client()
-    last_error = None
-    for _attempt in range(2):
-        try:
-            interaction = client.interactions.create(
-                model=GEMINI_TTS_MODEL,
-                input=prompt,
-                response_format={"type": "audio"},
-                generation_config={"speech_config": [{"voice": TTS_VOICES[gender]}]},
-            )
-            encoded = interaction.output_audio.data
-            pcm = base64.b64decode(encoded) if isinstance(encoded, str) else bytes(encoded)
-            if not pcm:
-                raise ValueError("Gemini TTS returned empty audio")
-            return _pcm_to_wav(pcm)
-        except Exception as exc:
-            last_error = exc
-    raise RuntimeError("Gemini TTS could not generate audio") from last_error
+    pcm_chunks = []
+    for chunk in _speech_chunks(text):
+        prompt = (
+            "Synthesize speech for the transcript below. Do not read these directions aloud. "
+            f"Use the same unmistakably adult {gender} teacher voice speaking {language_name}. "
+            "Sound warm, patient and conversational, with a gentle Nigerian classroom tone and a friendly vocal smile. "
+            "Use the written punctuation for natural pauses, vary emphasis slightly, and avoid a stiff announcer cadence.\n\n"
+            f"TRANSCRIPT:\n{chunk}"
+        )
+        last_error = None
+        for _attempt in range(2):
+            try:
+                interaction = client.interactions.create(
+                    model=GEMINI_TTS_MODEL,
+                    input=prompt,
+                    response_format={"type": "audio"},
+                    generation_config={"speech_config": [{"voice": TTS_VOICES[gender]}]},
+                )
+                encoded = interaction.output_audio.data
+                pcm = base64.b64decode(encoded) if isinstance(encoded, str) else bytes(encoded)
+                if not pcm:
+                    raise ValueError("Gemini TTS returned empty audio")
+                pcm_chunks.append(pcm)
+                break
+            except Exception as exc:
+                last_error = exc
+        else:
+            raise RuntimeError("Gemini TTS could not generate audio") from last_error
+    return _pcm_to_wav(b"".join(pcm_chunks))
 
 
 def _safe_arithmetic(expression: str):
