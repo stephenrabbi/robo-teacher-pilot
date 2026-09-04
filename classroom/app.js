@@ -47,7 +47,23 @@ function addMessage(text,role){
 
 function showCanvasAnswer(answer,status='Worked solution'){
   canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');
-  canvasStatus.textContent=status;canvasAnswer.textContent=answer;
+  canvasStatus.textContent=status;renderLesson(canvasAnswer,answer);
+}
+
+function renderLesson(container,text){
+  container.replaceChildren();
+  text.split(/\n{2,}/).forEach(block=>{
+    const paragraph=document.createElement('p');
+    block.split('\n').forEach((line,lineIndex)=>{
+      if(lineIndex)paragraph.appendChild(document.createElement('br'));
+      line.split('**').forEach((part,index)=>{
+        const node=index%2?document.createElement('strong'):document.createTextNode(part);
+        if(index%2)node.textContent=part;
+        paragraph.appendChild(node);
+      });
+    });
+    container.appendChild(paragraph);
+  });
 }
 
 uploadButton.addEventListener('click',()=>imageUpload.click());
@@ -76,7 +92,8 @@ async function handleImage(file){
     const data=await response.json();
     if(response.status===401){sessionToken=null;throw new Error('session');}
     if(!response.ok)throw new Error(data.detail||'request');
-    thinking.textContent=data.reply;showCanvasAnswer(data.reply,'Teaching response ready');
+    showCanvasAnswer(data.reply,'Teaching response ready');
+    thinking.textContent='I’ve placed the complete image explanation on the Teaching Canvas.';
     question.value='';
   }catch(err){
     const message=err.message&&err.message!=='request'&&err.message!=='session'?err.message:'I could not read that image. Please try a clearer photo.';
@@ -94,9 +111,9 @@ form.addEventListener('submit',async(e)=>{
     const data=await response.json();
     if(response.status===401){sessionToken=null;throw new Error('session');}
     if(!response.ok)throw new Error(data.detail||'request');
-    thinking.textContent=data.reply;
     canvasWork.classList.add('text-only');problemPreview.hidden=true;
     showCanvasAnswer(data.reply,'Worked solution');
+    thinking.textContent='I’ve placed the complete worked solution on the Teaching Canvas.';
   }catch(err){
     thinking.textContent=err.message&&err.message.includes('wait')?err.message:'Sorry, I had a small technical hiccup. Please try your question again in a moment.';
   }finally{sendButton.disabled=false;sendButton.textContent='Send';question.focus()}
