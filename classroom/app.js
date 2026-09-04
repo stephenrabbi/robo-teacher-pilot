@@ -39,7 +39,7 @@ let drawingTool='pen';
 let boardHasInk=false;
 const boardContext=whiteboard.getContext('2d');
 const savedLanguage=localStorage.getItem('roboTeacherLanguage');
-if(['English','Yoruba'].includes(savedLanguage))language.value=savedLanguage;
+if(['English','Yoruba','Igbo','Hausa'].includes(savedLanguage))language.value=savedLanguage;
 
 async function ensureSession(){
   if(sessionToken)return sessionToken;
@@ -107,7 +107,8 @@ whiteboard.addEventListener('pointercancel',stopDrawing);
 backToWhiteboard.addEventListener('click',openWhiteboard);
 language.addEventListener('change',()=>{
   localStorage.setItem('roboTeacherLanguage',language.value);
-  addMessage(language.value==='Yoruba'?'Mo máa kọ́ ọ ní Yorùbá láti ìsinsin yìí.':'I will teach you in English from now on.','teacher');
+  const notices={English:'I will teach you in English from now on.',Yoruba:'Mo máa kọ́ ọ ní Yorùbá láti ìsinsin yìí.',Igbo:'Aga m akụziri gị ihe n’Igbo site ugbu a.',Hausa:'Zan koyar da kai da Hausa daga yanzu.'};
+  addMessage(notices[language.value],'teacher');
   question.focus();
 });
 languageButton.addEventListener('click',()=>language.focus());

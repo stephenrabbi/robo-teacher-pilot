@@ -16,6 +16,13 @@ def test_yoruba_deterministic_answer_uses_yoruba_number_word():
     assert latency == 0.0
 
 
+def test_igbo_and_hausa_deterministic_answers_use_local_number_words():
+    igbo_reply, _ = get_tutor_reply("WEB-igbo-test", "2*3", "Igbo")
+    hausa_reply, _ = get_tutor_reply("WEB-hausa-test", "2*3", "Hausa")
+    assert igbo_reply == "2*3 = 6\n\nAzịza: Isii"
+    assert hausa_reply == "2*3 = 6\n\nAmsa: Shida"
+
+
 def test_language_instructions_accept_typed_and_spoken_yoruba():
     automatic = _language_instruction("English")
     selected = _language_instruction("Yoruba")
@@ -24,6 +31,13 @@ def test_language_instructions_accept_typed_and_spoken_yoruba():
     assert "final-answer value as a Yorùbá number word" in automatic
     assert "may ask the Maths question in Yorùbá or English" in selected
     assert "reply entirely in clear, natural Yorùbá" in selected
+
+
+def test_igbo_and_hausa_language_instructions_cover_text_and_voice():
+    for language in ("Igbo", "Hausa"):
+        instruction = _language_instruction(language)
+        assert f"ask the Maths question in {language} or English" in instruction
+        assert f"reply entirely in clear, natural {language}" in instruction
 
 
 def test_session_and_chat_use_pseudonymous_identity():

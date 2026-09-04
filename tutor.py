@@ -84,6 +84,28 @@ YORUBA_NUMBER_WORDS = {
     20: "Ogún",
 }
 
+IGBO_NUMBER_WORDS = {
+    0: "Efu", 1: "Otu", 2: "Abụọ", 3: "Atọ", 4: "Anọ", 5: "Ise",
+    6: "Isii", 7: "Asaa", 8: "Asatọ", 9: "Itoolu", 10: "Iri",
+    11: "Iri na otu", 12: "Iri na abụọ", 13: "Iri na atọ", 14: "Iri na anọ",
+    15: "Iri na ise", 16: "Iri na isii", 17: "Iri na asaa", 18: "Iri na asatọ",
+    19: "Iri na itoolu", 20: "Iri abụọ",
+}
+
+HAUSA_NUMBER_WORDS = {
+    0: "Sifili", 1: "Ɗaya", 2: "Biyu", 3: "Uku", 4: "Huɗu", 5: "Biyar",
+    6: "Shida", 7: "Bakwai", 8: "Takwas", 9: "Tara", 10: "Goma",
+    11: "Goma sha ɗaya", 12: "Goma sha biyu", 13: "Goma sha uku",
+    14: "Goma sha huɗu", 15: "Goma sha biyar", 16: "Goma sha shida",
+    17: "Goma sha bakwai", 18: "Goma sha takwas", 19: "Goma sha tara", 20: "Ashirin",
+}
+
+LOCALIZED_ANSWERS = {
+    "Yoruba": ("Ìdáhùn", YORUBA_NUMBER_WORDS),
+    "Igbo": ("Azịza", IGBO_NUMBER_WORDS),
+    "Hausa": ("Amsa", HAUSA_NUMBER_WORDS),
+}
+
 
 def _get_client():
     global _client
@@ -150,9 +172,11 @@ def _simple_arithmetic_answer(message: str, response_language: str = "English"):
     value = _safe_arithmetic(text)
     if value is None: return None
     if isinstance(value, float) and value.is_integer(): value = int(value)
-    if response_language == "Yoruba":
-        yoruba_value = YORUBA_NUMBER_WORDS.get(value, str(value))
-        return f"{message.strip()} = {value}\n\nÌdáhùn: {yoruba_value}"
+    localized = LOCALIZED_ANSWERS.get(response_language)
+    if localized:
+        answer_label, number_words = localized
+        localized_value = number_words.get(value, str(value))
+        return f"{message.strip()} = {value}\n\n{answer_label}: {localized_value}"
     return f"{message.strip()} = {value}\n\nAnswer: {value}"
 
 
@@ -180,18 +204,24 @@ def _extract_text(response) -> str:
 
 
 def _language_instruction(response_language: str) -> str:
-    if response_language == "Yoruba":
+    language_details = {
+        "Yoruba": ("Yorùbá", "Yorùbá"),
+        "Igbo": ("Igbo", "Igbo"),
+        "Hausa": ("Hausa", "Hausa"),
+    }
+    if response_language in language_details:
+        language_name, number_word_language = language_details[response_language]
         return (
-            "The learner may ask the Maths question in Yorùbá or English. Understand both languages, "
-            "but reply entirely in clear, natural Yorùbá suitable for a Nigerian JSS2 learner. "
+            f"The learner may ask the Maths question in {language_name} or English. Understand both languages, "
+            f"but reply entirely in clear, natural {language_name} suitable for a Nigerian JSS2 learner. "
             "Keep mathematical symbols and numerals in the working, but write the final-answer value "
-            "as a Yorùbá number word."
+            f"as a {number_word_language} number word."
         )
     return (
-        "Detect whether the learner's current Maths question is in English or Yorùbá. "
-        "If it is in Yorùbá, reply entirely in clear, natural Yorùbá; otherwise reply in clear English. "
-        "When replying in Yorùbá, keep mathematical symbols and numerals in the working, but write the "
-        "final-answer value as a Yorùbá number word. Use language suitable for a Nigerian JSS2 learner."
+        "Detect whether the learner's current Maths question is in English, Yorùbá, Igbo, or Hausa. "
+        "Reply entirely in the language used in the question. When replying in Yorùbá, Igbo, or Hausa, "
+        "keep mathematical symbols and numerals in the working, but write the final-answer value as a "
+        "number word in that language. Use language suitable for a Nigerian JSS2 learner."
     )
 
 
@@ -252,7 +282,7 @@ def get_tutor_audio_reply(student_id: str, audio_bytes: bytes, mime_type: str, r
     if not audio_bytes or len(audio_bytes) > MAX_AUDIO_BYTES: raise ValueError("Audio is empty or too large")
     profile_message = "Learner used a voice note for a Maths question."
     prompt = (
-        f"{_language_instruction(response_language)} Listen to the learner voice note in English or Yorùbá with a safety-first transcription rule. Before solving, silently verify every spoken number, sign, operator, and equation term from the audio itself. "
+        f"{_language_instruction(response_language)} Listen to the learner voice note in English, Yorùbá, Igbo, or Hausa with a safety-first transcription rule. Before solving, silently verify every spoken number, sign, operator, and equation term from the audio itself. "
         "Do not infer a number because it makes the Maths easier or seems more likely. Pay special attention to easily confused spoken numbers such as seven versus seventeen, four versus fourteen, six versus sixteen, and similar pairs. "
         "If any number, operator, or important word is muffled, clipped, masked by background noise, or could plausibly have been heard another way, DO NOT solve the problem. Instead say that you may not have heard the question correctly and ask the learner to resend the voice note more clearly or type the equation. "
         "Only when every essential Maths token is clear should you answer the spoken question as a patient teacher and explain the method step by step in text. "

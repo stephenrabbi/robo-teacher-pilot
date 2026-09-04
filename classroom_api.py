@@ -33,19 +33,20 @@ _RATE_WINDOW_SECONDS = 60
 _RATE_MAX_REQUESTS = 12
 _SESSION_KEY = os.getenv("CLASSROOM_SESSION_SECRET", "").encode() or secrets.token_bytes(32)
 _request_times: dict[str, deque] = defaultdict(deque)
+SupportedLanguage = Literal["English", "Yoruba", "Igbo", "Hausa"]
 
 
 class ClassroomQuestion(BaseModel):
     message: str = Field(min_length=1, max_length=1200)
     session_token: str = Field(min_length=20, max_length=300)
-    language: Literal["English", "Yoruba"] = "English"
+    language: SupportedLanguage = "English"
 
 
 class ClassroomWhiteboard(BaseModel):
     image_data: str = Field(min_length=30, max_length=MAX_IMAGE_BYTES * 2)
     session_token: str = Field(min_length=20, max_length=300)
     caption: str = Field(default="", max_length=500)
-    language: Literal["English", "Yoruba"] = "English"
+    language: SupportedLanguage = "English"
 
 
 def _sign(payload: str) -> str:
@@ -112,7 +113,7 @@ async def classroom_image(
     session_token: str = Form(..., min_length=20, max_length=300),
     image: UploadFile = File(...),
     caption: str = Form("", max_length=500),
-    language: Literal["English", "Yoruba"] = Form("English"),
+    language: SupportedLanguage = Form("English"),
 ):
     student_id = _verify_session(session_token)
     _enforce_rate_limit(student_id)
@@ -164,7 +165,7 @@ def classroom_whiteboard(board: ClassroomWhiteboard):
 async def classroom_audio(
     session_token: str = Form(..., min_length=20, max_length=300),
     audio: UploadFile = File(...),
-    language: Literal["English", "Yoruba"] = Form("English"),
+    language: SupportedLanguage = Form("English"),
 ):
     student_id = _verify_session(session_token)
     _enforce_rate_limit(student_id)
