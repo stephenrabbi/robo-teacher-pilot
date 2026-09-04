@@ -112,6 +112,11 @@ IGBO_NUMBER_WORDS = {
     11: "Iri na otu", 12: "Iri na abụọ", 13: "Iri na atọ", 14: "Iri na anọ",
     15: "Iri na ise", 16: "Iri na isii", 17: "Iri na asaa", 18: "Iri na asatọ",
     19: "Iri na itoolu", 20: "Iri abụọ",
+    21: "Iri abụọ na otu", 22: "Iri abụọ na abụọ", 23: "Iri abụọ na atọ",
+    24: "Iri abụọ na anọ", 25: "Iri abụọ na ise", 26: "Iri abụọ na isii",
+    27: "Iri abụọ na asaa", 28: "Iri abụọ na asatọ", 29: "Iri abụọ na itoolu",
+    30: "Iri atọ", 40: "Iri anọ", 50: "Iri ise", 60: "Iri isii",
+    70: "Iri asaa", 80: "Iri asatọ", 90: "Iri itoolu", 100: "Otu narị",
 }
 
 HAUSA_NUMBER_WORDS = {
@@ -120,6 +125,11 @@ HAUSA_NUMBER_WORDS = {
     11: "Goma sha ɗaya", 12: "Goma sha biyu", 13: "Goma sha uku",
     14: "Goma sha huɗu", 15: "Goma sha biyar", 16: "Goma sha shida",
     17: "Goma sha bakwai", 18: "Goma sha takwas", 19: "Goma sha tara", 20: "Ashirin",
+    21: "Ashirin da ɗaya", 22: "Ashirin da biyu", 23: "Ashirin da uku",
+    24: "Ashirin da huɗu", 25: "Ashirin da biyar", 26: "Ashirin da shida",
+    27: "Ashirin da bakwai", 28: "Ashirin da takwas", 29: "Ashirin da tara",
+    30: "Talatin", 40: "Arba'in", 50: "Hamsin", 60: "Sittin",
+    70: "Saba'in", 80: "Tamanin", 90: "Casa'in", 100: "Ɗari",
 }
 
 LOCALIZED_ANSWERS = {
@@ -130,6 +140,11 @@ LOCALIZED_ANSWERS = {
 
 TTS_VOICES = {"female": "Aoede", "male": "Charon"}
 TTS_LANGUAGE_NAMES = {"English": "English", "Yoruba": "Yorùbá", "Igbo": "Igbo", "Hausa": "Hausa"}
+SPOKEN_MATH = {
+    "Yoruba": (YORUBA_NUMBER_WORDS, "àmì", (("×", "ìlọ́po"), ("*", "ìlọ́po"), ("÷", "pín pẹ̀lú"), ("/", "pín pẹ̀lú"), ("+", "pẹ̀lú"), ("−", "yọ"), ("-", "yọ"), ("=", "dọ́gba pẹ̀lú"), ("%", "ìdá ọgọ́rùn-ún"))),
+    "Igbo": (IGBO_NUMBER_WORDS, "ntụpọ", (("×", "ugboro"), ("*", "ugboro"), ("÷", "kewaa site na"), ("/", "kewaa site na"), ("+", "gbakwunyere"), ("−", "wepụ"), ("-", "wepụ"), ("=", "ha nhata"), ("%", "pasent"))),
+    "Hausa": (HAUSA_NUMBER_WORDS, "ɗigo", (("×", "sau"), ("*", "sau"), ("÷", "raba da"), ("/", "raba da"), ("+", "da"), ("−", "cire"), ("-", "cire"), ("=", "daidai yake da"), ("%", "kashi ɗari"))),
+}
 
 
 def _get_client():
@@ -183,36 +198,32 @@ def _spoken_excerpt(text: str, max_chars: int = 650) -> str:
     return excerpt[:boundary + 1] if boundary >= max_chars // 2 else cleaned[:max_chars].rstrip() + "…"
 
 
-def _yoruba_integer_word(raw: str) -> str:
+def _localized_integer_word(raw: str, number_words: dict[int, str]) -> str:
     value = int(raw)
-    if value in YORUBA_NUMBER_WORDS:
-        return YORUBA_NUMBER_WORDS[value]
-    return " ".join(YORUBA_NUMBER_WORDS[int(digit)] for digit in str(value))
+    if value in number_words:
+        return number_words[value]
+    return " ".join(number_words[int(digit)] for digit in str(value))
 
 
-def _yoruba_spoken_number(match: re.Match) -> str:
+def _localized_spoken_number(match: re.Match, number_words: dict[int, str], decimal_word: str) -> str:
     raw = match.group(0).replace(",", "")
     if "." in raw:
         whole, decimal = raw.split(".", 1)
-        whole_word = _yoruba_integer_word(whole)
-        decimal_words = " ".join(YORUBA_NUMBER_WORDS.get(int(digit), digit) for digit in decimal)
-        return f"{whole_word} àmì {decimal_words}"
-    return _yoruba_integer_word(raw)
+        whole_word = _localized_integer_word(whole, number_words)
+        decimal_words = " ".join(number_words[int(digit)] for digit in decimal)
+        return f"{whole_word} {decimal_word} {decimal_words}"
+    return _localized_integer_word(raw, number_words)
 
 
 def _prepare_spoken_transcript(text: str, language: str) -> str:
     """Localize numbers and Maths operators before the TTS model sees them."""
-    if language != "Yoruba":
+    settings = SPOKEN_MATH.get(language)
+    if not settings:
         return text
-    spoken = re.sub(r"\b\d[\d,]*(?:\.\d+)?\b", _yoruba_spoken_number, text)
-    replacements = (
-        ("×", " ìlọ́po "), ("*", " ìlọ́po "),
-        ("÷", " pín pẹ̀lú "), ("/", " pín pẹ̀lú "),
-        ("+", " pẹ̀lú "), ("−", " yọ "), ("-", " yọ "),
-        ("=", " dọ́gba pẹ̀lú "), ("%", " ìdá ọgọ́rùn-ún "),
-    )
+    number_words, decimal_word, replacements = settings
+    spoken = re.sub(r"\b\d[\d,]*(?:\.\d+)?\b", lambda match: _localized_spoken_number(match, number_words, decimal_word), text)
     for symbol, wording in replacements:
-        spoken = spoken.replace(symbol, wording)
+        spoken = spoken.replace(symbol, f" {wording} ")
     return " ".join(spoken.split())
 
 
@@ -221,10 +232,14 @@ def stream_tutor_speech(text: str, language: str = "English", voice_gender: str 
     gender = "male" if voice_gender == "male" else "female"
     language_name = TTS_LANGUAGE_NAMES.get(language, "English")
     transcript = _spoken_excerpt(_prepare_spoken_transcript(text, language))
+    local_number_direction = (
+        f"When speaking {language_name}, pronounce every number and Maths operation only in {language_name}, never in English. "
+        if language in SPOKEN_MATH else ""
+    )
     prompt = (
         "Synthesize speech for the transcript below. Do not read these directions aloud. "
         f"Use the same unmistakably adult {gender} teacher voice speaking {language_name}. "
-        "When speaking Yorùbá, pronounce every number and Maths operation only in Yorùbá, never in English. "
+        f"{local_number_direction}"
         "Sound warm, patient and conversational, with a gentle Nigerian classroom tone and a friendly vocal smile. "
         "Use punctuation for natural pauses and keep the delivery fluid.\n\n"
         f"TRANSCRIPT:\n{transcript}"

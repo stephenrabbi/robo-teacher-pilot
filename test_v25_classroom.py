@@ -61,6 +61,20 @@ def test_yoruba_speech_localizes_numbers_and_maths_operators():
     assert _prepare_spoken_transcript('2 + 3 = 5', 'English') == '2 + 3 = 5'
 
 
+def test_igbo_speech_localizes_numbers_and_maths_operators():
+    spoken = _prepare_spoken_transcript('2 × 3 = 6. Then 20 + 5 = 25.', 'Igbo')
+    assert spoken == 'Abụọ ugboro Atọ ha nhata Isii. Then Iri abụọ gbakwunyere Ise ha nhata Iri abụọ na ise.'
+    assert not any(character.isdigit() for character in spoken)
+    assert _prepare_spoken_transcript('2.5 ÷ 1', 'Igbo') == 'Abụọ ntụpọ Ise kewaa site na Otu'
+
+
+def test_hausa_speech_localizes_numbers_and_maths_operators():
+    spoken = _prepare_spoken_transcript('2 × 3 = 6. Then 20 + 5 = 25.', 'Hausa')
+    assert spoken == 'Biyu sau Uku daidai yake da Shida. Then Ashirin da Biyar daidai yake da Ashirin da biyar.'
+    assert not any(character.isdigit() for character in spoken)
+    assert _prepare_spoken_transcript('2.5 ÷ 1', 'Hausa') == 'Biyu ɗigo Biyar raba da Ɗaya'
+
+
 def test_long_speech_is_split_into_short_voice_consistent_chunks():
     chunks = _speech_chunks(('This is a complete teaching sentence. ' * 80).strip())
     assert len(chunks) > 1
