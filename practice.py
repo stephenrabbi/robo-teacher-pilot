@@ -4,6 +4,8 @@ import secrets
 from dataclasses import dataclass, field
 from fractions import Fraction
 
+from practice_generator import generate_question
+
 
 QUESTION_BANK = {
     "Whole Numbers": {
@@ -177,6 +179,7 @@ class PracticeState:
     question_number: int = 1
     answered: bool = False
     missed: list[dict] = field(default_factory=list)
+    remaining_questions: list[tuple[str, str, str, str]] = field(default_factory=list)
 
 
 _sessions: dict[str, PracticeState] = {}
@@ -189,9 +192,24 @@ PRAISE_MESSAGES = (
 
 
 def _choose_question(topic: str, difficulty: str, previous: str = ""):
-    choices = QUESTION_BANK[topic][difficulty]
-    available = [item for item in choices if item[0] != previous] or choices
-    return secrets.choice(available)
+    return generate_question(topic, difficulty)
+
+
+def _build_question_queue(topic: str, difficulty: str, count: int):
+    """Build the full session up front so learners never see a repeated prompt."""
+    questions = []
+    seen = set()
+    attempts = 0
+    while len(questions) < count and attempts < count * 50:
+        item = _choose_question(topic, difficulty)
+        attempts += 1
+        if item[0] not in seen:
+            questions.append(item)
+            seen.add(item[0])
+
+    if len(questions) < count:
+        raise RuntimeError("Unable to prepare a varied practice session")
+    return questions
 
 
 def start_practice(student_id: str, topic: str, difficulty: str, question_count: int = 5) -> dict:
@@ -199,8 +217,12 @@ def start_practice(student_id: str, topic: str, difficulty: str, question_count:
         raise ValueError("Unsupported practice selection")
     if question_count not in {5, 10, 20}:
         raise ValueError("Unsupported question count")
-    question, hint, expected, explanation = _choose_question(topic, difficulty)
-    state = PracticeState(topic, difficulty, question, hint, expected, explanation, target_count=question_count)
+    questions = _build_question_queue(topic, difficulty, question_count)
+    question, hint, expected, explanation = questions.pop(0)
+    state = PracticeState(
+        topic, difficulty, question, hint, expected, explanation,
+        target_count=question_count, remaining_questions=questions,
+    )
     _sessions[student_id] = state
     return _public_question(state)
 
@@ -260,7 +282,9 @@ def next_question(student_id: str) -> dict:
         raise RuntimeError("Answer the current question first")
     if state.attempted >= state.target_count:
         raise RuntimeError("Practice session is complete")
-    question, hint, expected, explanation = _choose_question(state.topic, state.difficulty, state.question)
+    if not state.remaining_questions:
+        raise RuntimeError("No more questions are available in this session")
+    question, hint, expected, explanation = state.remaining_questions.pop(0)
     state.question, state.hint, state.expected, state.explanation = question, hint, expected, explanation
     state.question_number += 1
     state.answered = False

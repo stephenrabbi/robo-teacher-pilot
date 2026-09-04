@@ -173,15 +173,20 @@ function renderPracticeQuestion(data){
 
 async function practiceRequest(path,body){
   const token=await ensureSession();
-  const response=await fetch(`/api/classroom/practice/${path}`,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({session_token:token,...body})});
-  const data=await response.json();if(response.status===401)sessionToken=null;if(!response.ok)throw new Error(data.detail||'Practice request failed');return data;
+  const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),20000);
+  try{
+    const response=await fetch(`/api/classroom/practice/${path}`,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({session_token:token,...body}),signal:controller.signal});
+    let data={};try{data=await response.json()}catch(_error){/* Use the friendly fallback below. */}
+    if(response.status===401)sessionToken=null;if(!response.ok)throw new Error(data.detail||'Practice request failed. Please try again.');return data;
+  }catch(error){if(error.name==='AbortError')throw new Error('The connection took too long. Please try again.');throw error}
+  finally{clearTimeout(timeout)}
 }
 
 async function startPracticeSession(){
-  startPracticeButton.disabled=true;startPracticeButton.textContent='Preparing…';
+  startPracticeButton.disabled=true;practiceAgainButton.disabled=true;startPracticeButton.textContent='Preparing…';
   try{renderPracticeQuestion(await practiceRequest('start',{topic:practiceTopic.value,difficulty:practiceDifficulty.value,question_count:Number(practiceCount.value)}))}
   catch(err){addMessage(err.message,'teacher')}
-  finally{startPracticeButton.disabled=false;startPracticeButton.textContent='Start Practice →'}
+  finally{startPracticeButton.disabled=false;practiceAgainButton.disabled=false;startPracticeButton.textContent='Start Practice →'}
 }
 
 function showPracticeHint(){

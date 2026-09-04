@@ -29,10 +29,46 @@ def test_practice_bank_covers_jss2_curriculum_strands():
     assert set(options.json()['topics']) == expected_topics
 
 
+def test_every_topic_and_level_can_build_twenty_unique_questions():
+    for topic, levels in practice.QUESTION_BANK.items():
+        for difficulty in levels:
+            questions = practice._build_question_queue(topic, difficulty, 20)
+            assert len(questions) == 20, (topic, difficulty)
+            assert len({item[0] for item in questions}) == 20, (topic, difficulty)
+            assert all(item[1] and item[2] and 'Step 1:' in item[3] for item in questions)
+
+
+def test_twenty_question_session_completes_without_repeating_or_rate_limiting():
+    session = client.post('/api/classroom/session').json()
+    started = client.post('/api/classroom/practice/start', json={
+        'session_token': session['session_token'], 'topic': 'Whole Numbers',
+        'difficulty': 'Easy', 'question_count': 20,
+    })
+    assert started.status_code == 200
+    prompts = [started.json()['question']]
+    result = None
+    for index in range(20):
+        marked = client.post('/api/classroom/practice/answer', json={
+            'session_token': session['session_token'], 'answer': 'not the answer',
+        })
+        assert marked.status_code == 200
+        result = marked.json()
+        if index < 19:
+            following = client.post('/api/classroom/practice/next', json={
+                'session_token': session['session_token'],
+            })
+            assert following.status_code == 200
+            prompts.append(following.json()['question'])
+
+    assert len(set(prompts)) == 20
+    assert result['completed'] is True
+    assert result['summary']['attempted'] == 20
+
+
 def test_practice_mode_marks_answers_and_tracks_score():
     session = client.post('/api/classroom/session').json()
     fixed = ("What is 2 + 3?", "Count on from 2.", "5", "2 + 3 = 5.")
-    with patch.object(practice, '_choose_question', return_value=fixed):
+    with patch.object(practice, '_build_question_queue', return_value=[fixed] * 5):
         started = client.post('/api/classroom/practice/start', json={
             'session_token': session['session_token'], 'topic': 'Whole Numbers', 'difficulty': 'Easy'
         })
@@ -59,7 +95,7 @@ def test_five_question_session_returns_final_results_and_missed_review():
     session = client.post('/api/classroom/session').json()
     fixed = ("What is 2 + 3?", "Count on from 2.", "5", "Step 1: Add 2 and 3.\nStep 2: The result is 5.")
     final_result = None
-    with patch.object(practice, '_choose_question', return_value=fixed):
+    with patch.object(practice, '_build_question_queue', return_value=[fixed] * 5):
         started = client.post('/api/classroom/practice/start', json={
             'session_token': session['session_token'], 'topic': 'Whole Numbers',
             'difficulty': 'Easy', 'question_count': 5,
@@ -108,7 +144,7 @@ def test_practice_mode_prevents_skipping_and_duplicate_marking():
 def test_incorrect_practice_answer_returns_teaching_steps():
     session = client.post('/api/classroom/session').json()
     fixed = ("What is 9 × 7?", "Think of equal groups.", "63", "Step 1: Use 9 groups of 7.\nStep 2: 9 × 7 = 63.")
-    with patch.object(practice, '_choose_question', return_value=fixed):
+    with patch.object(practice, '_build_question_queue', return_value=[fixed] * 5):
         client.post('/api/classroom/practice/start', json={
             'session_token': session['session_token'], 'topic': 'Whole Numbers', 'difficulty': 'Easy'
         })

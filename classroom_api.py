@@ -123,7 +123,7 @@ def practice_options():
 @router.post("/practice/start")
 def classroom_practice_start(selection: PracticeStart):
     student_id = _verify_session(selection.session_token)
-    _enforce_rate_limit(student_id, "practice", 60)
+    _enforce_rate_limit(student_id, "practice", 120)
     try:
         return start_practice(student_id, selection.topic, selection.difficulty, selection.question_count)
     except ValueError as exc:
@@ -133,7 +133,7 @@ def classroom_practice_start(selection: PracticeStart):
 @router.post("/practice/answer")
 def classroom_practice_answer(submission: PracticeAnswer):
     student_id = _verify_session(submission.session_token)
-    _enforce_rate_limit(student_id, "practice", 60)
+    _enforce_rate_limit(student_id, "practice", 120)
     try:
         return answer_practice(student_id, submission.answer)
     except LookupError as exc:
@@ -145,7 +145,7 @@ def classroom_practice_answer(submission: PracticeAnswer):
 @router.post("/practice/next")
 def classroom_practice_next(request: PracticeNext):
     student_id = _verify_session(request.session_token)
-    _enforce_rate_limit(student_id, "practice", 60)
+    _enforce_rate_limit(student_id, "practice", 120)
     try:
         return next_question(student_id)
     except LookupError as exc:
