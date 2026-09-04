@@ -27,6 +27,8 @@ const clearBoardButton=document.getElementById('clearBoard');
 const closeBoardButton=document.getElementById('closeBoard');
 const submitBoardButton=document.getElementById('submitBoard');
 const backToWhiteboard=document.getElementById('backToWhiteboard');
+const language=document.getElementById('language');
+const languageButton=document.getElementById('languageButton');
 let sessionToken=null;
 let previewUrl=null;
 let mediaRecorder=null;
@@ -36,6 +38,8 @@ let drawing=false;
 let drawingTool='pen';
 let boardHasInk=false;
 const boardContext=whiteboard.getContext('2d');
+const savedLanguage=localStorage.getItem('roboTeacherLanguage');
+if(['English','Yoruba'].includes(savedLanguage))language.value=savedLanguage;
 
 async function ensureSession(){
   if(sessionToken)return sessionToken;
@@ -101,6 +105,12 @@ whiteboard.addEventListener('pointermove',drawOnWhiteboard);
 whiteboard.addEventListener('pointerup',stopDrawing);
 whiteboard.addEventListener('pointercancel',stopDrawing);
 backToWhiteboard.addEventListener('click',openWhiteboard);
+language.addEventListener('change',()=>{
+  localStorage.setItem('roboTeacherLanguage',language.value);
+  addMessage(language.value==='Yoruba'?'Mo máa kọ́ ọ ní Yorùbá láti ìsinsin yìí.':'I will teach you in English from now on.','teacher');
+  question.focus();
+});
+languageButton.addEventListener('click',()=>language.focus());
 
 function clearWhiteboard(){
   boardContext.save();boardContext.fillStyle='#ffffff';boardContext.fillRect(0,0,whiteboard.width,whiteboard.height);boardContext.restore();
@@ -155,7 +165,7 @@ async function submitWhiteboard(){
   const thinking=addMessage('I’m reading the Maths work on your whiteboard…','teacher');
   try{
     const token=await ensureSession();
-    const response=await fetch('/api/classroom/whiteboard',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({session_token:token,image_data:imageData,caption:question.value.trim()})});
+    const response=await fetch('/api/classroom/whiteboard',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({session_token:token,image_data:imageData,caption:question.value.trim(),language:language.value})});
     const data=await response.json();
     if(response.status===401){sessionToken=null;throw new Error('session');}
     if(!response.ok)throw new Error(data.detail||'request');
@@ -206,7 +216,7 @@ async function finishRecording(){
   const thinking=addMessage('I’m listening carefully to your Maths question…','teacher');
   micButton.disabled=true;navMicButton.disabled=true;
   try{
-    const token=await ensureSession();const body=new FormData();body.append('session_token',token);
+    const token=await ensureSession();const body=new FormData();body.append('session_token',token);body.append('language',language.value);
     body.append('audio',blob,`maths-question.${type.includes('ogg')?'ogg':'webm'}`);
     const response=await fetch('/api/classroom/audio',{method:'POST',headers:{'Accept':'application/json'},body});
     const data=await response.json();
@@ -239,7 +249,7 @@ async function handleImage(file,source='upload'){
   uploadButton.disabled=true;cameraButton.disabled=true;
   try{
     const token=await ensureSession();
-    const body=new FormData();body.append('session_token',token);body.append('image',file);
+    const body=new FormData();body.append('session_token',token);body.append('language',language.value);body.append('image',file);
     const caption=question.value.trim();if(caption)body.append('caption',caption);
     const response=await fetch('/api/classroom/image',{method:'POST',headers:{'Accept':'application/json'},body});
     const data=await response.json();
@@ -260,7 +270,7 @@ form.addEventListener('submit',async(e)=>{
   const thinking=addMessage('Let me work through that with you…','teacher');
   try{
     const token=await ensureSession();
-    const response=await fetch('/api/classroom/chat',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({message:text,session_token:token})});
+    const response=await fetch('/api/classroom/chat',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({message:text,session_token:token,language:language.value})});
     const data=await response.json();
     if(response.status===401){sessionToken=null;throw new Error('session');}
     if(!response.ok)throw new Error(data.detail||'request');

@@ -152,10 +152,19 @@ def _extract_text(response) -> str:
     raise ValueError("Gemini response contained no readable text")
 
 
-def get_tutor_reply(student_id: str, message: str) -> tuple[str, float]:
+def _language_instruction(response_language: str) -> str:
+    if response_language == "Yoruba":
+        return "Reply entirely in clear, natural Yorùbá suitable for a Nigerian JSS2 learner. Keep mathematical symbols and numerals unchanged."
+    return "Reply in clear English suitable for a Nigerian JSS2 learner."
+
+
+def get_tutor_reply(student_id: str, message: str, response_language: str = "English") -> tuple[str, float]:
     profile = _safe_profile_update(student_id, message)
     deterministic = _simple_arithmetic_answer(message)
-    if deterministic is not None: return deterministic, 0.0
+    if deterministic is not None:
+        if response_language == "Yoruba":
+            deterministic = deterministic.replace("Answer:", "Ìdáhùn:")
+        return deterministic, 0.0
     start = time.time()
     try:
         client = _get_client()
@@ -165,13 +174,13 @@ def get_tutor_reply(student_id: str, message: str) -> tuple[str, float]:
 
     history = _conversations.get(student_id, [])
     try:
-        text, new_history = _ask(client, history, message, profile)
+        text, new_history = _ask(client, history, message, profile, response_language)
     except Exception as first_error:
         if _is_rate_limit_error(first_error):
             return RATE_LIMIT_RESPONSE, time.time() - start
         logger.warning("Gemini request failed; retrying once without conversation history (%s)", type(first_error).__name__)
         try:
-            text, new_history = _ask(client, [], message, profile)
+            text, new_history = _ask(client, [], message, profile, response_language)
         except Exception as retry_error:
             if _is_rate_limit_error(retry_error):
                 return RATE_LIMIT_RESPONSE, time.time() - start
@@ -194,21 +203,21 @@ def _media_reply(student_id: str, media_bytes: bytes, mime_type: str, prompt: st
     return _clean_model_reply(_extract_text(response)), time.time() - start
 
 
-def get_tutor_image_reply(student_id: str, image_bytes: bytes, mime_type: str, caption: str = "") -> tuple[str, float]:
+def get_tutor_image_reply(student_id: str, image_bytes: bytes, mime_type: str, caption: str = "", response_language: str = "English") -> tuple[str, float]:
     if mime_type not in SUPPORTED_IMAGE_MIME_TYPES: raise ValueError("Unsupported image type")
     if not image_bytes or len(image_bytes) > MAX_IMAGE_BYTES: raise ValueError("Image is empty or too large")
     learning_message = caption.strip() or "Please help me understand the Maths problem in this image."
-    prompt = f"The learner sent a Maths image. Read only the educational content. If unclear, request a clearer photo. Otherwise teach the method step by step.\nLearner caption: {learning_message}"
+    prompt = f"{_language_instruction(response_language)}\nThe learner sent a Maths image. Read only the educational content. If unclear, request a clearer photo. Otherwise teach the method step by step.\nLearner caption: {learning_message}"
     return _media_reply(student_id, image_bytes, mime_type, prompt, learning_message)
 
 
-def get_tutor_audio_reply(student_id: str, audio_bytes: bytes, mime_type: str) -> tuple[str, float]:
+def get_tutor_audio_reply(student_id: str, audio_bytes: bytes, mime_type: str, response_language: str = "English") -> tuple[str, float]:
     """Understand a learner's voice note and answer the spoken Maths question in text."""
     if mime_type not in SUPPORTED_AUDIO_MIME_TYPES: raise ValueError("Unsupported audio type")
     if not audio_bytes or len(audio_bytes) > MAX_AUDIO_BYTES: raise ValueError("Audio is empty or too large")
     profile_message = "Learner used a voice note for a Maths question."
     prompt = (
-        "Listen to the learner voice note with a safety-first transcription rule. Before solving, silently verify every spoken number, sign, operator, and equation term from the audio itself. "
+        f"{_language_instruction(response_language)} Listen to the learner voice note in English or Yorùbá with a safety-first transcription rule. Before solving, silently verify every spoken number, sign, operator, and equation term from the audio itself. "
         "Do not infer a number because it makes the Maths easier or seems more likely. Pay special attention to easily confused spoken numbers such as seven versus seventeen, four versus fourteen, six versus sixteen, and similar pairs. "
         "If any number, operator, or important word is muffled, clipped, masked by background noise, or could plausibly have been heard another way, DO NOT solve the problem. Instead say that you may not have heard the question correctly and ask the learner to resend the voice note more clearly or type the equation. "
         "Only when every essential Maths token is clear should you answer the spoken question as a patient teacher and explain the method step by step in text. "
@@ -217,7 +226,7 @@ def get_tutor_audio_reply(student_id: str, audio_bytes: bytes, mime_type: str) -
     return _media_reply(student_id, audio_bytes, mime_type, prompt, profile_message)
 
 
-def _ask(client, history: list, message: str, profile: dict) -> tuple[str, list]:
+def _ask(client, history: list, message: str, profile: dict, response_language: str = "English") -> tuple[str, list]:
     chat = client.chats.create(model=GEMINI_MODEL, config=types.GenerateContentConfig(system_instruction=SYSTEM_PROMPT, max_output_tokens=600, thinking_config=types.ThinkingConfig(thinking_budget=0)), history=history)
-    response = chat.send_message(f"{profile_prompt_context(profile)}\n\nCurrent student message:\n{message}")
+    response = chat.send_message(f"{profile_prompt_context(profile)}\n\n{_language_instruction(response_language)}\n\nCurrent student message:\n{message}")
     return _extract_text(response), chat.get_history()

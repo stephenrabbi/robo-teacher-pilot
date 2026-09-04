@@ -20,6 +20,37 @@ def test_session_and_chat_use_pseudonymous_identity():
     assert response.status_code == 200
     assert 'common denominator' in response.json()['reply']
     assert tutor.call_args.args[0] == data['learner_id']
+    assert tutor.call_args.args[2] == 'English'
+
+
+def test_yoruba_language_reaches_all_classroom_tutoring_modes():
+    session = client.post('/api/classroom/session').json()
+    with patch.object(classroom_api, 'get_tutor_reply', return_value=('Ìdáhùn ni 5.', 0.1)) as chat_tutor:
+        chat = client.post('/api/classroom/chat', json={'message':'Kọ́ mi ní ìṣirò','session_token':session['session_token'],'language':'Yoruba'})
+    assert chat.status_code == 200
+    assert chat_tutor.call_args.args[2] == 'Yoruba'
+
+    with patch.object(classroom_api, 'get_tutor_image_reply', return_value=('Àlàyé Yorùbá.', 0.1)) as image_tutor:
+        image = client.post('/api/classroom/image', data={'session_token':session['session_token'],'language':'Yoruba'}, files={'image':('maths.png', b'fake-png', 'image/png')})
+    assert image.status_code == 200
+    assert image_tutor.call_args.args[4] == 'Yoruba'
+
+    encoded = base64.b64encode(b'fake-png').decode()
+    with patch.object(classroom_api, 'get_tutor_image_reply', return_value=('Àlàyé Yorùbá.', 0.1)) as board_tutor:
+        board = client.post('/api/classroom/whiteboard', json={'session_token':session['session_token'],'image_data':f'data:image/png;base64,{encoded}','language':'Yoruba'})
+    assert board.status_code == 200
+    assert board_tutor.call_args.args[4] == 'Yoruba'
+
+    with patch.object(classroom_api, 'get_tutor_audio_reply', return_value=('Àlàyé Yorùbá.', 0.1)) as audio_tutor:
+        audio = client.post('/api/classroom/audio', data={'session_token':session['session_token'],'language':'Yoruba'}, files={'audio':('question.webm', b'fake-audio', 'audio/webm')})
+    assert audio.status_code == 200
+    assert audio_tutor.call_args.args[3] == 'Yoruba'
+
+
+def test_classroom_rejects_unknown_language():
+    session = client.post('/api/classroom/session').json()
+    response = client.post('/api/classroom/chat', json={'message':'Explain fractions','session_token':session['session_token'],'language':'French'})
+    assert response.status_code == 422
 
 
 def test_tampered_session_is_rejected():

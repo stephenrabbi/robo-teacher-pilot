@@ -12,6 +12,7 @@ import os
 import secrets
 import time
 from collections import defaultdict, deque
+from typing import Literal
 
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from pydantic import BaseModel, Field
@@ -37,12 +38,14 @@ _request_times: dict[str, deque] = defaultdict(deque)
 class ClassroomQuestion(BaseModel):
     message: str = Field(min_length=1, max_length=1200)
     session_token: str = Field(min_length=20, max_length=300)
+    language: Literal["English", "Yoruba"] = "English"
 
 
 class ClassroomWhiteboard(BaseModel):
     image_data: str = Field(min_length=30, max_length=MAX_IMAGE_BYTES * 2)
     session_token: str = Field(min_length=20, max_length=300)
     caption: str = Field(default="", max_length=500)
+    language: Literal["English", "Yoruba"] = "English"
 
 
 def _sign(payload: str) -> str:
@@ -97,7 +100,7 @@ def classroom_chat(question: ClassroomQuestion, request: Request):
     if not message:
         raise HTTPException(status_code=422, detail="Question cannot be empty")
     try:
-        reply, latency = get_tutor_reply(student_id, message)
+        reply, latency = get_tutor_reply(student_id, message, question.language)
     except Exception as exc:
         # Never expose provider details, prompts, credentials, or stack traces to learners.
         raise HTTPException(status_code=503, detail="Robo-Teacher is temporarily unavailable") from exc
@@ -109,6 +112,7 @@ async def classroom_image(
     session_token: str = Form(..., min_length=20, max_length=300),
     image: UploadFile = File(...),
     caption: str = Form("", max_length=500),
+    language: Literal["English", "Yoruba"] = Form("English"),
 ):
     student_id = _verify_session(session_token)
     _enforce_rate_limit(student_id)
@@ -121,7 +125,7 @@ async def classroom_image(
     if len(image_bytes) > MAX_IMAGE_BYTES:
         raise HTTPException(status_code=413, detail="The image must be 8 MB or smaller")
     try:
-        reply, latency = get_tutor_image_reply(student_id, image_bytes, mime_type, caption.strip())
+        reply, latency = get_tutor_image_reply(student_id, image_bytes, mime_type, caption.strip(), language)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail="The image could not be processed") from exc
     except Exception as exc:
@@ -147,7 +151,7 @@ def classroom_whiteboard(board: ClassroomWhiteboard):
         raise HTTPException(status_code=413, detail="The whiteboard image must be 8 MB or smaller")
     try:
         reply, latency = get_tutor_image_reply(
-            student_id, image_bytes, "image/png", board.caption.strip()
+            student_id, image_bytes, "image/png", board.caption.strip(), board.language
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail="The whiteboard could not be processed") from exc
@@ -160,6 +164,7 @@ def classroom_whiteboard(board: ClassroomWhiteboard):
 async def classroom_audio(
     session_token: str = Form(..., min_length=20, max_length=300),
     audio: UploadFile = File(...),
+    language: Literal["English", "Yoruba"] = Form("English"),
 ):
     student_id = _verify_session(session_token)
     _enforce_rate_limit(student_id)
@@ -172,7 +177,7 @@ async def classroom_audio(
     if len(audio_bytes) > MAX_AUDIO_BYTES:
         raise HTTPException(status_code=413, detail="The recording must be 12 MB or smaller")
     try:
-        reply, latency = get_tutor_audio_reply(student_id, audio_bytes, mime_type)
+        reply, latency = get_tutor_audio_reply(student_id, audio_bytes, mime_type, language)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail="The recording could not be processed") from exc
     except Exception as exc:
