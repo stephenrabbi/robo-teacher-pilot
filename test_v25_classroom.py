@@ -6,9 +6,53 @@ from fastapi.testclient import TestClient
 from v25_app import app
 import classroom_api
 import practice
+import practice_progress
 from tutor import _language_instruction, get_tutor_reply
 
 client = TestClient(app)
+
+
+def test_stable_anonymous_key_restores_progress_without_exposing_identity():
+    practice_progress._reset_for_tests()
+    learner_key = 'a' * 48
+    first = client.post('/api/classroom/session', json={'learner_key': learner_key}).json()
+    second = client.post('/api/classroom/session', json={'learner_key': learner_key}).json()
+    other = client.post('/api/classroom/session', json={'learner_key': 'b' * 48}).json()
+    assert first['learner_id'] == second['learner_id']
+    assert first['learner_id'] != other['learner_id']
+    assert learner_key not in first['session_token']
+
+    fixed = ("What is 2 + 3?", "Count on from 2.", "5", "Step 1: Add 2 and 3.\nStep 2: The result is 5.")
+    with patch.object(practice, '_build_question_queue', return_value=[fixed] * 5):
+        client.post('/api/classroom/practice/start', json={
+            'session_token': first['session_token'], 'topic': 'Whole Numbers',
+            'difficulty': 'Easy', 'question_count': 5,
+        })
+        for index in range(5):
+            marked = client.post('/api/classroom/practice/answer', json={
+                'session_token': first['session_token'], 'answer': '5' if index < 4 else '4',
+            })
+            assert marked.status_code == 200
+            if index < 4:
+                client.post('/api/classroom/practice/next', json={'session_token': first['session_token']})
+
+    dashboard = client.post('/api/classroom/practice/progress', json={
+        'session_token': second['session_token'],
+    })
+    assert dashboard.status_code == 200
+    data = dashboard.json()
+    assert data['sessions'] == 1
+    assert data['total_questions'] == 5
+    assert data['total_correct'] == 4
+    assert data['average_percentage'] == 80
+    assert data['strongest_topic'] == 'Whole Numbers'
+    assert data['recent_sessions'][0]['percentage'] == 80
+
+    empty = client.post('/api/classroom/practice/progress', json={
+        'session_token': other['session_token'],
+    }).json()
+    assert empty['sessions'] == 0
+    assert empty['recent_sessions'] == []
 
 
 def test_practice_bank_covers_jss2_curriculum_strands():
@@ -174,9 +218,9 @@ def test_igbo_and_hausa_deterministic_answers_use_local_number_words():
 def test_language_instructions_accept_typed_and_spoken_yoruba():
     automatic = _language_instruction("English")
     selected = _language_instruction("Yoruba")
-    assert "current Maths question is in English or Yorùbá" in automatic
-    assert "If it is in Yorùbá, reply entirely" in automatic
-    assert "final-answer value as a Yorùbá number word" in automatic
+    assert "current Maths question is in English, Yorùbá, Igbo, or Hausa" in automatic
+    assert "Reply entirely in the language used" in automatic
+    assert "write the final-answer value as a number word" in automatic
     assert "may ask the Maths question in Yorùbá or English" in selected
     assert "reply entirely in clear, natural Yorùbá" in selected
 

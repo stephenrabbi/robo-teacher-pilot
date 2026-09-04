@@ -180,6 +180,7 @@ class PracticeState:
     answered: bool = False
     missed: list[dict] = field(default_factory=list)
     remaining_questions: list[tuple[str, str, str, str]] = field(default_factory=list)
+    session_id: str = field(default_factory=lambda: secrets.token_hex(12))
 
 
 _sessions: dict[str, PracticeState] = {}
@@ -293,6 +294,7 @@ def next_question(student_id: str) -> dict:
 
 def _public_question(state: PracticeState) -> dict:
     return {
+        "session_id": state.session_id,
         "topic": state.topic,
         "difficulty": state.difficulty,
         "question": state.question,
@@ -313,6 +315,7 @@ def _summary(state: PracticeState) -> dict:
     else:
         recommendation = f"Review the worked examples for {state.topic}, then try an easier session before moving up."
     return {
+        "session_id": state.session_id,
         "topic": state.topic,
         "difficulty": state.difficulty,
         "score": state.correct,

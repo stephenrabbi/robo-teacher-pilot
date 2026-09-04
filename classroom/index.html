@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Robo-Teacher Classroom</title>
-  <link rel="stylesheet" href="/classroom/styles.css?v=20260904-variety1" />
+  <link rel="stylesheet" href="/classroom/styles.css?v=20260904-progress1" />
 </head>
 <body>
   <main class="app-shell">
@@ -91,7 +91,18 @@
               <div class="result-score"><strong id="resultPercentage">0%</strong><span id="resultScore">0 out of 5 correct</span></div>
               <p id="resultRecommendation" class="result-recommendation"></p>
               <div id="missedReview" class="missed-review"></div>
-              <div class="practice-actions result-actions"><button id="practiceAgain" type="button" class="practice-primary">Practise Again</button><button id="changePracticeTopic" type="button">Change Topic</button><button id="exitPracticeResults" type="button">Exit Practice</button></div>
+              <div class="practice-actions result-actions"><button id="practiceAgain" type="button" class="practice-primary">Practise Again</button><button id="viewProgressFromResults" type="button">View Progress</button><button id="changePracticeTopic" type="button">Change Topic</button><button id="exitPracticeResults" type="button">Exit Practice</button></div>
+            </div>
+          </section>
+          <section id="progressArea" class="progress-area hidden" aria-labelledby="progressTitle">
+            <div class="progress-heading"><div><p class="practice-kicker">MY PROGRESS</p><h3 id="progressTitle">Learning dashboard</h3></div><button id="closeProgress" type="button">Close</button></div>
+            <div id="progressLoading" class="progress-empty">Loading your progress…</div>
+            <div id="progressEmpty" class="progress-empty hidden"><strong>Your progress starts here</strong><p>Complete a Practice Mode session to see scores, strengths and recommendations.</p><button id="emptyStartPractice" type="button" class="practice-primary">Start Practice →</button></div>
+            <div id="progressDashboard" class="hidden">
+              <div class="progress-stats"><article><span>Sessions</span><strong id="progressSessions">0</strong></article><article><span>Questions</span><strong id="progressQuestions">0</strong></article><article><span>Overall score</span><strong id="progressAverage">0%</strong></article><article><span>Strongest topic</span><strong id="progressStrongest">—</strong></article></div>
+              <div class="progress-recommendation"><span>Recommended next step</span><strong id="progressRecommendation"></strong><button id="practiceRecommendation" type="button">Practise this →</button></div>
+              <div class="progress-columns"><section><h4>Topic performance</h4><div id="progressTopics" class="topic-progress"></div></section><section><h4>Recent sessions</h4><div id="recentSessions" class="recent-sessions"></div></section></div>
+              <p id="progressStorageNotice" class="progress-storage hidden">Your latest result is visible now, but permanent storage is temporarily unavailable.</p>
             </div>
           </section>
         </div>
@@ -107,11 +118,11 @@
           <button type="submit" class="send">Send</button>
         </form>
         <nav class="class-tools" aria-label="Classroom tools">
-          <button type="button">💬 Chat</button><button id="practiceButton" type="button">🧠 Practice</button><button id="cameraButton" type="button">📷 Camera</button><button id="navMicButton" type="button">🎙 Mic</button><button id="whiteboardButton" type="button">▣ Whiteboard</button><button id="languageButton" type="button">🌐 Language</button>
+          <button type="button">💬 Chat</button><button id="practiceButton" type="button">🧠 Practice</button><button id="progressButton" type="button">📈 Progress</button><button id="cameraButton" type="button">📷 Camera</button><button id="navMicButton" type="button">🎙 Mic</button><button id="whiteboardButton" type="button">▣ Whiteboard</button><button id="languageButton" type="button">🌐 Language</button>
         </nav>
       </section>
     </section>
   </main>
-  <script src="/classroom/app.js?v=20260904-variety1"></script>
+  <script src="/classroom/app.js?v=20260904-progress1"></script>
 </body>
 </html>

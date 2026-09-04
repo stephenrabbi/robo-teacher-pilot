@@ -14,9 +14,10 @@ import time
 from collections import defaultdict, deque
 from typing import Literal
 
-from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
+from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, Request, UploadFile
 from pydantic import BaseModel, Field
 from practice import QUESTION_BANK, answer_practice, next_question, start_practice
+from practice_progress import build_dashboard, save_result
 
 from tutor import (
     MAX_AUDIO_BYTES,
@@ -41,6 +42,10 @@ class ClassroomQuestion(BaseModel):
     message: str = Field(min_length=1, max_length=1200)
     session_token: str = Field(min_length=20, max_length=300)
     language: SupportedLanguage = "English"
+
+
+class ClassroomSessionRequest(BaseModel):
+    learner_key: str | None = Field(default=None, min_length=32, max_length=64, pattern=r"^[a-f0-9]+$")
 
 
 class ClassroomWhiteboard(BaseModel):
@@ -75,8 +80,11 @@ def _sign(payload: str) -> str:
     return hmac.new(_SESSION_KEY, payload.encode(), hashlib.sha256).hexdigest()
 
 
-def _new_session() -> tuple[str, str]:
-    student_id = f"WEB-{secrets.token_hex(8)}"
+def _new_session(learner_key: str | None = None) -> tuple[str, str]:
+    student_id = (
+        f"WEB-{hashlib.sha256(learner_key.encode()).hexdigest()[:16]}"
+        if learner_key else f"WEB-{secrets.token_hex(8)}"
+    )
     issued = str(int(time.time()))
     payload = f"{student_id}.{issued}"
     return student_id, f"{payload}.{_sign(payload)}"
@@ -110,8 +118,8 @@ def _enforce_rate_limit(student_id: str, scope: str = "tutor", max_requests: int
 
 
 @router.post("/session")
-def create_classroom_session():
-    student_id, token = _new_session()
+def create_classroom_session(request: ClassroomSessionRequest | None = None):
+    student_id, token = _new_session(request.learner_key if request else None)
     return {"session_token": token, "learner_id": student_id, "expires_in": _SESSION_TTL_SECONDS}
 
 
@@ -131,11 +139,15 @@ def classroom_practice_start(selection: PracticeStart):
 
 
 @router.post("/practice/answer")
-def classroom_practice_answer(submission: PracticeAnswer):
+def classroom_practice_answer(submission: PracticeAnswer, background_tasks: BackgroundTasks):
     student_id = _verify_session(submission.session_token)
     _enforce_rate_limit(student_id, "practice", 120)
     try:
-        return answer_practice(student_id, submission.answer)
+        result = answer_practice(student_id, submission.answer)
+        if result["completed"]:
+            background_tasks.add_task(save_result, student_id, result["summary"])
+            result["progress_saving"] = True
+        return result
     except LookupError as exc:
         raise HTTPException(status_code=404, detail="Start a practice session first") from exc
     except RuntimeError as exc:
@@ -152,6 +164,13 @@ def classroom_practice_next(request: PracticeNext):
         raise HTTPException(status_code=404, detail="Start a practice session first") from exc
     except RuntimeError as exc:
         raise HTTPException(status_code=409, detail="Answer the current question first") from exc
+
+
+@router.post("/practice/progress")
+def classroom_practice_progress(request: PracticeNext):
+    student_id = _verify_session(request.session_token)
+    _enforce_rate_limit(student_id, "practice-progress", 30)
+    return build_dashboard(student_id)
 
 
 @router.post("/chat")

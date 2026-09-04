@@ -55,8 +55,26 @@ const missedReview=document.getElementById('missedReview');
 const practiceAgainButton=document.getElementById('practiceAgain');
 const changePracticeTopicButton=document.getElementById('changePracticeTopic');
 const exitPracticeResultsButton=document.getElementById('exitPracticeResults');
+const viewProgressFromResults=document.getElementById('viewProgressFromResults');
+const progressButton=document.getElementById('progressButton');
+const progressArea=document.getElementById('progressArea');
+const progressLoading=document.getElementById('progressLoading');
+const progressEmpty=document.getElementById('progressEmpty');
+const progressDashboard=document.getElementById('progressDashboard');
+const closeProgressButton=document.getElementById('closeProgress');
+const emptyStartPractice=document.getElementById('emptyStartPractice');
+const progressSessions=document.getElementById('progressSessions');
+const progressQuestions=document.getElementById('progressQuestions');
+const progressAverage=document.getElementById('progressAverage');
+const progressStrongest=document.getElementById('progressStrongest');
+const progressRecommendation=document.getElementById('progressRecommendation');
+const practiceRecommendation=document.getElementById('practiceRecommendation');
+const progressTopics=document.getElementById('progressTopics');
+const recentSessions=document.getElementById('recentSessions');
+const progressStorageNotice=document.getElementById('progressStorageNotice');
 let currentPractice=null;
 let currentPracticeSummary=null;
+let currentProgress=null;
 let sessionToken=null;
 let previewUrl=null;
 let mediaRecorder=null;
@@ -71,7 +89,12 @@ if(['English','Yoruba','Igbo','Hausa'].includes(savedLanguage))language.value=sa
 
 async function ensureSession(){
   if(sessionToken)return sessionToken;
-  const response=await fetch('/api/classroom/session',{method:'POST',headers:{'Accept':'application/json'}});
+  let learnerKey=localStorage.getItem('roboTeacherLearnerKey');
+  if(!/^[a-f0-9]{32,64}$/.test(learnerKey||'')){
+    const bytes=crypto.getRandomValues(new Uint8Array(24));learnerKey=Array.from(bytes,byte=>byte.toString(16).padStart(2,'0')).join('');
+    localStorage.setItem('roboTeacherLearnerKey',learnerKey);
+  }
+  const response=await fetch('/api/classroom/session',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({learner_key:learnerKey})});
   if(!response.ok)throw new Error('session');
   const data=await response.json();
   sessionToken=data.session_token;
@@ -96,7 +119,7 @@ function addMessage(text,role){
 }
 
 function showCanvasAnswer(answer,status='Worked solution'){
-  whiteboardArea.classList.add('hidden');practiceArea.classList.add('hidden');canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');
+  whiteboardArea.classList.add('hidden');practiceArea.classList.add('hidden');progressArea.classList.add('hidden');canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');
   canvasStatus.textContent=status;renderLesson(canvasAnswer,answer);
 }
 
@@ -149,9 +172,14 @@ closePracticeButton.addEventListener('click',closePractice);
 practiceAgainButton.addEventListener('click',startPracticeSession);
 changePracticeTopicButton.addEventListener('click',resetPracticeSetup);
 exitPracticeResultsButton.addEventListener('click',closePractice);
+progressButton.addEventListener('click',openProgress);
+viewProgressFromResults.addEventListener('click',openProgress);
+closeProgressButton.addEventListener('click',closeProgress);
+emptyStartPractice.addEventListener('click',openPracticeFromProgress);
+practiceRecommendation.addEventListener('click',openRecommendedPractice);
 
 function openPractice(){
-  whiteboardArea.classList.add('hidden');canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');practiceArea.classList.remove('hidden');
+  whiteboardArea.classList.add('hidden');progressArea.classList.add('hidden');canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');practiceArea.classList.remove('hidden');
   if(currentPracticeSummary)renderPracticeResults(currentPracticeSummary);
   else if(currentPractice){practiceSetup.classList.add('hidden');practiceQuestion.classList.remove('hidden');practiceResults.classList.add('hidden');practiceAnswer.focus()}
   else resetPracticeSetup();
@@ -232,13 +260,52 @@ function renderPracticeResults(summary){
   });
 }
 
+async function openProgress(){
+  whiteboardArea.classList.add('hidden');practiceArea.classList.add('hidden');canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');progressArea.classList.remove('hidden');
+  progressLoading.classList.remove('hidden');progressEmpty.classList.add('hidden');progressDashboard.classList.add('hidden');
+  try{currentProgress=await practiceRequest('progress',{});renderProgress(currentProgress)}
+  catch(error){progressLoading.textContent=error.message;progressLoading.classList.add('error')}
+}
+
+function renderProgress(data){
+  progressLoading.classList.add('hidden');progressLoading.classList.remove('error');
+  if(!data.sessions){progressEmpty.classList.remove('hidden');return}
+  progressDashboard.classList.remove('hidden');progressSessions.textContent=data.sessions;progressQuestions.textContent=data.total_questions;
+  progressAverage.textContent=`${data.average_percentage}%`;progressStrongest.textContent=data.strongest_topic||'—';progressRecommendation.textContent=data.recommendation;
+  progressStorageNotice.classList.toggle('hidden',data.storage_synced);progressTopics.replaceChildren();recentSessions.replaceChildren();
+  data.topics.forEach(item=>{
+    const row=document.createElement('article');const label=document.createElement('div');const name=document.createElement('strong');const score=document.createElement('span');
+    name.textContent=item.topic;score.textContent=`${item.percentage}% · ${item.correct}/${item.attempted}`;label.append(name,score);
+    const track=document.createElement('div');track.className='progress-track';const fill=document.createElement('i');fill.style.width=`${item.percentage}%`;track.appendChild(fill);row.append(label,track);progressTopics.appendChild(row);
+  });
+  data.recent_sessions.forEach(item=>{
+    const row=document.createElement('article');const detail=document.createElement('div');const topic=document.createElement('strong');const meta=document.createElement('span');const score=document.createElement('b');
+    topic.textContent=item.topic;meta.textContent=`${item.difficulty} · ${formatProgressDate(item.timestamp)}`;score.textContent=`${item.percentage}%`;detail.append(topic,meta);row.append(detail,score);recentSessions.appendChild(row);
+  });
+}
+
+function formatProgressDate(value){
+  const date=new Date(value);return Number.isNaN(date.getTime())?'Completed':date.toLocaleDateString(undefined,{day:'numeric',month:'short'});
+}
+
+function closeProgress(){
+  progressArea.classList.add('hidden');if(canvasAnswer.textContent.trim())canvasWork.classList.remove('hidden');else canvasEmpty.classList.remove('hidden');
+}
+
+function openPracticeFromProgress(){resetPracticeSetup();openPractice()}
+
+function openRecommendedPractice(){
+  if(currentProgress){practiceTopic.value=currentProgress.recommended_topic;practiceDifficulty.value=currentProgress.recommended_difficulty}
+  resetPracticeSetup();openPractice();
+}
+
 function clearWhiteboard(){
   boardContext.save();boardContext.fillStyle='#ffffff';boardContext.fillRect(0,0,whiteboard.width,whiteboard.height);boardContext.restore();
   boardHasInk=false;
 }
 
 function openWhiteboard(){
-  canvasEmpty.classList.add('hidden');canvasWork.classList.add('hidden');practiceArea.classList.add('hidden');whiteboardArea.classList.remove('hidden');
+  canvasEmpty.classList.add('hidden');canvasWork.classList.add('hidden');practiceArea.classList.add('hidden');progressArea.classList.add('hidden');whiteboardArea.classList.remove('hidden');
   if(!whiteboard.dataset.ready){clearWhiteboard();whiteboard.dataset.ready='true'}
 }
 
