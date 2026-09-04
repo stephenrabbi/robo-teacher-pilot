@@ -190,7 +190,8 @@ def _language_instruction(response_language: str) -> str:
     return (
         "Detect whether the learner's current Maths question is in English or Yorùbá. "
         "If it is in Yorùbá, reply entirely in clear, natural Yorùbá; otherwise reply in clear English. "
-        "Use language suitable for a Nigerian JSS2 learner."
+        "When replying in Yorùbá, keep mathematical symbols and numerals in the working, but write the "
+        "final-answer value as a Yorùbá number word. Use language suitable for a Nigerian JSS2 learner."
     )
 
 

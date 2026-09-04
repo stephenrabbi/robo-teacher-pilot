@@ -21,6 +21,7 @@ def test_language_instructions_accept_typed_and_spoken_yoruba():
     selected = _language_instruction("Yoruba")
     assert "current Maths question is in English or Yorùbá" in automatic
     assert "If it is in Yorùbá, reply entirely" in automatic
+    assert "final-answer value as a Yorùbá number word" in automatic
     assert "may ask the Maths question in Yorùbá or English" in selected
     assert "reply entirely in clear, natural Yorùbá" in selected
 
