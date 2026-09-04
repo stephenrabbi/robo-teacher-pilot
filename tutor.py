@@ -60,6 +60,30 @@ _MAX_TURNS = 6
 _conversations: dict[str, list] = {}
 _client = None
 
+YORUBA_NUMBER_WORDS = {
+    0: "Òdo",
+    1: "Ọ̀kan",
+    2: "Èjì",
+    3: "Ẹ̀ta",
+    4: "Ẹ̀rin",
+    5: "Àrún",
+    6: "Ẹ̀fà",
+    7: "Èje",
+    8: "Ẹ̀jọ",
+    9: "Ẹ̀sán",
+    10: "Ẹ̀wá",
+    11: "Ọ̀kanlá",
+    12: "Èjìlá",
+    13: "Ẹ̀tàlá",
+    14: "Ẹ̀rìnlá",
+    15: "Ẹ̀ẹ́dógún",
+    16: "Ẹ̀rìndínlógún",
+    17: "Ẹ̀tàdínlógún",
+    18: "Èjìdínlógún",
+    19: "Ọ̀kàndínlógún",
+    20: "Ogún",
+}
+
 
 def _get_client():
     global _client
@@ -111,7 +135,7 @@ def _wants_teaching(message: str) -> bool:
     return any(cue in text for cue in cues)
 
 
-def _simple_arithmetic_answer(message: str):
+def _simple_arithmetic_answer(message: str, response_language: str = "English"):
     """Give deterministic answers only when the learner is asking for a short result.
 
     Explanatory requests deliberately go through the tutor model so Robo-Teacher
@@ -126,6 +150,9 @@ def _simple_arithmetic_answer(message: str):
     value = _safe_arithmetic(text)
     if value is None: return None
     if isinstance(value, float) and value.is_integer(): value = int(value)
+    if response_language == "Yoruba":
+        yoruba_value = YORUBA_NUMBER_WORDS.get(value, str(value))
+        return f"{message.strip()} = {value}\n\nÌdáhùn: {yoruba_value}"
     return f"{message.strip()} = {value}\n\nAnswer: {value}"
 
 
@@ -154,16 +181,14 @@ def _extract_text(response) -> str:
 
 def _language_instruction(response_language: str) -> str:
     if response_language == "Yoruba":
-        return "Reply entirely in clear, natural Yorùbá suitable for a Nigerian JSS2 learner. Keep mathematical symbols and numerals unchanged."
+        return "Reply entirely in clear, natural Yorùbá suitable for a Nigerian JSS2 learner. Keep mathematical symbols and numerals in the working, but write the final-answer value as a Yorùbá number word."
     return "Reply in clear English suitable for a Nigerian JSS2 learner."
 
 
 def get_tutor_reply(student_id: str, message: str, response_language: str = "English") -> tuple[str, float]:
     profile = _safe_profile_update(student_id, message)
-    deterministic = _simple_arithmetic_answer(message)
+    deterministic = _simple_arithmetic_answer(message, response_language)
     if deterministic is not None:
-        if response_language == "Yoruba":
-            deterministic = deterministic.replace("Answer:", "Ìdáhùn:")
         return deterministic, 0.0
     start = time.time()
     try:
