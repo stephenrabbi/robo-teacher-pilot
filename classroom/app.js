@@ -117,6 +117,48 @@ toggle.addEventListener('click',()=>{
 });
 
 const speechLocales={English:'en-NG',Yoruba:'yo-NG',Igbo:'ig-NG',Hausa:'ha-NG'};
+const voiceNameHints={
+  female:['female','woman','aria','ava','emma','jenny','libby','michelle','natasha','samantha','salli','sonia','zira'],
+  male:['male','man','alex','daniel','david','george','guy','james','mark','matthew','ryan']
+};
+
+function voiceGenderScore(voice,gender){
+  const name=voice.name.toLowerCase();
+  if(voiceNameHints[gender].some(hint=>name.includes(hint)))return 4;
+  const opposite=gender==='female'?'male':'female';
+  if(voiceNameHints[opposite].some(hint=>name.includes(hint)))return -8;
+  return 0;
+}
+
+function selectTeacherVoice(locale,gender){
+  const voices=window.speechSynthesis.getVoices();
+  if(!voices.length)return null;
+  const exact=locale.toLowerCase();const language=exact.split('-')[0];
+  const eligible=voices.filter(voice=>voiceGenderScore(voice,gender)>=0);
+  const candidates=eligible.length?eligible:voices.filter(voice=>voiceGenderScore(voice,gender)>0);
+  if(!candidates.length)return null;
+  return [...candidates].sort((a,b)=>{
+    const score=voice=>{
+      const voiceLocale=voice.lang.toLowerCase();const name=voice.name.toLowerCase();
+      return (voiceLocale===exact?30:voiceLocale.startsWith(`${language}-`)?22:0)
+        +voiceGenderScore(voice,gender)
+        +(name.includes('natural')||name.includes('neural')?8:0)
+        +(name.includes('google')||name.includes('microsoft')?3:0)
+        +(voice.default?1:0);
+    };
+    return score(b)-score(a);
+  })[0];
+}
+
+function prepareSpeechText(text){
+  return text
+    .replace(/\*\*/g,'')
+    .replace(/\s*\n+\s*/g,'. ')
+    .replace(/\s*([=:])\s*/g,' $1 ')
+    .replace(/\s+/g,' ')
+    .replace(/([A-Za-zÀ-ž0-9])$/u,'$1.')
+    .trim();
+}
 
 function setTeacherSpeaking(speaking){
   teacherPanel.classList.toggle('speaking',speaking);
@@ -128,9 +170,15 @@ function setTeacherSpeaking(speaking){
 function speakText(text){
   if(!('speechSynthesis' in window)||!text.trim())return;
   window.speechSynthesis.cancel();
-  const utterance=new SpeechSynthesisUtterance(text);
-  utterance.lang=speechLocales[language.value]||'en-NG';
-  utterance.rate=.92;
+  const locale=speechLocales[language.value]||'en-NG';
+  const gender=teacherPanel.dataset.voiceGender==='male'?'male':'female';
+  const utterance=new SpeechSynthesisUtterance(prepareSpeechText(text));
+  const selectedVoice=selectTeacherVoice(locale,gender);
+  utterance.lang=locale;
+  if(selectedVoice)utterance.voice=selectedVoice;
+  utterance.rate=.88;
+  utterance.pitch=gender==='female'?1.04:.96;
+  utterance.volume=1;
   utterance.onstart=()=>setTeacherSpeaking(true);
   utterance.onend=()=>setTeacherSpeaking(false);
   utterance.onerror=()=>setTeacherSpeaking(false);

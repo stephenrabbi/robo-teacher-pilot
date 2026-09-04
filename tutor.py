@@ -214,12 +214,16 @@ def _language_instruction(response_language: str) -> str:
         return (
             f"The learner may ask the Maths question in {language_name} or English. Understand both languages, "
             f"but reply entirely in clear, natural {language_name} suitable for a Nigerian JSS2 learner. "
+            "Write as a warm human teacher would speak: use complete sentences, natural punctuation, and short paragraphs. "
+            "Use commas and full stops to create clear pauses when the answer is read aloud. "
             "Keep mathematical symbols and numerals in the working, but write the final-answer value "
             f"as a {number_word_language} number word."
         )
     return (
         "Detect whether the learner's current Maths question is in English, Yorùbá, Igbo, or Hausa. "
         "Reply entirely in the language used in the question. When replying in Yorùbá, Igbo, or Hausa, "
+        "write as a warm human teacher would speak, using complete sentences, natural punctuation, and short paragraphs. "
+        "Use commas and full stops to create clear pauses when the answer is read aloud. "
         "keep mathematical symbols and numerals in the working, but write the final-answer value as a "
         "number word in that language. Use language suitable for a Nigerian JSS2 learner."
     )

@@ -18,7 +18,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260904-mobile1' in html
+    assert '20260904-voice2' in html
     assert 'id="readAnswer"' in html
     assert 'aria-expanded="true"' in html
     assert '@media(max-width:600px)' in css
@@ -27,6 +27,12 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert 'min-height:44px' in css
     assert "speechLocales={English:'en-NG',Yoruba:'yo-NG',Igbo:'ig-NG',Hausa:'ha-NG'}" in script
     assert 'speakText(data.reply)' in script
+    assert 'data-voice-gender="female"' in html
+    assert "female:['female','woman','aria'" in script
+    assert "male:['male','man','alex'" in script
+    assert 'selectTeacherVoice(locale,gender)' in script
+    assert 'prepareSpeechText(text)' in script
+    assert "utterance.rate=.88" in script
 
 
 def test_stable_anonymous_key_restores_progress_without_exposing_identity():
@@ -240,6 +246,8 @@ def test_language_instructions_accept_typed_and_spoken_yoruba():
     assert "write the final-answer value as a number word" in automatic
     assert "may ask the Maths question in Yorùbá or English" in selected
     assert "reply entirely in clear, natural Yorùbá" in selected
+    assert "natural punctuation" in selected
+    assert "clear pauses when the answer is read aloud" in selected
 
 
 def test_igbo_and_hausa_language_instructions_cover_text_and_voice():
