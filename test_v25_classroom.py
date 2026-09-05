@@ -18,7 +18,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260905-teacher2' in html
+    assert '20260905-teacher3' in html
     assert 'id="learnerNickname"' in html
     assert 'id="learnerClass"' in html
     assert "learnerNickname.value=''" in script
@@ -26,6 +26,9 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert 'id="showTeacherLogin"' in html
     assert 'id="teacherAccessKey" type="password"' in html
     assert 'id="changeLearner"' in html
+    assert 'id="teacherClass"' in html
+    assert 'id="downloadTeacherReport"' in html
+    assert 'downloadTeacherDashboardReport' in script
     assert 'Continue Learning →' in html
     assert 'id="weeklyImprovement"' in html
     assert "practiceRequest('progress',{class_level:learnerClass.value})" in script
@@ -218,6 +221,10 @@ def test_teacher_dashboard_returns_aggregates_without_identities():
     dashboard = practice_progress.build_teacher_dashboard('JSS2')
     assert dashboard['learners'] == 1
     assert dashboard['average_percentage'] == 80
+    assert dashboard['strongest_topic'] == 'Algebra'
+    assert dashboard['weakest_topic'] == 'Algebra'
+    assert dashboard['recommendation']
+    assert len(dashboard['weekly_trend']) == 6
     assert 'learner_id' not in dashboard
     assert 'recent_sessions' not in dashboard
 

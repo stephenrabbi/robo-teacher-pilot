@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Robo-Teacher Classroom</title>
-  <link rel="stylesheet" href="/classroom/styles.css?v=20260905-teacher2" />
+  <link rel="stylesheet" href="/classroom/styles.css?v=20260905-teacher3" />
 </head>
 <body>
   <main class="app-shell">
@@ -129,7 +129,7 @@
               <p id="progressStorageNotice" class="progress-storage hidden">Your latest result is visible now, but permanent storage is temporarily unavailable.</p>
             </div>
           </section>
-          <section id="teacherDashboard" class="progress-area hidden" aria-labelledby="teacherDashboardTitle"><div class="progress-heading"><div><p class="practice-kicker">TEACHER VIEW</p><h3 id="teacherDashboardTitle">Class performance</h3></div><button id="closeTeacherDashboard" type="button">Close</button></div><div id="teacherDashboardContent" class="teacher-dashboard-content"></div></section>
+          <section id="teacherDashboard" class="progress-area hidden" aria-labelledby="teacherDashboardTitle"><div class="progress-heading"><div><p class="practice-kicker">TEACHER VIEW</p><h3 id="teacherDashboardTitle">Class performance</h3></div><div class="teacher-dashboard-actions"><label>Class<select id="teacherClass"><option>JSS1</option><option selected>JSS2</option><option>JSS3</option></select></label><button id="downloadTeacherReport" type="button">Download report</button><button id="closeTeacherDashboard" type="button">Close</button></div></div><div id="teacherDashboardContent" class="teacher-dashboard-content"></div></section>
         </div>
         <div id="messages" class="messages" aria-live="polite">
           <div class="message teacher">Hello! I’m your Robo-Teacher. Ask me a Maths question and we’ll work through it together.</div>
@@ -148,6 +148,6 @@
       </section>
     </section>
   </main>
-  <script src="/classroom/app.js?v=20260905-teacher2"></script>
+  <script src="/classroom/app.js?v=20260905-teacher3"></script>
 </body>
 </html>

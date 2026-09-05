@@ -124,10 +124,20 @@ def get_all_records() -> tuple[list[dict], bool]:
     if _sheet_configured():
         try:
             rows = _get_worksheet().get_all_records()
-            learner_ids = {str(row.get("Learner ID", "")) for row in rows if row.get("Learner ID")}
             combined = []
-            for learner_id in learner_ids:
-                combined.extend(_sheet_records(learner_id))
+            for row in rows:
+                try:
+                    combined.append({
+                        "timestamp": str(row.get("Timestamp (UTC)", "")),
+                        "session_id": str(row.get("Session ID", "")),
+                        "learner_id": str(row.get("Learner ID", "")),
+                        "topic": str(row["Topic"]), "difficulty": str(row["Difficulty"]),
+                        "score": int(row["Score"]), "attempted": int(row["Questions"]),
+                        "percentage": int(row["Percentage"]),
+                        "class_level": str(row.get("Class Level", "JSS2") or "JSS2"),
+                    })
+                except (KeyError, TypeError, ValueError):
+                    continue
             known = {item["session_id"] for item in combined}
             combined.extend(item.copy() for item in _memory_records if item["session_id"] not in known)
             return combined, True
@@ -151,12 +161,47 @@ def build_teacher_dashboard(class_level: str = "JSS2") -> dict:
         if questions:
             topics.append({"topic": topic, "sessions": len(items), "questions": questions, "percentage": round(sum(item["score"] for item in items) / questions * 100)})
     topics.sort(key=lambda item: (item["percentage"], item["topic"]))
+    strongest = max(topics, key=lambda item: (item["percentage"], item["questions"])) if topics else None
+    weakest = min(topics, key=lambda item: (item["percentage"], -item["questions"])) if topics else None
+    weekly = _teacher_weekly_trend(records)
+    recommendation = _teacher_recommendation(weakest, attempted)
     return {
         "class_level": class_level, "learners": len(learners), "sessions": len(records),
         "questions": attempted, "average_percentage": round(correct / attempted * 100) if attempted else 0,
-        "focus_topic": topics[0]["topic"] if topics else None, "topics": topics,
+        "focus_topic": weakest["topic"] if weakest else None,
+        "strongest_topic": strongest["topic"] if strongest else None,
+        "weakest_topic": weakest["topic"] if weakest else None,
+        "recommendation": recommendation, "weekly_trend": weekly, "topics": topics,
         "storage_synced": synced,
     }
+
+
+def _teacher_recommendation(weakest: dict | None, attempted: int) -> str:
+    if not attempted:
+        return "Ask learners to complete a Practice Mode session before planning topic intervention."
+    if weakest["percentage"] < 50:
+        return f"Reteach {weakest['topic']} with worked examples, then assign an Easy practice session."
+    if weakest["percentage"] < 80:
+        return f"Review {weakest['topic']} in a small group and assign another practice session."
+    return f"The class is performing strongly. Extend {weakest['topic']} with Challenge questions."
+
+
+def _teacher_weekly_trend(records: list[dict], weeks: int = 6) -> list[dict]:
+    now = datetime.datetime.now(datetime.UTC)
+    this_week = (now - datetime.timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+    buckets = []
+    for offset in range(weeks - 1, -1, -1):
+        start = this_week - datetime.timedelta(weeks=offset)
+        end = start + datetime.timedelta(days=7)
+        items = []
+        for item in records:
+            try: stamp = datetime.datetime.fromisoformat(item["timestamp"].replace("Z", "+00:00"))
+            except (ValueError, TypeError): continue
+            if start <= stamp < end: items.append(item)
+        questions = sum(item["attempted"] for item in items)
+        correct = sum(item["score"] for item in items)
+        buckets.append({"week_start": start.date().isoformat(), "sessions": len(items), "questions": questions, "percentage": round(correct / questions * 100) if questions else None})
+    return buckets
 
 
 def build_dashboard(learner_id: str, class_level: str = "JSS2") -> dict:

@@ -344,6 +344,7 @@ Implemented on the draft staging branch:
 - **Continue Learning** routing to the recommended topic and difficulty
 - seven-day learner summaries with comparison against the previous week
 - access-key-protected teacher dashboard showing class aggregates without learner identities
+- Teacher Dashboard V2 with JSS class switching, strongest/weakest topics, six-week trends, teaching recommendations and privacy-safe CSV reports
 
 Before production release, V2.5 still requires broader learner testing, accessibility review, monitoring and a deliberate merge decision.
 

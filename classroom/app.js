@@ -92,6 +92,8 @@ const teacherDashboardButton=document.getElementById('teacherDashboardButton');
 const teacherDashboard=document.getElementById('teacherDashboard');
 const teacherDashboardContent=document.getElementById('teacherDashboardContent');
 const closeTeacherDashboard=document.getElementById('closeTeacherDashboard');
+const teacherClass=document.getElementById('teacherClass');
+const downloadTeacherReport=document.getElementById('downloadTeacherReport');
 let currentPractice=null;
 let currentPracticeSummary=null;
 let currentProgress=null;
@@ -108,6 +110,8 @@ let teacherStreamComplete=false;
 let drawing=false;
 let drawingTool='pen';
 let boardHasInk=false;
+let teacherDashboardAccessKey='';
+let currentTeacherDashboard=null;
 const boardContext=whiteboard.getContext('2d');
 const savedLanguage=localStorage.getItem('roboTeacherLanguage');
 if(['English','Yoruba','Igbo','Hausa'].includes(savedLanguage))language.value=savedLanguage;
@@ -163,7 +167,7 @@ openTeacherDashboardButton.addEventListener('click',async()=>{
   const accessKey=teacherAccessKey.value.trim();
   if(accessKey.length<16){teacherLoginError.textContent='Enter the private teacher access key.';teacherLoginError.classList.remove('hidden');teacherAccessKey.focus();return}
   teacherLoginError.classList.add('hidden');openTeacherDashboardButton.disabled=true;openTeacherDashboardButton.textContent='Opening…';
-  try{const data=await fetchTeacherDashboard(accessKey);welcome.classList.add('hidden');classroom.classList.remove('hidden');learnerIdentity.textContent=`TEACHER DASHBOARD · ${learnerClass.value}`;showTeacherDashboard(data)}
+  try{teacherClass.value=learnerClass.value;teacherDashboardAccessKey=accessKey;const data=await fetchTeacherDashboard(accessKey);welcome.classList.add('hidden');classroom.classList.remove('hidden');learnerIdentity.textContent=`TEACHER DASHBOARD · ${teacherClass.value}`;showTeacherDashboard(data)}
   catch(error){teacherLoginError.textContent=error.message;teacherLoginError.classList.remove('hidden');teacherAccessKey.focus()}
   finally{openTeacherDashboardButton.disabled=false;openTeacherDashboardButton.textContent='Open Dashboard →';teacherAccessKey.value=''}
 });
@@ -315,6 +319,8 @@ exitPracticeResultsButton.addEventListener('click',closePractice);
 progressButton.addEventListener('click',openProgress);
 teacherDashboardButton.addEventListener('click',openTeacherDashboard);
 closeTeacherDashboard.addEventListener('click',()=>{teacherDashboard.classList.add('hidden');canvasEmpty.classList.remove('hidden')});
+teacherClass.addEventListener('change',refreshTeacherDashboard);
+downloadTeacherReport.addEventListener('click',downloadTeacherDashboardReport);
 viewProgressFromResults.addEventListener('click',openProgress);
 closeProgressButton.addEventListener('click',closeProgress);
 emptyStartPractice.addEventListener('click',openPracticeFromProgress);
@@ -411,6 +417,7 @@ async function openProgress(){
 
 async function openTeacherDashboard(){
   const accessKey=window.prompt('Enter the private teacher access key.');if(!accessKey)return;
+  teacherDashboardAccessKey=accessKey;teacherClass.value=learnerClass.value;
   try{await loadTeacherDashboard(accessKey)}catch(error){teacherDashboardContent.textContent=error.message}
 }
 
@@ -420,18 +427,33 @@ async function loadTeacherDashboard(accessKey){
 }
 
 async function fetchTeacherDashboard(accessKey){
-  const response=await fetch('/api/classroom/teacher/dashboard',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({access_key:accessKey,class_level:learnerClass.value})});const data=await response.json();if(!response.ok)throw new Error(data.detail||'Teacher dashboard unavailable');return data
+  const response=await fetch('/api/classroom/teacher/dashboard',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({access_key:accessKey,class_level:teacherClass.value})});const data=await response.json();if(!response.ok)throw new Error(data.detail||'Teacher dashboard unavailable');return data
 }
 
 function showTeacherDashboard(data){
-  whiteboardArea.classList.add('hidden');practiceArea.classList.add('hidden');progressArea.classList.add('hidden');canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');teacherDashboard.classList.remove('hidden');renderTeacherDashboard(data)
+  currentTeacherDashboard=data;whiteboardArea.classList.add('hidden');practiceArea.classList.add('hidden');progressArea.classList.add('hidden');canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');teacherDashboard.classList.remove('hidden');renderTeacherDashboard(data)
 }
 
 function renderTeacherDashboard(data){
   teacherDashboardContent.replaceChildren();const stats=document.createElement('div');stats.className='progress-stats';
   [['Learners',data.learners],['Sessions',data.sessions],['Questions',data.questions],['Average',`${data.average_percentage}%`]].forEach(([label,value])=>{const card=document.createElement('article');const name=document.createElement('span');name.textContent=label;const score=document.createElement('strong');score.textContent=value;card.append(name,score);stats.appendChild(card)});
-  const note=document.createElement('p');note.className='teacher-privacy-note';note.textContent=`${data.class_level} aggregate only. No learner names or identifiers are displayed. Focus topic: ${data.focus_topic||'Complete more practice sessions'}.`;
-  const topics=document.createElement('div');topics.className='topic-progress';data.topics.forEach(item=>{const row=document.createElement('article');row.textContent=`${item.topic}: ${item.percentage}% across ${item.questions} questions`;topics.appendChild(row)});teacherDashboardContent.append(stats,note,topics);
+  const insight=document.createElement('div');insight.className='teacher-insights';
+  [['Strongest topic',data.strongest_topic||'Not enough data'],['Weakest topic',data.weakest_topic||'Not enough data']].forEach(([label,value])=>{const card=document.createElement('article');const name=document.createElement('span');name.textContent=label;const topic=document.createElement('strong');topic.textContent=value;card.append(name,topic);insight.appendChild(card)});
+  const recommendation=document.createElement('p');recommendation.className='teacher-recommendation';recommendation.textContent=data.recommendation;
+  const trend=document.createElement('section');trend.className='teacher-trend';const trendTitle=document.createElement('h4');trendTitle.textContent='Six-week performance trend';const bars=document.createElement('div');bars.className='teacher-trend-bars';
+  data.weekly_trend.forEach(item=>{const column=document.createElement('div');const value=document.createElement('strong');value.textContent=item.percentage===null?'—':`${item.percentage}%`;const bar=document.createElement('i');bar.style.height=`${Math.max(item.percentage||0,4)}%`;bar.title=`${item.sessions} sessions · ${item.questions} questions`;const label=document.createElement('span');label.textContent=new Date(`${item.week_start}T00:00:00`).toLocaleDateString(undefined,{day:'numeric',month:'short'});column.append(value,bar,label);bars.appendChild(column)});trend.append(trendTitle,bars);
+  const note=document.createElement('p');note.className='teacher-privacy-note';note.textContent=`${data.class_level} aggregate only. No learner names or identifiers are displayed.`;
+  const topics=document.createElement('section');topics.className='topic-progress';const topicTitle=document.createElement('h4');topicTitle.textContent='Topic performance';topics.appendChild(topicTitle);data.topics.forEach(item=>{const row=document.createElement('article');row.textContent=`${item.topic}: ${item.percentage}% across ${item.questions} questions`;topics.appendChild(row)});teacherDashboardContent.append(stats,insight,recommendation,trend,note,topics);
+}
+
+async function refreshTeacherDashboard(){
+  if(!teacherDashboardAccessKey)return;teacherDashboardContent.textContent=`Loading ${teacherClass.value} performance…`;learnerIdentity.textContent=`TEACHER DASHBOARD · ${teacherClass.value}`;
+  try{showTeacherDashboard(await fetchTeacherDashboard(teacherDashboardAccessKey))}catch(error){teacherDashboardContent.textContent=error.message}
+}
+
+function downloadTeacherDashboardReport(){
+  if(!currentTeacherDashboard)return;const data=currentTeacherDashboard;const rows=[['Robo-Teacher Privacy-Safe Class Report'],['Class',data.class_level],['Generated',new Date().toISOString()],[],['Learners',data.learners],['Sessions',data.sessions],['Questions',data.questions],['Average',`${data.average_percentage}%`],['Strongest topic',data.strongest_topic||'Not enough data'],['Weakest topic',data.weakest_topic||'Not enough data'],['Recommendation',data.recommendation],[],['Topic','Sessions','Questions','Percentage'],...data.topics.map(item=>[item.topic,item.sessions,item.questions,`${item.percentage}%`]),[],['Week starting','Sessions','Questions','Percentage'],...data.weekly_trend.map(item=>[item.week_start,item.sessions,item.questions,item.percentage===null?'':`${item.percentage}%`])];
+  const csv=rows.map(row=>row.map(value=>`"${String(value??'').replaceAll('"','""')}"`).join(',')).join('\r\n');const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));const link=document.createElement('a');link.href=url;link.download=`robo-teacher-${data.class_level.toLowerCase()}-class-report.csv`;link.click();URL.revokeObjectURL(url)
 }
 
 function renderProgress(data){
