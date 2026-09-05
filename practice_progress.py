@@ -35,6 +35,9 @@ def _get_worksheet():
             _worksheet = spreadsheet.worksheet("Practice Progress")
             headings = _worksheet.row_values(1)
             if "Class Level" not in headings:
+                current_columns = getattr(_worksheet, "col_count", len(headings))
+                if current_columns < len(_HEADER):
+                    _worksheet.add_cols(len(_HEADER) - current_columns)
                 _worksheet.update_cell(1, len(_HEADER), "Class Level")
         except gspread.WorksheetNotFound:
             _worksheet = spreadsheet.add_worksheet(

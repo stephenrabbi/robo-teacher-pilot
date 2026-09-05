@@ -229,6 +229,23 @@ def test_teacher_dashboard_returns_aggregates_without_identities():
     assert 'recent_sessions' not in dashboard
 
 
+def test_existing_eight_column_progress_sheet_is_extended_for_class_level():
+    class Worksheet:
+        col_count = 8
+        def row_values(self, row): return practice_progress._HEADER[:-1]
+        def add_cols(self, count): self.col_count += count
+        def update_cell(self, row, column, value): self.updated = (row, column, value)
+    worksheet = Worksheet()
+    spreadsheet = type('Spreadsheet', (), {'worksheet': lambda self, title: worksheet})()
+    client = type('Client', (), {'open_by_key': lambda self, key: spreadsheet})()
+    practice_progress._reset_for_tests()
+    practice_progress._client = client
+    with patch.dict('os.environ', {'GOOGLE_SHEET_ID': 'sheet', 'GOOGLE_SERVICE_ACCOUNT_JSON': '{}'}):
+        assert practice_progress._get_worksheet() is worksheet
+    assert worksheet.col_count == 9
+    assert worksheet.updated == (1, 9, 'Class Level')
+
+
 def test_classroom_session_accepts_a_safe_nickname_and_class_level():
     response = client.post('/api/classroom/session', json={
         'learner_key': 'c' * 48, 'nickname': 'Tobi', 'class_level': 'JSS1',
