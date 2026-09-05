@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from fractions import Fraction
 
 from practice_generator import generate_question
+from curriculum import CLASS_TOPICS
 
 
 QUESTION_BANK = {
@@ -164,21 +165,6 @@ QUESTION_BANK = {
     },
 }
 
-CLASS_TOPICS = {
-    "JSS1": (
-        "Whole Numbers", "Factors, Multiples & Roots", "Fractions",
-        "Decimals & Approximation", "Algebra", "Geometry & Mensuration",
-        "Statistics & Probability",
-    ),
-    "JSS2": tuple(QUESTION_BANK),
-    "JSS3": (
-        "Whole Numbers", "Directed Numbers", "Algebra", "Ratio & Percentage",
-        "Commercial Arithmetic", "Inequalities & Graphs",
-        "Geometry & Mensuration", "Statistics & Probability",
-    ),
-}
-
-
 @dataclass
 class PracticeState:
     topic: str
@@ -229,7 +215,10 @@ def _build_question_queue(topic: str, difficulty: str, count: int):
 
 
 def start_practice(student_id: str, topic: str, difficulty: str, question_count: int = 5, class_level: str = "JSS2") -> dict:
-    if class_level not in CLASS_TOPICS or topic not in CLASS_TOPICS[class_level] or difficulty not in QUESTION_BANK[topic]:
+    # Keep old JSS2 API clients working while the classroom UI exposes only the
+    # audited class-and-term curriculum.
+    legacy_jss2_topic = class_level == "JSS2" and topic in QUESTION_BANK
+    if class_level not in CLASS_TOPICS or (topic not in CLASS_TOPICS[class_level] and not legacy_jss2_topic) or difficulty not in {"Easy", "Medium", "Challenge"}:
         raise ValueError("Unsupported practice selection")
     if question_count not in {5, 10, 20}:
         raise ValueError("Unsupported question count")

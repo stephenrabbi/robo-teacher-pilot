@@ -160,6 +160,15 @@ The production tutor remains deliberately scoped to **JSS2 Basic Mathematics**, 
 
 The curriculum and pedagogical instructions are maintained in `tutor.py`.
 
+The V2.5 staging classroom extends Practice Mode across JSS1–JSS3. Its audited
+class and First/Second/Third Term mapping is maintained in `curriculum.py`, while
+`practice_generator.py` generates class-appropriate marked questions and worked
+explanations. Reference material used for the audit includes the official
+[NERDC JSS1–JSS3 curriculum index](https://www.nerdc.gov.ng/content_manager/jss1-3.html)
+and published Lagos unified scheme transcriptions for
+[JSS1 Mathematics](https://syllabus.ng/jss1-scheme-of-work/math/) and
+[JSS2 Mathematics](https://syllabus.ng/jss2-scheme-of-work/mathematics/).
+
 ## Data and Privacy
 
 Robo-Teacher uses **pseudonymization**, not a claim of full anonymity.
@@ -336,7 +345,9 @@ Implemented on the draft staging branch:
 - text, image/camera, voice and whiteboard tutoring
 - English, Yorùbá, Igbo and Hausa tutoring
 - curriculum-based Practice Mode with varied questions and worked feedback
-- visible JSS1, JSS2 and JSS3 Practice class selector with class-specific topic lists
+- visible JSS1, JSS2 and JSS3 Practice class selector with class- and term-specific topic lists
+- audited Junior Secondary Mathematics mapping based on the NERDC curriculum index and Lagos State unified scheme transcriptions
+- dedicated Practice generators for topics including binary numbers, bearings, scale drawing, simultaneous equations, trigonometry, construction, mensuration and pie charts
 - session results, missed-question review and learner progress dashboard
 - persistent, pseudonymous Practice Mode history in Google Sheets
 - privacy-safe nickname and JSS1–JSS3 learner onboarding

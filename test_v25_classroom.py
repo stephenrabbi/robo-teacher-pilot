@@ -219,14 +219,14 @@ def test_teacher_dashboard_returns_aggregates_without_identities():
     practice_progress._reset_for_tests()
     practice_progress._memory_records.append({
         'learner_id': 'WEB-private', 'class_level': 'JSS2', 'session_id': 'aggregate-1',
-        'topic': 'Algebra', 'difficulty': 'Easy', 'score': 4, 'attempted': 5,
+        'topic': 'Simple Equations', 'difficulty': 'Easy', 'score': 4, 'attempted': 5,
         'percentage': 80, 'timestamp': '2026-09-05T10:00:00+00:00',
     })
     dashboard = practice_progress.build_teacher_dashboard('JSS2')
     assert dashboard['learners'] == 1
     assert dashboard['average_percentage'] == 80
-    assert dashboard['strongest_topic'] == 'Algebra'
-    assert dashboard['weakest_topic'] == 'Algebra'
+    assert dashboard['strongest_topic'] == 'Simple Equations'
+    assert dashboard['weakest_topic'] == 'Simple Equations'
     assert dashboard['recommendation']
     assert len(dashboard['weekly_trend']) == 6
     assert 'learner_id' not in dashboard
@@ -263,31 +263,23 @@ def test_classroom_session_accepts_a_safe_nickname_and_class_level():
     assert unsafe.status_code == 422
 
 
-def test_practice_bank_covers_jss2_curriculum_strands():
-    expected_topics = {
-        'Whole Numbers', 'Fractions', 'Algebra', 'Ratio & Percentage',
-        'Factors, Multiples & Roots', 'Decimals & Approximation', 'Directed Numbers',
-        'Commercial Arithmetic', 'Inequalities & Graphs', 'Geometry & Mensuration',
-        'Statistics & Probability',
-    }
-    assert set(practice.QUESTION_BANK) == expected_topics
-    for levels in practice.QUESTION_BANK.values():
-        assert set(levels) == {'Easy', 'Medium', 'Challenge'}
-        assert all(len(questions) >= 2 for questions in levels.values())
-        assert all('Step 1:' in item[3] for questions in levels.values() for item in questions)
-
+def test_practice_options_expose_class_and_term_curriculum():
     options = client.get('/api/classroom/practice/options')
     assert options.status_code == 200
-    assert set(options.json()['topics']) == expected_topics
-    assert set(options.json()['topics_by_class']) == {'JSS1', 'JSS2', 'JSS3'}
-    assert set(options.json()['topics_by_class']['JSS2']) == expected_topics
+    data = options.json()
+    assert set(data['topics_by_class']) == {'JSS1', 'JSS2', 'JSS3'}
+    assert set(data['curriculum']['JSS1']) == {'First Term', 'Second Term', 'Third Term'}
+    assert 'Number Bases (Binary)' in data['curriculum']['JSS1']['Second Term']
+    assert 'Bearings & Distances' in data['curriculum']['JSS2']['Third Term']
+    assert 'Simultaneous Equations' in data['curriculum']['JSS3']['Second Term']
+    assert 'Trigonometry' in data['topics_by_class']['JSS3']
 
 
 def test_practice_topics_are_class_aware():
     assert 'Fractions' in practice.CLASS_TOPICS['JSS1']
     assert 'Directed Numbers' not in practice.CLASS_TOPICS['JSS1']
     assert 'Directed Numbers' in practice.CLASS_TOPICS['JSS2']
-    assert 'Inequalities & Graphs' in practice.CLASS_TOPICS['JSS3']
+    assert 'Simultaneous Equations' in practice.CLASS_TOPICS['JSS3']
     session = client.post('/api/classroom/session', json={
         'learner_key': 'd' * 48, 'nickname': 'Ada', 'class_level': 'JSS1',
     }).json()
@@ -305,8 +297,8 @@ def test_practice_topics_are_class_aware():
 
 
 def test_every_topic_and_level_can_build_twenty_unique_questions():
-    for topic, levels in practice.QUESTION_BANK.items():
-        for difficulty in levels:
+    for topic in {item for topics in practice.CLASS_TOPICS.values() for item in topics}:
+        for difficulty in ('Easy', 'Medium', 'Challenge'):
             questions = practice._build_question_queue(topic, difficulty, 20)
             assert len(questions) == 20, (topic, difficulty)
             assert len({item[0] for item in questions}) == 20, (topic, difficulty)

@@ -46,6 +46,7 @@ const practiceArea=document.getElementById('practiceArea');
 const practiceSetup=document.getElementById('practiceSetup');
 const practiceQuestion=document.getElementById('practiceQuestion');
 const practiceClass=document.getElementById('practiceClass');
+const practiceTerm=document.getElementById('practiceTerm');
 const practiceClassSummary=document.getElementById('practiceClassSummary');
 const practiceTopic=document.getElementById('practiceTopic');
 const practiceDifficulty=document.getElementById('practiceDifficulty');
@@ -121,18 +122,31 @@ if(['English','Yoruba','Igbo','Hausa'].includes(savedLanguage))language.value=sa
 // and reconnect when the same nickname and class are entered again.
 learnerNickname.value='';
 learnerClass.value='JSS2';
-const classTopics={
-  JSS1:['Whole Numbers','Factors, Multiples & Roots','Fractions','Decimals & Approximation','Algebra','Geometry & Mensuration','Statistics & Probability'],
-  JSS2:['Whole Numbers','Fractions','Algebra','Ratio & Percentage','Factors, Multiples & Roots','Decimals & Approximation','Directed Numbers','Commercial Arithmetic','Inequalities & Graphs','Geometry & Mensuration','Statistics & Probability'],
-  JSS3:['Whole Numbers','Directed Numbers','Algebra','Ratio & Percentage','Commercial Arithmetic','Inequalities & Graphs','Geometry & Mensuration','Statistics & Probability']
+const practiceCurriculum={
+  JSS1:{
+    'First Term':['Whole Numbers','Factors, Multiples, LCM & HCF','Fractions','Estimation'],
+    'Second Term':['Decimals & Approximation','Number Bases (Binary)','Positive & Negative Integers','Introductory Algebra'],
+    'Third Term':['Simple Equations','Plane Shapes & Mensuration','3D Shapes & Volume','Angles & Construction','Data Presentation','Mean, Median & Mode']
+  },
+  JSS2:{
+    'First Term':['Standard Form','Prime Factors, Squares & Roots','Fractions, Ratios, Decimals & Percentages','Commercial Arithmetic','Approximation','Directed Numbers','Algebraic Expressions & Factorisation','Algebraic Fractions'],
+    'Second Term':['Simple Equations','Linear Inequalities','Linear Graphs','Plane Shapes & Scale Drawing'],
+    'Third Term':['Angles & Polygons','Elevation & Depression','Bearings & Distances','Pythagoras & Mensuration','Statistics & Data Presentation','Probability']
+  },
+  JSS3:{
+    'First Term':['Number Bases','Rational & Irrational Numbers','Ratio, Proportion & Variation','Approximation','Factorisation & Quadratic Expressions','Formulae & Change of Subject'],
+    'Second Term':['Equations Involving Fractions','Simultaneous Equations','Similar Shapes','Trigonometry','Geometry & Construction'],
+    'Third Term':['Mensuration & Volumes','Statistics & Averages','Pie Charts','Commercial Arithmetic']
+  }
 };
+const classTopics=Object.fromEntries(Object.entries(practiceCurriculum).map(([level,terms])=>[level,Object.values(terms).flat()]));
 function updatePracticeTopics(){
-  const selectedClass=practiceClass.value;const previous=practiceTopic.value;practiceTopic.replaceChildren(...classTopics[selectedClass].map(topic=>{const option=document.createElement('option');option.textContent=topic;return option}));
-  if(classTopics[selectedClass].includes(previous))practiceTopic.value=previous;
-  practiceClassSummary.textContent=`Showing ${selectedClass} Mathematics topics (${classTopics[selectedClass].length} topic groups)`;
+  const selectedClass=practiceClass.value;const selectedTerm=practiceTerm.value;const previous=practiceTopic.value;const topics=practiceCurriculum[selectedClass][selectedTerm];practiceTopic.replaceChildren(...topics.map(topic=>{const option=document.createElement('option');option.textContent=topic;return option}));
+  if(topics.includes(previous))practiceTopic.value=previous;
+  practiceClassSummary.textContent=`Showing ${selectedClass} Mathematics · ${selectedTerm} (${topics.length} topics)`;
 }
 practiceClass.value=learnerClass.value;updatePracticeTopics();
-learnerClass.addEventListener('change',()=>{practiceClass.value=learnerClass.value;updatePracticeTopics()});practiceClass.addEventListener('change',updatePracticeTopics);
+learnerClass.addEventListener('change',()=>{practiceClass.value=learnerClass.value;practiceTerm.value='First Term';updatePracticeTopics()});practiceClass.addEventListener('change',()=>{practiceTerm.value='First Term';updatePracticeTopics()});practiceTerm.addEventListener('change',updatePracticeTopics);
 
 async function ensureSession(){
   if(sessionToken)return sessionToken;
@@ -491,7 +505,10 @@ function openPracticeFromProgress(){resetPracticeSetup();openPractice()}
 
 function openRecommendedPractice(){
   resetPracticeSetup();practiceClass.value=learnerClass.value;updatePracticeTopics();
-  if(currentProgress&&classTopics[learnerClass.value].includes(currentProgress.recommended_topic)){practiceTopic.value=currentProgress.recommended_topic;practiceDifficulty.value=currentProgress.recommended_difficulty}
+  if(currentProgress&&classTopics[learnerClass.value].includes(currentProgress.recommended_topic)){
+    const term=Object.entries(practiceCurriculum[learnerClass.value]).find(([,topics])=>topics.includes(currentProgress.recommended_topic));
+    if(term){practiceTerm.value=term[0];updatePracticeTopics();practiceTopic.value=currentProgress.recommended_topic}practiceDifficulty.value=currentProgress.recommended_difficulty
+  }
   openPractice();
 }
 

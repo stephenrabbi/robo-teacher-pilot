@@ -17,7 +17,8 @@ from typing import Literal
 from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
-from practice import CLASS_TOPICS, QUESTION_BANK, answer_practice, next_question, start_practice
+from curriculum import ALL_TOPICS, CLASS_TOPICS, CURRICULUM
+from practice import answer_practice, next_question, start_practice
 from practice_progress import build_dashboard, build_teacher_dashboard, save_result
 
 from tutor import (
@@ -69,12 +70,7 @@ class ClassroomSpeech(BaseModel):
 
 class PracticeStart(BaseModel):
     session_token: str = Field(min_length=20, max_length=300)
-    topic: Literal[
-        "Whole Numbers", "Fractions", "Algebra", "Ratio & Percentage",
-        "Factors, Multiples & Roots", "Decimals & Approximation", "Directed Numbers",
-        "Commercial Arithmetic", "Inequalities & Graphs", "Geometry & Mensuration",
-        "Statistics & Probability",
-    ]
+    topic: str = Field(min_length=2, max_length=80)
     difficulty: Literal["Easy", "Medium", "Challenge"]
     question_count: Literal[5, 10, 20] = 5
     class_level: Literal["JSS1", "JSS2", "JSS3"] = "JSS2"
@@ -158,8 +154,12 @@ def create_classroom_session(request: ClassroomSessionRequest | None = None):
 @router.get("/practice/options")
 def practice_options():
     return {
-        "topics": list(QUESTION_BANK),
+        "topics": list(ALL_TOPICS),
         "topics_by_class": {level: list(topics) for level, topics in CLASS_TOPICS.items()},
+        "curriculum": {
+            level: {term: list(topics) for term, topics in terms.items()}
+            for level, terms in CURRICULUM.items()
+        },
         "difficulties": ["Easy", "Medium", "Challenge"],
     }
 
@@ -245,7 +245,7 @@ def classroom_speech(speech: ClassroomSpeech):
     audio_stream = stream_tutor_speech(speech.text.strip(), speech.language, speech.voice_gender)
     return StreamingResponse(
         audio_stream,
-        media_type="audio/L16;rate=24000;channels=1",
+        media_type="audio/l16;rate=24000;channels=1",
         headers={"Cache-Control": "no-store", "X-Audio-Sample-Rate": "24000"},
     )
 

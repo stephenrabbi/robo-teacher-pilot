@@ -182,6 +182,8 @@ def build_teacher_dashboard(class_level: str = "JSS2") -> dict:
 def _teacher_recommendation(weakest: dict | None, attempted: int) -> str:
     if not attempted:
         return "Ask learners to complete a Practice Mode session before planning topic intervention."
+    if weakest is None:
+        return "Review the recorded topic results and assign another class-appropriate practice session."
     if weakest["percentage"] < 50:
         return f"Reteach {weakest['topic']} with worked examples, then assign an Easy practice session."
     if weakest["percentage"] < 80:
