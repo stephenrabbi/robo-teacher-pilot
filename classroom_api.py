@@ -200,7 +200,10 @@ def classroom_chat(question: ClassroomQuestion, request: Request):
 @router.post("/speech", response_class=StreamingResponse)
 def classroom_speech(speech: ClassroomSpeech):
     student_id = _verify_session(speech.session_token)
-    _enforce_rate_limit(student_id)
+    # Reading an answer aloud is a playback request, not a second tutor
+    # question. Keep it out of the question bucket so repeated voice lessons
+    # do not disable both the answer and its automatic narration.
+    _enforce_rate_limit(student_id, "speech", 30)
     audio_stream = stream_tutor_speech(speech.text.strip(), speech.language, speech.voice_gender)
     return StreamingResponse(
         audio_stream,

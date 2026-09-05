@@ -457,6 +457,8 @@ async function toggleRecording(){
     addMessage('Voice recording is not supported in this browser. Please type your question instead.','teacher');return;
   }
   try{
+    // A learner starting a new question always interrupts the current answer.
+    stopTeacherAudio();
     await ensureSession();
     micStream=await navigator.mediaDevices.getUserMedia({audio:true});recordedChunks=[];
     const preferred=['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus'];
@@ -492,7 +494,8 @@ async function finishRecording(){
     canvasWork.classList.add('text-only');problemPreview.hidden=true;
     backToWhiteboard.classList.add('hidden');
     showCanvasAnswer(data.reply,'Voice question explained');
-    speakText(data.reply);
+    // Start reading as soon as the written voice answer reaches the canvas.
+    void speakText(data.reply);
     thinking.textContent='I’ve placed the complete answer to your voice question on the Teaching Canvas.';
   }catch(err){
     const detail=err.message||'';
