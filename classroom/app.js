@@ -380,7 +380,7 @@ async function practiceRequest(path,body){
 
 async function startPracticeSession(){
   startPracticeButton.disabled=true;practiceAgainButton.disabled=true;startPracticeButton.textContent='Preparing…';
-  try{renderPracticeQuestion(await practiceRequest('start',{topic:practiceTopic.value,difficulty:practiceDifficulty.value,question_count:Number(practiceCount.value),class_level:practiceClass.value}))}
+  try{renderPracticeQuestion(await practiceRequest('start',{topic:practiceTopic.value,difficulty:practiceDifficulty.value,question_count:Number(practiceCount.value),class_level:practiceClass.value,language:language.value}))}
   catch(err){addMessage(err.message,'teacher')}
   finally{startPracticeButton.disabled=false;practiceAgainButton.disabled=false;startPracticeButton.textContent='Start Practice →'}
 }
@@ -395,7 +395,7 @@ async function submitPracticeAnswer(event){
   try{
     const result=await practiceRequest('answer',{answer});practiceAnswer.disabled=true;
     practiceScore.textContent=`Score: ${result.score}/${result.attempted} (${result.percentage}%)`;
-    practiceFeedback.textContent=result.correct?`${result.message}\n\n${result.explanation}`:`${result.message}\n\n${result.explanation}\n\nCorrect answer: ${result.expected_answer}`;
+    practiceFeedback.textContent=result.correct?`${result.message}\n\n${result.explanation}`:`${result.message}\n\n${result.explanation}\n\n${result.correct_answer_label}: ${result.expected_answer}`;
     practiceFeedback.className=`practice-feedback ${result.correct?'correct':'incorrect'}`;nextPracticeButton.classList.remove('hidden');showHintButton.disabled=true;
     if(result.completed){currentPracticeSummary=result.summary;nextPracticeButton.textContent='View Results →'}
   }catch(err){practiceFeedback.textContent=err.message;practiceFeedback.className='practice-feedback incorrect';checkButton.disabled=false}

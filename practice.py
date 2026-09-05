@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from fractions import Fraction
 
 from practice_generator import generate_question
+from practice_translation import PRACTICE_TEXT, translate_question_batch
 from curriculum import CLASS_TOPICS
 
 
@@ -170,6 +171,7 @@ class PracticeState:
     topic: str
     difficulty: str
     class_level: str
+    language: str
     question: str
     hint: str
     expected: str
@@ -214,7 +216,7 @@ def _build_question_queue(topic: str, difficulty: str, count: int):
     return questions
 
 
-def start_practice(student_id: str, topic: str, difficulty: str, question_count: int = 5, class_level: str = "JSS2") -> dict:
+def start_practice(student_id: str, topic: str, difficulty: str, question_count: int = 5, class_level: str = "JSS2", language: str = "English") -> dict:
     # Keep old JSS2 API clients working while the classroom UI exposes only the
     # audited class-and-term curriculum.
     legacy_jss2_topic = class_level == "JSS2" and topic in QUESTION_BANK
@@ -222,10 +224,11 @@ def start_practice(student_id: str, topic: str, difficulty: str, question_count:
         raise ValueError("Unsupported practice selection")
     if question_count not in {5, 10, 20}:
         raise ValueError("Unsupported question count")
-    questions = _build_question_queue(topic, difficulty, question_count)
+    language = language if language in PRACTICE_TEXT else "English"
+    questions = translate_question_batch(_build_question_queue(topic, difficulty, question_count), language)
     question, hint, expected, explanation = questions.pop(0)
     state = PracticeState(
-        topic, difficulty, class_level, question, hint, expected, explanation,
+        topic, difficulty, class_level, language, question, hint, expected, explanation,
         target_count=question_count, remaining_questions=questions,
     )
     _sessions[student_id] = state
@@ -266,8 +269,9 @@ def answer_practice(student_id: str, answer: str) -> dict:
     completed = state.attempted >= state.target_count
     result = {
         "correct": correct,
-        "message": secrets.choice(PRAISE_MESSAGES) if correct else "Good attempt. Let’s work through it step by step.",
+        "message": secrets.choice(PRACTICE_TEXT[state.language]["correct"]) if correct else PRACTICE_TEXT[state.language]["attempt"],
         "expected_answer": state.expected,
+        "correct_answer_label": PRACTICE_TEXT[state.language]["correct_answer"],
         "explanation": state.explanation,
         "score": state.correct,
         "attempted": state.attempted,
@@ -313,7 +317,21 @@ def _public_question(state: PracticeState) -> dict:
 
 def _summary(state: PracticeState) -> dict:
     percentage = round(state.correct / state.attempted * 100) if state.attempted else 0
-    if percentage >= 80:
+    if state.language != "English":
+        language_instruction = {
+            "Yoruba": "Ṣe àtúnyẹ̀wò àwọn ìbéèrè tí o kò rí, kí o sì tún ṣe ìdánwò náà.",
+            "Igbo": "Legharịa ajụjụ ndị ị na-azaghị nke ọma ma megharịa omume a.",
+            "Hausa": "Sake duba tambayoyin da ba ka amsa daidai ba, sannan ka sake gwadawa.",
+        }[state.language]
+        if percentage >= 80:
+            recommendation = {
+                "Yoruba": f"O ṣe dáadáa ní {state.topic}. Gbìyànjú ipele tó kàn.",
+                "Igbo": f"Ị mere nke ọma na {state.topic}. Gbalịa ọkwa na-esote.",
+                "Hausa": f"Ka yi kyau a {state.topic}. Gwada mataki na gaba.",
+            }[state.language]
+        else:
+            recommendation = language_instruction
+    elif percentage >= 80:
         recommendation = f"Strong work in {state.topic}. Try the next difficulty level when you are ready."
     elif percentage >= 50:
         recommendation = f"You are making progress in {state.topic}. Review the missed questions and practise once more."

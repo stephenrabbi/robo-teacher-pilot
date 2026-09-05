@@ -432,6 +432,25 @@ def test_incorrect_practice_answer_returns_teaching_steps():
     assert 'Step 2:' in data['explanation']
 
 
+def test_practice_mode_uses_selected_language_without_changing_marking():
+    session = client.post('/api/classroom/session').json()
+    english = ("What is 2 + 3?", "Add the numbers.", "5", "Step 1: Add 2 and 3.\nTherefore, the answer is 5.")
+    yoruba = ("Kí ni 2 + 3?", "Da àwọn nọ́mbà náà pọ̀.", "5", "Ìgbésẹ̀ 1: Da 2 àti 3 pọ̀.\nNítorí náà, ìdáhùn jẹ́ 5.")
+    with patch.object(practice, '_build_question_queue', return_value=[english] * 5), patch.object(practice, 'translate_question_batch', return_value=[yoruba] * 5) as translated:
+        started = client.post('/api/classroom/practice/start', json={
+            'session_token': session['session_token'], 'topic': 'Standard Form',
+            'class_level': 'JSS2', 'difficulty': 'Easy', 'language': 'Yoruba',
+        })
+        marked = client.post('/api/classroom/practice/answer', json={
+            'session_token': session['session_token'], 'answer': '5',
+        })
+    assert started.json()['question'] == yoruba[0]
+    assert translated.call_args.args[1] == 'Yoruba'
+    assert marked.json()['correct'] is True
+    assert marked.json()['correct_answer_label'] == 'Ìdáhùn tó tọ́'
+    assert marked.json()['message'] in practice.PRACTICE_TEXT['Yoruba']['correct']
+
+
 def test_yoruba_deterministic_answer_uses_yoruba_number_word():
     reply, latency = get_tutor_reply("WEB-language-test", "2*3", "Yoruba")
     assert reply == "2*3 = 6\n\nÌdáhùn: Ẹ̀fà"

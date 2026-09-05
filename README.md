@@ -348,6 +348,8 @@ Implemented on the draft staging branch:
 - visible JSS1, JSS2 and JSS3 Practice class selector with class- and term-specific topic lists
 - audited Junior Secondary Mathematics mapping based on the NERDC curriculum index and Lagos State unified scheme transcriptions
 - dedicated Practice generators for topics including binary numbers, bearings, scale drawing, simultaneous equations, trigonometry, construction, mensuration and pie charts
+- multilingual Practice sessions in English, simple conversational Yorùbá, Igbo and Hausa, including translated questions, hints, praise, corrections, worked explanations and session recommendations
+- single-request session translation that preserves the original answer key and mathematical notation for reliable marking
 - session results, missed-question review and learner progress dashboard
 - persistent, pseudonymous Practice Mode history in Google Sheets
 - privacy-safe nickname and JSS1–JSS3 learner onboarding

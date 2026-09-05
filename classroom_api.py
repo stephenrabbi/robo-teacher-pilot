@@ -74,6 +74,7 @@ class PracticeStart(BaseModel):
     difficulty: Literal["Easy", "Medium", "Challenge"]
     question_count: Literal[5, 10, 20] = 5
     class_level: Literal["JSS1", "JSS2", "JSS3"] = "JSS2"
+    language: SupportedLanguage = "English"
 
 
 class PracticeAnswer(BaseModel):
@@ -169,7 +170,7 @@ def classroom_practice_start(selection: PracticeStart):
     student_id = _verify_session(selection.session_token)
     _enforce_rate_limit(student_id, "practice", 120)
     try:
-        return start_practice(student_id, selection.topic, selection.difficulty, selection.question_count, selection.class_level)
+        return start_practice(student_id, selection.topic, selection.difficulty, selection.question_count, selection.class_level, selection.language)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail="Choose a supported topic and difficulty") from exc
 
