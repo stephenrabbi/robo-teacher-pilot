@@ -88,6 +88,7 @@ const weeklyQuestions=document.getElementById('weeklyQuestions');
 const weeklyScore=document.getElementById('weeklyScore');
 const weeklyImprovement=document.getElementById('weeklyImprovement');
 const practiceRecommendation=document.getElementById('practiceRecommendation');
+const learningPath=document.getElementById('learningPath');
 const progressTopics=document.getElementById('progressTopics');
 const recentSessions=document.getElementById('recentSessions');
 const progressStorageNotice=document.getElementById('progressStorageNotice');
@@ -343,6 +344,7 @@ viewProgressFromResults.addEventListener('click',openProgress);
 closeProgressButton.addEventListener('click',closeProgress);
 emptyStartPractice.addEventListener('click',openPracticeFromProgress);
 practiceRecommendation.addEventListener('click',openRecommendedPractice);
+learningPath.addEventListener('click',event=>{const button=event.target.closest('button[data-topic]');if(button)openLearningPathTopic(button.dataset.term,button.dataset.topic)});
 
 function openPractice(){
   whiteboardArea.classList.add('hidden');progressArea.classList.add('hidden');canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');practiceArea.classList.remove('hidden');
@@ -481,7 +483,7 @@ function renderProgress(data){
   progressAverage.textContent=`${data.average_percentage}%`;progressStrongest.textContent=data.strongest_topic||'—';progressRecommendation.textContent=data.recommendation;
   const week=data.weekly_summary;weeklySessions.textContent=`${week.sessions} session${week.sessions===1?'':'s'}`;weeklyQuestions.textContent=`${week.questions} question${week.questions===1?'':'s'}`;weeklyScore.textContent=`${week.percentage}%`;
   weeklyImprovement.textContent=week.improvement_points===null?'Complete another week to measure improvement.':week.improvement_points>0?`Improved by ${week.improvement_points} percentage points.`:week.improvement_points<0?`Down ${Math.abs(week.improvement_points)} points—review the recommended topic.`:'Your score is steady compared with last week.';
-  progressStorageNotice.classList.toggle('hidden',data.storage_synced);progressTopics.replaceChildren();recentSessions.replaceChildren();
+  progressStorageNotice.classList.toggle('hidden',data.storage_synced);progressTopics.replaceChildren();recentSessions.replaceChildren();renderLearningPath(data.learning_path||[]);
   data.topics.forEach(item=>{
     const row=document.createElement('article');const label=document.createElement('div');const name=document.createElement('strong');const score=document.createElement('span');
     name.textContent=item.topic;score.textContent=`${item.percentage}% · ${item.correct}/${item.attempted}`;label.append(name,score);
@@ -510,6 +512,18 @@ function openRecommendedPractice(){
     if(selectedTerm){practiceTerm.value=selectedTerm;updatePracticeTopics();practiceTopic.value=currentProgress.recommended_topic}practiceDifficulty.value=currentProgress.recommended_difficulty
   }
   openPractice();
+}
+
+function openLearningPathTopic(term,topic){
+  resetPracticeSetup();practiceClass.value=learnerClass.value;practiceTerm.value=term;updatePracticeTopics();practiceTopic.value=topic;
+  practiceDifficulty.value=currentProgress&&currentProgress.recommended_topic===topic?currentProgress.recommended_difficulty:'Easy';openPractice();
+}
+
+function renderLearningPath(terms){
+  learningPath.replaceChildren();const labels={not_started:'Not started',needs_practice:'Needs practice',mastered:'Mastered',recommended:'Recommended next'};
+  terms.forEach(term=>{const section=document.createElement('section');const heading=document.createElement('h5');heading.textContent=term.term;const topics=document.createElement('div');topics.className='learning-path-topics';
+    term.topics.forEach(item=>{const card=document.createElement('article');card.className=`learning-path-topic ${item.status.replace('_','-')}`;const copy=document.createElement('div');const name=document.createElement('strong');name.textContent=item.topic;const detail=document.createElement('span');detail.textContent=item.percentage===null?labels[item.status]:`${labels[item.status]} · ${item.percentage}%`;copy.append(name,detail);const button=document.createElement('button');button.type='button';button.dataset.term=term.term;button.dataset.topic=item.topic;button.textContent=item.status==='recommended'?'Continue →':item.status==='not_started'?'Start':'Practise';button.setAttribute('aria-label',`${button.textContent.replace(' →','')} ${item.topic}`);card.append(copy,button);topics.appendChild(card)});
+    section.append(heading,topics);learningPath.appendChild(section)});
 }
 
 function clearWhiteboard(){

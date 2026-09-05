@@ -178,6 +178,8 @@ def test_stable_anonymous_key_restores_progress_without_exposing_identity():
     }).json()
     assert empty['sessions'] == 0
     assert empty['recent_sessions'] == []
+    assert [term['term'] for term in empty['learning_path']] == ['First Term', 'Second Term', 'Third Term']
+    assert empty['learning_path'][0]['topics'][0]['status'] == 'recommended'
 
 
 def test_progress_is_class_aware_and_adjusts_repeated_performance():
@@ -215,6 +217,9 @@ def test_consistent_success_moves_the_learner_up_one_level():
         })
     dashboard = practice_progress.build_dashboard('WEB-strong', 'JSS1')
     assert dashboard['recommended_difficulty'] == 'Medium'
+    fraction = next(item for term in dashboard['learning_path'] for item in term['topics'] if item['topic'] == 'Fractions')
+    assert fraction['status'] == 'recommended'
+    assert fraction['percentage'] == 100
 
 
 def test_teacher_dashboard_returns_aggregates_without_identities():

@@ -287,6 +287,23 @@ def build_dashboard(learner_id: str, class_level: str = "JSS2") -> dict:
         records, recommended_topic, recommended_term, recommended_difficulty,
         recommendation_reason,
     )
+    scores_by_topic = {row["topic"]: row for row in topic_rows}
+    learning_path = []
+    for term in ("First Term", "Second Term", "Third Term"):
+        path_topics = []
+        for topic in (item for item in CLASS_TOPICS[class_level] if TOPIC_TERM[class_level][item] == term):
+            result = scores_by_topic.get(topic)
+            status = "not_started"
+            if result:
+                status = "mastered" if result["percentage"] >= 80 else "needs_practice"
+            if topic == recommended_topic:
+                status = "recommended"
+            path_topics.append({
+                "topic": topic, "status": status,
+                "percentage": result["percentage"] if result else None,
+                "sessions": result["sessions"] if result else 0,
+            })
+        learning_path.append({"term": term, "topics": path_topics})
     weekly = _weekly_summary(records)
     return {
         "class_level": class_level,
@@ -303,6 +320,7 @@ def build_dashboard(learner_id: str, class_level: str = "JSS2") -> dict:
         "recommended_term": recommended_term,
         "recommended_difficulty": recommended_difficulty,
         "recommendation_reason": recommendation_reason,
+        "learning_path": learning_path,
         "weekly_summary": weekly,
         "storage_synced": synced,
     }

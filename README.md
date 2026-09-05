@@ -355,6 +355,8 @@ Implemented on the draft staging branch:
 - class-filtered recommendations with automatic Easy, Medium and Challenge adjustment
 - term-aware recommendations that strengthen weak topics, increase difficulty after consistent success, and advance to the next curriculum topic after mastery
 - **Continue Learning** routing to the recommended class, term, topic and difficulty
+- visible **My Learning Path** organised by term, with Mastered, Needs practice, Recommended next and Not started topic states
+- one-click practice access from every topic in the learner's path
 - non-destructive mapping of earlier V2.5 JSS2 progress labels into the audited curriculum
 - seven-day learner summaries with comparison against the previous week
 - access-key-protected teacher dashboard showing class aggregates without learner identities
