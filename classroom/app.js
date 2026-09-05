@@ -163,8 +163,8 @@ openTeacherDashboardButton.addEventListener('click',async()=>{
   const accessKey=teacherAccessKey.value.trim();
   if(accessKey.length<16){teacherLoginError.textContent='Enter the private teacher access key.';teacherLoginError.classList.remove('hidden');teacherAccessKey.focus();return}
   teacherLoginError.classList.add('hidden');openTeacherDashboardButton.disabled=true;openTeacherDashboardButton.textContent='Opening…';
-  try{welcome.classList.add('hidden');classroom.classList.remove('hidden');learnerIdentity.textContent=`TEACHER DASHBOARD · ${learnerClass.value}`;await loadTeacherDashboard(accessKey)}
-  catch(error){classroom.classList.add('hidden');welcome.classList.remove('hidden');teacherLoginError.textContent=error.message;teacherLoginError.classList.remove('hidden')}
+  try{const data=await fetchTeacherDashboard(accessKey);welcome.classList.add('hidden');classroom.classList.remove('hidden');learnerIdentity.textContent=`TEACHER DASHBOARD · ${learnerClass.value}`;showTeacherDashboard(data)}
+  catch(error){teacherLoginError.textContent=error.message;teacherLoginError.classList.remove('hidden');teacherAccessKey.focus()}
   finally{openTeacherDashboardButton.disabled=false;openTeacherDashboardButton.textContent='Open Dashboard →';teacherAccessKey.value=''}
 });
 teacherAccessKey.addEventListener('keydown',event=>{if(event.key==='Enter')openTeacherDashboardButton.click()});
@@ -416,7 +416,15 @@ async function openTeacherDashboard(){
 
 async function loadTeacherDashboard(accessKey){
   whiteboardArea.classList.add('hidden');practiceArea.classList.add('hidden');progressArea.classList.add('hidden');canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');teacherDashboard.classList.remove('hidden');teacherDashboardContent.textContent='Loading class performance…';
-  const response=await fetch('/api/classroom/teacher/dashboard',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({access_key:accessKey,class_level:learnerClass.value})});const data=await response.json();if(!response.ok)throw new Error(data.detail||'Teacher dashboard unavailable');renderTeacherDashboard(data)
+  showTeacherDashboard(await fetchTeacherDashboard(accessKey))
+}
+
+async function fetchTeacherDashboard(accessKey){
+  const response=await fetch('/api/classroom/teacher/dashboard',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({access_key:accessKey,class_level:learnerClass.value})});const data=await response.json();if(!response.ok)throw new Error(data.detail||'Teacher dashboard unavailable');return data
+}
+
+function showTeacherDashboard(data){
+  whiteboardArea.classList.add('hidden');practiceArea.classList.add('hidden');progressArea.classList.add('hidden');canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');teacherDashboard.classList.remove('hidden');renderTeacherDashboard(data)
 }
 
 function renderTeacherDashboard(data){
