@@ -119,6 +119,46 @@ def get_records(learner_id: str) -> tuple[list[dict], bool]:
         return [item.copy() for item in _memory_records if item["learner_id"] == learner_id], False
 
 
+def get_all_records() -> tuple[list[dict], bool]:
+    """Load aggregate source data without returning identities to the caller."""
+    if _sheet_configured():
+        try:
+            rows = _get_worksheet().get_all_records()
+            learner_ids = {str(row.get("Learner ID", "")) for row in rows if row.get("Learner ID")}
+            combined = []
+            for learner_id in learner_ids:
+                combined.extend(_sheet_records(learner_id))
+            known = {item["session_id"] for item in combined}
+            combined.extend(item.copy() for item in _memory_records if item["session_id"] not in known)
+            return combined, True
+        except Exception as exc:
+            print(f"[practice_progress] WARNING: failed to load aggregate progress: {type(exc).__name__}")
+    with _lock:
+        return [item.copy() for item in _memory_records], False
+
+
+def build_teacher_dashboard(class_level: str = "JSS2") -> dict:
+    records, synced = get_all_records()
+    class_level = class_level if class_level in CLASS_TOPICS else "JSS2"
+    records = [item for item in records if item.get("class_level", "JSS2") == class_level]
+    learners = {item["learner_id"] for item in records}
+    attempted = sum(item["attempted"] for item in records)
+    correct = sum(item["score"] for item in records)
+    topics = []
+    for topic in CLASS_TOPICS[class_level]:
+        items = [item for item in records if item["topic"] == topic]
+        questions = sum(item["attempted"] for item in items)
+        if questions:
+            topics.append({"topic": topic, "sessions": len(items), "questions": questions, "percentage": round(sum(item["score"] for item in items) / questions * 100)})
+    topics.sort(key=lambda item: (item["percentage"], item["topic"]))
+    return {
+        "class_level": class_level, "learners": len(learners), "sessions": len(records),
+        "questions": attempted, "average_percentage": round(correct / attempted * 100) if attempted else 0,
+        "focus_topic": topics[0]["topic"] if topics else None, "topics": topics,
+        "storage_synced": synced,
+    }
+
+
 def build_dashboard(learner_id: str, class_level: str = "JSS2") -> dict:
     records, synced = get_records(learner_id)
     class_level = class_level if class_level in CLASS_TOPICS else "JSS2"

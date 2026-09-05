@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Robo-Teacher Classroom</title>
-  <link rel="stylesheet" href="/classroom/styles.css?v=20260905-path1" />
+  <link rel="stylesheet" href="/classroom/styles.css?v=20260905-teacher1" />
 </head>
 <body>
   <main class="app-shell">
@@ -123,6 +123,7 @@
               <p id="progressStorageNotice" class="progress-storage hidden">Your latest result is visible now, but permanent storage is temporarily unavailable.</p>
             </div>
           </section>
+          <section id="teacherDashboard" class="progress-area hidden" aria-labelledby="teacherDashboardTitle"><div class="progress-heading"><div><p class="practice-kicker">TEACHER VIEW</p><h3 id="teacherDashboardTitle">Class performance</h3></div><button id="closeTeacherDashboard" type="button">Close</button></div><div id="teacherDashboardContent" class="teacher-dashboard-content"></div></section>
         </div>
         <div id="messages" class="messages" aria-live="polite">
           <div class="message teacher">Hello! I’m your Robo-Teacher. Ask me a Maths question and we’ll work through it together.</div>
@@ -136,11 +137,11 @@
           <button type="submit" class="send">Send</button>
         </form>
         <nav class="class-tools" aria-label="Classroom tools">
-          <button type="button">💬 Chat</button><button id="practiceButton" type="button">🧠 Practice</button><button id="progressButton" type="button">📈 Progress</button><button id="cameraButton" type="button">📷 Camera</button><button id="navMicButton" type="button">🎙 Mic</button><button id="whiteboardButton" type="button">▣ Whiteboard</button><button id="languageButton" type="button">🌐 Language</button>
+          <button type="button">💬 Chat</button><button id="practiceButton" type="button">🧠 Practice</button><button id="progressButton" type="button">📈 Progress</button><button id="teacherDashboardButton" type="button">📊 Teacher</button><button id="cameraButton" type="button">📷 Camera</button><button id="navMicButton" type="button">🎙 Mic</button><button id="whiteboardButton" type="button">▣ Whiteboard</button><button id="languageButton" type="button">🌐 Language</button>
         </nav>
       </section>
     </section>
   </main>
-  <script src="/classroom/app.js?v=20260905-path1"></script>
+  <script src="/classroom/app.js?v=20260905-teacher1"></script>
 </body>
 </html>

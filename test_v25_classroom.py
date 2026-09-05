@@ -18,7 +18,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260905-path1' in html
+    assert '20260905-teacher1' in html
     assert 'id="learnerNickname"' in html
     assert 'id="learnerClass"' in html
     assert "localStorage.setItem('roboTeacherNickname',nickname)" in script
@@ -26,6 +26,8 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert 'Continue Learning →' in html
     assert 'id="weeklyImprovement"' in html
     assert "practiceRequest('progress',{class_level:learnerClass.value})" in script
+    assert 'id="teacherDashboardButton"' in html
+    assert "fetch('/api/classroom/teacher/dashboard'" in script
     assert 'id="readAnswer"' in html
     assert 'aria-expanded="true"' in html
     assert '@media(max-width:600px)' in css
@@ -201,6 +203,20 @@ def test_consistent_success_moves_the_learner_up_one_level():
         })
     dashboard = practice_progress.build_dashboard('WEB-strong', 'JSS1')
     assert dashboard['recommended_difficulty'] == 'Medium'
+
+
+def test_teacher_dashboard_returns_aggregates_without_identities():
+    practice_progress._reset_for_tests()
+    practice_progress._memory_records.append({
+        'learner_id': 'WEB-private', 'class_level': 'JSS2', 'session_id': 'aggregate-1',
+        'topic': 'Algebra', 'difficulty': 'Easy', 'score': 4, 'attempted': 5,
+        'percentage': 80, 'timestamp': '2026-09-05T10:00:00+00:00',
+    })
+    dashboard = practice_progress.build_teacher_dashboard('JSS2')
+    assert dashboard['learners'] == 1
+    assert dashboard['average_percentage'] == 80
+    assert 'learner_id' not in dashboard
+    assert 'recent_sessions' not in dashboard
 
 
 def test_classroom_session_accepts_a_safe_nickname_and_class_level():

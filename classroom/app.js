@@ -82,6 +82,10 @@ const practiceRecommendation=document.getElementById('practiceRecommendation');
 const progressTopics=document.getElementById('progressTopics');
 const recentSessions=document.getElementById('recentSessions');
 const progressStorageNotice=document.getElementById('progressStorageNotice');
+const teacherDashboardButton=document.getElementById('teacherDashboardButton');
+const teacherDashboard=document.getElementById('teacherDashboard');
+const teacherDashboardContent=document.getElementById('teacherDashboardContent');
+const closeTeacherDashboard=document.getElementById('closeTeacherDashboard');
 let currentPractice=null;
 let currentPracticeSummary=null;
 let currentProgress=null;
@@ -283,6 +287,8 @@ practiceAgainButton.addEventListener('click',startPracticeSession);
 changePracticeTopicButton.addEventListener('click',resetPracticeSetup);
 exitPracticeResultsButton.addEventListener('click',closePractice);
 progressButton.addEventListener('click',openProgress);
+teacherDashboardButton.addEventListener('click',openTeacherDashboard);
+closeTeacherDashboard.addEventListener('click',()=>{teacherDashboard.classList.add('hidden');canvasEmpty.classList.remove('hidden')});
 viewProgressFromResults.addEventListener('click',openProgress);
 closeProgressButton.addEventListener('click',closeProgress);
 emptyStartPractice.addEventListener('click',openPracticeFromProgress);
@@ -371,10 +377,24 @@ function renderPracticeResults(summary){
 }
 
 async function openProgress(){
-  whiteboardArea.classList.add('hidden');practiceArea.classList.add('hidden');canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');progressArea.classList.remove('hidden');
+  whiteboardArea.classList.add('hidden');practiceArea.classList.add('hidden');teacherDashboard.classList.add('hidden');canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');progressArea.classList.remove('hidden');
   progressLoading.classList.remove('hidden');progressEmpty.classList.add('hidden');progressDashboard.classList.add('hidden');
   try{currentProgress=await practiceRequest('progress',{class_level:learnerClass.value});renderProgress(currentProgress)}
   catch(error){progressLoading.textContent=error.message;progressLoading.classList.add('error')}
+}
+
+async function openTeacherDashboard(){
+  const accessKey=window.prompt('Enter the private teacher access key.');if(!accessKey)return;
+  whiteboardArea.classList.add('hidden');practiceArea.classList.add('hidden');progressArea.classList.add('hidden');canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');teacherDashboard.classList.remove('hidden');teacherDashboardContent.textContent='Loading class performance…';
+  try{const response=await fetch('/api/classroom/teacher/dashboard',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({access_key:accessKey,class_level:learnerClass.value})});const data=await response.json();if(!response.ok)throw new Error(data.detail||'Teacher dashboard unavailable');renderTeacherDashboard(data)}
+  catch(error){teacherDashboardContent.textContent=error.message}
+}
+
+function renderTeacherDashboard(data){
+  teacherDashboardContent.replaceChildren();const stats=document.createElement('div');stats.className='progress-stats';
+  [['Learners',data.learners],['Sessions',data.sessions],['Questions',data.questions],['Average',`${data.average_percentage}%`]].forEach(([label,value])=>{const card=document.createElement('article');const name=document.createElement('span');name.textContent=label;const score=document.createElement('strong');score.textContent=value;card.append(name,score);stats.appendChild(card)});
+  const note=document.createElement('p');note.className='teacher-privacy-note';note.textContent=`${data.class_level} aggregate only. No learner names or identifiers are displayed. Focus topic: ${data.focus_topic||'Complete more practice sessions'}.`;
+  const topics=document.createElement('div');topics.className='topic-progress';data.topics.forEach(item=>{const row=document.createElement('article');row.textContent=`${item.topic}: ${item.percentage}% across ${item.questions} questions`;topics.appendChild(row)});teacherDashboardContent.append(stats,note,topics);
 }
 
 function renderProgress(data){

@@ -18,7 +18,7 @@ from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, Reque
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from practice import CLASS_TOPICS, QUESTION_BANK, answer_practice, next_question, start_practice
-from practice_progress import build_dashboard, save_result
+from practice_progress import build_dashboard, build_teacher_dashboard, save_result
 
 from tutor import (
     MAX_AUDIO_BYTES,
@@ -90,6 +90,11 @@ class PracticeNext(BaseModel):
 
 
 class PracticeProgress(PracticeNext):
+    class_level: Literal["JSS1", "JSS2", "JSS3"] = "JSS2"
+
+
+class TeacherDashboardRequest(BaseModel):
+    access_key: str = Field(min_length=16, max_length=200)
     class_level: Literal["JSS1", "JSS2", "JSS3"] = "JSS2"
 
 
@@ -202,6 +207,16 @@ def classroom_practice_progress(request: PracticeProgress):
     student_id = _verify_session(request.session_token)
     _enforce_rate_limit(student_id, "practice-progress", 30)
     return build_dashboard(student_id, request.class_level)
+
+
+@router.post("/teacher/dashboard")
+def classroom_teacher_dashboard(request: TeacherDashboardRequest):
+    configured = os.getenv("TEACHER_DASHBOARD_KEY", "")
+    if len(configured) < 16:
+        raise HTTPException(status_code=503, detail="Teacher dashboard access is not configured")
+    if not hmac.compare_digest(request.access_key, configured):
+        raise HTTPException(status_code=403, detail="Incorrect teacher access key")
+    return build_teacher_dashboard(request.class_level)
 
 
 @router.post("/chat")
