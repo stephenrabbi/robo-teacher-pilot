@@ -336,6 +336,7 @@ Implemented on the draft staging branch:
 - text, image/camera, voice and whiteboard tutoring
 - English, Yorùbá, Igbo and Hausa tutoring
 - curriculum-based Practice Mode with varied questions and worked feedback
+- visible JSS1, JSS2 and JSS3 Practice class selector with class-specific topic lists
 - session results, missed-question review and learner progress dashboard
 - persistent, pseudonymous Practice Mode history in Google Sheets
 - privacy-safe nickname and JSS1–JSS3 learner onboarding

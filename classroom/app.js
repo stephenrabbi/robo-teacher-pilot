@@ -45,6 +45,8 @@ const practiceButton=document.getElementById('practiceButton');
 const practiceArea=document.getElementById('practiceArea');
 const practiceSetup=document.getElementById('practiceSetup');
 const practiceQuestion=document.getElementById('practiceQuestion');
+const practiceClass=document.getElementById('practiceClass');
+const practiceClassSummary=document.getElementById('practiceClassSummary');
 const practiceTopic=document.getElementById('practiceTopic');
 const practiceDifficulty=document.getElementById('practiceDifficulty');
 const practiceCount=document.getElementById('practiceCount');
@@ -125,10 +127,12 @@ const classTopics={
   JSS3:['Whole Numbers','Directed Numbers','Algebra','Ratio & Percentage','Commercial Arithmetic','Inequalities & Graphs','Geometry & Mensuration','Statistics & Probability']
 };
 function updatePracticeTopics(){
-  const previous=practiceTopic.value;practiceTopic.replaceChildren(...classTopics[learnerClass.value].map(topic=>{const option=document.createElement('option');option.textContent=topic;return option}));
-  if(classTopics[learnerClass.value].includes(previous))practiceTopic.value=previous;
+  const selectedClass=practiceClass.value;const previous=practiceTopic.value;practiceTopic.replaceChildren(...classTopics[selectedClass].map(topic=>{const option=document.createElement('option');option.textContent=topic;return option}));
+  if(classTopics[selectedClass].includes(previous))practiceTopic.value=previous;
+  practiceClassSummary.textContent=`Showing ${selectedClass} Mathematics topics (${classTopics[selectedClass].length} topic groups)`;
 }
-updatePracticeTopics();learnerClass.addEventListener('change',updatePracticeTopics);
+practiceClass.value=learnerClass.value;updatePracticeTopics();
+learnerClass.addEventListener('change',()=>{practiceClass.value=learnerClass.value;updatePracticeTopics()});practiceClass.addEventListener('change',updatePracticeTopics);
 
 async function ensureSession(){
   if(sessionToken)return sessionToken;
@@ -174,7 +178,7 @@ openTeacherDashboardButton.addEventListener('click',async()=>{
 teacherAccessKey.addEventListener('keydown',event=>{if(event.key==='Enter')openTeacherDashboardButton.click()});
 
 changeLearnerButton.addEventListener('click',()=>{
-  stopTeacherAudio();sessionToken=null;currentProgress=null;learnerNickname.value='';learnerClass.value='JSS2';updatePracticeTopics();classroom.classList.add('hidden');welcome.classList.remove('hidden');teacherLogin.classList.add('hidden');onboardingError.classList.add('hidden');learnerNickname.focus();
+  stopTeacherAudio();sessionToken=null;currentProgress=null;learnerNickname.value='';learnerClass.value='JSS2';practiceClass.value='JSS2';updatePracticeTopics();classroom.classList.add('hidden');welcome.classList.remove('hidden');teacherLogin.classList.add('hidden');onboardingError.classList.add('hidden');learnerNickname.focus();
 });
 
 toggle.addEventListener('click',()=>{
@@ -341,7 +345,7 @@ function closePractice(){
 function renderPracticeQuestion(data){
   currentPractice=data;currentPracticeSummary=null;practiceSetup.classList.add('hidden');practiceResults.classList.add('hidden');practiceQuestion.classList.remove('hidden');
   practiceProgress.textContent=`Question ${data.question_number} of ${data.total_questions}`;practiceScore.textContent=`Score: ${data.score}/${data.attempted}`;
-  practiceContext.textContent=`${data.topic} · ${data.difficulty}`;practicePrompt.textContent=data.question;
+  practiceContext.textContent=`${data.class_level} · ${data.topic} · ${data.difficulty}`;practicePrompt.textContent=data.question;
   practiceAnswer.value='';practiceAnswer.disabled=false;practiceForm.querySelector('button').disabled=false;
   practiceFeedback.textContent='';practiceFeedback.className='practice-feedback hidden';showHintButton.disabled=false;
   showHintButton.textContent='Show Hint';nextPracticeButton.textContent='Next Question →';nextPracticeButton.classList.add('hidden');practiceAnswer.focus();
@@ -360,7 +364,7 @@ async function practiceRequest(path,body){
 
 async function startPracticeSession(){
   startPracticeButton.disabled=true;practiceAgainButton.disabled=true;startPracticeButton.textContent='Preparing…';
-  try{renderPracticeQuestion(await practiceRequest('start',{topic:practiceTopic.value,difficulty:practiceDifficulty.value,question_count:Number(practiceCount.value),class_level:learnerClass.value}))}
+  try{renderPracticeQuestion(await practiceRequest('start',{topic:practiceTopic.value,difficulty:practiceDifficulty.value,question_count:Number(practiceCount.value),class_level:practiceClass.value}))}
   catch(err){addMessage(err.message,'teacher')}
   finally{startPracticeButton.disabled=false;practiceAgainButton.disabled=false;startPracticeButton.textContent='Start Practice →'}
 }
@@ -486,7 +490,7 @@ function closeProgress(){
 function openPracticeFromProgress(){resetPracticeSetup();openPractice()}
 
 function openRecommendedPractice(){
-  resetPracticeSetup();updatePracticeTopics();
+  resetPracticeSetup();practiceClass.value=learnerClass.value;updatePracticeTopics();
   if(currentProgress&&classTopics[learnerClass.value].includes(currentProgress.recommended_topic)){practiceTopic.value=currentProgress.recommended_topic;practiceDifficulty.value=currentProgress.recommended_difficulty}
   openPractice();
 }

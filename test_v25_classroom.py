@@ -18,7 +18,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260905-teacher3' in html
+    assert '20260905-practiceclass1' in html
     assert 'id="learnerNickname"' in html
     assert 'id="learnerClass"' in html
     assert "learnerNickname.value=''" in script
@@ -29,6 +29,10 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert 'id="teacherClass"' in html
     assert 'id="downloadTeacherReport"' in html
     assert 'downloadTeacherDashboardReport' in script
+    assert 'id="practiceClass"' in html
+    assert 'id="practiceClassSummary"' in html
+    assert "class_level:practiceClass.value" in script
+    assert "data.class_level} · ${data.topic}" in script
     assert 'Continue Learning →' in html
     assert 'id="weeklyImprovement"' in html
     assert "practiceRequest('progress',{class_level:learnerClass.value})" in script
