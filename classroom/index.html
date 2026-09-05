@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Robo-Teacher Classroom</title>
-  <link rel="stylesheet" href="/classroom/styles.css?v=20260905-teacher1" />
+  <link rel="stylesheet" href="/classroom/styles.css?v=20260905-teacher2" />
 </head>
 <body>
   <main class="app-shell">
@@ -41,6 +41,12 @@
           </div>
         </div>
         <button id="startLearning" class="primary">Start Learning Now →</button>
+        <button id="showTeacherLogin" class="teacher-entry" type="button">📊 Open Teacher Dashboard</button>
+        <div id="teacherLogin" class="teacher-login hidden">
+          <label for="teacherAccessKey">Private teacher access key</label>
+          <div><input id="teacherAccessKey" type="password" autocomplete="current-password" placeholder="Enter private key" /><button id="openTeacherDashboard" type="button">Open Dashboard →</button></div>
+          <p id="teacherLoginError" class="onboarding-error hidden" role="alert"></p>
+        </div>
         <p class="privacy-note">Your learning experience is designed with privacy and safety in mind.</p>
       </div>
     </section>
@@ -64,7 +70,7 @@
       <section class="learning-area">
         <div class="lesson-header">
           <div><p id="learnerIdentity" class="eyebrow">ROBO-TEACHER CLASSROOM</p><h2>What would you like to learn today?</h2></div>
-          <select id="language" aria-label="Teaching language"><option value="English">English</option><option value="Yoruba">Yorùbá</option><option value="Igbo">Igbo</option><option value="Hausa">Hausa</option></select>
+          <div class="lesson-actions"><select id="language" aria-label="Teaching language"><option value="English">English</option><option value="Yoruba">Yorùbá</option><option value="Igbo">Igbo</option><option value="Hausa">Hausa</option></select><button id="changeLearner" type="button">Change learner</button></div>
         </div>
         <div id="canvas" class="teaching-canvas">
           <div id="canvasEmpty" class="canvas-empty"><strong>Teaching Canvas</strong><p>Upload or photograph a Maths problem. Your image and Robo-Teacher’s guidance will appear here.</p></div>
@@ -142,6 +148,6 @@
       </section>
     </section>
   </main>
-  <script src="/classroom/app.js?v=20260905-teacher1"></script>
+  <script src="/classroom/app.js?v=20260905-teacher2"></script>
 </body>
 </html>

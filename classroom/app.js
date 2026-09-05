@@ -5,6 +5,12 @@ const learnerNickname=document.getElementById('learnerNickname');
 const learnerClass=document.getElementById('learnerClass');
 const onboardingError=document.getElementById('onboardingError');
 const learnerIdentity=document.getElementById('learnerIdentity');
+const showTeacherLogin=document.getElementById('showTeacherLogin');
+const teacherLogin=document.getElementById('teacherLogin');
+const teacherAccessKey=document.getElementById('teacherAccessKey');
+const openTeacherDashboardButton=document.getElementById('openTeacherDashboard');
+const teacherLoginError=document.getElementById('teacherLoginError');
+const changeLearnerButton=document.getElementById('changeLearner');
 const toggle=document.getElementById('toggleTeacher');
 const teacherPanel=document.getElementById('teacherPanel');
 const readAnswerButton=document.getElementById('readAnswer');
@@ -105,10 +111,10 @@ let boardHasInk=false;
 const boardContext=whiteboard.getContext('2d');
 const savedLanguage=localStorage.getItem('roboTeacherLanguage');
 if(['English','Yoruba','Igbo','Hausa'].includes(savedLanguage))language.value=savedLanguage;
-const savedNickname=localStorage.getItem('roboTeacherNickname')||'';
-const savedClass=localStorage.getItem('roboTeacherClass')||'JSS2';
-learnerNickname.value=savedNickname;
-if(['JSS1','JSS2','JSS3'].includes(savedClass))learnerClass.value=savedClass;
+// Always show clean onboarding. Anonymous progress profiles remain on-device
+// and reconnect when the same nickname and class are entered again.
+learnerNickname.value='';
+learnerClass.value='JSS2';
 const classTopics={
   JSS1:['Whole Numbers','Factors, Multiples & Roots','Fractions','Decimals & Approximation','Algebra','Geometry & Mensuration','Statistics & Probability'],
   JSS2:['Whole Numbers','Fractions','Algebra','Ratio & Percentage','Factors, Multiples & Roots','Decimals & Approximation','Directed Numbers','Commercial Arithmetic','Inequalities & Graphs','Geometry & Mensuration','Statistics & Probability'],
@@ -122,11 +128,16 @@ updatePracticeTopics();learnerClass.addEventListener('change',updatePracticeTopi
 
 async function ensureSession(){
   if(sessionToken)return sessionToken;
-  let learnerKey=localStorage.getItem('roboTeacherLearnerKey');
+  const profileId=`${learnerClass.value}:${learnerNickname.value.trim().toLocaleLowerCase()}`;
+  let profiles={};
+  try{profiles=JSON.parse(localStorage.getItem('roboTeacherProfiles')||'{}')}catch(_){profiles={}}
+  let learnerKey=profiles[profileId];
+  if(!learnerKey&&Object.keys(profiles).length===0)learnerKey=localStorage.getItem('roboTeacherLearnerKey');
   if(!/^[a-f0-9]{32,64}$/.test(learnerKey||'')){
     const bytes=crypto.getRandomValues(new Uint8Array(24));learnerKey=Array.from(bytes,byte=>byte.toString(16).padStart(2,'0')).join('');
-    localStorage.setItem('roboTeacherLearnerKey',learnerKey);
   }
+  profiles[profileId]=learnerKey;localStorage.setItem('roboTeacherProfiles',JSON.stringify(profiles));
+  localStorage.removeItem('roboTeacherLearnerKey');
   const response=await fetch('/api/classroom/session',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({learner_key:learnerKey,nickname:learnerNickname.value.trim(),class_level:learnerClass.value})});
   if(!response.ok)throw new Error('session');
   const data=await response.json();
@@ -138,13 +149,28 @@ start.addEventListener('click',async()=>{
   const nickname=learnerNickname.value.trim();
   if(nickname.length<2){onboardingError.textContent='Please enter a nickname with at least 2 letters.';onboardingError.classList.remove('hidden');learnerNickname.focus();return}
   onboardingError.classList.add('hidden');start.disabled=true;start.textContent='Opening classroom…';
-  localStorage.setItem('roboTeacherNickname',nickname);localStorage.setItem('roboTeacherClass',learnerClass.value);
   try{
     await ensureSession();learnerIdentity.textContent=`${nickname.toUpperCase()} · ${learnerClass.value} CLASSROOM`;
     welcome.classList.add('hidden');classroom.classList.remove('hidden');
     addMessage(`Welcome, ${nickname}! I’ll explain each lesson at ${learnerClass.value} level.`,'teacher');question.focus();
   }catch(_){onboardingError.textContent='I could not start the classroom connection. Please try again.';onboardingError.classList.remove('hidden')}
   finally{start.disabled=false;start.textContent='Start Learning Now →'}
+});
+
+showTeacherLogin.addEventListener('click',()=>{teacherLogin.classList.toggle('hidden');if(!teacherLogin.classList.contains('hidden'))teacherAccessKey.focus()});
+
+openTeacherDashboardButton.addEventListener('click',async()=>{
+  const accessKey=teacherAccessKey.value.trim();
+  if(accessKey.length<16){teacherLoginError.textContent='Enter the private teacher access key.';teacherLoginError.classList.remove('hidden');teacherAccessKey.focus();return}
+  teacherLoginError.classList.add('hidden');openTeacherDashboardButton.disabled=true;openTeacherDashboardButton.textContent='Opening…';
+  try{welcome.classList.add('hidden');classroom.classList.remove('hidden');learnerIdentity.textContent=`TEACHER DASHBOARD · ${learnerClass.value}`;await loadTeacherDashboard(accessKey)}
+  catch(error){classroom.classList.add('hidden');welcome.classList.remove('hidden');teacherLoginError.textContent=error.message;teacherLoginError.classList.remove('hidden')}
+  finally{openTeacherDashboardButton.disabled=false;openTeacherDashboardButton.textContent='Open Dashboard →';teacherAccessKey.value=''}
+});
+teacherAccessKey.addEventListener('keydown',event=>{if(event.key==='Enter')openTeacherDashboardButton.click()});
+
+changeLearnerButton.addEventListener('click',()=>{
+  stopTeacherAudio();sessionToken=null;currentProgress=null;learnerNickname.value='';learnerClass.value='JSS2';updatePracticeTopics();classroom.classList.add('hidden');welcome.classList.remove('hidden');teacherLogin.classList.add('hidden');onboardingError.classList.add('hidden');learnerNickname.focus();
 });
 
 toggle.addEventListener('click',()=>{
@@ -385,9 +411,12 @@ async function openProgress(){
 
 async function openTeacherDashboard(){
   const accessKey=window.prompt('Enter the private teacher access key.');if(!accessKey)return;
+  try{await loadTeacherDashboard(accessKey)}catch(error){teacherDashboardContent.textContent=error.message}
+}
+
+async function loadTeacherDashboard(accessKey){
   whiteboardArea.classList.add('hidden');practiceArea.classList.add('hidden');progressArea.classList.add('hidden');canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');teacherDashboard.classList.remove('hidden');teacherDashboardContent.textContent='Loading class performance…';
-  try{const response=await fetch('/api/classroom/teacher/dashboard',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({access_key:accessKey,class_level:learnerClass.value})});const data=await response.json();if(!response.ok)throw new Error(data.detail||'Teacher dashboard unavailable');renderTeacherDashboard(data)}
-  catch(error){teacherDashboardContent.textContent=error.message}
+  const response=await fetch('/api/classroom/teacher/dashboard',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({access_key:accessKey,class_level:learnerClass.value})});const data=await response.json();if(!response.ok)throw new Error(data.detail||'Teacher dashboard unavailable');renderTeacherDashboard(data)
 }
 
 function renderTeacherDashboard(data){

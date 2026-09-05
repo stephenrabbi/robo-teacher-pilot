@@ -18,11 +18,14 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260905-teacher1' in html
+    assert '20260905-teacher2' in html
     assert 'id="learnerNickname"' in html
     assert 'id="learnerClass"' in html
-    assert "localStorage.setItem('roboTeacherNickname',nickname)" in script
-    assert "localStorage.setItem('roboTeacherClass',learnerClass.value)" in script
+    assert "learnerNickname.value=''" in script
+    assert "localStorage.setItem('roboTeacherProfiles'" in script
+    assert 'id="showTeacherLogin"' in html
+    assert 'id="teacherAccessKey" type="password"' in html
+    assert 'id="changeLearner"' in html
     assert 'Continue Learning →' in html
     assert 'id="weeklyImprovement"' in html
     assert "practiceRequest('progress',{class_level:learnerClass.value})" in script
