@@ -111,6 +111,7 @@ let teacherSpeechRequest=0;
 let teacherAudioContext=null;
 const teacherAudioSources=new Set();
 let teacherStreamComplete=false;
+let teacherSpeechPaused=false;
 let drawing=false;
 let drawingTool='pen';
 let boardHasInk=false;
@@ -217,8 +218,20 @@ function prepareSpeechText(text){
 function setTeacherSpeaking(speaking){
   teacherPanel.classList.toggle('speaking',speaking);
   teacherVoiceStatus.textContent=speaking?'Speaking…':'Ready';
-  readAnswerButton.innerHTML=speaking?'■ <span>Stop</span>':'🔊 <span>Read answer</span>';
-  readAnswerButton.setAttribute('aria-label',speaking?'Stop reading the answer':'Read the current answer aloud');
+  readAnswerButton.innerHTML=speaking?'⏸ <span>Pause</span>':'🔊 <span>Read answer</span>';
+  readAnswerButton.setAttribute('aria-label',speaking?'Pause reading the answer':'Read the current answer aloud');
+}
+
+async function pauseTeacherAudio(){
+  if(!teacherAudioContext||teacherSpeechPaused)return;
+  await teacherAudioContext.suspend();teacherSpeechPaused=true;
+  teacherPanel.classList.remove('speaking');teacherVoiceStatus.textContent='Paused';
+  readAnswerButton.innerHTML='▶ <span>Continue</span>';readAnswerButton.setAttribute('aria-label','Continue reading the answer');
+}
+
+async function resumeTeacherAudio(){
+  if(!teacherAudioContext||!teacherSpeechPaused)return;
+  await teacherAudioContext.resume();teacherSpeechPaused=false;setTeacherSpeaking(true);
 }
 
 function stopTeacherAudio(){
@@ -227,6 +240,7 @@ function stopTeacherAudio(){
   teacherAudioSources.forEach(source=>{try{source.stop()}catch(_error){/* Already stopped. */}});teacherAudioSources.clear();
   if(teacherAudioContext){teacherAudioContext.close().catch(()=>{});teacherAudioContext=null}
   teacherStreamComplete=false;
+  teacherSpeechPaused=false;
   setTeacherSpeaking(false);
 }
 
@@ -270,9 +284,10 @@ async function speakText(text){
   }
 }
 
-readAnswerButton.addEventListener('click',()=>{
-  if(teacherPanel.classList.contains('speaking')){stopTeacherAudio();return;}
-  speakText(canvasAnswer.textContent);
+readAnswerButton.addEventListener('click',async()=>{
+  if(teacherSpeechPaused){await resumeTeacherAudio();return;}
+  if(teacherPanel.classList.contains('speaking')){await pauseTeacherAudio();return;}
+  void speakText(canvasAnswer.textContent);
 });
 
 function addMessage(text,role){
@@ -320,6 +335,7 @@ whiteboard.addEventListener('pointerup',stopDrawing);
 whiteboard.addEventListener('pointercancel',stopDrawing);
 backToWhiteboard.addEventListener('click',openWhiteboard);
 language.addEventListener('change',async()=>{
+  stopTeacherAudio();
   localStorage.setItem('roboTeacherLanguage',language.value);
   const notices={English:'I will teach you in English from now on.',Yoruba:'Mo máa kọ́ ọ ní Yorùbá láti ìsinsin yìí.',Igbo:'Aga m akụziri gị ihe n’Igbo site ugbu a.',Hausa:'Zan koyar da kai da Hausa daga yanzu.'};
   addMessage(notices[language.value],'teacher');

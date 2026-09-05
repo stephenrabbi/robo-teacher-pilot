@@ -52,6 +52,9 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert "voice_gender:teacherPanel.dataset.voiceGender" in script
     assert 'speechSynthesis' not in script
     assert 'teacherSpeechController.abort()' in script
+    assert 'teacherAudioContext.suspend()' in script
+    assert 'teacherAudioContext.resume()' in script
+    assert "teacherSpeechPaused){await resumeTeacherAudio()" in script
     assert "error.name==='AbortError'" in script
     assert 'response.body.getReader()' in script
     assert 'createBuffer(1,samples,24000)' in script
