@@ -55,6 +55,8 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert 'teacherAudioContext.suspend()' in script
     assert 'teacherAudioContext.resume()' in script
     assert "teacherSpeechPaused){await resumeTeacherAudio()" in script
+    assert '!teacherSpeechPaused&&requestId===teacherSpeechRequest' in script
+    assert 'teacherSpeechPaused=true;\n  teacherPanel.classList.remove' in script
     assert "error.name==='AbortError'" in script
     assert 'response.body.getReader()' in script
     assert 'createBuffer(1,samples,24000)' in script

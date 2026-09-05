@@ -224,14 +224,24 @@ function setTeacherSpeaking(speaking){
 
 async function pauseTeacherAudio(){
   if(!teacherAudioContext||teacherSpeechPaused)return;
-  await teacherAudioContext.suspend();teacherSpeechPaused=true;
+  // Lock the state before suspension so a final streamed chunk cannot close
+  // the audio context while the learner is pausing it.
+  teacherSpeechPaused=true;
   teacherPanel.classList.remove('speaking');teacherVoiceStatus.textContent='Paused';
   readAnswerButton.innerHTML='▶ <span>Continue</span>';readAnswerButton.setAttribute('aria-label','Continue reading the answer');
+  try{await teacherAudioContext.suspend()}
+  catch(_error){teacherSpeechPaused=false;setTeacherSpeaking(true)}
 }
 
 async function resumeTeacherAudio(){
   if(!teacherAudioContext||!teacherSpeechPaused)return;
-  await teacherAudioContext.resume();teacherSpeechPaused=false;setTeacherSpeaking(true);
+  try{
+    await teacherAudioContext.resume();teacherSpeechPaused=false;setTeacherSpeaking(true);
+    if(teacherStreamComplete&&!teacherAudioSources.size)stopTeacherAudio();
+  }catch(_error){
+    teacherSpeechPaused=false;stopTeacherAudio();
+    addMessage('I could not continue that audio. Please tap Read answer to try again.','teacher');
+  }
 }
 
 function stopTeacherAudio(){
@@ -249,7 +259,7 @@ async function playPcmStream(response,requestId){
   if(!AudioContextClass)throw new Error('Web Audio is unavailable');
   teacherAudioContext=new AudioContextClass({sampleRate:24000});await teacherAudioContext.resume();
   const context=teacherAudioContext;const reader=response.body.getReader();let pending=new Uint8Array(0);let nextStart=context.currentTime+.06;
-  const finishIfDone=()=>{if(teacherStreamComplete&&!teacherAudioSources.size&&requestId===teacherSpeechRequest)stopTeacherAudio()};
+  const finishIfDone=()=>{if(teacherStreamComplete&&!teacherAudioSources.size&&!teacherSpeechPaused&&requestId===teacherSpeechRequest)stopTeacherAudio()};
   while(requestId===teacherSpeechRequest){
     const {done,value}=await reader.read();if(done)break;
     const joined=new Uint8Array(pending.length+value.length);joined.set(pending);joined.set(value,pending.length);
