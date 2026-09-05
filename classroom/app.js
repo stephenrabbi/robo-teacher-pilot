@@ -319,10 +319,11 @@ whiteboard.addEventListener('pointermove',drawOnWhiteboard);
 whiteboard.addEventListener('pointerup',stopDrawing);
 whiteboard.addEventListener('pointercancel',stopDrawing);
 backToWhiteboard.addEventListener('click',openWhiteboard);
-language.addEventListener('change',()=>{
+language.addEventListener('change',async()=>{
   localStorage.setItem('roboTeacherLanguage',language.value);
   const notices={English:'I will teach you in English from now on.',Yoruba:'Mo máa kọ́ ọ ní Yorùbá láti ìsinsin yìí.',Igbo:'Aga m akụziri gị ihe n’Igbo site ugbu a.',Hausa:'Zan koyar da kai da Hausa daga yanzu.'};
   addMessage(notices[language.value],'teacher');
+  if(currentPractice)await switchPracticeLanguage();
   question.focus();
 });
 languageButton.addEventListener('click',()=>language.focus());
@@ -383,6 +384,19 @@ async function startPracticeSession(){
   try{renderPracticeQuestion(await practiceRequest('start',{topic:practiceTopic.value,difficulty:practiceDifficulty.value,question_count:Number(practiceCount.value),class_level:practiceClass.value,language:language.value}))}
   catch(err){addMessage(err.message,'teacher')}
   finally{startPracticeButton.disabled=false;practiceAgainButton.disabled=false;startPracticeButton.textContent='Start Practice →'}
+}
+
+async function switchPracticeLanguage(){
+  try{
+    const data=await practiceRequest('language',{language:language.value});
+    currentPractice={...currentPractice,...data};practicePrompt.textContent=data.question;
+    if(data.answered&&data.feedback){
+      const feedback=data.feedback;
+      practiceFeedback.textContent=feedback.correct?`${feedback.message}\n\n${feedback.explanation}`:`${feedback.message}\n\n${feedback.explanation}\n\n${feedback.correct_answer_label}: ${feedback.expected_answer}`;
+      practiceFeedback.className=`practice-feedback ${feedback.correct?'correct':'incorrect'}`;
+    }else if(showHintButton.disabled){practiceFeedback.textContent=`Hint: ${data.hint}`}
+    if(data.summary){currentPracticeSummary=data.summary;if(!practiceResults.classList.contains('hidden'))renderPracticeResults(data.summary)}
+  }catch(err){addMessage(err.message,'teacher')}
 }
 
 function showPracticeHint(){

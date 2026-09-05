@@ -18,7 +18,7 @@ from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, Reque
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from curriculum import ALL_TOPICS, CLASS_TOPICS, CURRICULUM
-from practice import answer_practice, next_question, start_practice
+from practice import answer_practice, change_practice_language, next_question, start_practice
 from practice_progress import build_dashboard, build_teacher_dashboard, save_result
 
 from tutor import (
@@ -84,6 +84,10 @@ class PracticeAnswer(BaseModel):
 
 class PracticeNext(BaseModel):
     session_token: str = Field(min_length=20, max_length=300)
+
+
+class PracticeLanguage(PracticeNext):
+    language: SupportedLanguage = "English"
 
 
 class PracticeProgress(PracticeNext):
@@ -201,6 +205,16 @@ def classroom_practice_next(request: PracticeNext):
         raise HTTPException(status_code=404, detail="Start a practice session first") from exc
     except RuntimeError as exc:
         raise HTTPException(status_code=409, detail="Answer the current question first") from exc
+
+
+@router.post("/practice/language")
+def classroom_practice_language(request: PracticeLanguage):
+    student_id = _verify_session(request.session_token)
+    _enforce_rate_limit(student_id, "practice", 120)
+    try:
+        return change_practice_language(student_id, request.language)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail="Start a practice session first") from exc
 
 
 @router.post("/practice/progress")

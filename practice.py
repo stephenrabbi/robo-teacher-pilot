@@ -181,8 +181,9 @@ class PracticeState:
     attempted: int = 0
     question_number: int = 1
     answered: bool = False
+    last_correct: bool | None = None
     missed: list[dict] = field(default_factory=list)
-    remaining_questions: list[tuple[str, str, str, str]] = field(default_factory=list)
+    question_sets: dict[str, list[tuple[str, str, str, str]]] = field(default_factory=dict)
     session_id: str = field(default_factory=lambda: secrets.token_hex(12))
 
 
@@ -225,11 +226,12 @@ def start_practice(student_id: str, topic: str, difficulty: str, question_count:
     if question_count not in {5, 10, 20}:
         raise ValueError("Unsupported question count")
     language = language if language in PRACTICE_TEXT else "English"
-    questions = translate_question_batch(_build_question_queue(topic, difficulty, question_count), language)
-    question, hint, expected, explanation = questions.pop(0)
+    source_questions = _build_question_queue(topic, difficulty, question_count)
+    questions = translate_question_batch(source_questions, language)
+    question, hint, expected, explanation = questions[0]
     state = PracticeState(
         topic, difficulty, class_level, language, question, hint, expected, explanation,
-        target_count=question_count, remaining_questions=questions,
+        target_count=question_count, question_sets={"English": source_questions, language: questions},
     )
     _sessions[student_id] = state
     return _public_question(state)
@@ -259,20 +261,15 @@ def answer_practice(student_id: str, answer: str) -> dict:
     state.attempted += 1
     state.correct += int(correct)
     state.answered = True
+    state.last_correct = correct
     if not correct:
         state.missed.append({
-            "question": state.question,
+            "question_number": state.question_number,
             "learner_answer": answer.strip(),
-            "correct_answer": state.expected,
-            "explanation": state.explanation,
         })
     completed = state.attempted >= state.target_count
     result = {
-        "correct": correct,
-        "message": secrets.choice(PRACTICE_TEXT[state.language]["correct"]) if correct else PRACTICE_TEXT[state.language]["attempt"],
-        "expected_answer": state.expected,
-        "correct_answer_label": PRACTICE_TEXT[state.language]["correct_answer"],
-        "explanation": state.explanation,
+        **_answer_feedback(state, correct),
         "score": state.correct,
         "attempted": state.attempted,
         "percentage": round(state.correct / state.attempted * 100),
@@ -291,13 +288,42 @@ def next_question(student_id: str) -> dict:
         raise RuntimeError("Answer the current question first")
     if state.attempted >= state.target_count:
         raise RuntimeError("Practice session is complete")
-    if not state.remaining_questions:
-        raise RuntimeError("No more questions are available in this session")
-    question, hint, expected, explanation = state.remaining_questions.pop(0)
+    questions = state.question_sets[state.language]
+    question, hint, expected, explanation = questions[state.question_number]
     state.question, state.hint, state.expected, state.explanation = question, hint, expected, explanation
     state.question_number += 1
     state.answered = False
+    state.last_correct = None
     return _public_question(state)
+
+
+def change_practice_language(student_id: str, language: str) -> dict:
+    state = _sessions.get(student_id)
+    if not state:
+        raise LookupError("No active practice session")
+    language = language if language in PRACTICE_TEXT else "English"
+    if language not in state.question_sets:
+        state.question_sets[language] = translate_question_batch(state.question_sets["English"], language)
+    state.language = language
+    question, hint, expected, explanation = state.question_sets[language][state.question_number - 1]
+    state.question, state.hint, state.expected, state.explanation = question, hint, expected, explanation
+    result = _public_question(state)
+    result["answered"] = state.answered
+    if state.answered:
+        result["feedback"] = _answer_feedback(state, bool(state.last_correct))
+        if state.attempted >= state.target_count:
+            result["summary"] = _summary(state)
+    return result
+
+
+def _answer_feedback(state: PracticeState, correct: bool) -> dict:
+    return {
+        "correct": correct,
+        "message": secrets.choice(PRACTICE_TEXT[state.language]["correct"]) if correct else PRACTICE_TEXT[state.language]["attempt"],
+        "expected_answer": state.expected,
+        "correct_answer_label": PRACTICE_TEXT[state.language]["correct_answer"],
+        "explanation": state.explanation,
+    }
 
 
 def _public_question(state: PracticeState) -> dict:
@@ -306,6 +332,7 @@ def _public_question(state: PracticeState) -> dict:
         "class_level": state.class_level,
         "topic": state.topic,
         "difficulty": state.difficulty,
+        "language": state.language,
         "question": state.question,
         "hint": state.hint,
         "question_number": state.question_number,
@@ -345,6 +372,14 @@ def _summary(state: PracticeState) -> dict:
         "score": state.correct,
         "attempted": state.attempted,
         "percentage": percentage,
-        "missed": state.missed,
+        "missed": [
+            {
+                "question": state.question_sets[state.language][item["question_number"] - 1][0],
+                "learner_answer": item["learner_answer"],
+                "correct_answer": state.question_sets[state.language][item["question_number"] - 1][2],
+                "explanation": state.question_sets[state.language][item["question_number"] - 1][3],
+            }
+            for item in state.missed
+        ],
         "recommendation": recommendation,
     }

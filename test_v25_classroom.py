@@ -632,6 +632,47 @@ def test_classroom_audio_rejects_oversized_file():
     assert response.status_code == 413
 
 
+def test_active_practice_switches_question_feedback_and_remaining_language():
+    session = client.post('/api/classroom/session').json()
+    questions = [
+        (f'English question {number}', f'English hint {number}', str(number), f'English explanation {number}')
+        for number in range(1, 6)
+    ]
+
+    def translated(items, language):
+        if language == 'English':
+            return items
+        return [
+            (f'{language} question {index}', f'{language} hint {index}', answer, f'{language} explanation {index}')
+            for index, (_question, _hint, answer, _explanation) in enumerate(items, 1)
+        ]
+
+    with patch.object(practice, '_build_question_queue', return_value=questions), patch.object(practice, 'translate_question_batch', side_effect=translated) as translate:
+        started = client.post('/api/classroom/practice/start', json={
+            'session_token': session['session_token'], 'topic': 'Whole Numbers',
+            'difficulty': 'Easy', 'question_count': 5, 'class_level': 'JSS2', 'language': 'English',
+        })
+        assert started.json()['question'] == 'English question 1'
+
+        client.post('/api/classroom/practice/answer', json={'session_token': session['session_token'], 'answer': '0'})
+        switched = client.post('/api/classroom/practice/language', json={
+            'session_token': session['session_token'], 'language': 'Yoruba',
+        })
+        body = switched.json()
+        assert body['question'] == 'Yoruba question 1'
+        assert body['feedback']['explanation'] == 'Yoruba explanation 1'
+        assert body['feedback']['expected_answer'] == '1'
+
+        following = client.post('/api/classroom/practice/next', json={'session_token': session['session_token']})
+        assert following.json()['question'] == 'Yoruba question 2'
+
+        switched_back = client.post('/api/classroom/practice/language', json={
+            'session_token': session['session_token'], 'language': 'English',
+        })
+        assert switched_back.json()['question'] == 'English question 2'
+        assert translate.call_count == 2
+
+
 if __name__ == '__main__':
     test_session_and_chat_use_pseudonymous_identity()
     test_tampered_session_is_rejected()
