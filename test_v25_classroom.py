@@ -18,7 +18,11 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260905-voice1' in html
+    assert '20260905-profile1' in html
+    assert 'id="learnerNickname"' in html
+    assert 'id="learnerClass"' in html
+    assert "localStorage.setItem('roboTeacherNickname',nickname)" in script
+    assert "localStorage.setItem('roboTeacherClass',learnerClass.value)" in script
     assert 'id="readAnswer"' in html
     assert 'aria-expanded="true"' in html
     assert '@media(max-width:600px)' in css
@@ -127,7 +131,6 @@ def test_stable_anonymous_key_restores_progress_without_exposing_identity():
     assert first['learner_id'] == second['learner_id']
     assert first['learner_id'] != other['learner_id']
     assert learner_key not in first['session_token']
-
     fixed = ("What is 2 + 3?", "Count on from 2.", "5", "Step 1: Add 2 and 3.\nStep 2: The result is 5.")
     with patch.object(practice, '_build_question_queue', return_value=[fixed] * 5):
         client.post('/api/classroom/practice/start', json={
@@ -159,6 +162,19 @@ def test_stable_anonymous_key_restores_progress_without_exposing_identity():
     }).json()
     assert empty['sessions'] == 0
     assert empty['recent_sessions'] == []
+
+
+def test_classroom_session_accepts_a_safe_nickname_and_class_level():
+    response = client.post('/api/classroom/session', json={
+        'learner_key': 'c' * 48, 'nickname': 'Tobi', 'class_level': 'JSS1',
+    })
+    assert response.status_code == 200
+    assert response.json()['nickname'] == 'Tobi'
+    assert response.json()['class_level'] == 'JSS1'
+    unsafe = client.post('/api/classroom/session', json={
+        'learner_key': 'c' * 48, 'nickname': '<script>', 'class_level': 'JSS4',
+    })
+    assert unsafe.status_code == 422
 
 
 def test_practice_bank_covers_jss2_curriculum_strands():

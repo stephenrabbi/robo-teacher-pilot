@@ -48,6 +48,8 @@ class ClassroomQuestion(BaseModel):
 
 class ClassroomSessionRequest(BaseModel):
     learner_key: str | None = Field(default=None, min_length=32, max_length=64, pattern=r"^[a-f0-9]+$")
+    nickname: str = Field(default="Learner", min_length=2, max_length=30, pattern=r"^[^<>\r\n]+$")
+    class_level: Literal["JSS1", "JSS2", "JSS3"] = "JSS2"
 
 
 class ClassroomWhiteboard(BaseModel):
@@ -129,7 +131,13 @@ def _enforce_rate_limit(student_id: str, scope: str = "tutor", max_requests: int
 @router.post("/session")
 def create_classroom_session(request: ClassroomSessionRequest | None = None):
     student_id, token = _new_session(request.learner_key if request else None)
-    return {"session_token": token, "learner_id": student_id, "expires_in": _SESSION_TTL_SECONDS}
+    return {
+        "session_token": token,
+        "learner_id": student_id,
+        "nickname": request.nickname if request else "Learner",
+        "class_level": request.class_level if request else "JSS2",
+        "expires_in": _SESSION_TTL_SECONDS,
+    }
 
 
 @router.get("/practice/options")

@@ -1,6 +1,10 @@
 const welcome=document.getElementById('welcome');
 const classroom=document.getElementById('classroom');
 const start=document.getElementById('startLearning');
+const learnerNickname=document.getElementById('learnerNickname');
+const learnerClass=document.getElementById('learnerClass');
+const onboardingError=document.getElementById('onboardingError');
+const learnerIdentity=document.getElementById('learnerIdentity');
 const toggle=document.getElementById('toggleTeacher');
 const teacherPanel=document.getElementById('teacherPanel');
 const readAnswerButton=document.getElementById('readAnswer');
@@ -93,6 +97,10 @@ let boardHasInk=false;
 const boardContext=whiteboard.getContext('2d');
 const savedLanguage=localStorage.getItem('roboTeacherLanguage');
 if(['English','Yoruba','Igbo','Hausa'].includes(savedLanguage))language.value=savedLanguage;
+const savedNickname=localStorage.getItem('roboTeacherNickname')||'';
+const savedClass=localStorage.getItem('roboTeacherClass')||'JSS2';
+learnerNickname.value=savedNickname;
+if(['JSS1','JSS2','JSS3'].includes(savedClass))learnerClass.value=savedClass;
 
 async function ensureSession(){
   if(sessionToken)return sessionToken;
@@ -101,7 +109,7 @@ async function ensureSession(){
     const bytes=crypto.getRandomValues(new Uint8Array(24));learnerKey=Array.from(bytes,byte=>byte.toString(16).padStart(2,'0')).join('');
     localStorage.setItem('roboTeacherLearnerKey',learnerKey);
   }
-  const response=await fetch('/api/classroom/session',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({learner_key:learnerKey})});
+  const response=await fetch('/api/classroom/session',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({learner_key:learnerKey,nickname:learnerNickname.value.trim(),class_level:learnerClass.value})});
   if(!response.ok)throw new Error('session');
   const data=await response.json();
   sessionToken=data.session_token;
@@ -109,8 +117,16 @@ async function ensureSession(){
 }
 
 start.addEventListener('click',async()=>{
-  welcome.classList.add('hidden');classroom.classList.remove('hidden');question.focus();
-  try{await ensureSession()}catch(_){addMessage('I could not start the classroom connection. Please refresh and try again.','teacher')}
+  const nickname=learnerNickname.value.trim();
+  if(nickname.length<2){onboardingError.textContent='Please enter a nickname with at least 2 letters.';onboardingError.classList.remove('hidden');learnerNickname.focus();return}
+  onboardingError.classList.add('hidden');start.disabled=true;start.textContent='Opening classroom…';
+  localStorage.setItem('roboTeacherNickname',nickname);localStorage.setItem('roboTeacherClass',learnerClass.value);
+  try{
+    await ensureSession();learnerIdentity.textContent=`${nickname.toUpperCase()} · ${learnerClass.value} CLASSROOM`;
+    welcome.classList.add('hidden');classroom.classList.remove('hidden');
+    addMessage(`Welcome, ${nickname}! I’ll explain each lesson at ${learnerClass.value} level.`,'teacher');question.focus();
+  }catch(_){onboardingError.textContent='I could not start the classroom connection. Please try again.';onboardingError.classList.remove('hidden')}
+  finally{start.disabled=false;start.textContent='Start Learning Now →'}
 });
 
 toggle.addEventListener('click',()=>{
