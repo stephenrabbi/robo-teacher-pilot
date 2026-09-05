@@ -340,6 +340,9 @@ Implemented on the draft staging branch:
 - persistent, pseudonymous Practice Mode history in Google Sheets
 - privacy-safe nickname and JSS1–JSS3 learner onboarding
 - Junior Secondary curriculum scope with class-aware tutoring and Practice topic selection
+- class-filtered recommendations with automatic Easy, Medium and Challenge adjustment
+- **Continue Learning** routing to the recommended topic and difficulty
+- seven-day learner summaries with comparison against the previous week
 
 Before production release, V2.5 still requires broader learner testing, accessibility review, monitoring and a deliberate merge decision.
 

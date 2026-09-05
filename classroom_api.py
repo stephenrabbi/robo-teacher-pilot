@@ -89,6 +89,10 @@ class PracticeNext(BaseModel):
     session_token: str = Field(min_length=20, max_length=300)
 
 
+class PracticeProgress(PracticeNext):
+    class_level: Literal["JSS1", "JSS2", "JSS3"] = "JSS2"
+
+
 def _sign(payload: str) -> str:
     return hmac.new(_SESSION_KEY, payload.encode(), hashlib.sha256).hexdigest()
 
@@ -194,10 +198,10 @@ def classroom_practice_next(request: PracticeNext):
 
 
 @router.post("/practice/progress")
-def classroom_practice_progress(request: PracticeNext):
+def classroom_practice_progress(request: PracticeProgress):
     student_id = _verify_session(request.session_token)
     _enforce_rate_limit(student_id, "practice-progress", 30)
-    return build_dashboard(student_id)
+    return build_dashboard(student_id, request.class_level)
 
 
 @router.post("/chat")

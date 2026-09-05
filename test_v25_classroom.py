@@ -18,11 +18,14 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260905-jss123' in html
+    assert '20260905-path1' in html
     assert 'id="learnerNickname"' in html
     assert 'id="learnerClass"' in html
     assert "localStorage.setItem('roboTeacherNickname',nickname)" in script
     assert "localStorage.setItem('roboTeacherClass',learnerClass.value)" in script
+    assert 'Continue Learning →' in html
+    assert 'id="weeklyImprovement"' in html
+    assert "practiceRequest('progress',{class_level:learnerClass.value})" in script
     assert 'id="readAnswer"' in html
     assert 'aria-expanded="true"' in html
     assert '@media(max-width:600px)' in css
@@ -162,6 +165,42 @@ def test_stable_anonymous_key_restores_progress_without_exposing_identity():
     }).json()
     assert empty['sessions'] == 0
     assert empty['recent_sessions'] == []
+
+
+def test_progress_is_class_aware_and_adjusts_repeated_performance():
+    practice_progress._reset_for_tests()
+    now = __import__('datetime').datetime.now(__import__('datetime').UTC)
+    base = {
+        'learner_id': 'WEB-adaptive', 'topic': 'Algebra', 'difficulty': 'Medium',
+        'attempted': 5, 'class_level': 'JSS3',
+    }
+    for index, score in enumerate((2, 1)):
+        practice_progress._memory_records.append({
+            **base, 'session_id': f'low-{index}', 'score': score,
+            'percentage': score * 20, 'timestamp': (now - __import__('datetime').timedelta(days=index)).isoformat(),
+        })
+    practice_progress._memory_records.append({
+        **base, 'class_level': 'JSS2', 'session_id': 'other-class', 'score': 5,
+        'percentage': 100, 'timestamp': now.isoformat(),
+    })
+    dashboard = practice_progress.build_dashboard('WEB-adaptive', 'JSS3')
+    assert dashboard['sessions'] == 2
+    assert dashboard['recommended_topic'] == 'Algebra'
+    assert dashboard['recommended_difficulty'] == 'Easy'
+    assert dashboard['weekly_summary']['questions'] == 10
+
+
+def test_consistent_success_moves_the_learner_up_one_level():
+    practice_progress._reset_for_tests()
+    now = __import__('datetime').datetime.now(__import__('datetime').UTC).isoformat()
+    for index in range(2):
+        practice_progress._memory_records.append({
+            'learner_id': 'WEB-strong', 'class_level': 'JSS1', 'session_id': f'high-{index}',
+            'topic': 'Fractions', 'difficulty': 'Easy', 'score': 5, 'attempted': 5,
+            'percentage': 100, 'timestamp': now,
+        })
+    dashboard = practice_progress.build_dashboard('WEB-strong', 'JSS1')
+    assert dashboard['recommended_difficulty'] == 'Medium'
 
 
 def test_classroom_session_accepts_a_safe_nickname_and_class_level():

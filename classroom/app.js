@@ -74,6 +74,10 @@ const progressQuestions=document.getElementById('progressQuestions');
 const progressAverage=document.getElementById('progressAverage');
 const progressStrongest=document.getElementById('progressStrongest');
 const progressRecommendation=document.getElementById('progressRecommendation');
+const weeklySessions=document.getElementById('weeklySessions');
+const weeklyQuestions=document.getElementById('weeklyQuestions');
+const weeklyScore=document.getElementById('weeklyScore');
+const weeklyImprovement=document.getElementById('weeklyImprovement');
 const practiceRecommendation=document.getElementById('practiceRecommendation');
 const progressTopics=document.getElementById('progressTopics');
 const recentSessions=document.getElementById('recentSessions');
@@ -369,7 +373,7 @@ function renderPracticeResults(summary){
 async function openProgress(){
   whiteboardArea.classList.add('hidden');practiceArea.classList.add('hidden');canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');progressArea.classList.remove('hidden');
   progressLoading.classList.remove('hidden');progressEmpty.classList.add('hidden');progressDashboard.classList.add('hidden');
-  try{currentProgress=await practiceRequest('progress',{});renderProgress(currentProgress)}
+  try{currentProgress=await practiceRequest('progress',{class_level:learnerClass.value});renderProgress(currentProgress)}
   catch(error){progressLoading.textContent=error.message;progressLoading.classList.add('error')}
 }
 
@@ -378,6 +382,8 @@ function renderProgress(data){
   if(!data.sessions){progressEmpty.classList.remove('hidden');return}
   progressDashboard.classList.remove('hidden');progressSessions.textContent=data.sessions;progressQuestions.textContent=data.total_questions;
   progressAverage.textContent=`${data.average_percentage}%`;progressStrongest.textContent=data.strongest_topic||'—';progressRecommendation.textContent=data.recommendation;
+  const week=data.weekly_summary;weeklySessions.textContent=`${week.sessions} session${week.sessions===1?'':'s'}`;weeklyQuestions.textContent=`${week.questions} question${week.questions===1?'':'s'}`;weeklyScore.textContent=`${week.percentage}%`;
+  weeklyImprovement.textContent=week.improvement_points===null?'Complete another week to measure improvement.':week.improvement_points>0?`Improved by ${week.improvement_points} percentage points.`:week.improvement_points<0?`Down ${Math.abs(week.improvement_points)} points—review the recommended topic.`:'Your score is steady compared with last week.';
   progressStorageNotice.classList.toggle('hidden',data.storage_synced);progressTopics.replaceChildren();recentSessions.replaceChildren();
   data.topics.forEach(item=>{
     const row=document.createElement('article');const label=document.createElement('div');const name=document.createElement('strong');const score=document.createElement('span');
@@ -401,8 +407,9 @@ function closeProgress(){
 function openPracticeFromProgress(){resetPracticeSetup();openPractice()}
 
 function openRecommendedPractice(){
-  if(currentProgress){practiceTopic.value=currentProgress.recommended_topic;practiceDifficulty.value=currentProgress.recommended_difficulty}
-  resetPracticeSetup();openPractice();
+  resetPracticeSetup();updatePracticeTopics();
+  if(currentProgress&&classTopics[learnerClass.value].includes(currentProgress.recommended_topic)){practiceTopic.value=currentProgress.recommended_topic;practiceDifficulty.value=currentProgress.recommended_difficulty}
+  openPractice();
 }
 
 function clearWhiteboard(){

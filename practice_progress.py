@@ -6,11 +6,12 @@ import os
 import threading
 
 import gspread
+from practice import CLASS_TOPICS
 
 
 _HEADER = [
     "Timestamp (UTC)", "Session ID", "Learner ID", "Topic", "Difficulty",
-    "Score", "Questions", "Percentage",
+    "Score", "Questions", "Percentage", "Class Level",
 ]
 _client = None
 _worksheet = None
@@ -32,6 +33,9 @@ def _get_worksheet():
         spreadsheet = _client.open_by_key(os.environ["GOOGLE_SHEET_ID"])
         try:
             _worksheet = spreadsheet.worksheet("Practice Progress")
+            headings = _worksheet.row_values(1)
+            if "Class Level" not in headings:
+                _worksheet.update_cell(1, len(_HEADER), "Class Level")
         except gspread.WorksheetNotFound:
             _worksheet = spreadsheet.add_worksheet(
                 title="Practice Progress", rows=2000, cols=len(_HEADER)
@@ -51,6 +55,7 @@ def save_result(learner_id: str, summary: dict) -> bool:
         "score": int(summary["score"]),
         "attempted": int(summary["attempted"]),
         "percentage": int(summary["percentage"]),
+        "class_level": summary.get("class_level", "JSS2"),
     }
     with _lock:
         if not any(item["session_id"] == record["session_id"] for item in _memory_records):
@@ -62,6 +67,7 @@ def save_result(learner_id: str, summary: dict) -> bool:
         _get_worksheet().append_row([
             record["timestamp"], record["session_id"], learner_id, record["topic"],
             record["difficulty"], record["score"], record["attempted"], record["percentage"],
+            record["class_level"],
         ])
         _unsynced_ids.discard(record["session_id"])
         return True
@@ -87,6 +93,7 @@ def _sheet_records(learner_id: str) -> list[dict]:
                 "score": int(row["Score"]),
                 "attempted": int(row["Questions"]),
                 "percentage": int(row["Percentage"]),
+                "class_level": str(row.get("Class Level", "JSS2") or "JSS2"),
             })
         except (KeyError, TypeError, ValueError):
             continue
@@ -112,8 +119,10 @@ def get_records(learner_id: str) -> tuple[list[dict], bool]:
         return [item.copy() for item in _memory_records if item["learner_id"] == learner_id], False
 
 
-def build_dashboard(learner_id: str) -> dict:
+def build_dashboard(learner_id: str, class_level: str = "JSS2") -> dict:
     records, synced = get_records(learner_id)
+    class_level = class_level if class_level in CLASS_TOPICS else "JSS2"
+    records = [item for item in records if item.get("class_level", "JSS2") == class_level]
     records.sort(key=lambda item: item["timestamp"], reverse=True)
     total_questions = sum(item["attempted"] for item in records)
     total_correct = sum(item["score"] for item in records)
@@ -135,8 +144,12 @@ def build_dashboard(learner_id: str) -> dict:
 
     strongest = topic_rows[0] if topic_rows else None
     weakest = min(topic_rows, key=lambda item: (item["percentage"], item["topic"])) if topic_rows else None
-    recommendation = _recommendation(records, weakest)
+    recommended_topic = weakest["topic"] if weakest else CLASS_TOPICS[class_level][0]
+    recommended_difficulty = _recommended_difficulty(records, weakest)
+    recommendation = _recommendation(records, weakest, recommended_difficulty)
+    weekly = _weekly_summary(records)
     return {
+        "class_level": class_level,
         "sessions": len(records),
         "total_questions": total_questions,
         "total_correct": total_correct,
@@ -146,17 +159,18 @@ def build_dashboard(learner_id: str) -> dict:
         "topics": topic_rows,
         "recent_sessions": records[:5],
         "recommendation": recommendation,
-        "recommended_topic": weakest["topic"] if weakest else "Whole Numbers",
-        "recommended_difficulty": _recommended_difficulty(records, weakest),
+        "recommended_topic": recommended_topic,
+        "recommended_difficulty": recommended_difficulty,
+        "weekly_summary": weekly,
         "storage_synced": synced,
     }
 
 
-def _recommendation(records: list[dict], weakest: dict | None) -> str:
+def _recommendation(records: list[dict], weakest: dict | None, difficulty: str) -> str:
     if not records:
         return "Complete your first practice session to receive a personal recommendation."
     if weakest["percentage"] < 50:
-        return f"Focus on {weakest['topic']} at Easy level and review each worked explanation."
+        return f"Focus on {weakest['topic']} at {difficulty} level and review each worked explanation."
     if weakest["percentage"] < 80:
         return f"Practise {weakest['topic']} again at the same level to build consistency."
     latest = records[0]
@@ -167,12 +181,40 @@ def _recommendation(records: list[dict], weakest: dict | None) -> str:
 
 
 def _recommended_difficulty(records: list[dict], weakest: dict | None) -> str:
-    if not records or weakest["percentage"] < 50:
+    if not records:
         return "Easy"
-    matching = next((item for item in records if item["topic"] == weakest["topic"]), records[0])
-    if weakest["percentage"] >= 80:
-        return {"Easy": "Medium", "Medium": "Challenge", "Challenge": "Challenge"}[matching["difficulty"]]
-    return matching["difficulty"]
+    matching = [item for item in records if item["topic"] == weakest["topic"]]
+    current = matching[0]["difficulty"] if matching else records[0]["difficulty"]
+    levels = ["Easy", "Medium", "Challenge"]
+    recent = matching[:2]
+    if len(recent) >= 2 and all(item["percentage"] >= 80 for item in recent):
+        return levels[min(levels.index(current) + 1, 2)]
+    if len(recent) >= 2 and all(item["percentage"] < 50 for item in recent):
+        return levels[max(levels.index(current) - 1, 0)]
+    return current
+
+
+def _weekly_summary(records: list[dict]) -> dict:
+    now = datetime.datetime.now(datetime.UTC)
+    current_start = now - datetime.timedelta(days=7)
+    previous_start = now - datetime.timedelta(days=14)
+
+    def parsed(item):
+        try: return datetime.datetime.fromisoformat(item["timestamp"].replace("Z", "+00:00"))
+        except (ValueError, TypeError): return None
+
+    current = [item for item in records if parsed(item) and parsed(item) >= current_start]
+    previous = [item for item in records if parsed(item) and previous_start <= parsed(item) < current_start]
+    attempted = sum(item["attempted"] for item in current)
+    correct = sum(item["score"] for item in current)
+    score = round(correct / attempted * 100) if attempted else 0
+    old_attempted = sum(item["attempted"] for item in previous)
+    old_score = round(sum(item["score"] for item in previous) / old_attempted * 100) if old_attempted else None
+    improvement = score - old_score if old_score is not None and attempted else None
+    return {
+        "sessions": len(current), "questions": attempted, "percentage": score,
+        "improvement_points": improvement,
+    }
 
 
 def _reset_for_tests() -> None:
