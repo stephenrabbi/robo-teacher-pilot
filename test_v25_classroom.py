@@ -169,7 +169,8 @@ def test_stable_anonymous_key_restores_progress_without_exposing_identity():
     assert data['total_questions'] == 5
     assert data['total_correct'] == 4
     assert data['average_percentage'] == 80
-    assert data['strongest_topic'] == 'Whole Numbers'
+    assert data['strongest_topic'] == 'Standard Form'
+    assert data['recommended_term'] == 'First Term'
     assert data['recent_sessions'][0]['percentage'] == 80
 
     empty = client.post('/api/classroom/practice/progress', json={
@@ -197,7 +198,8 @@ def test_progress_is_class_aware_and_adjusts_repeated_performance():
     })
     dashboard = practice_progress.build_dashboard('WEB-adaptive', 'JSS3')
     assert dashboard['sessions'] == 2
-    assert dashboard['recommended_topic'] == 'Algebra'
+    assert dashboard['recommended_topic'] == 'Factorisation & Quadratic Expressions'
+    assert dashboard['recommended_term'] == 'First Term'
     assert dashboard['recommended_difficulty'] == 'Easy'
     assert dashboard['weekly_summary']['questions'] == 10
 

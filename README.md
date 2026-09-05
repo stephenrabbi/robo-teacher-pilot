@@ -353,7 +353,9 @@ Implemented on the draft staging branch:
 - privacy-safe nickname and JSS1–JSS3 learner onboarding
 - Junior Secondary curriculum scope with class-aware tutoring and Practice topic selection
 - class-filtered recommendations with automatic Easy, Medium and Challenge adjustment
-- **Continue Learning** routing to the recommended topic and difficulty
+- term-aware recommendations that strengthen weak topics, increase difficulty after consistent success, and advance to the next curriculum topic after mastery
+- **Continue Learning** routing to the recommended class, term, topic and difficulty
+- non-destructive mapping of earlier V2.5 JSS2 progress labels into the audited curriculum
 - seven-day learner summaries with comparison against the previous week
 - access-key-protected teacher dashboard showing class aggregates without learner identities
 - Teacher Dashboard V2 with JSS class switching, strongest/weakest topics, six-week trends, teaching recommendations and privacy-safe CSV reports

@@ -506,8 +506,8 @@ function openPracticeFromProgress(){resetPracticeSetup();openPractice()}
 function openRecommendedPractice(){
   resetPracticeSetup();practiceClass.value=learnerClass.value;updatePracticeTopics();
   if(currentProgress&&classTopics[learnerClass.value].includes(currentProgress.recommended_topic)){
-    const term=Object.entries(practiceCurriculum[learnerClass.value]).find(([,topics])=>topics.includes(currentProgress.recommended_topic));
-    if(term){practiceTerm.value=term[0];updatePracticeTopics();practiceTopic.value=currentProgress.recommended_topic}practiceDifficulty.value=currentProgress.recommended_difficulty
+    const selectedTerm=currentProgress.recommended_term||Object.entries(practiceCurriculum[learnerClass.value]).find(([,topics])=>topics.includes(currentProgress.recommended_topic))?.[0];
+    if(selectedTerm){practiceTerm.value=selectedTerm;updatePracticeTopics();practiceTopic.value=currentProgress.recommended_topic}practiceDifficulty.value=currentProgress.recommended_difficulty
   }
   openPractice();
 }

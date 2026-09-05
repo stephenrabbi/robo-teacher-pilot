@@ -6,7 +6,47 @@ import os
 import threading
 
 import gspread
-from practice import CLASS_TOPICS
+from curriculum import CLASS_TOPICS, TOPIC_TERM
+
+
+_LEGACY_TOPICS = {
+    "JSS1": {
+        "Factors, Multiples & Roots": "Factors, Multiples, LCM & HCF",
+        "Algebra": "Introductory Algebra",
+        "Geometry & Mensuration": "Plane Shapes & Mensuration",
+        "Statistics & Probability": "Mean, Median & Mode",
+    },
+    "JSS2": {
+        "Whole Numbers": "Standard Form",
+        "Fractions": "Fractions, Ratios, Decimals & Percentages",
+        "Algebra": "Simple Equations",
+        "Ratio & Percentage": "Fractions, Ratios, Decimals & Percentages",
+        "Factors, Multiples & Roots": "Prime Factors, Squares & Roots",
+        "Decimals & Approximation": "Approximation",
+        "Inequalities & Graphs": "Linear Inequalities",
+        "Geometry & Mensuration": "Pythagoras & Mensuration",
+        "Statistics & Probability": "Statistics & Data Presentation",
+    },
+    "JSS3": {
+        "Whole Numbers": "Number Bases",
+        "Directed Numbers": "Rational & Irrational Numbers",
+        "Algebra": "Factorisation & Quadratic Expressions",
+        "Ratio & Percentage": "Ratio, Proportion & Variation",
+        "Inequalities & Graphs": "Equations Involving Fractions",
+        "Geometry & Mensuration": "Geometry & Construction",
+        "Statistics & Probability": "Statistics & Averages",
+    },
+}
+
+
+def _normalise_curriculum_records(records: list[dict], class_level: str) -> list[dict]:
+    """Map saved V2.5 topic labels to the audited curriculum without rewriting Sheets."""
+    normalised = []
+    for item in records:
+        copy = item.copy()
+        copy["topic"] = _LEGACY_TOPICS[class_level].get(copy["topic"], copy["topic"])
+        normalised.append(copy)
+    return normalised
 
 
 _HEADER = [
@@ -153,7 +193,10 @@ def get_all_records() -> tuple[list[dict], bool]:
 def build_teacher_dashboard(class_level: str = "JSS2") -> dict:
     records, synced = get_all_records()
     class_level = class_level if class_level in CLASS_TOPICS else "JSS2"
-    records = [item for item in records if item.get("class_level", "JSS2") == class_level]
+    records = _normalise_curriculum_records(
+        [item for item in records if item.get("class_level", "JSS2") == class_level],
+        class_level,
+    )
     learners = {item["learner_id"] for item in records}
     attempted = sum(item["attempted"] for item in records)
     correct = sum(item["score"] for item in records)
@@ -212,7 +255,10 @@ def _teacher_weekly_trend(records: list[dict], weeks: int = 6) -> list[dict]:
 def build_dashboard(learner_id: str, class_level: str = "JSS2") -> dict:
     records, synced = get_records(learner_id)
     class_level = class_level if class_level in CLASS_TOPICS else "JSS2"
-    records = [item for item in records if item.get("class_level", "JSS2") == class_level]
+    records = _normalise_curriculum_records(
+        [item for item in records if item.get("class_level", "JSS2") == class_level],
+        class_level,
+    )
     records.sort(key=lambda item: item["timestamp"], reverse=True)
     total_questions = sum(item["attempted"] for item in records)
     total_correct = sum(item["score"] for item in records)
@@ -234,9 +280,13 @@ def build_dashboard(learner_id: str, class_level: str = "JSS2") -> dict:
 
     strongest = topic_rows[0] if topic_rows else None
     weakest = min(topic_rows, key=lambda item: (item["percentage"], item["topic"])) if topic_rows else None
-    recommended_topic = weakest["topic"] if weakest else CLASS_TOPICS[class_level][0]
-    recommended_difficulty = _recommended_difficulty(records, weakest)
-    recommendation = _recommendation(records, weakest, recommended_difficulty)
+    recommended_topic, recommendation_reason = _recommended_topic(class_level, records, topic_rows, weakest)
+    recommended_difficulty = _recommended_difficulty(records, recommended_topic)
+    recommended_term = TOPIC_TERM[class_level][recommended_topic]
+    recommendation = _recommendation(
+        records, recommended_topic, recommended_term, recommended_difficulty,
+        recommendation_reason,
+    )
     weekly = _weekly_summary(records)
     return {
         "class_level": class_level,
@@ -250,31 +300,53 @@ def build_dashboard(learner_id: str, class_level: str = "JSS2") -> dict:
         "recent_sessions": records[:5],
         "recommendation": recommendation,
         "recommended_topic": recommended_topic,
+        "recommended_term": recommended_term,
         "recommended_difficulty": recommended_difficulty,
+        "recommendation_reason": recommendation_reason,
         "weekly_summary": weekly,
         "storage_synced": synced,
     }
 
 
-def _recommendation(records: list[dict], weakest: dict | None, difficulty: str) -> str:
+def _recommended_topic(class_level: str, records: list[dict], topic_rows: list[dict], weakest: dict | None) -> tuple[str, str]:
+    topics = CLASS_TOPICS[class_level]
     if not records:
-        return "Complete your first practice session to receive a personal recommendation."
-    if weakest["percentage"] < 50:
-        return f"Focus on {weakest['topic']} at {difficulty} level and review each worked explanation."
-    if weakest["percentage"] < 80:
-        return f"Practise {weakest['topic']} again at the same level to build consistency."
-    latest = records[0]
-    next_level = {"Easy": "Medium", "Medium": "Challenge", "Challenge": "Challenge"}[latest["difficulty"]]
-    if latest["difficulty"] == "Challenge":
-        return f"Keep sharpening {latest['topic']} at Challenge level or choose a new topic."
-    return f"You are ready to try {latest['topic']} at {next_level} level."
+        return topics[0], "start"
+    if weakest and weakest["percentage"] < 80:
+        return weakest["topic"], "strengthen"
+    latest_topic = records[0]["topic"]
+    latest_results = [item for item in records if item["topic"] == latest_topic][:2]
+    if (
+        latest_topic in topics
+        and len(latest_results) == 2
+        and all(item["percentage"] >= 80 for item in latest_results)
+        and latest_results[0]["difficulty"] != "Challenge"
+    ):
+        return latest_topic, "extend"
+    attempted_topics = {row["topic"] for row in topic_rows}
+    start = topics.index(latest_topic) + 1 if latest_topic in topics else 0
+    ordered = topics[start:] + topics[:start]
+    next_topic = next((topic for topic in ordered if topic not in attempted_topics), None)
+    if next_topic:
+        return next_topic, "next"
+    return latest_topic if latest_topic in topics else topics[0], "extend"
 
 
-def _recommended_difficulty(records: list[dict], weakest: dict | None) -> str:
+def _recommendation(records: list[dict], topic: str, term: str, difficulty: str, reason: str) -> str:
     if not records:
+        return f"Start with {topic} from {term} at {difficulty} level."
+    if reason == "strengthen":
+        return f"Strengthen {topic} from {term} at {difficulty} level and review each worked explanation."
+    if reason == "next":
+        return f"You have done well so far. Continue with {topic} from {term} at {difficulty} level."
+    return f"Keep extending {topic} from {term} at {difficulty} level."
+
+
+def _recommended_difficulty(records: list[dict], topic: str) -> str:
+    matching = [item for item in records if item["topic"] == topic]
+    if not matching:
         return "Easy"
-    matching = [item for item in records if item["topic"] == weakest["topic"]]
-    current = matching[0]["difficulty"] if matching else records[0]["difficulty"]
+    current = matching[0]["difficulty"]
     levels = ["Easy", "Medium", "Challenge"]
     recent = matching[:2]
     if len(recent) >= 2 and all(item["percentage"] >= 80 for item in recent):
