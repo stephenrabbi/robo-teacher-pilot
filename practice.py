@@ -1,4 +1,4 @@
-"""Deterministic, pseudonymous Maths practice sessions for the V2.5 classroom."""
+"""Deterministic, pseudonymous Junior Secondary Maths practice sessions."""
 
 import secrets
 from dataclasses import dataclass, field
@@ -164,11 +164,26 @@ QUESTION_BANK = {
     },
 }
 
+CLASS_TOPICS = {
+    "JSS1": (
+        "Whole Numbers", "Factors, Multiples & Roots", "Fractions",
+        "Decimals & Approximation", "Algebra", "Geometry & Mensuration",
+        "Statistics & Probability",
+    ),
+    "JSS2": tuple(QUESTION_BANK),
+    "JSS3": (
+        "Whole Numbers", "Directed Numbers", "Algebra", "Ratio & Percentage",
+        "Commercial Arithmetic", "Inequalities & Graphs",
+        "Geometry & Mensuration", "Statistics & Probability",
+    ),
+}
+
 
 @dataclass
 class PracticeState:
     topic: str
     difficulty: str
+    class_level: str
     question: str
     hint: str
     expected: str
@@ -213,15 +228,15 @@ def _build_question_queue(topic: str, difficulty: str, count: int):
     return questions
 
 
-def start_practice(student_id: str, topic: str, difficulty: str, question_count: int = 5) -> dict:
-    if topic not in QUESTION_BANK or difficulty not in QUESTION_BANK[topic]:
+def start_practice(student_id: str, topic: str, difficulty: str, question_count: int = 5, class_level: str = "JSS2") -> dict:
+    if class_level not in CLASS_TOPICS or topic not in CLASS_TOPICS[class_level] or difficulty not in QUESTION_BANK[topic]:
         raise ValueError("Unsupported practice selection")
     if question_count not in {5, 10, 20}:
         raise ValueError("Unsupported question count")
     questions = _build_question_queue(topic, difficulty, question_count)
     question, hint, expected, explanation = questions.pop(0)
     state = PracticeState(
-        topic, difficulty, question, hint, expected, explanation,
+        topic, difficulty, class_level, question, hint, expected, explanation,
         target_count=question_count, remaining_questions=questions,
     )
     _sessions[student_id] = state
@@ -295,6 +310,7 @@ def next_question(student_id: str) -> dict:
 def _public_question(state: PracticeState) -> dict:
     return {
         "session_id": state.session_id,
+        "class_level": state.class_level,
         "topic": state.topic,
         "difficulty": state.difficulty,
         "question": state.question,
@@ -316,6 +332,7 @@ def _summary(state: PracticeState) -> dict:
         recommendation = f"Review the worked examples for {state.topic}, then try an easier session before moving up."
     return {
         "session_id": state.session_id,
+        "class_level": state.class_level,
         "topic": state.topic,
         "difficulty": state.difficulty,
         "score": state.correct,

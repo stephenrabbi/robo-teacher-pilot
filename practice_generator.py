@@ -1,4 +1,4 @@
-"""Generate varied, deterministic-marking JSS2 Maths practice questions."""
+"""Generate varied, deterministic-marking Junior Secondary Maths questions."""
 
 import math
 import secrets

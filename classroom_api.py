@@ -17,7 +17,7 @@ from typing import Literal
 from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
-from practice import QUESTION_BANK, answer_practice, next_question, start_practice
+from practice import CLASS_TOPICS, QUESTION_BANK, answer_practice, next_question, start_practice
 from practice_progress import build_dashboard, save_result
 
 from tutor import (
@@ -37,6 +37,7 @@ _RATE_WINDOW_SECONDS = 60
 _RATE_MAX_REQUESTS = 12
 _SESSION_KEY = os.getenv("CLASSROOM_SESSION_SECRET", "").encode() or secrets.token_bytes(32)
 _request_times: dict[str, deque] = defaultdict(deque)
+_classroom_profiles: dict[str, dict[str, str]] = {}
 SupportedLanguage = Literal["English", "Yoruba", "Igbo", "Hausa"]
 
 
@@ -76,6 +77,7 @@ class PracticeStart(BaseModel):
     ]
     difficulty: Literal["Easy", "Medium", "Challenge"]
     question_count: Literal[5, 10, 20] = 5
+    class_level: Literal["JSS1", "JSS2", "JSS3"] = "JSS2"
 
 
 class PracticeAnswer(BaseModel):
@@ -131,18 +133,26 @@ def _enforce_rate_limit(student_id: str, scope: str = "tutor", max_requests: int
 @router.post("/session")
 def create_classroom_session(request: ClassroomSessionRequest | None = None):
     student_id, token = _new_session(request.learner_key if request else None)
+    profile = {
+        "nickname": request.nickname if request else "Learner",
+        "class_level": request.class_level if request else "JSS2",
+    }
+    _classroom_profiles[student_id] = profile
     return {
         "session_token": token,
         "learner_id": student_id,
-        "nickname": request.nickname if request else "Learner",
-        "class_level": request.class_level if request else "JSS2",
+        **profile,
         "expires_in": _SESSION_TTL_SECONDS,
     }
 
 
 @router.get("/practice/options")
 def practice_options():
-    return {"topics": list(QUESTION_BANK), "difficulties": ["Easy", "Medium", "Challenge"]}
+    return {
+        "topics": list(QUESTION_BANK),
+        "topics_by_class": {level: list(topics) for level, topics in CLASS_TOPICS.items()},
+        "difficulties": ["Easy", "Medium", "Challenge"],
+    }
 
 
 @router.post("/practice/start")
@@ -150,7 +160,7 @@ def classroom_practice_start(selection: PracticeStart):
     student_id = _verify_session(selection.session_token)
     _enforce_rate_limit(student_id, "practice", 120)
     try:
-        return start_practice(student_id, selection.topic, selection.difficulty, selection.question_count)
+        return start_practice(student_id, selection.topic, selection.difficulty, selection.question_count, selection.class_level)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail="Choose a supported topic and difficulty") from exc
 
@@ -198,7 +208,8 @@ def classroom_chat(question: ClassroomQuestion, request: Request):
     if not message:
         raise HTTPException(status_code=422, detail="Question cannot be empty")
     try:
-        reply, latency = get_tutor_reply(student_id, message, question.language)
+        class_level = _classroom_profiles.get(student_id, {}).get("class_level", "JSS2")
+        reply, latency = get_tutor_reply(student_id, message, question.language, class_level)
     except Exception as exc:
         # Never expose provider details, prompts, credentials, or stack traces to learners.
         raise HTTPException(status_code=503, detail="Robo-Teacher is temporarily unavailable") from exc
@@ -238,7 +249,8 @@ async def classroom_image(
     if len(image_bytes) > MAX_IMAGE_BYTES:
         raise HTTPException(status_code=413, detail="The image must be 8 MB or smaller")
     try:
-        reply, latency = get_tutor_image_reply(student_id, image_bytes, mime_type, caption.strip(), language)
+        class_level = _classroom_profiles.get(student_id, {}).get("class_level", "JSS2")
+        reply, latency = get_tutor_image_reply(student_id, image_bytes, mime_type, caption.strip(), language, class_level)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail="The image could not be processed") from exc
     except Exception as exc:
@@ -264,7 +276,8 @@ def classroom_whiteboard(board: ClassroomWhiteboard):
         raise HTTPException(status_code=413, detail="The whiteboard image must be 8 MB or smaller")
     try:
         reply, latency = get_tutor_image_reply(
-            student_id, image_bytes, "image/png", board.caption.strip(), board.language
+            student_id, image_bytes, "image/png", board.caption.strip(), board.language,
+            _classroom_profiles.get(student_id, {}).get("class_level", "JSS2"),
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail="The whiteboard could not be processed") from exc
@@ -290,7 +303,8 @@ async def classroom_audio(
     if len(audio_bytes) > MAX_AUDIO_BYTES:
         raise HTTPException(status_code=413, detail="The recording must be 12 MB or smaller")
     try:
-        reply, latency = get_tutor_audio_reply(student_id, audio_bytes, mime_type, language)
+        class_level = _classroom_profiles.get(student_id, {}).get("class_level", "JSS2")
+        reply, latency = get_tutor_audio_reply(student_id, audio_bytes, mime_type, language, class_level)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail="The recording could not be processed") from exc
     except Exception as exc:

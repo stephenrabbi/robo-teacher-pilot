@@ -101,6 +101,16 @@ const savedNickname=localStorage.getItem('roboTeacherNickname')||'';
 const savedClass=localStorage.getItem('roboTeacherClass')||'JSS2';
 learnerNickname.value=savedNickname;
 if(['JSS1','JSS2','JSS3'].includes(savedClass))learnerClass.value=savedClass;
+const classTopics={
+  JSS1:['Whole Numbers','Factors, Multiples & Roots','Fractions','Decimals & Approximation','Algebra','Geometry & Mensuration','Statistics & Probability'],
+  JSS2:['Whole Numbers','Fractions','Algebra','Ratio & Percentage','Factors, Multiples & Roots','Decimals & Approximation','Directed Numbers','Commercial Arithmetic','Inequalities & Graphs','Geometry & Mensuration','Statistics & Probability'],
+  JSS3:['Whole Numbers','Directed Numbers','Algebra','Ratio & Percentage','Commercial Arithmetic','Inequalities & Graphs','Geometry & Mensuration','Statistics & Probability']
+};
+function updatePracticeTopics(){
+  const previous=practiceTopic.value;practiceTopic.replaceChildren(...classTopics[learnerClass.value].map(topic=>{const option=document.createElement('option');option.textContent=topic;return option}));
+  if(classTopics[learnerClass.value].includes(previous))practiceTopic.value=previous;
+}
+updatePracticeTopics();learnerClass.addEventListener('change',updatePracticeTopics);
 
 async function ensureSession(){
   if(sessionToken)return sessionToken;
@@ -308,7 +318,7 @@ async function practiceRequest(path,body){
 
 async function startPracticeSession(){
   startPracticeButton.disabled=true;practiceAgainButton.disabled=true;startPracticeButton.textContent='Preparing…';
-  try{renderPracticeQuestion(await practiceRequest('start',{topic:practiceTopic.value,difficulty:practiceDifficulty.value,question_count:Number(practiceCount.value)}))}
+  try{renderPracticeQuestion(await practiceRequest('start',{topic:practiceTopic.value,difficulty:practiceDifficulty.value,question_count:Number(practiceCount.value),class_level:learnerClass.value}))}
   catch(err){addMessage(err.message,'teacher')}
   finally{startPracticeButton.disabled=false;practiceAgainButton.disabled=false;startPracticeButton.textContent='Start Practice →'}
 }

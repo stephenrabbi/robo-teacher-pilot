@@ -18,7 +18,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260905-profile1' in html
+    assert '20260905-jss123' in html
     assert 'id="learnerNickname"' in html
     assert 'id="learnerClass"' in html
     assert "localStorage.setItem('roboTeacherNickname',nickname)" in script
@@ -193,6 +193,29 @@ def test_practice_bank_covers_jss2_curriculum_strands():
     options = client.get('/api/classroom/practice/options')
     assert options.status_code == 200
     assert set(options.json()['topics']) == expected_topics
+    assert set(options.json()['topics_by_class']) == {'JSS1', 'JSS2', 'JSS3'}
+    assert set(options.json()['topics_by_class']['JSS2']) == expected_topics
+
+
+def test_practice_topics_are_class_aware():
+    assert 'Fractions' in practice.CLASS_TOPICS['JSS1']
+    assert 'Directed Numbers' not in practice.CLASS_TOPICS['JSS1']
+    assert 'Directed Numbers' in practice.CLASS_TOPICS['JSS2']
+    assert 'Inequalities & Graphs' in practice.CLASS_TOPICS['JSS3']
+    session = client.post('/api/classroom/session', json={
+        'learner_key': 'd' * 48, 'nickname': 'Ada', 'class_level': 'JSS1',
+    }).json()
+    accepted = client.post('/api/classroom/practice/start', json={
+        'session_token': session['session_token'], 'class_level': 'JSS1',
+        'topic': 'Fractions', 'difficulty': 'Easy', 'question_count': 5,
+    })
+    assert accepted.status_code == 200
+    assert accepted.json()['class_level'] == 'JSS1'
+    rejected = client.post('/api/classroom/practice/start', json={
+        'session_token': session['session_token'], 'class_level': 'JSS1',
+        'topic': 'Directed Numbers', 'difficulty': 'Easy', 'question_count': 5,
+    })
+    assert rejected.status_code == 422
 
 
 def test_every_topic_and_level_can_build_twenty_unique_questions():
@@ -371,6 +394,20 @@ def test_session_and_chat_use_pseudonymous_identity():
     assert 'common denominator' in response.json()['reply']
     assert tutor.call_args.args[0] == data['learner_id']
     assert tutor.call_args.args[2] == 'English'
+    assert tutor.call_args.args[3] == 'JSS2'
+
+
+def test_selected_class_reaches_the_tutor():
+    session = client.post('/api/classroom/session', json={
+        'learner_key': 'e' * 48, 'nickname': 'Zainab', 'class_level': 'JSS3',
+    }).json()
+    with patch.object(classroom_api, 'get_tutor_reply', return_value=('Let us solve it.', 0.1)) as tutor:
+        response = client.post('/api/classroom/chat', json={
+            'message': 'Teach me simultaneous equations',
+            'session_token': session['session_token'], 'language': 'English',
+        })
+    assert response.status_code == 200
+    assert tutor.call_args.args[3] == 'JSS3'
 
 
 def test_yoruba_language_reaches_all_classroom_tutoring_modes():

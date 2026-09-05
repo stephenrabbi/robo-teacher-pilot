@@ -18,7 +18,8 @@ The browser classroom extends the messaging tutor into one learning workspace wh
 - write problems or show working on an interactive whiteboard with pen, eraser, clear, close and **Ask Teacher** controls;
 - learn in English, Yorùbá, Igbo or Hausa across text, voice, image and whiteboard pathways;
 - enter questions in the selected Nigerian language and receive the explanation and final-answer wording in that language;
-- practise across 11 JSS2 Mathematics topic groups at Easy, Medium or Challenge level;
+- select JSS1, JSS2 or JSS3 and receive class-level tutoring across text, image, voice and whiteboard;
+- practise class-appropriate Mathematics topic groups at Easy, Medium or Challenge level;
 - choose 5-, 10- or 20-question practice sessions generated with no repeated prompt within a session;
 - receive praise for correct answers and a worked explanation after incorrect answers;
 - review missed questions, scores, percentages and next-step recommendations; and
@@ -337,6 +338,8 @@ Implemented on the draft staging branch:
 - curriculum-based Practice Mode with varied questions and worked feedback
 - session results, missed-question review and learner progress dashboard
 - persistent, pseudonymous Practice Mode history in Google Sheets
+- privacy-safe nickname and JSS1–JSS3 learner onboarding
+- Junior Secondary curriculum scope with class-aware tutoring and Practice topic selection
 
 Before production release, V2.5 still requires broader learner testing, accessibility review, monitoring and a deliberate merge decision.
 

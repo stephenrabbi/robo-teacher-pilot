@@ -1,4 +1,4 @@
-"""Robo-Teacher — JSS2 Basic Maths tutor logic.
+"""Robo-Teacher — Junior Secondary School Mathematics tutor logic.
 
 V2 adds pseudonymous adaptive learner memory plus image and voice tutoring while
 preserving deterministic arithmetic and explicit escalation guardrails.
@@ -28,7 +28,7 @@ MAX_IMAGE_BYTES = 8 * 1024 * 1024
 MAX_AUDIO_BYTES = 12 * 1024 * 1024
 
 CURRICULUM_TOPICS = """
-- Revision of JSS1 topics: whole numbers and place value
+- Whole numbers, place value, operations, number bases and standard form
 - Factors, multiples, and prime numbers
 - Lowest Common Multiple (LCM) and Highest Common Factor (HCF)
 - Fractions: equivalent fractions, addition, subtraction, multiplication, division
@@ -38,16 +38,19 @@ CURRICULUM_TOPICS = """
 - Basic algebraic expressions and simplification
 - Simple linear equations
 - Everyday arithmetic: profit, loss, and simple percentages
+- Directed numbers, inequalities, coordinates and graphs
+- Geometry, constructions, angles, transformations and mensuration
+- Statistics, data presentation and probability
 """
 
-ESCALATION_RESPONSE = "I don't want to guess and give you a wrong answer. This question is outside the Mathematics topics I'm currently set up to support. Please ask your teacher for help, or send me a JSS2 Maths question from the topics I support."
+ESCALATION_RESPONSE = "I don't want to guess and give you a wrong answer. This question is outside the Junior Secondary Mathematics topics I'm currently set up to support. Please ask your teacher for help, or send me a JSS1, JSS2, or JSS3 Maths question."
 ESCALATION_MARKER = "[ESCALATE]"
 TECHNICAL_FALLBACK_RESPONSE = "Sorry, I had a small technical hiccup while working on that. Please try the question again in a moment."
 RATE_LIMIT_RESPONSE = "Lots of students are asking me questions right now, so I need a tiny break! Please try again in about a minute. 🙂"
-SYSTEM_PROMPT = f"""You are Robo-Teacher, a warm, patient AI Maths tutor for JSS2 students in Nigeria, built by Earlyon-Tech Brainery.
+SYSTEM_PROMPT = f"""You are Robo-Teacher, a warm, patient AI Maths tutor for JSS1, JSS2, and JSS3 students in Nigeria, built by Earlyon-Tech Brainery.
 Topics in scope:\n{CURRICULUM_TOPICS}
 Rules:
-- Explain step by step in simple language for ages 10-13.
+- Explain step by step in simple language for Junior Secondary learners.
 - Use relatable Nigerian examples when useful.
 - Show complete working; use plain-text maths, never LaTeX.
 - Keep replies concise and phone-friendly.
@@ -397,7 +400,15 @@ def _extract_text(response) -> str:
     raise ValueError("Gemini response contained no readable text")
 
 
-def _language_instruction(response_language: str) -> str:
+def _class_instruction(class_level: str) -> str:
+    selected = class_level if class_level in {"JSS1", "JSS2", "JSS3"} else "JSS2"
+    return (
+        f"The learner selected {selected}. Teach at {selected} depth and vocabulary. "
+        "You may briefly revise an earlier prerequisite, but do not refuse a valid Junior Secondary Maths question merely because it belongs to another JSS year."
+    )
+
+
+def _language_instruction(response_language: str, class_level: str = "JSS2") -> str:
     language_details = {
         "Yoruba": ("Yorùbá", "Yorùbá"),
         "Igbo": ("Igbo", "Igbo"),
@@ -406,7 +417,7 @@ def _language_instruction(response_language: str) -> str:
     if response_language in language_details:
         language_name, number_word_language = language_details[response_language]
         simplicity = (
-            "Use simple, modern conversational Yorùbá commonly understood by JSS2 learners in Lagos. "
+            f"Use simple, modern conversational Yorùbá commonly understood by {class_level} learners in Lagos. "
             "Use short direct sentences. Avoid deep or literary Yorùbá, proverbs, idioms and uncommon traditional terms. "
             "You may naturally code-switch only familiar school Maths words such as plus, minus, times, divide, fraction, decimal and percent. "
             "Never say the numbers in English; use familiar conversational Yorùbá counting forms such as ọ̀kan, méjì, mẹ́ta, márùn-ún and mẹ́fà. "
@@ -414,7 +425,7 @@ def _language_instruction(response_language: str) -> str:
         )
         return (
             f"The learner may ask the Maths question in {language_name} or English. Understand both languages, "
-            f"but reply entirely in clear, natural {language_name} suitable for a Nigerian JSS2 learner. "
+            f"but reply entirely in clear, natural {language_name} suitable for a Nigerian {class_level} learner. "
             f"{simplicity}"
             "Write as a warm human teacher would speak: use complete sentences, natural punctuation, and short paragraphs. "
             "Use commas and full stops to create clear pauses when the answer is read aloud. "
@@ -428,11 +439,11 @@ def _language_instruction(response_language: str) -> str:
         "write as a warm human teacher would speak, using complete sentences, natural punctuation, and short paragraphs. "
         "Use commas and full stops to create clear pauses when the answer is read aloud. "
         "keep mathematical symbols and numerals in the working, but write the final-answer value as a "
-        "number word in that language. Use language suitable for a Nigerian JSS2 learner."
+        f"number word in that language. Use language suitable for a Nigerian {class_level} learner."
     )
 
 
-def get_tutor_reply(student_id: str, message: str, response_language: str = "English") -> tuple[str, float]:
+def get_tutor_reply(student_id: str, message: str, response_language: str = "English", class_level: str = "JSS2") -> tuple[str, float]:
     profile = _safe_profile_update(student_id, message)
     deterministic = _simple_arithmetic_answer(message, response_language)
     if deterministic is not None:
@@ -446,13 +457,13 @@ def get_tutor_reply(student_id: str, message: str, response_language: str = "Eng
 
     history = _conversations.get(student_id, [])
     try:
-        text, new_history = _ask(client, history, message, profile, response_language)
+        text, new_history = _ask(client, history, message, profile, response_language, class_level)
     except Exception as first_error:
         if _is_rate_limit_error(first_error):
             return RATE_LIMIT_RESPONSE, time.time() - start
         logger.warning("Gemini request failed; retrying once without conversation history (%s)", type(first_error).__name__)
         try:
-            text, new_history = _ask(client, [], message, profile, response_language)
+            text, new_history = _ask(client, [], message, profile, response_language, class_level)
         except Exception as retry_error:
             if _is_rate_limit_error(retry_error):
                 return RATE_LIMIT_RESPONSE, time.time() - start
@@ -475,21 +486,21 @@ def _media_reply(student_id: str, media_bytes: bytes, mime_type: str, prompt: st
     return _clean_model_reply(_extract_text(response)), time.time() - start
 
 
-def get_tutor_image_reply(student_id: str, image_bytes: bytes, mime_type: str, caption: str = "", response_language: str = "English") -> tuple[str, float]:
+def get_tutor_image_reply(student_id: str, image_bytes: bytes, mime_type: str, caption: str = "", response_language: str = "English", class_level: str = "JSS2") -> tuple[str, float]:
     if mime_type not in SUPPORTED_IMAGE_MIME_TYPES: raise ValueError("Unsupported image type")
     if not image_bytes or len(image_bytes) > MAX_IMAGE_BYTES: raise ValueError("Image is empty or too large")
     learning_message = caption.strip() or "Please help me understand the Maths problem in this image."
-    prompt = f"{_language_instruction(response_language)}\nThe learner sent a Maths image. Read only the educational content. If unclear, request a clearer photo. Otherwise teach the method step by step.\nLearner caption: {learning_message}"
+    prompt = f"{_class_instruction(class_level)}\n{_language_instruction(response_language, class_level)}\nThe learner sent a Maths image. Read only the educational content. If unclear, request a clearer photo. Otherwise teach the method step by step.\nLearner caption: {learning_message}"
     return _media_reply(student_id, image_bytes, mime_type, prompt, learning_message)
 
 
-def get_tutor_audio_reply(student_id: str, audio_bytes: bytes, mime_type: str, response_language: str = "English") -> tuple[str, float]:
+def get_tutor_audio_reply(student_id: str, audio_bytes: bytes, mime_type: str, response_language: str = "English", class_level: str = "JSS2") -> tuple[str, float]:
     """Understand a learner's voice note and answer the spoken Maths question in text."""
     if mime_type not in SUPPORTED_AUDIO_MIME_TYPES: raise ValueError("Unsupported audio type")
     if not audio_bytes or len(audio_bytes) > MAX_AUDIO_BYTES: raise ValueError("Audio is empty or too large")
     profile_message = "Learner used a voice note for a Maths question."
     prompt = (
-        f"{_language_instruction(response_language)} Listen to the learner voice note in English, Yorùbá, Igbo, or Hausa with a safety-first transcription rule. Before solving, silently verify every spoken number, sign, operator, and equation term from the audio itself. "
+        f"{_class_instruction(class_level)} {_language_instruction(response_language, class_level)} Listen to the learner voice note in English, Yorùbá, Igbo, or Hausa with a safety-first transcription rule. Before solving, silently verify every spoken number, sign, operator, and equation term from the audio itself. "
         "Do not infer a number because it makes the Maths easier or seems more likely. Pay special attention to easily confused spoken numbers such as seven versus seventeen, four versus fourteen, six versus sixteen, and similar pairs. "
         "If any number, operator, or important word is muffled, clipped, masked by background noise, or could plausibly have been heard another way, DO NOT solve the problem. Instead say that you may not have heard the question correctly and ask the learner to resend the voice note more clearly or type the equation. "
         "Only when every essential Maths token is clear should you answer the spoken question as a patient teacher and explain the method step by step in text. "
@@ -498,7 +509,7 @@ def get_tutor_audio_reply(student_id: str, audio_bytes: bytes, mime_type: str, r
     return _media_reply(student_id, audio_bytes, mime_type, prompt, profile_message)
 
 
-def _ask(client, history: list, message: str, profile: dict, response_language: str = "English") -> tuple[str, list]:
+def _ask(client, history: list, message: str, profile: dict, response_language: str = "English", class_level: str = "JSS2") -> tuple[str, list]:
     chat = client.chats.create(model=GEMINI_MODEL, config=types.GenerateContentConfig(system_instruction=SYSTEM_PROMPT, max_output_tokens=600, thinking_config=types.ThinkingConfig(thinking_budget=0)), history=history)
-    response = chat.send_message(f"{profile_prompt_context(profile)}\n\n{_language_instruction(response_language)}\n\nCurrent student message:\n{message}")
+    response = chat.send_message(f"{profile_prompt_context(profile)}\n\n{_class_instruction(class_level)}\n{_language_instruction(response_language, class_level)}\n\nCurrent student message:\n{message}")
     return _extract_text(response), chat.get_history()
