@@ -277,6 +277,8 @@ def test_diagnostic_placement_is_separate_and_privacy_safe():
 
 def test_teacher_dashboard_returns_aggregates_without_identities():
     practice_progress._reset_for_tests()
+    diagnostic_progress._memory.clear()
+    diagnostic_progress._memory.append({'timestamp':'2026-09-05T09:00:00+00:00','session_id':'class-diagnostic','learner_id':'WEB-private','class_level':'JSS2','term':'First Term','score':6,'attempted':10,'percentage':60,'recommended_topic':'Standard Form','recommended_difficulty':'Medium','topic_results':[]})
     practice_progress._memory_records.append({
         'learner_id': 'WEB-private', 'class_level': 'JSS2', 'session_id': 'aggregate-1',
         'topic': 'Simple Equations', 'difficulty': 'Easy', 'score': 4, 'attempted': 5,
@@ -295,6 +297,9 @@ def test_teacher_dashboard_returns_aggregates_without_identities():
     assert dashboard['weekly_summary']['action']
     assert 'learner_id' not in dashboard
     assert 'recent_sessions' not in dashboard
+    assert dashboard['diagnostic_summary']['completed'] == 1
+    assert dashboard['diagnostic_summary']['common_focus_topic'] == 'Standard Form'
+    assert 'learner_id' not in dashboard['diagnostic_summary']
 
 
 def test_existing_eight_column_progress_sheet_is_extended_for_class_level():

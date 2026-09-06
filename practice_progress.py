@@ -7,7 +7,7 @@ import threading
 
 import gspread
 from curriculum import CLASS_TOPICS, TOPIC_TERM
-from diagnostic_progress import latest_diagnostic
+from diagnostic_progress import diagnostic_class_summary, latest_diagnostic
 
 
 _LEGACY_TOPICS = {
@@ -220,7 +220,7 @@ def build_teacher_dashboard(class_level: str = "JSS2") -> dict:
         "strongest_topic": strongest["topic"] if strongest else None,
         "weakest_topic": weakest["topic"] if weakest else None,
         "recommendation": recommendation, "weekly_trend": weekly, "weekly_summary": weekly_summary, "topics": topics,
-        "storage_synced": synced,
+        "storage_synced": synced, "diagnostic_summary": diagnostic_class_summary(class_level),
     }
 
 

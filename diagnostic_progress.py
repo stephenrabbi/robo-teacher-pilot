@@ -43,3 +43,25 @@ def latest_diagnostic(learner_id: str, class_level: str):
     if not records: return None
     latest=max(records,key=lambda item:item["timestamp"]).copy();latest.pop("learner_id",None)
     return latest
+
+
+def diagnostic_class_summary(class_level: str) -> dict:
+    """Return class aggregates only; learner identifiers never leave this function."""
+    records=[]
+    if _configured():
+        try:
+            for row in _sheet().get_all_records():
+                if str(row.get("Class Level"))==class_level:
+                    records.append({"session_id":str(row.get("Session ID","")),"learner_id":str(row.get("Learner ID","")),"term":str(row.get("Term","")),"percentage":int(row.get("Percentage",0)),"recommended_topic":str(row.get("Recommended Topic",""))})
+        except Exception as exc:
+            print(f"[diagnostic_progress] WARNING: failed to load class results: {type(exc).__name__}")
+    known={item["session_id"] for item in records}
+    with _lock:
+        records.extend({key:item[key] for key in ("session_id","learner_id","term","percentage","recommended_topic")} for item in _memory if item["class_level"]==class_level and item["session_id"] not in known)
+    topic_counts={topic:sum(item["recommended_topic"]==topic for item in records) for topic in {item["recommended_topic"] for item in records if item["recommended_topic"]}}
+    common=max(topic_counts,key=lambda topic:(topic_counts[topic],topic)) if topic_counts else None
+    terms=[]
+    for term in ("First Term","Second Term","Third Term"):
+        items=[item for item in records if item["term"]==term]
+        if items: terms.append({"term":term,"completed":len(items),"average_percentage":round(sum(item["percentage"] for item in items)/len(items))})
+    return {"completed":len(records),"learners":len({item["learner_id"] for item in records}),"average_percentage":round(sum(item["percentage"] for item in records)/len(records)) if records else 0,"common_focus_topic":common,"terms":terms}
