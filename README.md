@@ -6,9 +6,9 @@ Robo-Teacher is an AI tutoring system designed to extend individualized learning
 
 > **Current status:** Robo-Teacher V2 has been merged into the production `main` branch, passed the automated CI test suite, and is deployed to production on Render.
 
-> **V2.5 staging:** The next interactive classroom release is being validated on the unmerged `v2.5-classroom` branch through draft PR #9. It does not change the production application. [Open the V2.5 staging classroom](https://robo-teacher-v25-staging.onrender.com/classroom-app).
+> **V2.5 release candidate:** The interactive classroom has completed staging user-acceptance testing on the `v2.5-classroom` branch. PR #9 is awaiting its final CI and production-release gate. [Open the V2.5 staging classroom](https://robo-teacher-v25-staging.onrender.com/classroom-app).
 
-## V2.5 Interactive Classroom — Staging
+## V2.5 Interactive Classroom — Release Candidate
 
 The browser classroom extends the messaging tutor into one learning workspace while preserving the existing production release. Learners can currently:
 
