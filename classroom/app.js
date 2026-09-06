@@ -87,6 +87,9 @@ const weeklySessions=document.getElementById('weeklySessions');
 const weeklyQuestions=document.getElementById('weeklyQuestions');
 const weeklyScore=document.getElementById('weeklyScore');
 const weeklyImprovement=document.getElementById('weeklyImprovement');
+const weeklyStrongest=document.getElementById('weeklyStrongest');
+const weeklyFocus=document.getElementById('weeklyFocus');
+const weeklyNextAction=document.getElementById('weeklyNextAction');
 const practiceRecommendation=document.getElementById('practiceRecommendation');
 const learningPath=document.getElementById('learningPath');
 const progressTopics=document.getElementById('progressTopics');
@@ -528,6 +531,7 @@ function renderProgress(data){
   progressAverage.textContent=`${data.average_percentage}%`;progressStrongest.textContent=data.strongest_topic||'—';progressRecommendation.textContent=data.recommendation;
   const week=data.weekly_summary;weeklySessions.textContent=`${week.sessions} session${week.sessions===1?'':'s'}`;weeklyQuestions.textContent=`${week.questions} question${week.questions===1?'':'s'}`;weeklyScore.textContent=`${week.percentage}%`;
   weeklyImprovement.textContent=week.improvement_points===null?'Complete another week to measure improvement.':week.improvement_points>0?`Improved by ${week.improvement_points} percentage points.`:week.improvement_points<0?`Down ${Math.abs(week.improvement_points)} points—review the recommended topic.`:'Your score is steady compared with last week.';
+  weeklyStrongest.textContent=week.strongest_topic||'—';weeklyFocus.textContent=week.focus_topic||'—';weeklyNextAction.textContent=week.next_action;
   progressStorageNotice.classList.toggle('hidden',data.storage_synced);progressTopics.replaceChildren();recentSessions.replaceChildren();renderLearningPath(data.learning_path||[]);
   data.topics.forEach(item=>{
     const row=document.createElement('article');const label=document.createElement('div');const name=document.createElement('strong');const score=document.createElement('span');

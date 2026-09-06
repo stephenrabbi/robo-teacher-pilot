@@ -405,9 +405,31 @@ def _weekly_summary(records: list[dict]) -> dict:
     old_attempted = sum(item["attempted"] for item in previous)
     old_score = round(sum(item["score"] for item in previous) / old_attempted * 100) if old_attempted else None
     improvement = score - old_score if old_score is not None and attempted else None
+    topic_results = []
+    for topic in sorted({item["topic"] for item in current}):
+        items = [item for item in current if item["topic"] == topic]
+        questions = sum(item["attempted"] for item in items)
+        topic_results.append({
+            "topic": topic,
+            "questions": questions,
+            "percentage": round(sum(item["score"] for item in items) / questions * 100) if questions else 0,
+        })
+    strongest = max(topic_results, key=lambda item: (item["percentage"], item["questions"])) if topic_results else None
+    focus = min(topic_results, key=lambda item: (item["percentage"], -item["questions"])) if topic_results else None
+    if not focus:
+        next_action = "Complete a Practice session to receive a weekly recommendation."
+    elif focus["percentage"] < 50:
+        next_action = f"Review worked examples for {focus['topic']}, then practise it at an easier level."
+    elif focus["percentage"] < 80:
+        next_action = f"Practise {focus['topic']} again and review every missed question."
+    else:
+        next_action = f"Strong week. Try the next level in {focus['topic']}."
     return {
         "sessions": len(current), "questions": attempted, "percentage": score,
         "improvement_points": improvement,
+        "strongest_topic": strongest["topic"] if strongest else None,
+        "focus_topic": focus["topic"] if focus else None,
+        "next_action": next_action,
     }
 
 

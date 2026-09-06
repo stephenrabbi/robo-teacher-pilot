@@ -212,6 +212,9 @@ def test_progress_is_class_aware_and_adjusts_repeated_performance():
     assert dashboard['recommended_term'] == 'First Term'
     assert dashboard['recommended_difficulty'] == 'Easy'
     assert dashboard['weekly_summary']['questions'] == 10
+    assert dashboard['weekly_summary']['strongest_topic'] == 'Factorisation & Quadratic Expressions'
+    assert dashboard['weekly_summary']['focus_topic'] == 'Factorisation & Quadratic Expressions'
+    assert 'easier level' in dashboard['weekly_summary']['next_action']
 
 
 def test_consistent_success_moves_the_learner_up_one_level():
