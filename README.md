@@ -359,6 +359,7 @@ Implemented on the draft staging branch:
 - separate 10-question class-and-term diagnostic assessments with mixed topics and a recommended starting topic and difficulty
 - permanent diagnostic placement storage in a separate Google Sheets worksheet, restored into the learner's personalised path without changing Practice averages
 - privacy-safe Teacher View diagnostic aggregates showing completions, assessed learners, average placement score and the most common starting topic
+- teacher-protected staging QA checklist with local Pass/Fail/Needs Improvement tracking, release-blocker status and dated CSV export
 - single-request session translation that preserves the original answer key and mathematical notation for reliable marking
 - session results, missed-question review and learner progress dashboard
 - persistent, pseudonymous Practice Mode history in Google Sheets

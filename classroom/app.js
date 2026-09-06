@@ -102,6 +102,15 @@ const teacherDashboardContent=document.getElementById('teacherDashboardContent')
 const closeTeacherDashboard=document.getElementById('closeTeacherDashboard');
 const teacherClass=document.getElementById('teacherClass');
 const downloadTeacherReport=document.getElementById('downloadTeacherReport');
+const openQaChecklist=document.getElementById('openQaChecklist');
+const qaChecklist=document.getElementById('qaChecklist');
+const qaChecklistItems=document.getElementById('qaChecklistItems');
+const qaCompleted=document.getElementById('qaCompleted');
+const qaPassed=document.getElementById('qaPassed');
+const qaBlockers=document.getElementById('qaBlockers');
+const qaReleaseStatus=document.getElementById('qaReleaseStatus');
+const downloadQaReport=document.getElementById('downloadQaReport');
+const closeQaChecklist=document.getElementById('closeQaChecklist');
 let currentPractice=null;
 let currentPracticeSummary=null;
 let practiceMode='practice';
@@ -123,6 +132,14 @@ let boardHasInk=false;
 let teacherDashboardAccessKey='';
 let currentTeacherDashboard=null;
 const boardContext=whiteboard.getContext('2d');
+const qaChecks={
+  'Learner journey':['Fresh onboarding opens','Class selection controls curriculum','Returning nickname restores progress','Change learner clears the visible session'],
+  'Diagnostic assessment':['JSS1 term diagnostic completes','JSS2 term diagnostic completes','JSS3 term diagnostic completes','Topic scores and recommendation are correct','Diagnostic result restores after a new session'],
+  'Practice and personalisation':['Questions do not repeat or freeze','Correct and incorrect feedback explains the answer','Auto difficulty moves up after two strong sessions','Auto difficulty moves down after two low sessions','Continue Learning opens the recommended topic'],
+  'Language and voice':['English voice input and reply work','Yorùbá input, numbers and reply work','Igbo input and reply work','Hausa input and reply work','Language switches during Practice','Audio pauses and continues from the same place','Voice questions receive automatic spoken answers'],
+  'Progress and Teacher View':['Practice result saves to Google Sheets','Diagnostic saves to its separate worksheet','Weekly learner summary is correct','Teacher class selector and trends are correct','Diagnostic class aggregates contain no identities','Practice and QA CSV reports download'],
+  'Devices':['Android Chrome works','Desktop Chrome or Edge works','iPhone or Safari checked when available','No clipped controls or horizontal scrolling']
+};
 const savedLanguage=localStorage.getItem('roboTeacherLanguage');
 if(['English','Yoruba','Igbo','Hausa'].includes(savedLanguage))language.value=savedLanguage;
 const dashboardCopy={
@@ -420,6 +437,9 @@ teacherDashboardButton.addEventListener('click',openTeacherDashboard);
 closeTeacherDashboard.addEventListener('click',()=>{teacherDashboard.classList.add('hidden');canvasEmpty.classList.remove('hidden')});
 teacherClass.addEventListener('change',refreshTeacherDashboard);
 downloadTeacherReport.addEventListener('click',downloadTeacherDashboardReport);
+openQaChecklist.addEventListener('click',showQaChecklist);
+closeQaChecklist.addEventListener('click',()=>{qaChecklist.classList.add('hidden');teacherDashboard.classList.remove('hidden')});
+downloadQaReport.addEventListener('click',downloadQaChecklistReport);
 viewProgressFromResults.addEventListener('click',openProgress);
 closeProgressButton.addEventListener('click',closeProgress);
 emptyStartPractice.addEventListener('click',openPracticeFromProgress);
@@ -591,6 +611,15 @@ function downloadTeacherDashboardReport(){
   if(!currentTeacherDashboard)return;const data=currentTeacherDashboard;const week=data.weekly_summary;const diagnostic=data.diagnostic_summary;const rows=[['Robo-Teacher Privacy-Safe Class Report'],['Class',data.class_level],['Generated',new Date().toISOString()],[],['Diagnostic placement'],['Completed tests',diagnostic.completed],['Learners assessed',diagnostic.learners],['Average',`${diagnostic.average_percentage}%`],['Most common starting topic',diagnostic.common_focus_topic||'Not enough data'],[],['Learners',data.learners],['Sessions',data.sessions],['Questions',data.questions],['Average',`${data.average_percentage}%`],['Strongest topic',data.strongest_topic||'Not enough data'],['Weakest topic',data.weakest_topic||'Not enough data'],['Recommendation',data.recommendation],[],['This week'],['Week starting',week.week_start],['Sessions',week.sessions],['Questions',week.questions],['Score',week.percentage===null?'':`${week.percentage}%`],['Change in percentage points',week.change_points??''],['Strongest topic',week.strongest_topic||'Not enough data'],['Weakest topic',week.weakest_topic||'Not enough data'],['Teacher action',week.action],[],['Topic','Sessions','Questions','Percentage'],...data.topics.map(item=>[item.topic,item.sessions,item.questions,`${item.percentage}%`]),[],['Week starting','Sessions','Questions','Percentage'],...data.weekly_trend.map(item=>[item.week_start,item.sessions,item.questions,item.percentage===null?'':`${item.percentage}%`])];
   const csv=rows.map(row=>row.map(value=>`"${String(value??'').replaceAll('"','""')}"`).join(',')).join('\r\n');const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));const link=document.createElement('a');link.href=url;link.download=`robo-teacher-${data.class_level.toLowerCase()}-class-report.csv`;link.click();URL.revokeObjectURL(url)
 }
+
+function qaStorage(){try{return JSON.parse(localStorage.getItem('roboTeacherQaChecklist')||'{}')}catch(_error){return {}}}
+function showQaChecklist(){teacherDashboard.classList.add('hidden');qaChecklist.classList.remove('hidden');renderQaChecklist()}
+function renderQaChecklist(){
+  const saved=qaStorage();qaChecklistItems.replaceChildren();let total=0,completed=0,passed=0,blockers=0;
+  Object.entries(qaChecks).forEach(([group,checks])=>{const section=document.createElement('section');section.className='qa-group';const heading=document.createElement('h4');heading.textContent=group;section.appendChild(heading);checks.forEach(check=>{total+=1;const key=`${group}:${check}`,record=saved[key]||{};if(record.status&&record.status!=='Not tested')completed+=1;if(record.status==='Pass')passed+=1;if(record.status==='Fail')blockers+=1;const row=document.createElement('div');row.className='qa-item';const label=document.createElement('label');label.textContent=check;const select=document.createElement('select');['Not tested','Pass','Fail','Needs improvement'].forEach(value=>{const option=document.createElement('option');option.value=value;option.textContent=value;select.appendChild(option)});select.value=record.status||'Not tested';const note=document.createElement('input');note.placeholder='Optional test note';note.value=record.note||'';const save=()=>{const latest=qaStorage();latest[key]={status:select.value,note:note.value.trim(),updated:new Date().toISOString()};localStorage.setItem('roboTeacherQaChecklist',JSON.stringify(latest));renderQaChecklist()};select.addEventListener('change',save);note.addEventListener('change',save);row.append(label,select,note);section.appendChild(row)});qaChecklistItems.appendChild(section)});
+  qaCompleted.textContent=`${completed}/${total}`;qaPassed.textContent=passed;qaBlockers.textContent=blockers;qaReleaseStatus.textContent=blockers?'Production release is blocked until every failed check is corrected.':completed===total?'All checks are complete with no release blockers. PR #9 can move to final approval.':'Complete every check before approving PR #9 for production.';
+}
+function downloadQaChecklistReport(){const saved=qaStorage();const rows=[['Robo-Teacher V2.5 Staging QA Report'],['Generated',new Date().toISOString()],[],['Test group','Check','Status','Note','Last updated']];Object.entries(qaChecks).forEach(([group,checks])=>checks.forEach(check=>{const record=saved[`${group}:${check}`]||{};rows.push([group,check,record.status||'Not tested',record.note||'',record.updated||''])}));const csv=rows.map(row=>row.map(value=>`"${String(value).replaceAll('"','""')}"`).join(',')).join('\r\n');const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));const link=document.createElement('a');link.href=url;link.download=`robo-teacher-v25-qa-${new Date().toISOString().slice(0,10)}.csv`;link.click();URL.revokeObjectURL(url)}
 
 function renderProgress(data){
   progressLoading.classList.add('hidden');progressLoading.classList.remove('error');
