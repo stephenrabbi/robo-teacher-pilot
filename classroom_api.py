@@ -19,7 +19,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from curriculum import ALL_TOPICS, CLASS_TOPICS, CURRICULUM
 from practice import answer_practice, change_practice_language, next_question, start_practice
-from practice_progress import build_dashboard, build_teacher_dashboard, save_result
+from practice_progress import build_dashboard, build_teacher_dashboard, recommend_difficulty_for_topic, save_result
 
 from tutor import (
     MAX_AUDIO_BYTES,
@@ -71,7 +71,7 @@ class ClassroomSpeech(BaseModel):
 class PracticeStart(BaseModel):
     session_token: str = Field(min_length=20, max_length=300)
     topic: str = Field(min_length=2, max_length=80)
-    difficulty: Literal["Easy", "Medium", "Challenge"]
+    difficulty: Literal["Auto", "Easy", "Medium", "Challenge"] = "Auto"
     question_count: Literal[5, 10, 20] = 5
     class_level: Literal["JSS1", "JSS2", "JSS3"] = "JSS2"
     language: SupportedLanguage = "English"
@@ -174,7 +174,12 @@ def classroom_practice_start(selection: PracticeStart):
     student_id = _verify_session(selection.session_token)
     _enforce_rate_limit(student_id, "practice", 120)
     try:
-        return start_practice(student_id, selection.topic, selection.difficulty, selection.question_count, selection.class_level, selection.language)
+        difficulty = selection.difficulty
+        if difficulty == "Auto":
+            difficulty = recommend_difficulty_for_topic(student_id, selection.class_level, selection.topic)
+        result = start_practice(student_id, selection.topic, difficulty, selection.question_count, selection.class_level, selection.language)
+        result["difficulty_was_automatic"] = selection.difficulty == "Auto"
+        return result
     except ValueError as exc:
         raise HTTPException(status_code=422, detail="Choose a supported topic and difficulty") from exc
 

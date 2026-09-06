@@ -554,14 +554,14 @@ function openRecommendedPractice(){
   resetPracticeSetup();practiceClass.value=learnerClass.value;updatePracticeTopics();
   if(currentProgress&&classTopics[learnerClass.value].includes(currentProgress.recommended_topic)){
     const selectedTerm=currentProgress.recommended_term||Object.entries(practiceCurriculum[learnerClass.value]).find(([,topics])=>topics.includes(currentProgress.recommended_topic))?.[0];
-    if(selectedTerm){practiceTerm.value=selectedTerm;updatePracticeTopics();practiceTopic.value=currentProgress.recommended_topic}practiceDifficulty.value=currentProgress.recommended_difficulty
+    if(selectedTerm){practiceTerm.value=selectedTerm;updatePracticeTopics();practiceTopic.value=currentProgress.recommended_topic}practiceDifficulty.value='Auto'
   }
   openPractice();
 }
 
 function openLearningPathTopic(term,topic){
   resetPracticeSetup();practiceClass.value=learnerClass.value;practiceTerm.value=term;updatePracticeTopics();practiceTopic.value=topic;
-  practiceDifficulty.value=currentProgress&&currentProgress.recommended_topic===topic?currentProgress.recommended_difficulty:'Easy';openPractice();
+  practiceDifficulty.value='Auto';openPractice();
 }
 
 function renderLearningPath(terms){

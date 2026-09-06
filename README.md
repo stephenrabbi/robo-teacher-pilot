@@ -352,6 +352,7 @@ Implemented on the draft staging branch:
 - live Practice language switching that immediately refreshes the current question, hint or worked feedback and keeps every remaining question in the newly selected language
 - pause-and-continue teacher audio playback that resumes the current explanation instead of restarting it
 - browser-unlocked audio playback so spoken answers to voice questions start automatically after processing
+- automatic Practice difficulty selection based on two recent results at the learner's current level, with manual level selection still available
 - single-request session translation that preserves the original answer key and mathematical notation for reliable marking
 - session results, missed-question review and learner progress dashboard
 - persistent, pseudonymous Practice Mode history in Google Sheets

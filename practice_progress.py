@@ -326,6 +326,18 @@ def build_dashboard(learner_id: str, class_level: str = "JSS2") -> dict:
     }
 
 
+def recommend_difficulty_for_topic(learner_id: str, class_level: str, topic: str) -> str:
+    """Choose a stable next level from this learner's topic-specific history."""
+    class_level = class_level if class_level in CLASS_TOPICS else "JSS2"
+    records, _synced = get_records(learner_id)
+    records = _normalise_curriculum_records(
+        [item for item in records if item.get("class_level", "JSS2") == class_level],
+        class_level,
+    )
+    records.sort(key=lambda item: item["timestamp"], reverse=True)
+    return _recommended_difficulty(records, topic)
+
+
 def _recommended_topic(class_level: str, records: list[dict], topic_rows: list[dict], weakest: dict | None) -> tuple[str, str]:
     topics = CLASS_TOPICS[class_level]
     if not records:
@@ -366,7 +378,9 @@ def _recommended_difficulty(records: list[dict], topic: str) -> str:
         return "Easy"
     current = matching[0]["difficulty"]
     levels = ["Easy", "Medium", "Challenge"]
-    recent = matching[:2]
+    # Require two results at the learner's current level. A strong Easy result
+    # followed by one strong Medium result must not jump straight to Challenge.
+    recent = [item for item in matching if item["difficulty"] == current][:2]
     if len(recent) >= 2 and all(item["percentage"] >= 80 for item in recent):
         return levels[min(levels.index(current) + 1, 2)]
     if len(recent) >= 2 and all(item["percentage"] < 50 for item in recent):

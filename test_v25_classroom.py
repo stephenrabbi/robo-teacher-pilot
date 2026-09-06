@@ -230,6 +230,30 @@ def test_consistent_success_moves_the_learner_up_one_level():
     assert fraction['percentage'] == 100
 
 
+def test_auto_difficulty_uses_topic_history_without_skipping_a_level():
+    practice_progress._reset_for_tests()
+    now = __import__('datetime').datetime.now(__import__('datetime').UTC)
+    practice_progress._memory_records.extend([
+        {'learner_id': 'WEB-auto', 'class_level': 'JSS1', 'session_id': 'easy-1', 'topic': 'Fractions', 'difficulty': 'Easy', 'score': 5, 'attempted': 5, 'percentage': 100, 'timestamp': (now-__import__('datetime').timedelta(days=2)).isoformat()},
+        {'learner_id': 'WEB-auto', 'class_level': 'JSS1', 'session_id': 'easy-2', 'topic': 'Fractions', 'difficulty': 'Easy', 'score': 5, 'attempted': 5, 'percentage': 100, 'timestamp': (now-__import__('datetime').timedelta(days=1)).isoformat()},
+        {'learner_id': 'WEB-auto', 'class_level': 'JSS1', 'session_id': 'medium-1', 'topic': 'Fractions', 'difficulty': 'Medium', 'score': 5, 'attempted': 5, 'percentage': 100, 'timestamp': now.isoformat()},
+    ])
+    assert practice_progress.recommend_difficulty_for_topic('WEB-auto', 'JSS1', 'Fractions') == 'Medium'
+
+
+def test_practice_auto_difficulty_is_resolved_before_session_starts():
+    session = client.post('/api/classroom/session').json()
+    with patch.object(classroom_api, 'recommend_difficulty_for_topic', return_value='Challenge') as recommend, patch.object(classroom_api, 'start_practice', return_value={'difficulty': 'Challenge'}) as start:
+        response = client.post('/api/classroom/practice/start', json={
+            'session_token': session['session_token'], 'topic': 'Fractions',
+            'difficulty': 'Auto', 'question_count': 5, 'class_level': 'JSS1', 'language': 'English',
+        })
+    assert response.status_code == 200
+    assert response.json()['difficulty_was_automatic'] is True
+    recommend.assert_called_once_with(session['learner_id'], 'JSS1', 'Fractions')
+    assert start.call_args.args[2] == 'Challenge'
+
+
 def test_teacher_dashboard_returns_aggregates_without_identities():
     practice_progress._reset_for_tests()
     practice_progress._memory_records.append({
