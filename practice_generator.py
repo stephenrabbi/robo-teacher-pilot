@@ -49,8 +49,8 @@ def generate_question(topic: str, difficulty: str):
         "Approximation": _decimals,
         "Algebraic Expressions & Factorisation": _algebraic_expressions,
         "Algebraic Fractions": _fractions,
-        "Linear Inequalities": _inequalities_graphs,
-        "Linear Graphs": _inequalities_graphs,
+        "Linear Inequalities": _linear_inequalities,
+        "Linear Graphs": _linear_graphs,
         "Plane Shapes & Scale Drawing": _geometry,
         "Angles & Polygons": _angles,
         "Elevation & Depression": _elevation,
@@ -182,6 +182,29 @@ def _inequalities_graphs(level):
         return (f"For y = {m}x {'+' if c>=0 else '-'} {abs(c)}, find y when x = {x}.", "Substitute the value of x.", str(y), f"Step 1: Substitute x = {x}.\nStep 2: y = {m}({x}) {'+' if c>=0 else '-'} {abs(c)} = {y}.\nTherefore, y = {y}.")
     x1,y1=_int(0,5),_int(0,8); gradient=_int(2,6); dx=_int(2,6); x2=x1+dx; y2=y1+gradient*dx
     return (f"Find the gradient between ({x1}, {y1}) and ({x2}, {y2}).", "Use change in y divided by change in x.", str(gradient), f"Step 1: Change in y = {y2} - {y1} = {y2-y1}.\nStep 2: Change in x = {x2} - {x1} = {dx}.\nGradient = {y2-y1} ÷ {dx} = {gradient}.")
+
+
+def _linear_inequalities(level):
+    x = _int(1, 12)
+    if level == "Easy":
+        c = _int(2, 10); bound = x + c + 1
+        return (f"Solve x + {c} < {bound}. What is the greatest whole-number value of x?", f"Subtract {c} from both sides.", str(x), f"Step 1: x < {bound-c}.\nStep 2: The greatest whole number below {bound-c} is {x}.\nTherefore, the answer is {x}.")
+    if level == "Medium":
+        coefficient = _int(2, 6); c = _int(1, 10); bound = coefficient * (x + 1) + c
+        return (f"Solve {coefficient}x + {c} < {bound}. What is the greatest whole-number value of x?", f"Subtract {c}, then divide by {coefficient}.", str(x), f"Step 1: {coefficient}x < {bound-c}.\nStep 2: x < {x+1}.\nThe greatest whole-number value is {x}.")
+    coefficient = _int(2, 6); c = _int(1, 10); bound = coefficient * x - c
+    return (f"Solve {coefficient}x - {c} ≥ {bound}. What is the least whole-number value of x?", f"Add {c}, then divide by {coefficient}.", str(x), f"Step 1: {coefficient}x ≥ {bound+c}.\nStep 2: x ≥ {x}.\nThe least whole-number value is {x}.")
+
+
+def _linear_graphs(level):
+    if level == "Easy":
+        m, x, c = _int(2, 6), _int(1, 8), _int(-5, 8); y = m*x+c
+        return (f"For y = {m}x {'+' if c>=0 else '-'} {abs(c)}, find y when x = {x}.", "Substitute the value of x.", str(y), f"Step 1: Substitute x = {x}.\nStep 2: y = {m}({x}) {'+' if c>=0 else '-'} {abs(c)} = {y}.\nTherefore, y = {y}.")
+    x1, y1 = _int(0, 5), _int(0, 8); gradient = _int(2, 6); dx = _int(2, 6); x2 = x1+dx; y2 = y1+gradient*dx
+    if level == "Medium":
+        return (f"Find the gradient between ({x1}, {y1}) and ({x2}, {y2}).", "Use change in y divided by change in x.", str(gradient), f"Step 1: Change in y = {y2-y1}.\nStep 2: Change in x = {dx}.\nGradient = {y2-y1} ÷ {dx} = {gradient}.")
+    c = _int(-8, 8); x = _int(2, 10); y = gradient*x+c
+    return (f"The line y = {gradient}x {'+' if c>=0 else '-'} {abs(c)} passes through (x, {y}). Find x.", "Substitute y and solve the equation.", str(x), f"Step 1: {y} = {gradient}x {'+' if c>=0 else '-'} {abs(c)}.\nStep 2: Isolate x and divide by {gradient}.\nTherefore, x = {x}.")
 
 
 def _geometry(level):
