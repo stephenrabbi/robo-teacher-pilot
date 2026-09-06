@@ -592,7 +592,8 @@ function downloadTeacherDashboardReport(){
 
 function renderProgress(data){
   progressLoading.classList.add('hidden');progressLoading.classList.remove('error');
-  if(!data.sessions){progressEmpty.classList.remove('hidden');return}
+  if(!data.sessions&&!data.latest_diagnostic){progressEmpty.classList.remove('hidden');return}
+  progressEmpty.classList.add('hidden');
   progressDashboard.classList.remove('hidden');progressSessions.textContent=data.sessions;progressQuestions.textContent=data.total_questions;
   progressAverage.textContent=`${data.average_percentage}%`;progressStrongest.textContent=data.strongest_topic||'—';progressRecommendation.textContent=learnerRecommendation(data);document.querySelectorAll('[data-progress-label]').forEach(item=>{item.textContent=dcopy(item.dataset.progressLabel)});practiceRecommendation.textContent=dcopy('continue');
   const week=data.weekly_summary;weeklySessions.textContent=`${week.sessions} ${dcopy('sessions').toLowerCase()}`;weeklyQuestions.textContent=`${week.questions} ${dcopy('questions').toLowerCase()}`;weeklyScore.textContent=`${week.percentage}%`;

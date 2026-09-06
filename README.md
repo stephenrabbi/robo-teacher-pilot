@@ -357,6 +357,7 @@ Implemented on the draft staging branch:
 - weekly Teacher View summaries with class activity, score change, strongest and weakest topics, a teaching action and CSV export
 - multilingual learner and teacher dashboards in English, simple Yorùbá, Igbo and Hausa, while retaining official curriculum topic names
 - separate 10-question class-and-term diagnostic assessments with mixed topics and a recommended starting topic and difficulty
+- permanent diagnostic placement storage in a separate Google Sheets worksheet, restored into the learner's personalised path without changing Practice averages
 - single-request session translation that preserves the original answer key and mathematical notation for reliable marking
 - session results, missed-question review and learner progress dashboard
 - persistent, pseudonymous Practice Mode history in Google Sheets

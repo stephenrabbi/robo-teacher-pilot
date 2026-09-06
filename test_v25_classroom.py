@@ -8,6 +8,7 @@ from v25_app import app
 import classroom_api
 import practice
 import practice_progress
+import diagnostic_progress
 from tutor import GEMINI_STREAMING_TTS_MODEL, GEMINI_TTS_MODEL, TTS_VOICES, _language_instruction, _pcm_to_wav, _prepare_spoken_transcript, _speech_chunks, _spoken_excerpt, get_tutor_reply
 
 client = TestClient(app)
@@ -261,6 +262,17 @@ def test_practice_auto_difficulty_is_resolved_before_session_starts():
     assert response.json()['difficulty_was_automatic'] is True
     recommend.assert_called_once_with(session['learner_id'], 'JSS1', 'Fractions')
     assert start.call_args.args[2] == 'Challenge'
+
+
+def test_diagnostic_placement_is_separate_and_privacy_safe():
+    diagnostic_progress._memory.clear();practice_progress._reset_for_tests()
+    diagnostic_progress._memory.append({'timestamp':'2026-09-06T10:00:00+00:00','session_id':'diagnostic-1','learner_id':'WEB-diagnostic','class_level':'JSS1','term':'First Term','score':6,'attempted':10,'percentage':60,'recommended_topic':'Fractions','recommended_difficulty':'Medium','topic_results':[]})
+    dashboard=practice_progress.build_dashboard('WEB-diagnostic','JSS1')
+    assert dashboard['sessions']==0
+    assert dashboard['recommended_topic']=='Fractions'
+    assert dashboard['recommended_difficulty']=='Medium'
+    assert dashboard['recommendation_reason']=='diagnostic'
+    assert 'learner_id' not in dashboard['latest_diagnostic']
 
 
 def test_teacher_dashboard_returns_aggregates_without_identities():

@@ -7,6 +7,7 @@ import threading
 
 import gspread
 from curriculum import CLASS_TOPICS, TOPIC_TERM
+from diagnostic_progress import latest_diagnostic
 
 
 _LEGACY_TOPICS = {
@@ -320,10 +321,13 @@ def build_dashboard(learner_id: str, class_level: str = "JSS2") -> dict:
         })
     topic_rows.sort(key=lambda item: (-item["percentage"], item["topic"]))
 
+    diagnostic = latest_diagnostic(learner_id, class_level)
     strongest = topic_rows[0] if topic_rows else None
     weakest = min(topic_rows, key=lambda item: (item["percentage"], item["topic"])) if topic_rows else None
     recommended_topic, recommendation_reason = _recommended_topic(class_level, records, topic_rows, weakest)
     recommended_difficulty = _recommended_difficulty(records, recommended_topic)
+    if not records and diagnostic and diagnostic["recommended_topic"] in CLASS_TOPICS[class_level]:
+        recommended_topic=diagnostic["recommended_topic"];recommended_difficulty=diagnostic["recommended_difficulty"];recommendation_reason="diagnostic"
     recommended_term = TOPIC_TERM[class_level][recommended_topic]
     recommendation = _recommendation(
         records, recommended_topic, recommended_term, recommended_difficulty,
@@ -365,6 +369,7 @@ def build_dashboard(learner_id: str, class_level: str = "JSS2") -> dict:
         "learning_path": learning_path,
         "weekly_summary": weekly,
         "storage_synced": synced,
+        "latest_diagnostic": diagnostic,
     }
 
 
@@ -406,6 +411,8 @@ def _recommended_topic(class_level: str, records: list[dict], topic_rows: list[d
 
 def _recommendation(records: list[dict], topic: str, term: str, difficulty: str, reason: str) -> str:
     if not records:
+        if reason == "diagnostic":
+            return f"Your diagnostic recommends {topic} from {term} at {difficulty} level."
         return f"Start with {topic} from {term} at {difficulty} level."
     if reason == "strengthen":
         return f"Strengthen {topic} from {term} at {difficulty} level and review each worked explanation."

@@ -19,6 +19,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from curriculum import ALL_TOPICS, CLASS_TOPICS, CURRICULUM
 from diagnostic import answer_diagnostic, change_diagnostic_language, next_diagnostic, start_diagnostic
+from diagnostic_progress import save_diagnostic_result
 from practice import answer_practice, change_practice_language, next_question, start_practice
 from practice_progress import build_dashboard, build_teacher_dashboard, recommend_difficulty_for_topic, save_result
 
@@ -245,9 +246,12 @@ def classroom_diagnostic_start(request: DiagnosticStart):
 
 
 @router.post("/diagnostic/answer")
-def classroom_diagnostic_answer(request: PracticeAnswer):
+def classroom_diagnostic_answer(request: PracticeAnswer, background_tasks: BackgroundTasks):
     student_id = _verify_session(request.session_token);_enforce_rate_limit(student_id, "diagnostic", 120)
-    try: return answer_diagnostic(student_id, request.answer)
+    try:
+        result=answer_diagnostic(student_id, request.answer)
+        if result["completed"]: background_tasks.add_task(save_diagnostic_result,student_id,result["summary"]);result["diagnostic_saving"]=True
+        return result
     except LookupError as exc: raise HTTPException(status_code=404, detail="Start a diagnostic first") from exc
     except RuntimeError as exc: raise HTTPException(status_code=409, detail="Move to the next diagnostic question") from exc
 
