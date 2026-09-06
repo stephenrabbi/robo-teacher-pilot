@@ -2,15 +2,15 @@
 
 **A Gemini-powered, adaptive and multimodal Mathematics tutor for African learners, built by Earlyon-Tech Brainery.**
 
-Robo-Teacher is an AI tutoring system designed to extend individualized learning support beyond the classroom. The current production release focuses on **JSS2 Basic Mathematics** and combines curriculum-focused tutoring with adaptive learner profiles, text tutoring, homework-image support, voice questions, privacy-conscious analytics, and authenticated messaging integrations.
+Robo-Teacher is an AI tutoring system designed to extend individualized learning support beyond the classroom. The V2.5 production release covers **JSS1–JSS3 Mathematics** and combines curriculum-focused tutoring with adaptive learner profiles, text tutoring, homework-image support, voice questions, an interactive whiteboard, diagnostic assessment, privacy-conscious analytics and authenticated messaging integrations.
 
-> **Current status:** Robo-Teacher V2 has been merged into the production `main` branch, passed the automated CI test suite, and is deployed to production on Render.
+> **Current status:** Robo-Teacher V2.5 was merged into the production `main` branch through PR #9 after staging user-acceptance testing and successful CI run #165.
 
-> **V2.5 release candidate:** The interactive classroom has completed staging user-acceptance testing on the `v2.5-classroom` branch. PR #9 is awaiting its final CI and production-release gate. [Open the V2.5 staging classroom](https://robo-teacher-v25-staging.onrender.com/classroom-app).
+> The separate [V2.5 staging classroom](https://robo-teacher-v25-staging.onrender.com/classroom-app) remains available for testing future changes before production.
 
-## V2.5 Interactive Classroom — Release Candidate
+## V2.5 Interactive Classroom — Production
 
-The browser classroom extends the messaging tutor into one learning workspace while preserving the existing production release. Learners can currently:
+The browser classroom extends the messaging tutor into one learning workspace. Learners can currently:
 
 - ask typed Mathematics questions and receive step-by-step teaching;
 - submit questions using camera capture or image upload;
@@ -129,23 +129,23 @@ Pseudonymized analytics (`sheet_logger.py`) --> Google Sheets
 
 The production architecture separates participant identity data from pseudonymized interaction records.
 
-The V2.5 staging application adds a browser classroom (`classroom/` and `classroom_api.py`), generated Practice Mode sessions (`practice.py` and `practice_generator.py`), and pseudonymous progress aggregation backed by Google Sheets (`practice_progress.py`).
+V2.5 adds a browser classroom (`classroom/` and `classroom_api.py`), generated Practice Mode sessions (`practice.py` and `practice_generator.py`), and pseudonymous progress aggregation backed by Google Sheets (`practice_progress.py`).
 
 ## Messaging Channels
 
 ### Telegram
 
-Telegram is the primary production tutoring channel for the current V2 release. The Telegram webhook supports authenticated text, image and voice/audio interactions.
+Telegram remains a production tutoring channel alongside the V2.5 browser classroom. The Telegram webhook supports authenticated text, image and voice/audio interactions.
 
 ### WhatsApp
 
 The original pilot used the Twilio WhatsApp Sandbox as well as Telegram. The current production code keeps WhatsApp webhook authentication in place and supports a migration/redirect path rather than silently reactivating unrestricted WhatsApp tutoring.
 
-This distinction is important: the original pilot evidence includes WhatsApp interactions, while current V2 multimodal development is centered on Telegram.
+This distinction is important: the original pilot evidence includes WhatsApp interactions, while current multimodal delivery uses Telegram and the browser classroom.
 
 ## Curriculum Scope
 
-The production tutor remains deliberately scoped to **JSS2 Basic Mathematics**, aligned with the NERDC scheme of work. Topics include:
+The messaging pilot originally focused on **JSS2 Basic Mathematics**. The V2.5 browser classroom now covers class-appropriate JSS1–JSS3 Mathematics topics, including:
 
 - whole numbers and place value
 - factors, multiples and prime numbers
@@ -160,7 +160,7 @@ The production tutor remains deliberately scoped to **JSS2 Basic Mathematics**, 
 
 The curriculum and pedagogical instructions are maintained in `tutor.py`.
 
-The V2.5 staging classroom extends Practice Mode across JSS1–JSS3. Its audited
+The V2.5 classroom extends Practice Mode across JSS1–JSS3. Its audited
 class and First/Second/Third Term mapping is maintained in `curriculum.py`, while
 `practice_generator.py` generates class-appropriate marked questions and worked
 explanations. Reference material used for the audit includes the official
@@ -222,7 +222,7 @@ The GitHub Actions workflow runs credential-free automated tests using mocks and
 - Telegram webhook authentication tests
 - malformed Telegram update handling
 
-The production V2 merge passed the full automated suite before and after promotion to `main`.
+The V2.5 release passed staging user-acceptance testing and CI run #165 before promotion to `main`.
 
 Useful local commands include:
 
@@ -333,13 +333,13 @@ Robo-Teacher V2 is a production-deployed early-stage system, not a finished auto
 - The pilot evaluation was not a randomized controlled trial.
 - The original post-test mean of 26.5% remains low in absolute terms despite the observed improvement.
 - Financial Mathematics declined in the topic-level pilot analysis and remains an identified improvement area.
-- Current production scope is intentionally narrow rather than claiming support for every curriculum, subject or learner level.
+- Current production scope is Junior Secondary Mathematics; it does not yet claim every subject, curriculum or education level.
 
 ## Roadmap
 
-### V2.5 — Interactive AI teacher experience (staging)
+### V2.5 — Interactive AI teacher experience (production)
 
-Implemented on the draft staging branch:
+Released through PR #9 after staging validation and CI run #165:
 
 - interactive teacher/classroom interface
 - text, image/camera, voice and whiteboard tutoring
@@ -375,7 +375,7 @@ Implemented on the draft staging branch:
 - access-key-protected teacher dashboard showing class aggregates without learner identities
 - Teacher Dashboard V2 with JSS class switching, strongest/weakest topics, six-week trends, teaching recommendations and privacy-safe CSV reports
 
-Before production release, V2.5 still requires broader learner testing, accessibility review, monitoring and a deliberate merge decision.
+Post-release work includes production monitoring, broader accessibility testing and continued learner feedback.
 
 ### V2.6 — School and commercialization layer
 
