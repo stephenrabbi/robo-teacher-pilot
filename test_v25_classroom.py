@@ -33,6 +33,9 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert 'id="downloadQaReport"' in html
     assert 'const qaChecks=' in script
     assert "localStorage.setItem('roboTeacherQaChecklist'" in script
+    assert 'const resultCopy=' in script
+    assert 'labels.yourAnswer' in script
+    assert '20260906-resultcopy1' in html
     assert 'downloadTeacherDashboardReport' in script
     assert 'id="practiceClass"' in html
     assert 'id="startDiagnostic"' in html
