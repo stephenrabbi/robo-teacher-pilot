@@ -351,6 +351,7 @@ Implemented on the draft staging branch:
 - multilingual Practice sessions in English, simple conversational Yorùbá, Igbo and Hausa, including translated questions, hints, praise, corrections, worked explanations and session recommendations
 - live Practice language switching that immediately refreshes the current question, hint or worked feedback and keeps every remaining question in the newly selected language
 - pause-and-continue teacher audio playback that resumes the current explanation instead of restarting it
+- browser-unlocked audio playback so spoken answers to voice questions start automatically after processing
 - single-request session translation that preserves the original answer key and mathematical notation for reliable marking
 - session results, missed-question review and learner progress dashboard
 - persistent, pseudonymous Practice Mode history in Google Sheets

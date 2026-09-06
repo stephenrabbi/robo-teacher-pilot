@@ -248,17 +248,21 @@ function stopTeacherAudio(){
   teacherSpeechRequest+=1;
   if(teacherSpeechController){teacherSpeechController.abort();teacherSpeechController=null}
   teacherAudioSources.forEach(source=>{try{source.stop()}catch(_error){/* Already stopped. */}});teacherAudioSources.clear();
-  if(teacherAudioContext){teacherAudioContext.close().catch(()=>{});teacherAudioContext=null}
   teacherStreamComplete=false;
   teacherSpeechPaused=false;
   setTeacherSpeaking(false);
 }
 
-async function playPcmStream(response,requestId){
+async function prepareTeacherAudio(){
   const AudioContextClass=window.AudioContext||window.webkitAudioContext;
   if(!AudioContextClass)throw new Error('Web Audio is unavailable');
-  teacherAudioContext=new AudioContextClass({sampleRate:24000});await teacherAudioContext.resume();
-  const context=teacherAudioContext;const reader=response.body.getReader();let pending=new Uint8Array(0);let nextStart=context.currentTime+.06;
+  if(!teacherAudioContext||teacherAudioContext.state==='closed')teacherAudioContext=new AudioContextClass({sampleRate:24000});
+  if(teacherAudioContext.state==='suspended')await teacherAudioContext.resume();
+  return teacherAudioContext;
+}
+
+async function playPcmStream(response,requestId){
+  const context=await prepareTeacherAudio();const reader=response.body.getReader();let pending=new Uint8Array(0);let nextStart=context.currentTime+.06;
   const finishIfDone=()=>{if(teacherStreamComplete&&!teacherAudioSources.size&&!teacherSpeechPaused&&requestId===teacherSpeechRequest)stopTeacherAudio()};
   while(requestId===teacherSpeechRequest){
     const {done,value}=await reader.read();if(done)break;
@@ -297,6 +301,7 @@ async function speakText(text){
 readAnswerButton.addEventListener('click',async()=>{
   if(teacherSpeechPaused){await resumeTeacherAudio();return;}
   if(teacherPanel.classList.contains('speaking')){await pauseTeacherAudio();return;}
+  try{await prepareTeacherAudio()}catch(_error){return}
   void speakText(canvasAnswer.textContent);
 });
 
@@ -646,6 +651,9 @@ async function toggleRecording(){
   try{
     // A learner starting a new question always interrupts the current answer.
     stopTeacherAudio();
+    // Unlock audio during the learner's click so the later automatic spoken
+    // answer is not blocked after transcription and tutoring have completed.
+    await prepareTeacherAudio();
     await ensureSession();
     micStream=await navigator.mediaDevices.getUserMedia({audio:true});recordedChunks=[];
     const preferred=['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus'];
