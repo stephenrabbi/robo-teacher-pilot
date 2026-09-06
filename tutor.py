@@ -1,15 +1,18 @@
-"""Robo-Teacher — JSS2 Basic Maths tutor logic.
+"""Robo-Teacher — Junior Secondary School Mathematics tutor logic.
 
 V2 adds pseudonymous adaptive learner memory plus image and voice tutoring while
 preserving deterministic arithmetic and explicit escalation guardrails.
 """
 
 import ast
+import base64
+import io
 import logging
 import operator
 import os
 import re
 import time
+import wave
 
 from google import genai
 from google.genai import types
@@ -17,13 +20,15 @@ from learner_profile import DEFAULT_PROFILE, load_profile, profile_prompt_contex
 
 logger = logging.getLogger("robo-teacher.tutor")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite")
+GEMINI_TTS_MODEL = os.getenv("GEMINI_TTS_MODEL", "gemini-2.5-flash-preview-tts")
+GEMINI_STREAMING_TTS_MODEL = os.getenv("GEMINI_STREAMING_TTS_MODEL", "gemini-3.1-flash-tts-preview")
 SUPPORTED_IMAGE_MIME_TYPES = {"image/jpeg", "image/png", "image/webp"}
 SUPPORTED_AUDIO_MIME_TYPES = {"audio/ogg", "audio/opus", "audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav", "audio/aac", "audio/flac", "audio/m4a", "audio/webm"}
 MAX_IMAGE_BYTES = 8 * 1024 * 1024
 MAX_AUDIO_BYTES = 12 * 1024 * 1024
 
 CURRICULUM_TOPICS = """
-- Revision of JSS1 topics: whole numbers and place value
+- Whole numbers, place value, operations, number bases and standard form
 - Factors, multiples, and prime numbers
 - Lowest Common Multiple (LCM) and Highest Common Factor (HCF)
 - Fractions: equivalent fractions, addition, subtraction, multiplication, division
@@ -33,16 +38,19 @@ CURRICULUM_TOPICS = """
 - Basic algebraic expressions and simplification
 - Simple linear equations
 - Everyday arithmetic: profit, loss, and simple percentages
+- Directed numbers, inequalities, coordinates and graphs
+- Geometry, constructions, angles, transformations and mensuration
+- Statistics, data presentation and probability
 """
 
-ESCALATION_RESPONSE = "I don't want to guess and give you a wrong answer. This question is outside the Mathematics topics I'm currently set up to support. Please ask your teacher for help, or send me a JSS2 Maths question from the topics I support."
+ESCALATION_RESPONSE = "I don't want to guess and give you a wrong answer. This question is outside the Junior Secondary Mathematics topics I'm currently set up to support. Please ask your teacher for help, or send me a JSS1, JSS2, or JSS3 Maths question."
 ESCALATION_MARKER = "[ESCALATE]"
 TECHNICAL_FALLBACK_RESPONSE = "Sorry, I had a small technical hiccup while working on that. Please try the question again in a moment."
 RATE_LIMIT_RESPONSE = "Lots of students are asking me questions right now, so I need a tiny break! Please try again in about a minute. 🙂"
-SYSTEM_PROMPT = f"""You are Robo-Teacher, a warm, patient AI Maths tutor for JSS2 students in Nigeria, built by Earlyon-Tech Brainery.
+SYSTEM_PROMPT = f"""You are Robo-Teacher, a warm, patient AI Maths tutor for JSS1, JSS2, and JSS3 students in Nigeria, built by Earlyon-Tech Brainery.
 Topics in scope:\n{CURRICULUM_TOPICS}
 Rules:
-- Explain step by step in simple language for ages 10-13.
+- Explain step by step in simple language for Junior Secondary learners.
 - Use relatable Nigerian examples when useful.
 - Show complete working; use plain-text maths, never LaTeX.
 - Keep replies concise and phone-friendly.
@@ -60,6 +68,95 @@ _MAX_TURNS = 6
 _conversations: dict[str, list] = {}
 _client = None
 
+YORUBA_NUMBER_WORDS = {
+    0: "Òdo",
+    1: "Ọ̀kan",
+    2: "Èjì",
+    3: "Ẹ̀ta",
+    4: "Ẹ̀rin",
+    5: "Àrún",
+    6: "Ẹ̀fà",
+    7: "Èje",
+    8: "Ẹ̀jọ",
+    9: "Ẹ̀sán",
+    10: "Ẹ̀wá",
+    11: "Ọ̀kanlá",
+    12: "Èjìlá",
+    13: "Ẹ̀tàlá",
+    14: "Ẹ̀rìnlá",
+    15: "Ẹ̀ẹ́dógún",
+    16: "Ẹ̀rìndínlógún",
+    17: "Ẹ̀tàdínlógún",
+    18: "Èjìdínlógún",
+    19: "Ọ̀kàndínlógún",
+    20: "Ogún",
+    21: "Ọ̀kanlélógún",
+    22: "Èjìlélógún",
+    23: "Ẹ̀talélógún",
+    24: "Ẹ̀rinlélógún",
+    25: "Ẹ̀ẹ́dọ́gbọ̀n",
+    26: "Ẹ̀rìndínlọ́gbọ̀n",
+    27: "Ẹ̀tàdínlọ́gbọ̀n",
+    28: "Èjìdínlọ́gbọ̀n",
+    29: "Ọ̀kàndínlọ́gbọ̀n",
+    30: "Ọgbọ̀n",
+    40: "Ogójì",
+    50: "Àádọ́ta",
+    60: "Ọgọ́ta",
+    70: "Àádọ́rin",
+    80: "Ọgọ́rin",
+    90: "Àádọ́rùn",
+    100: "Ọgọ́rùn-ún",
+}
+
+# Conversational counting forms sound more natural to children in a Lagos classroom.
+YORUBA_SPOKEN_NUMBER_WORDS = {
+    **YORUBA_NUMBER_WORDS,
+    0: "Odo", 1: "Ọ̀kan", 2: "Méjì", 3: "Mẹ́ta", 4: "Mẹ́rin",
+    5: "Márùn-ún", 6: "Mẹ́fà", 7: "Méje", 8: "Mẹ́jọ",
+    9: "Mẹ́sàn-án", 10: "Mẹ́wàá",
+}
+
+IGBO_NUMBER_WORDS = {
+    0: "Efu", 1: "Otu", 2: "Abụọ", 3: "Atọ", 4: "Anọ", 5: "Ise",
+    6: "Isii", 7: "Asaa", 8: "Asatọ", 9: "Itoolu", 10: "Iri",
+    11: "Iri na otu", 12: "Iri na abụọ", 13: "Iri na atọ", 14: "Iri na anọ",
+    15: "Iri na ise", 16: "Iri na isii", 17: "Iri na asaa", 18: "Iri na asatọ",
+    19: "Iri na itoolu", 20: "Iri abụọ",
+    21: "Iri abụọ na otu", 22: "Iri abụọ na abụọ", 23: "Iri abụọ na atọ",
+    24: "Iri abụọ na anọ", 25: "Iri abụọ na ise", 26: "Iri abụọ na isii",
+    27: "Iri abụọ na asaa", 28: "Iri abụọ na asatọ", 29: "Iri abụọ na itoolu",
+    30: "Iri atọ", 40: "Iri anọ", 50: "Iri ise", 60: "Iri isii",
+    70: "Iri asaa", 80: "Iri asatọ", 90: "Iri itoolu", 100: "Otu narị",
+}
+
+HAUSA_NUMBER_WORDS = {
+    0: "Sifili", 1: "Ɗaya", 2: "Biyu", 3: "Uku", 4: "Huɗu", 5: "Biyar",
+    6: "Shida", 7: "Bakwai", 8: "Takwas", 9: "Tara", 10: "Goma",
+    11: "Goma sha ɗaya", 12: "Goma sha biyu", 13: "Goma sha uku",
+    14: "Goma sha huɗu", 15: "Goma sha biyar", 16: "Goma sha shida",
+    17: "Goma sha bakwai", 18: "Goma sha takwas", 19: "Goma sha tara", 20: "Ashirin",
+    21: "Ashirin da ɗaya", 22: "Ashirin da biyu", 23: "Ashirin da uku",
+    24: "Ashirin da huɗu", 25: "Ashirin da biyar", 26: "Ashirin da shida",
+    27: "Ashirin da bakwai", 28: "Ashirin da takwas", 29: "Ashirin da tara",
+    30: "Talatin", 40: "Arba'in", 50: "Hamsin", 60: "Sittin",
+    70: "Saba'in", 80: "Tamanin", 90: "Casa'in", 100: "Ɗari",
+}
+
+LOCALIZED_ANSWERS = {
+    "Yoruba": ("Ìdáhùn", YORUBA_NUMBER_WORDS),
+    "Igbo": ("Azịza", IGBO_NUMBER_WORDS),
+    "Hausa": ("Amsa", HAUSA_NUMBER_WORDS),
+}
+
+TTS_VOICES = {"female": "Aoede", "male": "Charon"}
+TTS_LANGUAGE_NAMES = {"English": "English", "Yoruba": "Yorùbá", "Igbo": "Igbo", "Hausa": "Hausa"}
+SPOKEN_MATH = {
+    "Yoruba": (YORUBA_SPOKEN_NUMBER_WORDS, "point", (("×", "times"), ("*", "times"), ("÷", "divide by"), ("/", "divide by"), ("+", "plus"), ("−", "minus"), ("-", "minus"), ("=", "jẹ́"), ("%", "percent"))),
+    "Igbo": (IGBO_NUMBER_WORDS, "ntụpọ", (("×", "ugboro"), ("*", "ugboro"), ("÷", "kewaa site na"), ("/", "kewaa site na"), ("+", "gbakwunyere"), ("−", "wepụ"), ("-", "wepụ"), ("=", "ha nhata"), ("%", "pasent"))),
+    "Hausa": (HAUSA_NUMBER_WORDS, "ɗigo", (("×", "sau"), ("*", "sau"), ("÷", "raba da"), ("/", "raba da"), ("+", "da"), ("−", "cire"), ("-", "cire"), ("=", "daidai yake da"), ("%", "kashi ɗari"))),
+}
+
 
 def _get_client():
     global _client
@@ -71,6 +168,152 @@ def _get_client():
 def _is_rate_limit_error(e: Exception) -> bool:
     text = str(e)
     return "429" in text or "RESOURCE_EXHAUSTED" in text or "quota" in text.lower()
+
+
+def _pcm_to_wav(pcm: bytes) -> bytes:
+    output = io.BytesIO()
+    with wave.open(output, "wb") as wav_file:
+        wav_file.setnchannels(1)
+        wav_file.setsampwidth(2)
+        wav_file.setframerate(24000)
+        wav_file.writeframes(pcm)
+    return output.getvalue()
+
+
+def _speech_chunks(text: str, max_chars: int = 700) -> list[str]:
+    """Keep each TTS performance short enough to preserve one stable voice."""
+    sentences = re.split(r"(?<=[.!?])\s+", text.strip())
+    chunks: list[str] = []
+    current = ""
+    for sentence in sentences:
+        pieces = [sentence[i:i + max_chars] for i in range(0, len(sentence), max_chars)] or [""]
+        for piece in pieces:
+            candidate = f"{current} {piece}".strip()
+            if current and len(candidate) > max_chars:
+                chunks.append(current)
+                current = piece
+            else:
+                current = candidate
+    if current:
+        chunks.append(current)
+    return chunks
+
+
+def _spoken_excerpt(text: str, max_chars: int = 650) -> str:
+    """Keep spoken feedback useful and short while the full lesson stays visible."""
+    cleaned = " ".join(text.split())
+    if len(cleaned) <= max_chars:
+        return cleaned
+    excerpt = cleaned[:max_chars + 1]
+    boundary = max(excerpt.rfind(". "), excerpt.rfind("! "), excerpt.rfind("? "))
+    return excerpt[:boundary + 1] if boundary >= max_chars // 2 else cleaned[:max_chars].rstrip() + "…"
+
+
+def _localized_integer_word(raw: str, number_words: dict[int, str]) -> str:
+    value = int(raw)
+    if value in number_words:
+        return number_words[value]
+    return " ".join(number_words[int(digit)] for digit in str(value))
+
+
+def _localized_spoken_number(match: re.Match, number_words: dict[int, str], decimal_word: str) -> str:
+    raw = match.group(0).replace(",", "")
+    if "." in raw:
+        whole, decimal = raw.split(".", 1)
+        whole_word = _localized_integer_word(whole, number_words)
+        decimal_words = " ".join(number_words[int(digit)] for digit in decimal)
+        return f"{whole_word} {decimal_word} {decimal_words}"
+    return _localized_integer_word(raw, number_words)
+
+
+def _prepare_spoken_transcript(text: str, language: str) -> str:
+    """Localize numbers and Maths operators before the TTS model sees them."""
+    settings = SPOKEN_MATH.get(language)
+    if not settings:
+        return text
+    number_words, decimal_word, replacements = settings
+    # Replace operators first so hyphens inside generated words such as
+    # "Márùn-ún" are not mistaken for subtraction signs.
+    spoken = text
+    for symbol, wording in replacements:
+        spoken = spoken.replace(symbol, f" {wording} ")
+    spoken = re.sub(r"\b\d[\d,]*(?:\.\d+)?\b", lambda match: _localized_spoken_number(match, number_words, decimal_word), spoken)
+    return " ".join(spoken.split())
+
+
+def stream_tutor_speech(text: str, language: str = "English", voice_gender: str = "female"):
+    """Yield raw 24 kHz mono PCM as Gemini produces it for low-latency playback."""
+    gender = "male" if voice_gender == "male" else "female"
+    language_name = TTS_LANGUAGE_NAMES.get(language, "English")
+    transcript = _spoken_excerpt(_prepare_spoken_transcript(text, language))
+    local_number_direction = (
+        f"When speaking {language_name}, pronounce every number and Maths operation only in {language_name}, never in English. "
+        if language in SPOKEN_MATH else ""
+    )
+    delivery_style = (
+        "Use simple modern Lagos classroom Yorùbá. Speak like a friendly young teacher, not a formal broadcaster. "
+        "Avoid deep vocabulary, proverbs and old-fashioned expressions. It is acceptable to use familiar English Maths words such as plus, minus, times, divide, point and percent, but every number must remain in Yorùbá. "
+        if language == "Yoruba" else
+        "Sound warm, patient and conversational, with a gentle Nigerian classroom tone and a friendly vocal smile. "
+    )
+    prompt = (
+        "Synthesize speech for the transcript below. Do not read these directions aloud. "
+        f"Use the same unmistakably adult {gender} teacher voice speaking {language_name}. "
+        f"{local_number_direction}"
+        f"{delivery_style}"
+        "Use punctuation for natural pauses and keep the delivery fluid.\n\n"
+        f"TRANSCRIPT:\n{transcript}"
+    )
+    stream = _get_client().interactions.create(
+        model=GEMINI_STREAMING_TTS_MODEL,
+        input=prompt,
+        response_format={"type": "audio"},
+        generation_config={"speech_config": [{"voice": TTS_VOICES[gender]}]},
+        stream=True,
+    )
+    for event in stream:
+        delta = getattr(event, "delta", None)
+        if getattr(event, "event_type", "") != "step.delta" or getattr(delta, "type", "") != "audio":
+            continue
+        encoded = getattr(delta, "data", None)
+        if encoded:
+            yield base64.b64decode(encoded) if isinstance(encoded, str) else bytes(encoded)
+
+
+def generate_tutor_speech(text: str, language: str = "English", voice_gender: str = "female") -> bytes:
+    """Generate expressive teacher speech as a WAV file using Gemini TTS."""
+    gender = "male" if voice_gender == "male" else "female"
+    language_name = TTS_LANGUAGE_NAMES.get(language, "English")
+    client = _get_client()
+    pcm_chunks = []
+    for chunk in _speech_chunks(text):
+        prompt = (
+            "Synthesize speech for the transcript below. Do not read these directions aloud. "
+            f"Use the same unmistakably adult {gender} teacher voice speaking {language_name}. "
+            "Sound warm, patient and conversational, with a gentle Nigerian classroom tone and a friendly vocal smile. "
+            "Use the written punctuation for natural pauses, vary emphasis slightly, and avoid a stiff announcer cadence.\n\n"
+            f"TRANSCRIPT:\n{chunk}"
+        )
+        last_error = None
+        for _attempt in range(2):
+            try:
+                interaction = client.interactions.create(
+                    model=GEMINI_TTS_MODEL,
+                    input=prompt,
+                    response_format={"type": "audio"},
+                    generation_config={"speech_config": [{"voice": TTS_VOICES[gender]}]},
+                )
+                encoded = interaction.output_audio.data
+                pcm = base64.b64decode(encoded) if isinstance(encoded, str) else bytes(encoded)
+                if not pcm:
+                    raise ValueError("Gemini TTS returned empty audio")
+                pcm_chunks.append(pcm)
+                break
+            except Exception as exc:
+                last_error = exc
+        else:
+            raise RuntimeError("Gemini TTS could not generate audio") from last_error
+    return _pcm_to_wav(b"".join(pcm_chunks))
 
 
 def _safe_arithmetic(expression: str):
@@ -111,7 +354,7 @@ def _wants_teaching(message: str) -> bool:
     return any(cue in text for cue in cues)
 
 
-def _simple_arithmetic_answer(message: str):
+def _simple_arithmetic_answer(message: str, response_language: str = "English"):
     """Give deterministic answers only when the learner is asking for a short result.
 
     Explanatory requests deliberately go through the tutor model so Robo-Teacher
@@ -126,6 +369,11 @@ def _simple_arithmetic_answer(message: str):
     value = _safe_arithmetic(text)
     if value is None: return None
     if isinstance(value, float) and value.is_integer(): value = int(value)
+    localized = LOCALIZED_ANSWERS.get(response_language)
+    if localized:
+        answer_label, number_words = localized
+        localized_value = number_words.get(value, str(value))
+        return f"{message.strip()} = {value}\n\n{answer_label}: {localized_value}"
     return f"{message.strip()} = {value}\n\nAnswer: {value}"
 
 
@@ -152,10 +400,54 @@ def _extract_text(response) -> str:
     raise ValueError("Gemini response contained no readable text")
 
 
-def get_tutor_reply(student_id: str, message: str) -> tuple[str, float]:
+def _class_instruction(class_level: str) -> str:
+    selected = class_level if class_level in {"JSS1", "JSS2", "JSS3"} else "JSS2"
+    return (
+        f"The learner selected {selected}. Teach at {selected} depth and vocabulary. "
+        "You may briefly revise an earlier prerequisite, but do not refuse a valid Junior Secondary Maths question merely because it belongs to another JSS year."
+    )
+
+
+def _language_instruction(response_language: str, class_level: str = "JSS2") -> str:
+    language_details = {
+        "Yoruba": ("Yorùbá", "Yorùbá"),
+        "Igbo": ("Igbo", "Igbo"),
+        "Hausa": ("Hausa", "Hausa"),
+    }
+    if response_language in language_details:
+        language_name, number_word_language = language_details[response_language]
+        simplicity = (
+            f"Use simple, modern conversational Yorùbá commonly understood by {class_level} learners in Lagos. "
+            "Use short direct sentences. Avoid deep or literary Yorùbá, proverbs, idioms and uncommon traditional terms. "
+            "You may naturally code-switch only familiar school Maths words such as plus, minus, times, divide, fraction, decimal and percent. "
+            "Never say the numbers in English; use familiar conversational Yorùbá counting forms such as ọ̀kan, méjì, mẹ́ta, márùn-ún and mẹ́fà. "
+            if response_language == "Yoruba" else ""
+        )
+        return (
+            f"The learner may ask the Maths question in {language_name} or English. Understand both languages, "
+            f"but reply entirely in clear, natural {language_name} suitable for a Nigerian {class_level} learner. "
+            f"{simplicity}"
+            "Write as a warm human teacher would speak: use complete sentences, natural punctuation, and short paragraphs. "
+            "Use commas and full stops to create clear pauses when the answer is read aloud. "
+            f"Use {number_word_language} number words whenever referring to values in explanatory sentences. "
+            "Numerals may remain in written equations, but write the final-answer value "
+            f"as a {number_word_language} number word."
+        )
+    return (
+        "Detect whether the learner's current Maths question is in English, Yorùbá, Igbo, or Hausa. "
+        "Reply entirely in the language used in the question. When replying in Yorùbá, Igbo, or Hausa, "
+        "write as a warm human teacher would speak, using complete sentences, natural punctuation, and short paragraphs. "
+        "Use commas and full stops to create clear pauses when the answer is read aloud. "
+        "keep mathematical symbols and numerals in the working, but write the final-answer value as a "
+        f"number word in that language. Use language suitable for a Nigerian {class_level} learner."
+    )
+
+
+def get_tutor_reply(student_id: str, message: str, response_language: str = "English", class_level: str = "JSS2") -> tuple[str, float]:
     profile = _safe_profile_update(student_id, message)
-    deterministic = _simple_arithmetic_answer(message)
-    if deterministic is not None: return deterministic, 0.0
+    deterministic = _simple_arithmetic_answer(message, response_language)
+    if deterministic is not None:
+        return deterministic, 0.0
     start = time.time()
     try:
         client = _get_client()
@@ -165,13 +457,13 @@ def get_tutor_reply(student_id: str, message: str) -> tuple[str, float]:
 
     history = _conversations.get(student_id, [])
     try:
-        text, new_history = _ask(client, history, message, profile)
+        text, new_history = _ask(client, history, message, profile, response_language, class_level)
     except Exception as first_error:
         if _is_rate_limit_error(first_error):
             return RATE_LIMIT_RESPONSE, time.time() - start
         logger.warning("Gemini request failed; retrying once without conversation history (%s)", type(first_error).__name__)
         try:
-            text, new_history = _ask(client, [], message, profile)
+            text, new_history = _ask(client, [], message, profile, response_language, class_level)
         except Exception as retry_error:
             if _is_rate_limit_error(retry_error):
                 return RATE_LIMIT_RESPONSE, time.time() - start
@@ -194,21 +486,21 @@ def _media_reply(student_id: str, media_bytes: bytes, mime_type: str, prompt: st
     return _clean_model_reply(_extract_text(response)), time.time() - start
 
 
-def get_tutor_image_reply(student_id: str, image_bytes: bytes, mime_type: str, caption: str = "") -> tuple[str, float]:
+def get_tutor_image_reply(student_id: str, image_bytes: bytes, mime_type: str, caption: str = "", response_language: str = "English", class_level: str = "JSS2") -> tuple[str, float]:
     if mime_type not in SUPPORTED_IMAGE_MIME_TYPES: raise ValueError("Unsupported image type")
     if not image_bytes or len(image_bytes) > MAX_IMAGE_BYTES: raise ValueError("Image is empty or too large")
     learning_message = caption.strip() or "Please help me understand the Maths problem in this image."
-    prompt = f"The learner sent a Maths image. Read only the educational content. If unclear, request a clearer photo. Otherwise teach the method step by step.\nLearner caption: {learning_message}"
+    prompt = f"{_class_instruction(class_level)}\n{_language_instruction(response_language, class_level)}\nThe learner sent a Maths image. Read only the educational content. If unclear, request a clearer photo. Otherwise teach the method step by step.\nLearner caption: {learning_message}"
     return _media_reply(student_id, image_bytes, mime_type, prompt, learning_message)
 
 
-def get_tutor_audio_reply(student_id: str, audio_bytes: bytes, mime_type: str) -> tuple[str, float]:
+def get_tutor_audio_reply(student_id: str, audio_bytes: bytes, mime_type: str, response_language: str = "English", class_level: str = "JSS2") -> tuple[str, float]:
     """Understand a learner's voice note and answer the spoken Maths question in text."""
     if mime_type not in SUPPORTED_AUDIO_MIME_TYPES: raise ValueError("Unsupported audio type")
     if not audio_bytes or len(audio_bytes) > MAX_AUDIO_BYTES: raise ValueError("Audio is empty or too large")
     profile_message = "Learner used a voice note for a Maths question."
     prompt = (
-        "Listen to the learner voice note with a safety-first transcription rule. Before solving, silently verify every spoken number, sign, operator, and equation term from the audio itself. "
+        f"{_class_instruction(class_level)} {_language_instruction(response_language, class_level)} Listen to the learner voice note in English, Yorùbá, Igbo, or Hausa with a safety-first transcription rule. Before solving, silently verify every spoken number, sign, operator, and equation term from the audio itself. "
         "Do not infer a number because it makes the Maths easier or seems more likely. Pay special attention to easily confused spoken numbers such as seven versus seventeen, four versus fourteen, six versus sixteen, and similar pairs. "
         "If any number, operator, or important word is muffled, clipped, masked by background noise, or could plausibly have been heard another way, DO NOT solve the problem. Instead say that you may not have heard the question correctly and ask the learner to resend the voice note more clearly or type the equation. "
         "Only when every essential Maths token is clear should you answer the spoken question as a patient teacher and explain the method step by step in text. "
@@ -217,7 +509,7 @@ def get_tutor_audio_reply(student_id: str, audio_bytes: bytes, mime_type: str) -
     return _media_reply(student_id, audio_bytes, mime_type, prompt, profile_message)
 
 
-def _ask(client, history: list, message: str, profile: dict) -> tuple[str, list]:
+def _ask(client, history: list, message: str, profile: dict, response_language: str = "English", class_level: str = "JSS2") -> tuple[str, list]:
     chat = client.chats.create(model=GEMINI_MODEL, config=types.GenerateContentConfig(system_instruction=SYSTEM_PROMPT, max_output_tokens=600, thinking_config=types.ThinkingConfig(thinking_budget=0)), history=history)
-    response = chat.send_message(f"{profile_prompt_context(profile)}\n\nCurrent student message:\n{message}")
+    response = chat.send_message(f"{profile_prompt_context(profile)}\n\n{_class_instruction(class_level)}\n{_language_instruction(response_language, class_level)}\n\nCurrent student message:\n{message}")
     return _extract_text(response), chat.get_history()

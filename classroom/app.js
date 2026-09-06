@@ -1,0 +1,860 @@
+const welcome=document.getElementById('welcome');
+const classroom=document.getElementById('classroom');
+const start=document.getElementById('startLearning');
+const learnerNickname=document.getElementById('learnerNickname');
+const learnerClass=document.getElementById('learnerClass');
+const onboardingError=document.getElementById('onboardingError');
+const learnerIdentity=document.getElementById('learnerIdentity');
+const showTeacherLogin=document.getElementById('showTeacherLogin');
+const teacherLogin=document.getElementById('teacherLogin');
+const teacherAccessKey=document.getElementById('teacherAccessKey');
+const openTeacherDashboardButton=document.getElementById('openTeacherDashboard');
+const teacherLoginError=document.getElementById('teacherLoginError');
+const changeLearnerButton=document.getElementById('changeLearner');
+const toggle=document.getElementById('toggleTeacher');
+const teacherPanel=document.getElementById('teacherPanel');
+const readAnswerButton=document.getElementById('readAnswer');
+const teacherVoiceStatus=document.getElementById('teacherVoiceStatus');
+const form=document.getElementById('chatForm');
+const question=document.getElementById('question');
+const messages=document.getElementById('messages');
+const sendButton=form.querySelector('.send');
+const uploadButton=document.getElementById('uploadButton');
+const cameraButton=document.getElementById('cameraButton');
+const imageUpload=document.getElementById('imageUpload');
+const cameraCapture=document.getElementById('cameraCapture');
+const micButton=document.getElementById('micButton');
+const navMicButton=document.getElementById('navMicButton');
+const canvasEmpty=document.getElementById('canvasEmpty');
+const canvasWork=document.getElementById('canvasWork');
+const problemPreview=document.getElementById('problemPreview');
+const canvasStatus=document.getElementById('canvasStatus');
+const canvasAnswer=document.getElementById('canvasAnswer');
+const whiteboardButton=document.getElementById('whiteboardButton');
+const whiteboardArea=document.getElementById('whiteboardArea');
+const whiteboard=document.getElementById('whiteboard');
+const penTool=document.getElementById('penTool');
+const eraserTool=document.getElementById('eraserTool');
+const clearBoardButton=document.getElementById('clearBoard');
+const closeBoardButton=document.getElementById('closeBoard');
+const submitBoardButton=document.getElementById('submitBoard');
+const backToWhiteboard=document.getElementById('backToWhiteboard');
+const language=document.getElementById('language');
+const languageButton=document.getElementById('languageButton');
+const practiceButton=document.getElementById('practiceButton');
+const practiceArea=document.getElementById('practiceArea');
+const practiceSetup=document.getElementById('practiceSetup');
+const practiceQuestion=document.getElementById('practiceQuestion');
+const practiceClass=document.getElementById('practiceClass');
+const practiceTerm=document.getElementById('practiceTerm');
+const practiceClassSummary=document.getElementById('practiceClassSummary');
+const practiceTopic=document.getElementById('practiceTopic');
+const practiceDifficulty=document.getElementById('practiceDifficulty');
+const practiceCount=document.getElementById('practiceCount');
+const startPracticeButton=document.getElementById('startPractice');
+const startDiagnosticButton=document.getElementById('startDiagnostic');
+const practiceProgress=document.getElementById('practiceProgress');
+const practiceScore=document.getElementById('practiceScore');
+const practiceContext=document.getElementById('practiceContext');
+const practicePrompt=document.getElementById('practicePrompt');
+const practiceForm=document.getElementById('practiceForm');
+const practiceAnswer=document.getElementById('practiceAnswer');
+const showHintButton=document.getElementById('showHint');
+const nextPracticeButton=document.getElementById('nextPractice');
+const closePracticeButton=document.getElementById('closePractice');
+const practiceFeedback=document.getElementById('practiceFeedback');
+const practiceResults=document.getElementById('practiceResults');
+const resultPercentage=document.getElementById('resultPercentage');
+const resultScore=document.getElementById('resultScore');
+const resultRecommendation=document.getElementById('resultRecommendation');
+const missedReview=document.getElementById('missedReview');
+const practiceAgainButton=document.getElementById('practiceAgain');
+const changePracticeTopicButton=document.getElementById('changePracticeTopic');
+const exitPracticeResultsButton=document.getElementById('exitPracticeResults');
+const viewProgressFromResults=document.getElementById('viewProgressFromResults');
+const progressButton=document.getElementById('progressButton');
+const progressArea=document.getElementById('progressArea');
+const progressLoading=document.getElementById('progressLoading');
+const progressEmpty=document.getElementById('progressEmpty');
+const progressDashboard=document.getElementById('progressDashboard');
+const closeProgressButton=document.getElementById('closeProgress');
+const emptyStartPractice=document.getElementById('emptyStartPractice');
+const progressSessions=document.getElementById('progressSessions');
+const progressQuestions=document.getElementById('progressQuestions');
+const progressAverage=document.getElementById('progressAverage');
+const progressStrongest=document.getElementById('progressStrongest');
+const progressRecommendation=document.getElementById('progressRecommendation');
+const weeklySessions=document.getElementById('weeklySessions');
+const weeklyQuestions=document.getElementById('weeklyQuestions');
+const weeklyScore=document.getElementById('weeklyScore');
+const weeklyImprovement=document.getElementById('weeklyImprovement');
+const weeklyStrongest=document.getElementById('weeklyStrongest');
+const weeklyFocus=document.getElementById('weeklyFocus');
+const weeklyNextAction=document.getElementById('weeklyNextAction');
+const practiceRecommendation=document.getElementById('practiceRecommendation');
+const learningPath=document.getElementById('learningPath');
+const progressTopics=document.getElementById('progressTopics');
+const recentSessions=document.getElementById('recentSessions');
+const progressStorageNotice=document.getElementById('progressStorageNotice');
+const teacherDashboardButton=document.getElementById('teacherDashboardButton');
+const teacherDashboard=document.getElementById('teacherDashboard');
+const teacherDashboardContent=document.getElementById('teacherDashboardContent');
+const closeTeacherDashboard=document.getElementById('closeTeacherDashboard');
+const teacherClass=document.getElementById('teacherClass');
+const downloadTeacherReport=document.getElementById('downloadTeacherReport');
+const openQaChecklist=document.getElementById('openQaChecklist');
+const qaChecklist=document.getElementById('qaChecklist');
+const qaChecklistItems=document.getElementById('qaChecklistItems');
+const qaCompleted=document.getElementById('qaCompleted');
+const qaPassed=document.getElementById('qaPassed');
+const qaBlockers=document.getElementById('qaBlockers');
+const qaReleaseStatus=document.getElementById('qaReleaseStatus');
+const downloadQaReport=document.getElementById('downloadQaReport');
+const closeQaChecklist=document.getElementById('closeQaChecklist');
+let currentPractice=null;
+let currentPracticeSummary=null;
+let practiceMode='practice';
+let currentProgress=null;
+let sessionToken=null;
+let previewUrl=null;
+let mediaRecorder=null;
+let micStream=null;
+let recordedChunks=[];
+let teacherSpeechController=null;
+let teacherSpeechRequest=0;
+let teacherAudioContext=null;
+const teacherAudioSources=new Set();
+let teacherStreamComplete=false;
+let teacherSpeechPaused=false;
+let drawing=false;
+let drawingTool='pen';
+let boardHasInk=false;
+let teacherDashboardAccessKey='';
+let currentTeacherDashboard=null;
+const boardContext=whiteboard.getContext('2d');
+const qaChecks={
+  'Learner journey':['Fresh onboarding opens','Class selection controls curriculum','Returning nickname restores progress','Change learner clears the visible session'],
+  'Diagnostic assessment':['JSS1 term diagnostic completes','JSS2 term diagnostic completes','JSS3 term diagnostic completes','Topic scores and recommendation are correct','Diagnostic result restores after a new session'],
+  'Practice and personalisation':['Questions do not repeat or freeze','Correct and incorrect feedback explains the answer','Auto difficulty moves up after two strong sessions','Auto difficulty moves down after two low sessions','Continue Learning opens the recommended topic'],
+  'Language and voice':['English voice input and reply work','Yorùbá input, numbers and reply work','Igbo input and reply work','Hausa input and reply work','Language switches during Practice','Audio pauses and continues from the same place','Voice questions receive automatic spoken answers'],
+  'Progress and Teacher View':['Practice result saves to Google Sheets','Diagnostic saves to its separate worksheet','Weekly learner summary is correct','Teacher class selector and trends are correct','Diagnostic class aggregates contain no identities','Practice and QA CSV reports download'],
+  'Devices':['Android Chrome works','Desktop Chrome or Edge works','iPhone or Safari checked when available','No clipped controls or horizontal scrolling']
+};
+const savedLanguage=localStorage.getItem('roboTeacherLanguage');
+if(['English','Yoruba','Igbo','Hausa'].includes(savedLanguage))language.value=savedLanguage;
+const dashboardCopy={
+  English:{sessions:'Sessions',questions:'Questions',overall:'Overall score',strongest:'Strongest topic',next:'Recommended next step',continue:'Continue Learning →',week:'This week',weekStrongest:'Strongest this week',attention:'Needs attention',learners:'Learners',average:'Average',weakest:'Weakest topic',score:'Score',trend:'Trend',noData:'Not enough data',noCompare:'No previous-week comparison',noChange:'No score change',sixWeek:'Six-week performance trend',topicPerformance:'Topic performance'},
+  Yoruba:{sessions:'Ìgbà ìdánwò',questions:'Àwọn ìbéèrè',overall:'Àpapọ̀ máàkì',strongest:'Kókó tó dára jù',next:'Ohun tó yẹ kó tẹ̀lé',continue:'Tẹ̀síwájú Kíkọ́ →',week:'Ọ̀sẹ̀ yìí',weekStrongest:'Kókó tó dára jù lọ ọ̀sẹ̀ yìí',attention:'Ohun tó nílò àtúnṣe',learners:'Àwọn akẹ́kọ̀ọ́',average:'Àpapọ̀',weakest:'Kókó tó nílò iṣẹ́ síi',score:'Máàkì',trend:'Bí máàkì ṣe ń lọ',noData:'Kò tíì sí data tó',noCompare:'Kò tíì sí ọ̀sẹ̀ míì láti fi wé e',noChange:'Máàkì kò yí padà',sixWeek:'Bí máàkì ṣe lọ fún ọ̀sẹ̀ mẹ́fà',topicPerformance:'Máàkì àwọn kókó'},
+  Igbo:{sessions:'Oge omume',questions:'Ajụjụ',overall:'Akara niile',strongest:'Isiokwu kacha mma',next:'Ihe ị ga-eme ọzọ',continue:'Gaa n’Ihu n’Ịmụ →',week:'Izu a',weekStrongest:'Isiokwu kacha mma n’izu a',attention:'Ihe chọrọ mgbakwunye',learners:'Ụmụ akwụkwọ',average:'Nkezi',weakest:'Isiokwu chọrọ ọrụ ọzọ',score:'Akara',trend:'Mgbanwe akara',noData:'Data ezughị',noCompare:'Enweghị izu gara aga iji tụnyere',noChange:'Akara agbanwebeghị',sixWeek:'Mgbanwe akara izu isii',topicPerformance:'Nsonaazụ isiokwu'},
+  Hausa:{sessions:'Zaman atisaye',questions:'Tambayoyi',overall:'Jimillar maki',strongest:'Darasi mafi ƙarfi',next:'Mataki na gaba',continue:'Ci Gaba da Koyo →',week:'Wannan makon',weekStrongest:'Darasi mafi ƙarfi a makon nan',attention:'Abin da ke buƙatar kulawa',learners:'Dalibai',average:'Matsakaici',weakest:'Darasi mai buƙatar ƙarin aiki',score:'Maki',trend:'Canjin maki',noData:'Babu isasshen bayani',noCompare:'Babu makon baya don kwatantawa',noChange:'Maki bai canza ba',sixWeek:'Canjin maki na makonni shida',topicPerformance:'Sakamakon darussa'}
+};
+const resultCopy={
+  English:{score:(correct,total)=>`${correct} out of ${total} correct`,diagnostic:'Diagnostic topic results',review:'Questions to review',perfect:'Perfect score!',perfectNote:'You answered every question correctly. Excellent work!',yourAnswer:'Your answer',noAnswer:'No answer',correctAnswer:'Correct answer',again:'Practise Again',progress:'View Progress',change:'Change Topic',recommended:'Practise Recommended Topic',exit:'Exit Practice'},
+  Yoruba:{score:(correct,total)=>`${correct} nínú ${total} ló dáa`,diagnostic:'Àbájáde kókó nínú ìdánwò',review:'Àwọn ìbéèrè láti tún wo',perfect:'Gbogbo rẹ̀ dáa!',perfectNote:'O dáhùn gbogbo ìbéèrè dáadáa. Iṣẹ́ rere!',yourAnswer:'Ìdáhùn rẹ',noAnswer:'Kò sí ìdáhùn',correctAnswer:'Ìdáhùn tó tọ́',again:'Ṣe lẹ́ẹ̀kan sí',progress:'Wo Ìtẹ̀síwájú',change:'Yí Kókó Padà',recommended:'Ṣe Kókó Tí A Dábàá',exit:'Jáde nínú Practice'},
+  Igbo:{score:(correct,total)=>`${correct} n’ime ${total} ziri ezi`,diagnostic:'Nsona isiokwu ule',review:'Ajụjụ ị ga-elegharị anya',perfect:'Akara zuru oke!',perfectNote:'Ị zara ajụjụ niile nke ọma. Ezigbo ọrụ!',yourAnswer:'Azịza gị',noAnswer:'Enweghị azịza',correctAnswer:'Azịza ziri ezi',again:'Mee ọzọ',progress:'Lee Ọganihu',change:'Gbanwee Isiokwu',recommended:'Mee Isiokwu A Tụrụ Aro',exit:'Kwidata Practice'},
+  Hausa:{score:(correct,total)=>`${correct} cikin ${total} daidai`,diagnostic:'Sakamakon batutuwan gwaji',review:'Tambayoyin da za a sake dubawa',perfect:'Cikakken maki!',perfectNote:'Ka amsa duk tambayoyin daidai. Madalla!',yourAnswer:'Amsarka',noAnswer:'Babu amsa',correctAnswer:'Amsa daidai',again:'Sake Gwaji',progress:'Duba Ci Gaba',change:'Canja Batu',recommended:'Gwada Batun da Aka Ba da Shawara',exit:'Fita daga Practice'}
+};
+function dcopy(key){return (dashboardCopy[language.value]||dashboardCopy.English)[key]}
+const pathCopy={English:{not_started:'Not started',needs_practice:'Needs practice',mastered:'Mastered',recommended:'Recommended next',continue:'Continue →',start:'Start',practise:'Practise'},Yoruba:{not_started:'Kò tíì bẹ̀rẹ̀',needs_practice:'Ó nílò Practice',mastered:'Ó ti mọ̀ ọ́',recommended:'Èyí ló kàn',continue:'Tẹ̀síwájú →',start:'Bẹ̀rẹ̀',practise:'Ṣe Practice'},Igbo:{not_started:'Amalitebeghị',needs_practice:'Ọ chọrọ Practice',mastered:'Ọ mụtala ya',recommended:'Ihe na-esote',continue:'Gaa n’ihu →',start:'Bido',practise:'Mee Practice'},Hausa:{not_started:'Ba a fara ba',needs_practice:'Yana buƙatar Practice',mastered:'An iya shi',recommended:'Mataki na gaba',continue:'Ci gaba →',start:'Fara',practise:'Yi Practice'}};
+const diagnosticLabels={English:{title:'Diagnostic placement',completed:'Completed tests',learners:'Learners assessed',average:'Average score',focus:'Most common starting topic'},Yoruba:{title:'Ìdánwò ìbẹ̀rẹ̀',completed:'Ìdánwò tó parí',learners:'Akẹ́kọ̀ọ́ tí a yẹ̀wò',average:'Àpapọ̀ máàkì',focus:'Kókó ìbẹ̀rẹ̀ tó wọ́pọ̀'},Igbo:{title:'Nnwale mbido',completed:'Nnwale emechara',learners:'Ụmụ akwụkwọ enyochara',average:'Nkezi akara',focus:'Isiokwu mmalite kacha pụta'},Hausa:{title:'Gwajin farawa',completed:'Gwajin da aka kammala',learners:'Daliban da aka gwada',average:'Matsakaicin maki',focus:'Darasin farawa mafi yawa'}};
+function learnerRecommendation(data){
+  if(language.value==='English')return data.recommendation;const topic=data.recommended_topic,term=data.recommended_term,level=data.recommended_difficulty;
+  if(language.value==='Yoruba')return data.recommendation_reason==='strengthen'?`Tun ${topic} ṣe ní ipele ${level}. Wo gbogbo àlàyé dáadáa.`:`Tẹ̀síwájú pẹ̀lú ${topic} ní ipele ${level}.`;
+  if(language.value==='Igbo')return data.recommendation_reason==='strengthen'?`Megharịa ${topic} n’ọkwa ${level}, gụọkwa nkọwa niile.`:`Gaa n’ihu na ${topic} n’ọkwa ${level}.`;
+  return data.recommendation_reason==='strengthen'?`Sake yin ${topic} a matakin ${level}, ka duba duk bayanin.`:`Ci gaba da ${topic} a matakin ${level}.`;
+}
+function weeklyAction(week){
+  if(language.value==='English')return week.next_action;const topic=week.focus_topic||'';
+  if(language.value==='Yoruba')return !week.sessions?'Ṣe Practice kan kí o lè rí ìmọ̀ràn ọ̀sẹ̀.':week.percentage<50?`Wo àpẹẹrẹ ${topic}, kí o sì ṣe ipele tó rọrùn.`:week.percentage<80?`Tun ${topic} ṣe, kí o sì wo ibi tí o ṣìṣe.`:`O ṣe dáadáa. Gbìyànjú ipele tó kàn ní ${topic}.`;
+  if(language.value==='Igbo')return !week.sessions?'Mee otu Practice ka ị nweta ndụmọdụ izu.':week.percentage<50?`Gụọ ihe atụ ${topic}, wee mee ọkwa dị mfe.`:week.percentage<80?`Megharịa ${topic} ma lelee ebe i mejọrọ.`:`Ị mere nke ọma. Gbalịa ọkwa ọzọ na ${topic}.`;
+  return !week.sessions?'Yi Practice ɗaya domin samun shawarar mako.':week.percentage<50?`Duba misalan ${topic}, sannan ka yi mataki mai sauƙi.`:week.percentage<80?`Sake yin ${topic}, ka duba kurakuranka.`:`Ka yi kyau. Gwada mataki na gaba a ${topic}.`;
+}
+function teacherAction(data){
+  if(language.value==='English')return data.weekly_summary.action;const week=data.weekly_summary,topic=week.weakest_topic||'';
+  if(language.value==='Yoruba')return !week.sessions?'Kò sí Practice lọ́sẹ̀ yìí. Yan ìdánwò tó bá kíláàsì mu.':week.percentage<50?`Tun ${topic} kọ́ pẹ̀lú àpẹẹrẹ, kí o sì fún wọn ní Easy.`:week.percentage<80?`Ṣe àtúnyẹ̀wò ${topic} pẹ̀lú ẹgbẹ́ kékeré, kí wọn tún Practice ṣe.`:`Kíláàsì ṣe dáadáa. Fún wọn ní Challenge lórí ${topic}.`;
+  if(language.value==='Igbo')return !week.sessions?'Enweghị Practice n’izu a. Nye otu omume dabara na klas.':week.percentage<50?`Kụzie ${topic} ọzọ site n’ihe atụ, nyezie Easy.`:week.percentage<80?`Legharịa ${topic} na obere otu, nyezie Practice ọzọ.`:`Klas mere nke ọma. Nye Challenge na ${topic}.`;
+  return !week.sessions?'Babu Practice a makon nan. Ba ajin atisayen da ya dace.':week.percentage<50?`Sake koyar da ${topic} da misalai, sannan a yi Easy.`:week.percentage<80?`Sake duba ${topic} a ƙaramin rukuni, sannan a sake Practice.`:`Ajin ya yi kyau. Ba su Challenge a ${topic}.`;
+}
+function teacherOverallAction(data){
+  if(language.value==='English')return data.recommendation;const weakest=data.topics[0],topic=data.weakest_topic||'';
+  if(language.value==='Yoruba')return !data.questions?'Jẹ́ kí àwọn akẹ́kọ̀ọ́ ṣe Practice kan kí o tó ṣètò ìrànlọ́wọ́.':weakest.percentage<50?`Tun ${topic} kọ́ pẹ̀lú àpẹẹrẹ, kí o sì fún wọn ní Easy.`:weakest.percentage<80?`Ṣe àtúnyẹ̀wò ${topic}, kí wọn sì tún Practice ṣe.`:`Kíláàsì ṣe dáadáa. Lo Challenge fún ${topic}.`;
+  if(language.value==='Igbo')return !data.questions?'Gwa ụmụ akwụkwọ ka ha mee otu Practice tupu ịhazi enyemaka.':weakest.percentage<50?`Kụzie ${topic} ọzọ site n’ihe atụ, nyezie Easy.`:weakest.percentage<80?`Legharịa ${topic}, nyezie Practice ọzọ.`:`Klas mere nke ọma. Jiri Challenge maka ${topic}.`;
+  return !data.questions?'Ka dalibai yi Practice ɗaya kafin a shirya taimako.':weakest.percentage<50?`Sake koyar da ${topic} da misalai, sannan a yi Easy.`:weakest.percentage<80?`Sake duba ${topic}, sannan a sake Practice.`:`Ajin ya yi kyau. Yi amfani da Challenge a ${topic}.`;
+}
+function weeklyImprovementText(week){
+  if(language.value==='English')return week.improvement_points===null?'Complete another week to measure improvement.':week.improvement_points>0?`Improved by ${week.improvement_points} percentage points.`:week.improvement_points<0?`Down ${Math.abs(week.improvement_points)} points—review the recommended topic.`:'Your score is steady compared with last week.';
+  const points=Math.abs(week.improvement_points||0);
+  if(language.value==='Yoruba')return week.improvement_points===null?'Parí ọ̀sẹ̀ míì ká lè rí ìlọsíwájú.':week.improvement_points>0?`Máàkì pọ̀ sí i pẹ̀lú ${points}.`:week.improvement_points<0?`Máàkì dín kù pẹ̀lú ${points}; tún kókó náà ṣe.`:'Máàkì dúró bí ọ̀sẹ̀ tó kọjá.';
+  if(language.value==='Igbo')return week.improvement_points===null?'Mechaa izu ọzọ ka a tụọ ọganihu.':week.improvement_points>0?`Akara rịrị site na ${points}.`:week.improvement_points<0?`Akara dara site na ${points}; megharịa isiokwu ahụ.`:'Akara gị ka dị ka izu gara aga.';
+  return week.improvement_points===null?'Kammala wani mako domin a auna ci gaba.':week.improvement_points>0?`Maki ya ƙaru da ${points}.`:week.improvement_points<0?`Maki ya ragu da ${points}; sake duba darasin.`:'Maki bai canza daga makon baya ba.';
+}
+// Always show clean onboarding. Anonymous progress profiles remain on-device
+// and reconnect when the same nickname and class are entered again.
+learnerNickname.value='';
+learnerClass.value='JSS2';
+const practiceCurriculum={
+  JSS1:{
+    'First Term':['Whole Numbers','Factors, Multiples, LCM & HCF','Fractions','Estimation'],
+    'Second Term':['Decimals & Approximation','Number Bases (Binary)','Positive & Negative Integers','Introductory Algebra'],
+    'Third Term':['Simple Equations','Plane Shapes & Mensuration','3D Shapes & Volume','Angles & Construction','Data Presentation','Mean, Median & Mode']
+  },
+  JSS2:{
+    'First Term':['Standard Form','Prime Factors, Squares & Roots','Fractions, Ratios, Decimals & Percentages','Commercial Arithmetic','Approximation','Directed Numbers','Algebraic Expressions & Factorisation','Algebraic Fractions'],
+    'Second Term':['Simple Equations','Linear Inequalities','Linear Graphs','Plane Shapes & Scale Drawing'],
+    'Third Term':['Angles & Polygons','Elevation & Depression','Bearings & Distances','Pythagoras & Mensuration','Statistics & Data Presentation','Probability']
+  },
+  JSS3:{
+    'First Term':['Number Bases','Rational & Irrational Numbers','Ratio, Proportion & Variation','Approximation','Factorisation & Quadratic Expressions','Formulae & Change of Subject'],
+    'Second Term':['Equations Involving Fractions','Simultaneous Equations','Similar Shapes','Trigonometry','Geometry & Construction'],
+    'Third Term':['Mensuration & Volumes','Statistics & Averages','Pie Charts','Commercial Arithmetic']
+  }
+};
+const classTopics=Object.fromEntries(Object.entries(practiceCurriculum).map(([level,terms])=>[level,Object.values(terms).flat()]));
+function updatePracticeTopics(){
+  const selectedClass=practiceClass.value;const selectedTerm=practiceTerm.value;const previous=practiceTopic.value;const topics=practiceCurriculum[selectedClass][selectedTerm];practiceTopic.replaceChildren(...topics.map(topic=>{const option=document.createElement('option');option.textContent=topic;return option}));
+  if(topics.includes(previous))practiceTopic.value=previous;
+  practiceClassSummary.textContent=`Showing ${selectedClass} Mathematics · ${selectedTerm} (${topics.length} topics)`;
+}
+practiceClass.value=learnerClass.value;updatePracticeTopics();
+learnerClass.addEventListener('change',()=>{practiceClass.value=learnerClass.value;practiceTerm.value='First Term';updatePracticeTopics()});practiceClass.addEventListener('change',()=>{practiceTerm.value='First Term';updatePracticeTopics()});practiceTerm.addEventListener('change',updatePracticeTopics);
+
+async function ensureSession(){
+  if(sessionToken)return sessionToken;
+  const profileId=`${learnerClass.value}:${learnerNickname.value.trim().toLocaleLowerCase()}`;
+  let profiles={};
+  try{profiles=JSON.parse(localStorage.getItem('roboTeacherProfiles')||'{}')}catch(_){profiles={}}
+  let learnerKey=profiles[profileId];
+  if(!learnerKey&&Object.keys(profiles).length===0)learnerKey=localStorage.getItem('roboTeacherLearnerKey');
+  if(!/^[a-f0-9]{32,64}$/.test(learnerKey||'')){
+    const bytes=crypto.getRandomValues(new Uint8Array(24));learnerKey=Array.from(bytes,byte=>byte.toString(16).padStart(2,'0')).join('');
+  }
+  profiles[profileId]=learnerKey;localStorage.setItem('roboTeacherProfiles',JSON.stringify(profiles));
+  localStorage.removeItem('roboTeacherLearnerKey');
+  const response=await fetch('/api/classroom/session',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({learner_key:learnerKey,nickname:learnerNickname.value.trim(),class_level:learnerClass.value})});
+  if(!response.ok)throw new Error('session');
+  const data=await response.json();
+  sessionToken=data.session_token;
+  return sessionToken;
+}
+
+start.addEventListener('click',async()=>{
+  const nickname=learnerNickname.value.trim();
+  if(nickname.length<2){onboardingError.textContent='Please enter a nickname with at least 2 letters.';onboardingError.classList.remove('hidden');learnerNickname.focus();return}
+  onboardingError.classList.add('hidden');start.disabled=true;start.textContent='Opening classroom…';
+  try{
+    await ensureSession();learnerIdentity.textContent=`${nickname.toUpperCase()} · ${learnerClass.value} CLASSROOM`;
+    welcome.classList.add('hidden');classroom.classList.remove('hidden');
+    addMessage(`Welcome, ${nickname}! I’ll explain each lesson at ${learnerClass.value} level.`,'teacher');question.focus();
+  }catch(_){onboardingError.textContent='I could not start the classroom connection. Please try again.';onboardingError.classList.remove('hidden')}
+  finally{start.disabled=false;start.textContent='Start Learning Now →'}
+});
+
+showTeacherLogin.addEventListener('click',()=>{teacherLogin.classList.toggle('hidden');if(!teacherLogin.classList.contains('hidden'))teacherAccessKey.focus()});
+
+openTeacherDashboardButton.addEventListener('click',async()=>{
+  const accessKey=teacherAccessKey.value.trim();
+  if(accessKey.length<16){teacherLoginError.textContent='Enter the private teacher access key.';teacherLoginError.classList.remove('hidden');teacherAccessKey.focus();return}
+  teacherLoginError.classList.add('hidden');openTeacherDashboardButton.disabled=true;openTeacherDashboardButton.textContent='Opening…';
+  try{teacherClass.value=learnerClass.value;teacherDashboardAccessKey=accessKey;const data=await fetchTeacherDashboard(accessKey);welcome.classList.add('hidden');classroom.classList.remove('hidden');learnerIdentity.textContent=`TEACHER DASHBOARD · ${teacherClass.value}`;showTeacherDashboard(data)}
+  catch(error){teacherLoginError.textContent=error.message;teacherLoginError.classList.remove('hidden');teacherAccessKey.focus()}
+  finally{openTeacherDashboardButton.disabled=false;openTeacherDashboardButton.textContent='Open Dashboard →';teacherAccessKey.value=''}
+});
+teacherAccessKey.addEventListener('keydown',event=>{if(event.key==='Enter')openTeacherDashboardButton.click()});
+
+changeLearnerButton.addEventListener('click',()=>{
+  stopTeacherAudio();sessionToken=null;currentProgress=null;learnerNickname.value='';learnerClass.value='JSS2';practiceClass.value='JSS2';updatePracticeTopics();classroom.classList.add('hidden');welcome.classList.remove('hidden');teacherLogin.classList.add('hidden');onboardingError.classList.add('hidden');learnerNickname.focus();
+});
+
+toggle.addEventListener('click',()=>{
+  const mini=teacherPanel.classList.toggle('minimized');
+  classroom.classList.toggle('teacher-min',mini);
+  toggle.textContent=mini?'↗':'↙';
+  toggle.setAttribute('aria-label',mini?'Maximize teacher':'Minimize teacher');
+  toggle.setAttribute('aria-expanded',String(!mini));
+});
+
+function prepareSpeechText(text){
+  return text
+    .replace(/\*\*/g,'')
+    .replace(/\s*\n+\s*/g,'. ')
+    .replace(/\s*([=:])\s*/g,' $1 ')
+    .replace(/\s+/g,' ')
+    .replace(/([A-Za-zÀ-ž0-9])$/u,'$1.')
+    .trim();
+}
+
+function setTeacherSpeaking(speaking){
+  teacherPanel.classList.toggle('speaking',speaking);
+  teacherVoiceStatus.textContent=speaking?'Speaking…':'Ready';
+  readAnswerButton.innerHTML=speaking?'⏸ <span>Pause</span>':'🔊 <span>Read answer</span>';
+  readAnswerButton.setAttribute('aria-label',speaking?'Pause reading the answer':'Read the current answer aloud');
+}
+
+async function pauseTeacherAudio(){
+  if(!teacherAudioContext||teacherSpeechPaused)return;
+  // Lock the state before suspension so a final streamed chunk cannot close
+  // the audio context while the learner is pausing it.
+  teacherSpeechPaused=true;
+  teacherPanel.classList.remove('speaking');teacherVoiceStatus.textContent='Paused';
+  readAnswerButton.innerHTML='▶ <span>Continue</span>';readAnswerButton.setAttribute('aria-label','Continue reading the answer');
+  try{await teacherAudioContext.suspend()}
+  catch(_error){teacherSpeechPaused=false;setTeacherSpeaking(true)}
+}
+
+async function resumeTeacherAudio(){
+  if(!teacherAudioContext||!teacherSpeechPaused)return;
+  try{
+    await teacherAudioContext.resume();teacherSpeechPaused=false;setTeacherSpeaking(true);
+    if(teacherStreamComplete&&!teacherAudioSources.size)stopTeacherAudio();
+  }catch(_error){
+    teacherSpeechPaused=false;stopTeacherAudio();
+    addMessage('I could not continue that audio. Please tap Read answer to try again.','teacher');
+  }
+}
+
+function stopTeacherAudio(){
+  teacherSpeechRequest+=1;
+  if(teacherSpeechController){teacherSpeechController.abort();teacherSpeechController=null}
+  teacherAudioSources.forEach(source=>{try{source.stop()}catch(_error){/* Already stopped. */}});teacherAudioSources.clear();
+  teacherStreamComplete=false;
+  teacherSpeechPaused=false;
+  setTeacherSpeaking(false);
+}
+
+async function prepareTeacherAudio(){
+  const AudioContextClass=window.AudioContext||window.webkitAudioContext;
+  if(!AudioContextClass)throw new Error('Web Audio is unavailable');
+  if(!teacherAudioContext||teacherAudioContext.state==='closed')teacherAudioContext=new AudioContextClass({sampleRate:24000});
+  if(teacherAudioContext.state==='suspended')await teacherAudioContext.resume();
+  return teacherAudioContext;
+}
+
+async function playPcmStream(response,requestId){
+  const context=await prepareTeacherAudio();const reader=response.body.getReader();let pending=new Uint8Array(0);let nextStart=context.currentTime+.06;
+  const finishIfDone=()=>{if(teacherStreamComplete&&!teacherAudioSources.size&&!teacherSpeechPaused&&requestId===teacherSpeechRequest)stopTeacherAudio()};
+  while(requestId===teacherSpeechRequest){
+    const {done,value}=await reader.read();if(done)break;
+    const joined=new Uint8Array(pending.length+value.length);joined.set(pending);joined.set(value,pending.length);
+    const evenLength=joined.length-joined.length%2;pending=joined.slice(evenLength);
+    if(!evenLength)continue;
+    const samples=evenLength/2;const buffer=context.createBuffer(1,samples,24000);const channel=buffer.getChannelData(0);const view=new DataView(joined.buffer,joined.byteOffset,evenLength);
+    for(let index=0;index<samples;index++)channel[index]=view.getInt16(index*2,true)/32768;
+    const source=context.createBufferSource();source.buffer=buffer;source.connect(context.destination);teacherAudioSources.add(source);
+    source.addEventListener('ended',()=>{teacherAudioSources.delete(source);finishIfDone()},{once:true});
+    const startAt=Math.max(nextStart,context.currentTime+.025);source.start(startAt);nextStart=startAt+buffer.duration;
+  }
+  teacherStreamComplete=true;finishIfDone();
+}
+
+async function speakText(text){
+  if(!text.trim())return;
+  stopTeacherAudio();setTeacherSpeaking(true);
+  const requestId=teacherSpeechRequest;
+  teacherSpeechController=new AbortController();
+  try{
+    const token=await ensureSession();
+    if(requestId!==teacherSpeechRequest)return;
+    const response=await fetch('/api/classroom/speech',{method:'POST',headers:{'Content-Type':'application/json','Accept':'audio/L16'},body:JSON.stringify({text:prepareSpeechText(text),session_token:token,language:language.value,voice_gender:teacherPanel.dataset.voiceGender==='male'?'male':'female'}),signal:teacherSpeechController.signal});
+    if(response.status===401){sessionToken=null;throw new Error('session')}
+    if(!response.ok)throw new Error('natural voice unavailable');
+    if(!response.body)throw new Error('stream unavailable');
+    await playPcmStream(response,requestId);
+  }catch(error){
+    if(error.name==='AbortError'||requestId!==teacherSpeechRequest)return;
+    stopTeacherAudio();
+    addMessage('The natural teacher voice is temporarily unavailable. You can continue reading the worked answer on the Teaching Canvas.','teacher');
+  }
+}
+
+readAnswerButton.addEventListener('click',async()=>{
+  if(teacherSpeechPaused){await resumeTeacherAudio();return;}
+  if(teacherPanel.classList.contains('speaking')){await pauseTeacherAudio();return;}
+  try{await prepareTeacherAudio()}catch(_error){return}
+  void speakText(canvasAnswer.textContent);
+});
+
+function addMessage(text,role){
+  const el=document.createElement('div');el.className=`message ${role}`;el.textContent=text;
+  messages.appendChild(el);messages.scrollTop=messages.scrollHeight;return el;
+}
+
+function showCanvasAnswer(answer,status='Worked solution'){
+  whiteboardArea.classList.add('hidden');practiceArea.classList.add('hidden');progressArea.classList.add('hidden');canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');
+  canvasStatus.textContent=status;renderLesson(canvasAnswer,answer);
+  readAnswerButton.disabled=!answer.trim();
+}
+
+function renderLesson(container,text){
+  container.replaceChildren();
+  text.split(/\n{2,}/).forEach(block=>{
+    const paragraph=document.createElement('p');
+    block.split('\n').forEach((line,lineIndex)=>{
+      if(lineIndex)paragraph.appendChild(document.createElement('br'));
+      line.split('**').forEach((part,index)=>{
+        const node=index%2?document.createElement('strong'):document.createTextNode(part);
+        if(index%2)node.textContent=part;
+        paragraph.appendChild(node);
+      });
+    });
+    container.appendChild(paragraph);
+  });
+}
+
+uploadButton.addEventListener('click',()=>imageUpload.click());
+cameraButton.addEventListener('click',()=>cameraCapture.click());
+imageUpload.addEventListener('change',()=>handleImage(imageUpload.files[0]));
+cameraCapture.addEventListener('change',()=>handleImage(cameraCapture.files[0]));
+micButton.addEventListener('click',toggleRecording);
+navMicButton.addEventListener('click',toggleRecording);
+whiteboardButton.addEventListener('click',openWhiteboard);
+closeBoardButton.addEventListener('click',closeWhiteboard);
+penTool.addEventListener('click',()=>selectDrawingTool('pen'));
+eraserTool.addEventListener('click',()=>selectDrawingTool('eraser'));
+clearBoardButton.addEventListener('click',clearWhiteboard);
+submitBoardButton.addEventListener('click',submitWhiteboard);
+whiteboard.addEventListener('pointerdown',startDrawing);
+whiteboard.addEventListener('pointermove',drawOnWhiteboard);
+whiteboard.addEventListener('pointerup',stopDrawing);
+whiteboard.addEventListener('pointercancel',stopDrawing);
+backToWhiteboard.addEventListener('click',openWhiteboard);
+language.addEventListener('change',async()=>{
+  stopTeacherAudio();
+  localStorage.setItem('roboTeacherLanguage',language.value);
+  const notices={English:'I will teach you in English from now on.',Yoruba:'Mo máa kọ́ ọ ní Yorùbá láti ìsinsin yìí.',Igbo:'Aga m akụziri gị ihe n’Igbo site ugbu a.',Hausa:'Zan koyar da kai da Hausa daga yanzu.'};
+  addMessage(notices[language.value],'teacher');
+  if(currentPractice)await switchPracticeLanguage();
+  if(currentProgress&&!progressArea.classList.contains('hidden'))renderProgress(currentProgress);
+  if(currentTeacherDashboard&&!teacherDashboard.classList.contains('hidden'))renderTeacherDashboard(currentTeacherDashboard);
+  question.focus();
+});
+languageButton.addEventListener('click',()=>language.focus());
+practiceButton.addEventListener('click',openPractice);
+startPracticeButton.addEventListener('click',startPracticeSession);
+startDiagnosticButton.addEventListener('click',startDiagnosticSession);
+practiceForm.addEventListener('submit',submitPracticeAnswer);
+showHintButton.addEventListener('click',showPracticeHint);
+nextPracticeButton.addEventListener('click',loadNextPracticeQuestion);
+closePracticeButton.addEventListener('click',closePractice);
+practiceAgainButton.addEventListener('click',startPracticeSession);
+changePracticeTopicButton.addEventListener('click',openResultRecommendation);
+exitPracticeResultsButton.addEventListener('click',closePractice);
+progressButton.addEventListener('click',openProgress);
+teacherDashboardButton.addEventListener('click',openTeacherDashboard);
+closeTeacherDashboard.addEventListener('click',()=>{teacherDashboard.classList.add('hidden');canvasEmpty.classList.remove('hidden')});
+teacherClass.addEventListener('change',refreshTeacherDashboard);
+downloadTeacherReport.addEventListener('click',downloadTeacherDashboardReport);
+openQaChecklist.addEventListener('click',showQaChecklist);
+closeQaChecklist.addEventListener('click',()=>{qaChecklist.classList.add('hidden');teacherDashboard.classList.remove('hidden')});
+downloadQaReport.addEventListener('click',downloadQaChecklistReport);
+viewProgressFromResults.addEventListener('click',openProgress);
+closeProgressButton.addEventListener('click',closeProgress);
+emptyStartPractice.addEventListener('click',openPracticeFromProgress);
+practiceRecommendation.addEventListener('click',openRecommendedPractice);
+learningPath.addEventListener('click',event=>{const button=event.target.closest('button[data-topic]');if(button)openLearningPathTopic(button.dataset.term,button.dataset.topic)});
+
+function openPractice(){
+  whiteboardArea.classList.add('hidden');progressArea.classList.add('hidden');canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');practiceArea.classList.remove('hidden');
+  if(currentPracticeSummary)renderPracticeResults(currentPracticeSummary);
+  else if(currentPractice){practiceSetup.classList.add('hidden');practiceQuestion.classList.remove('hidden');practiceResults.classList.add('hidden');practiceAnswer.focus()}
+  else resetPracticeSetup();
+}
+
+function closePractice(){
+  practiceArea.classList.add('hidden');
+  if(canvasAnswer.textContent.trim())canvasWork.classList.remove('hidden');else canvasEmpty.classList.remove('hidden');
+}
+
+function renderPracticeQuestion(data){
+  currentPractice=data;currentPracticeSummary=null;practiceSetup.classList.add('hidden');practiceResults.classList.add('hidden');practiceQuestion.classList.remove('hidden');
+  practiceProgress.textContent=`Question ${data.question_number} of ${data.total_questions}`;practiceScore.textContent=`Score: ${data.score}/${data.attempted}`;
+  practiceContext.textContent=`${data.class_level} · ${data.topic} · ${data.difficulty}`;practicePrompt.textContent=data.question;
+  practiceAnswer.value='';practiceAnswer.disabled=false;practiceForm.querySelector('button').disabled=false;
+  practiceFeedback.textContent='';practiceFeedback.className='practice-feedback hidden';showHintButton.disabled=false;
+  showHintButton.textContent='Show Hint';nextPracticeButton.textContent='Next Question →';nextPracticeButton.classList.add('hidden');practiceAnswer.focus();
+}
+
+async function practiceRequest(path,body){
+  const token=await ensureSession();
+  const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),20000);
+  try{
+    const response=await fetch(`/api/classroom/practice/${path}`,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({session_token:token,...body}),signal:controller.signal});
+    let data={};try{data=await response.json()}catch(_error){/* Use the friendly fallback below. */}
+    if(response.status===401)sessionToken=null;if(!response.ok)throw new Error(data.detail||'Practice request failed. Please try again.');return data;
+  }catch(error){if(error.name==='AbortError')throw new Error('The connection took too long. Please try again.');throw error}
+  finally{clearTimeout(timeout)}
+}
+
+async function diagnosticRequest(path,body){
+  const token=await ensureSession();const response=await fetch(`/api/classroom/diagnostic/${path}`,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({session_token:token,...body})});const data=await response.json();if(!response.ok)throw new Error(data.detail||'Diagnostic request failed.');return data
+}
+
+async function startPracticeSession(){
+  practiceMode='practice';
+  startPracticeButton.disabled=true;practiceAgainButton.disabled=true;startPracticeButton.textContent='Preparing…';
+  try{renderPracticeQuestion(await practiceRequest('start',{topic:practiceTopic.value,difficulty:practiceDifficulty.value,question_count:Number(practiceCount.value),class_level:practiceClass.value,language:language.value}))}
+  catch(err){addMessage(err.message,'teacher')}
+  finally{startPracticeButton.disabled=false;practiceAgainButton.disabled=false;startPracticeButton.textContent='Start Practice →'}
+}
+
+async function startDiagnosticSession(){
+  startDiagnosticButton.disabled=true;startDiagnosticButton.textContent='Preparing diagnostic…';practiceMode='diagnostic';
+  try{renderPracticeQuestion(await diagnosticRequest('start',{class_level:practiceClass.value,term:practiceTerm.value,language:language.value}))}
+  catch(err){addMessage(err.message,'teacher');practiceMode='practice'}
+  finally{startDiagnosticButton.disabled=false;startDiagnosticButton.textContent='Take 10-Question Diagnostic'}
+}
+
+async function switchPracticeLanguage(){
+  try{
+    const data=await (practiceMode==='diagnostic'?diagnosticRequest('language',{language:language.value}):practiceRequest('language',{language:language.value}));
+    currentPractice={...currentPractice,...data};practicePrompt.textContent=data.question;
+    if(data.answered&&data.feedback){
+      const feedback=data.feedback;
+      practiceFeedback.textContent=feedback.correct?`${feedback.message}\n\n${feedback.explanation}`:`${feedback.message}\n\n${feedback.explanation}\n\n${feedback.correct_answer_label}: ${feedback.expected_answer}`;
+      practiceFeedback.className=`practice-feedback ${feedback.correct?'correct':'incorrect'}`;
+    }else if(showHintButton.disabled){practiceFeedback.textContent=`Hint: ${data.hint}`}
+    if(data.summary){currentPracticeSummary=data.summary;if(!practiceResults.classList.contains('hidden'))renderPracticeResults(data.summary)}
+  }catch(err){addMessage(err.message,'teacher')}
+}
+
+function showPracticeHint(){
+  if(!currentPractice)return;practiceFeedback.textContent=`Hint: ${currentPractice.hint}`;practiceFeedback.className='practice-feedback';showHintButton.disabled=true;showHintButton.textContent='Hint shown';
+}
+
+async function submitPracticeAnswer(event){
+  event.preventDefault();const answer=practiceAnswer.value.trim();if(!answer)return;
+  const checkButton=practiceForm.querySelector('button');checkButton.disabled=true;
+  try{
+    const result=await (practiceMode==='diagnostic'?diagnosticRequest('answer',{answer}):practiceRequest('answer',{answer}));practiceAnswer.disabled=true;
+    practiceScore.textContent=`Score: ${result.score}/${result.attempted} (${result.percentage}%)`;
+    practiceFeedback.textContent=result.correct?`${result.message}\n\n${result.explanation}`:`${result.message}\n\n${result.explanation}\n\n${result.correct_answer_label}: ${result.expected_answer}`;
+    practiceFeedback.className=`practice-feedback ${result.correct?'correct':'incorrect'}`;nextPracticeButton.classList.remove('hidden');showHintButton.disabled=true;
+    if(result.completed){currentPracticeSummary=result.summary;nextPracticeButton.textContent='View Results →'}
+  }catch(err){practiceFeedback.textContent=err.message;practiceFeedback.className='practice-feedback incorrect';checkButton.disabled=false}
+}
+
+async function loadNextPracticeQuestion(){
+  if(currentPracticeSummary){renderPracticeResults(currentPracticeSummary);return}
+  nextPracticeButton.disabled=true;
+  try{renderPracticeQuestion(await (practiceMode==='diagnostic'?diagnosticRequest('next',{}):practiceRequest('next',{})))}
+  catch(err){practiceFeedback.textContent=err.message;practiceFeedback.className='practice-feedback incorrect'}
+  finally{nextPracticeButton.disabled=false}
+}
+
+function resetPracticeSetup(){
+  currentPractice=null;currentPracticeSummary=null;practiceQuestion.classList.add('hidden');practiceResults.classList.add('hidden');practiceSetup.classList.remove('hidden');
+}
+
+function renderPracticeResults(summary){
+  currentPracticeSummary=summary;practiceSetup.classList.add('hidden');practiceQuestion.classList.add('hidden');practiceResults.classList.remove('hidden');
+  const labels=resultCopy[language.value]||resultCopy.English;
+  resultPercentage.textContent=`${summary.percentage}%`;resultScore.textContent=labels.score(summary.score,summary.attempted);
+  resultRecommendation.textContent=summary.recommendation;missedReview.replaceChildren();
+  practiceAgainButton.textContent=labels.again;viewProgressFromResults.textContent=labels.progress;exitPracticeResultsButton.textContent=labels.exit;
+  changePracticeTopicButton.textContent=summary.diagnostic?labels.recommended:labels.change;
+  if(summary.topic_results){const topicHeading=document.createElement('h4');topicHeading.textContent=labels.diagnostic;missedReview.appendChild(topicHeading);summary.topic_results.forEach(item=>{const row=document.createElement('article');row.textContent=`${item.topic}: ${item.percentage}% (${item.correct}/${item.attempted})`;missedReview.appendChild(row)})}
+  const heading=document.createElement('h4');heading.textContent=summary.missed.length?labels.review:labels.perfect;missedReview.appendChild(heading);
+  if(!summary.missed.length){const note=document.createElement('p');note.textContent=labels.perfectNote;missedReview.appendChild(note);return}
+  summary.missed.forEach((item,index)=>{
+    const card=document.createElement('article');
+    const title=document.createElement('strong');title.textContent=`${index+1}. ${item.question}`;
+    const answers=document.createElement('p');answers.textContent=`${labels.yourAnswer}: ${item.learner_answer || labels.noAnswer} · ${labels.correctAnswer}: ${item.correct_answer}`;
+    const explanation=document.createElement('p');explanation.textContent=item.explanation;
+    card.append(title,answers,explanation);missedReview.appendChild(card);
+  });
+}
+
+function openResultRecommendation(){
+  const summary=currentPracticeSummary;resetPracticeSetup();
+  if(summary?.diagnostic){practiceClass.value=summary.class_level;practiceTerm.value=summary.term;updatePracticeTopics();practiceTopic.value=summary.recommended_topic;practiceDifficulty.value=summary.recommended_difficulty}
+}
+
+async function openProgress(){
+  whiteboardArea.classList.add('hidden');practiceArea.classList.add('hidden');teacherDashboard.classList.add('hidden');canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');progressArea.classList.remove('hidden');
+  progressLoading.classList.remove('hidden');progressEmpty.classList.add('hidden');progressDashboard.classList.add('hidden');
+  try{currentProgress=await practiceRequest('progress',{class_level:learnerClass.value});renderProgress(currentProgress)}
+  catch(error){progressLoading.textContent=error.message;progressLoading.classList.add('error')}
+}
+
+async function openTeacherDashboard(){
+  const accessKey=window.prompt('Enter the private teacher access key.');if(!accessKey)return;
+  teacherDashboardAccessKey=accessKey;teacherClass.value=learnerClass.value;
+  try{await loadTeacherDashboard(accessKey)}catch(error){teacherDashboardContent.textContent=error.message}
+}
+
+async function loadTeacherDashboard(accessKey){
+  whiteboardArea.classList.add('hidden');practiceArea.classList.add('hidden');progressArea.classList.add('hidden');canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');teacherDashboard.classList.remove('hidden');teacherDashboardContent.textContent='Loading class performance…';
+  showTeacherDashboard(await fetchTeacherDashboard(accessKey))
+}
+
+async function fetchTeacherDashboard(accessKey){
+  const response=await fetch('/api/classroom/teacher/dashboard',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({access_key:accessKey,class_level:teacherClass.value})});const data=await response.json();if(!response.ok)throw new Error(data.detail||'Teacher dashboard unavailable');return data
+}
+
+function showTeacherDashboard(data){
+  currentTeacherDashboard=data;whiteboardArea.classList.add('hidden');practiceArea.classList.add('hidden');progressArea.classList.add('hidden');canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');teacherDashboard.classList.remove('hidden');renderTeacherDashboard(data)
+}
+
+function renderTeacherDashboard(data){
+  teacherDashboardContent.replaceChildren();const stats=document.createElement('div');stats.className='progress-stats';
+  [[dcopy('learners'),data.learners],[dcopy('sessions'),data.sessions],[dcopy('questions'),data.questions],[dcopy('average'),`${data.average_percentage}%`]].forEach(([label,value])=>{const card=document.createElement('article');const name=document.createElement('span');name.textContent=label;const score=document.createElement('strong');score.textContent=value;card.append(name,score);stats.appendChild(card)});
+  const insight=document.createElement('div');insight.className='teacher-insights';
+  [[dcopy('strongest'),data.strongest_topic||dcopy('noData')],[dcopy('weakest'),data.weakest_topic||dcopy('noData')]].forEach(([label,value])=>{const card=document.createElement('article');const name=document.createElement('span');name.textContent=label;const topic=document.createElement('strong');topic.textContent=value;card.append(name,topic);insight.appendChild(card)});
+  const recommendation=document.createElement('p');recommendation.className='teacher-recommendation';recommendation.textContent=teacherOverallAction(data);
+  const diagnostic=data.diagnostic_summary,dl=diagnosticLabels[language.value]||diagnosticLabels.English;const diagnosticPanel=document.createElement('section');diagnosticPanel.className='teacher-weekly';const diagnosticTitle=document.createElement('h4');diagnosticTitle.textContent=dl.title;const diagnosticStats=document.createElement('div');diagnosticStats.className='teacher-weekly-stats';[[dl.completed,diagnostic.completed],[dl.learners,diagnostic.learners],[dl.average,`${diagnostic.average_percentage}%`],[dl.focus,diagnostic.common_focus_topic||dcopy('noData')]].forEach(([label,value])=>{const card=document.createElement('article');const name=document.createElement('span');name.textContent=label;const detail=document.createElement('strong');detail.textContent=value;card.append(name,detail);diagnosticStats.appendChild(card)});diagnosticPanel.append(diagnosticTitle,diagnosticStats);
+  const week=data.weekly_summary;const weekly=document.createElement('section');weekly.className='teacher-weekly';const weeklyTitle=document.createElement('h4');weeklyTitle.textContent=dcopy('week');const weeklyStats=document.createElement('div');weeklyStats.className='teacher-weekly-stats';
+  const change=week.change_points===null?dcopy('noCompare'):week.change_points>0?`+${week.change_points}`:week.change_points<0?`-${Math.abs(week.change_points)}`:dcopy('noChange');
+  [[dcopy('sessions'),week.sessions],[dcopy('questions'),week.questions],[dcopy('score'),week.percentage===null?'—':`${week.percentage}%`],[dcopy('trend'),change],[dcopy('strongest'),week.strongest_topic||dcopy('noData')],[dcopy('attention'),week.weakest_topic||dcopy('noData')]].forEach(([label,value])=>{const card=document.createElement('article');const name=document.createElement('span');name.textContent=label;const detail=document.createElement('strong');detail.textContent=value;card.append(name,detail);weeklyStats.appendChild(card)});const weeklyAction=document.createElement('p');weeklyAction.textContent=teacherAction(data);weekly.append(weeklyTitle,weeklyStats,weeklyAction);
+  const trend=document.createElement('section');trend.className='teacher-trend';const trendTitle=document.createElement('h4');trendTitle.textContent=dcopy('sixWeek');const bars=document.createElement('div');bars.className='teacher-trend-bars';
+  data.weekly_trend.forEach(item=>{const column=document.createElement('div');const value=document.createElement('strong');value.textContent=item.percentage===null?'—':`${item.percentage}%`;const bar=document.createElement('i');bar.style.height=`${Math.max(item.percentage||0,4)}%`;bar.title=`${item.sessions} sessions · ${item.questions} questions`;const label=document.createElement('span');label.textContent=new Date(`${item.week_start}T00:00:00`).toLocaleDateString(undefined,{day:'numeric',month:'short'});column.append(value,bar,label);bars.appendChild(column)});trend.append(trendTitle,bars);
+  const note=document.createElement('p');note.className='teacher-privacy-note';note.textContent=`${data.class_level} aggregate only. No learner names or identifiers are displayed.`;
+  const topics=document.createElement('section');topics.className='topic-progress';const topicTitle=document.createElement('h4');topicTitle.textContent=dcopy('topicPerformance');topics.appendChild(topicTitle);data.topics.forEach(item=>{const row=document.createElement('article');row.textContent=`${item.topic}: ${item.percentage}% · ${item.questions} ${dcopy('questions').toLowerCase()}`;topics.appendChild(row)});teacherDashboardContent.append(stats,diagnosticPanel,weekly,insight,recommendation,trend,note,topics);
+}
+
+async function refreshTeacherDashboard(){
+  if(!teacherDashboardAccessKey)return;teacherDashboardContent.textContent=`Loading ${teacherClass.value} performance…`;learnerIdentity.textContent=`TEACHER DASHBOARD · ${teacherClass.value}`;
+  try{showTeacherDashboard(await fetchTeacherDashboard(teacherDashboardAccessKey))}catch(error){teacherDashboardContent.textContent=error.message}
+}
+
+function downloadTeacherDashboardReport(){
+  if(!currentTeacherDashboard)return;const data=currentTeacherDashboard;const week=data.weekly_summary;const diagnostic=data.diagnostic_summary;const rows=[['Robo-Teacher Privacy-Safe Class Report'],['Class',data.class_level],['Generated',new Date().toISOString()],[],['Diagnostic placement'],['Completed tests',diagnostic.completed],['Learners assessed',diagnostic.learners],['Average',`${diagnostic.average_percentage}%`],['Most common starting topic',diagnostic.common_focus_topic||'Not enough data'],[],['Learners',data.learners],['Sessions',data.sessions],['Questions',data.questions],['Average',`${data.average_percentage}%`],['Strongest topic',data.strongest_topic||'Not enough data'],['Weakest topic',data.weakest_topic||'Not enough data'],['Recommendation',data.recommendation],[],['This week'],['Week starting',week.week_start],['Sessions',week.sessions],['Questions',week.questions],['Score',week.percentage===null?'':`${week.percentage}%`],['Change in percentage points',week.change_points??''],['Strongest topic',week.strongest_topic||'Not enough data'],['Weakest topic',week.weakest_topic||'Not enough data'],['Teacher action',week.action],[],['Topic','Sessions','Questions','Percentage'],...data.topics.map(item=>[item.topic,item.sessions,item.questions,`${item.percentage}%`]),[],['Week starting','Sessions','Questions','Percentage'],...data.weekly_trend.map(item=>[item.week_start,item.sessions,item.questions,item.percentage===null?'':`${item.percentage}%`])];
+  const csv=rows.map(row=>row.map(value=>`"${String(value??'').replaceAll('"','""')}"`).join(',')).join('\r\n');const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));const link=document.createElement('a');link.href=url;link.download=`robo-teacher-${data.class_level.toLowerCase()}-class-report.csv`;link.click();URL.revokeObjectURL(url)
+}
+
+function qaStorage(){try{return JSON.parse(localStorage.getItem('roboTeacherQaChecklist')||'{}')}catch(_error){return {}}}
+function showQaChecklist(){teacherDashboard.classList.add('hidden');qaChecklist.classList.remove('hidden');renderQaChecklist()}
+function renderQaChecklist(){
+  const saved=qaStorage();qaChecklistItems.replaceChildren();let total=0,completed=0,passed=0,blockers=0;
+  Object.entries(qaChecks).forEach(([group,checks])=>{const section=document.createElement('section');section.className='qa-group';const heading=document.createElement('h4');heading.textContent=group;section.appendChild(heading);checks.forEach(check=>{total+=1;const key=`${group}:${check}`,record=saved[key]||{};if(record.status&&record.status!=='Not tested')completed+=1;if(record.status==='Pass')passed+=1;if(record.status==='Fail')blockers+=1;const row=document.createElement('div');row.className='qa-item';const label=document.createElement('label');label.textContent=check;const select=document.createElement('select');['Not tested','Pass','Fail','Needs improvement'].forEach(value=>{const option=document.createElement('option');option.value=value;option.textContent=value;select.appendChild(option)});select.value=record.status||'Not tested';const note=document.createElement('input');note.placeholder='Optional test note';note.value=record.note||'';const save=()=>{const latest=qaStorage();latest[key]={status:select.value,note:note.value.trim(),updated:new Date().toISOString()};localStorage.setItem('roboTeacherQaChecklist',JSON.stringify(latest));renderQaChecklist()};select.addEventListener('change',save);note.addEventListener('change',save);row.append(label,select,note);section.appendChild(row)});qaChecklistItems.appendChild(section)});
+  qaCompleted.textContent=`${completed}/${total}`;qaPassed.textContent=passed;qaBlockers.textContent=blockers;qaReleaseStatus.textContent=blockers?'Production release is blocked until every failed check is corrected.':completed===total?'All checks are complete with no release blockers. PR #9 can move to final approval.':'Complete every check before approving PR #9 for production.';
+}
+function downloadQaChecklistReport(){const saved=qaStorage();const rows=[['Robo-Teacher V2.5 Staging QA Report'],['Generated',new Date().toISOString()],[],['Test group','Check','Status','Note','Last updated']];Object.entries(qaChecks).forEach(([group,checks])=>checks.forEach(check=>{const record=saved[`${group}:${check}`]||{};rows.push([group,check,record.status||'Not tested',record.note||'',record.updated||''])}));const csv=rows.map(row=>row.map(value=>`"${String(value).replaceAll('"','""')}"`).join(',')).join('\r\n');const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));const link=document.createElement('a');link.href=url;link.download=`robo-teacher-v25-qa-${new Date().toISOString().slice(0,10)}.csv`;link.click();URL.revokeObjectURL(url)}
+
+function renderProgress(data){
+  progressLoading.classList.add('hidden');progressLoading.classList.remove('error');
+  if(!data.sessions&&!data.latest_diagnostic){progressEmpty.classList.remove('hidden');return}
+  progressEmpty.classList.add('hidden');
+  progressDashboard.classList.remove('hidden');progressSessions.textContent=data.sessions;progressQuestions.textContent=data.total_questions;
+  progressAverage.textContent=`${data.average_percentage}%`;progressStrongest.textContent=data.strongest_topic||'—';progressRecommendation.textContent=learnerRecommendation(data);document.querySelectorAll('[data-progress-label]').forEach(item=>{item.textContent=dcopy(item.dataset.progressLabel)});practiceRecommendation.textContent=dcopy('continue');
+  const week=data.weekly_summary;weeklySessions.textContent=`${week.sessions} ${dcopy('sessions').toLowerCase()}`;weeklyQuestions.textContent=`${week.questions} ${dcopy('questions').toLowerCase()}`;weeklyScore.textContent=`${week.percentage}%`;
+  weeklyImprovement.textContent=weeklyImprovementText(week);
+  weeklyStrongest.textContent=week.strongest_topic||'—';weeklyFocus.textContent=week.focus_topic||'—';weeklyNextAction.textContent=weeklyAction(week);
+  progressStorageNotice.classList.toggle('hidden',data.storage_synced);progressTopics.replaceChildren();recentSessions.replaceChildren();renderLearningPath(data.learning_path||[]);
+  data.topics.forEach(item=>{
+    const row=document.createElement('article');const label=document.createElement('div');const name=document.createElement('strong');const score=document.createElement('span');
+    name.textContent=item.topic;score.textContent=`${item.percentage}% · ${item.correct}/${item.attempted}`;label.append(name,score);
+    const track=document.createElement('div');track.className='progress-track';const fill=document.createElement('i');fill.style.width=`${item.percentage}%`;track.appendChild(fill);row.append(label,track);progressTopics.appendChild(row);
+  });
+  data.recent_sessions.forEach(item=>{
+    const row=document.createElement('article');const detail=document.createElement('div');const topic=document.createElement('strong');const meta=document.createElement('span');const score=document.createElement('b');
+    topic.textContent=item.topic;meta.textContent=`${item.difficulty} · ${formatProgressDate(item.timestamp)}`;score.textContent=`${item.percentage}%`;detail.append(topic,meta);row.append(detail,score);recentSessions.appendChild(row);
+  });
+}
+
+function formatProgressDate(value){
+  const date=new Date(value);return Number.isNaN(date.getTime())?'Completed':date.toLocaleDateString(undefined,{day:'numeric',month:'short'});
+}
+
+function closeProgress(){
+  progressArea.classList.add('hidden');if(canvasAnswer.textContent.trim())canvasWork.classList.remove('hidden');else canvasEmpty.classList.remove('hidden');
+}
+
+function openPracticeFromProgress(){resetPracticeSetup();openPractice()}
+
+function openRecommendedPractice(){
+  resetPracticeSetup();practiceClass.value=learnerClass.value;updatePracticeTopics();
+  if(currentProgress&&classTopics[learnerClass.value].includes(currentProgress.recommended_topic)){
+    const selectedTerm=currentProgress.recommended_term||Object.entries(practiceCurriculum[learnerClass.value]).find(([,topics])=>topics.includes(currentProgress.recommended_topic))?.[0];
+    if(selectedTerm){practiceTerm.value=selectedTerm;updatePracticeTopics();practiceTopic.value=currentProgress.recommended_topic}practiceDifficulty.value='Auto'
+  }
+  openPractice();
+}
+
+function openLearningPathTopic(term,topic){
+  resetPracticeSetup();practiceClass.value=learnerClass.value;practiceTerm.value=term;updatePracticeTopics();practiceTopic.value=topic;
+  practiceDifficulty.value='Auto';openPractice();
+}
+
+function renderLearningPath(terms){
+  learningPath.replaceChildren();const labels=pathCopy[language.value]||pathCopy.English;
+  terms.forEach(term=>{const section=document.createElement('section');const heading=document.createElement('h5');heading.textContent=term.term;const topics=document.createElement('div');topics.className='learning-path-topics';
+    term.topics.forEach(item=>{const card=document.createElement('article');card.className=`learning-path-topic ${item.status.replace('_','-')}`;const copy=document.createElement('div');const name=document.createElement('strong');name.textContent=item.topic;const detail=document.createElement('span');detail.textContent=item.percentage===null?labels[item.status]:`${labels[item.status]} · ${item.percentage}%`;copy.append(name,detail);const button=document.createElement('button');button.type='button';button.dataset.term=term.term;button.dataset.topic=item.topic;button.textContent=item.status==='recommended'?labels.continue:item.status==='not_started'?labels.start:labels.practise;button.setAttribute('aria-label',`${button.textContent.replace(' →','')} ${item.topic}`);card.append(copy,button);topics.appendChild(card)});
+    section.append(heading,topics);learningPath.appendChild(section)});
+}
+
+function clearWhiteboard(){
+  boardContext.save();boardContext.fillStyle='#ffffff';boardContext.fillRect(0,0,whiteboard.width,whiteboard.height);boardContext.restore();
+  boardHasInk=false;
+}
+
+function openWhiteboard(){
+  canvasEmpty.classList.add('hidden');canvasWork.classList.add('hidden');practiceArea.classList.add('hidden');progressArea.classList.add('hidden');whiteboardArea.classList.remove('hidden');
+  if(!whiteboard.dataset.ready){clearWhiteboard();whiteboard.dataset.ready='true'}
+}
+
+function closeWhiteboard(){
+  whiteboardArea.classList.add('hidden');
+  if(canvasAnswer.textContent.trim())canvasWork.classList.remove('hidden');else canvasEmpty.classList.remove('hidden');
+}
+
+function selectDrawingTool(tool){
+  drawingTool=tool;penTool.classList.toggle('active',tool==='pen');eraserTool.classList.toggle('active',tool==='eraser');
+}
+
+function boardPoint(event){
+  const rect=whiteboard.getBoundingClientRect();
+  return {x:(event.clientX-rect.left)*whiteboard.width/rect.width,y:(event.clientY-rect.top)*whiteboard.height/rect.height};
+}
+
+function startDrawing(event){
+  drawing=true;whiteboard.setPointerCapture(event.pointerId);const point=boardPoint(event);
+  boardContext.beginPath();boardContext.moveTo(point.x,point.y);event.preventDefault();
+}
+
+function drawOnWhiteboard(event){
+  if(!drawing)return;const point=boardPoint(event);
+  boardContext.lineCap='round';boardContext.lineJoin='round';
+  boardContext.strokeStyle=drawingTool==='eraser'?'#ffffff':'#10203a';
+  boardContext.lineWidth=drawingTool==='eraser'?34:6;
+  boardContext.lineTo(point.x,point.y);boardContext.stroke();event.preventDefault();
+  if(drawingTool==='pen')boardHasInk=true;
+}
+
+function stopDrawing(event){
+  if(!drawing)return;drawOnWhiteboard(event);drawing=false;boardContext.closePath();
+}
+
+async function submitWhiteboard(){
+  if(!boardHasInk){addMessage('Please write a Maths problem or show some working on the whiteboard first.','teacher');return;}
+  submitBoardButton.disabled=true;submitBoardButton.textContent='Preparing…';
+  const imageData=whiteboard.toDataURL('image/png');
+  problemPreview.src=imageData;canvasWork.classList.remove('text-only');problemPreview.hidden=false;
+  backToWhiteboard.classList.remove('hidden');whiteboardArea.classList.add('hidden');
+  canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');
+  canvasStatus.textContent='Robo-Teacher is reading your whiteboard…';canvasAnswer.textContent='';
+  const thinking=addMessage('I’m reading the Maths work on your whiteboard…','teacher');
+  try{
+    const token=await ensureSession();
+    const response=await fetch('/api/classroom/whiteboard',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({session_token:token,image_data:imageData,caption:question.value.trim(),language:language.value})});
+    const data=await response.json();
+    if(response.status===401){sessionToken=null;throw new Error('session');}
+    if(!response.ok)throw new Error(data.detail||'request');
+    showCanvasAnswer(data.reply,'Whiteboard solution ready');
+    thinking.textContent='I’ve placed the complete whiteboard explanation on the Teaching Canvas.';question.value='';
+  }catch(err){
+    const detail=err.message||'';
+    thinking.textContent=detail&&!['request','session','Failed to fetch'].includes(detail)?detail:'I could not send that whiteboard. Please return to it and try again.';
+    canvasStatus.textContent='Whiteboard needs attention';
+  }finally{submitBoardButton.disabled=false;submitBoardButton.textContent='Ask Teacher →';}
+}
+
+function setRecordingState(recording){
+  micButton.classList.toggle('recording',recording);navMicButton.classList.toggle('recording',recording);
+  micButton.textContent=recording?'■':'🎙';navMicButton.textContent=recording?'■ Stop':'🎙 Mic';
+  micButton.setAttribute('aria-label',recording?'Stop voice question':'Start voice question');
+}
+
+async function toggleRecording(){
+  if(mediaRecorder&&mediaRecorder.state==='recording'){mediaRecorder.stop();return;}
+  if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder){
+    addMessage('Voice recording is not supported in this browser. Please type your question instead.','teacher');return;
+  }
+  try{
+    // A learner starting a new question always interrupts the current answer.
+    stopTeacherAudio();
+    // Unlock audio during the learner's click so the later automatic spoken
+    // answer is not blocked after transcription and tutoring have completed.
+    await prepareTeacherAudio();
+    await ensureSession();
+    micStream=await navigator.mediaDevices.getUserMedia({audio:true});recordedChunks=[];
+    const preferred=['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus'];
+    const mimeType=preferred.find(type=>MediaRecorder.isTypeSupported(type));
+    mediaRecorder=mimeType?new MediaRecorder(micStream,{mimeType}):new MediaRecorder(micStream);
+    mediaRecorder.addEventListener('dataavailable',event=>{if(event.data.size)recordedChunks.push(event.data)});
+    mediaRecorder.addEventListener('stop',finishRecording,{once:true});
+    mediaRecorder.start();setRecordingState(true);
+    addMessage('Listening… Tap Stop when you finish your Maths question.','teacher');
+  }catch(_){
+    stopMicTracks();setRecordingState(false);
+    addMessage('I could not access the microphone. Please allow microphone access or type your question.','teacher');
+  }
+}
+
+function stopMicTracks(){if(micStream){micStream.getTracks().forEach(track=>track.stop());micStream=null}}
+
+async function finishRecording(){
+  setRecordingState(false);stopMicTracks();
+  const type=(mediaRecorder?.mimeType||recordedChunks[0]?.type||'audio/webm').split(';',1)[0];
+  const blob=new Blob(recordedChunks,{type});mediaRecorder=null;recordedChunks=[];
+  if(!blob.size){addMessage('I did not receive any audio. Please try recording again.','teacher');return;}
+  if(blob.size>12*1024*1024){addMessage('That recording is too large. Please keep it shorter and try again.','teacher');return;}
+  const thinking=addMessage('I’m listening carefully to your Maths question…','teacher');
+  micButton.disabled=true;navMicButton.disabled=true;
+  try{
+    const token=await ensureSession();const body=new FormData();body.append('session_token',token);body.append('language',language.value);
+    body.append('audio',blob,`maths-question.${type.includes('ogg')?'ogg':'webm'}`);
+    const response=await fetch('/api/classroom/audio',{method:'POST',headers:{'Accept':'application/json'},body});
+    const data=await response.json();
+    if(response.status===401){sessionToken=null;throw new Error('session');}
+    if(!response.ok)throw new Error(data.detail||'request');
+    canvasWork.classList.add('text-only');problemPreview.hidden=true;
+    backToWhiteboard.classList.add('hidden');
+    showCanvasAnswer(data.reply,'Voice question explained');
+    // Start reading as soon as the written voice answer reaches the canvas.
+    void speakText(data.reply);
+    thinking.textContent='I’ve placed the complete answer to your voice question on the Teaching Canvas.';
+  }catch(err){
+    const detail=err.message||'';
+    thinking.textContent=detail&&!['request','session','Failed to fetch'].includes(detail)?detail:'I could not process that recording. Please try again or type your question.';
+  }finally{micButton.disabled=false;navMicButton.disabled=false;}
+}
+
+async function handleImage(file,source='upload'){
+  if(!file)return;
+  if(!['image/jpeg','image/png','image/webp'].includes(file.type)){
+    addMessage('Please choose a JPEG, PNG, or WebP image.','teacher');return;
+  }
+  if(file.size>8*1024*1024){addMessage('Please choose an image no larger than 8 MB.','teacher');return;}
+  if(previewUrl)URL.revokeObjectURL(previewUrl);
+  previewUrl=URL.createObjectURL(file);problemPreview.src=previewUrl;
+  canvasWork.classList.remove('text-only');problemPreview.hidden=false;
+  backToWhiteboard.classList.toggle('hidden',source!=='whiteboard');
+  whiteboardArea.classList.add('hidden');
+  canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');
+  canvasStatus.textContent='Robo-Teacher is reading your image…';canvasAnswer.textContent='';
+  const thinking=addMessage('I’m reading the Maths problem in your image…','teacher');
+  uploadButton.disabled=true;cameraButton.disabled=true;
+  try{
+    const token=await ensureSession();
+    const body=new FormData();body.append('session_token',token);body.append('language',language.value);body.append('image',file);
+    const caption=question.value.trim();if(caption)body.append('caption',caption);
+    const response=await fetch('/api/classroom/image',{method:'POST',headers:{'Accept':'application/json'},body});
+    const data=await response.json();
+    if(response.status===401){sessionToken=null;throw new Error('session');}
+    if(!response.ok)throw new Error(data.detail||'request');
+    showCanvasAnswer(data.reply,'Teaching response ready');
+    thinking.textContent='I’ve placed the complete image explanation on the Teaching Canvas.';
+    question.value='';
+  }catch(err){
+    const message=err.message&&!['request','session','Failed to fetch'].includes(err.message)?err.message:'I could not read that image. Please try a clearer photo.';
+    thinking.textContent=message;canvasStatus.textContent='Image needs attention';
+  }finally{uploadButton.disabled=false;cameraButton.disabled=false;imageUpload.value='';cameraCapture.value='';}
+}
+
+form.addEventListener('submit',async(e)=>{
+  e.preventDefault();const text=question.value.trim();if(!text||sendButton.disabled)return;
+  addMessage(text,'student');question.value='';sendButton.disabled=true;sendButton.textContent='Thinking…';
+  const thinking=addMessage('Let me work through that with you…','teacher');
+  try{
+    const token=await ensureSession();
+    const response=await fetch('/api/classroom/chat',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({message:text,session_token:token,language:language.value})});
+    const data=await response.json();
+    if(response.status===401){sessionToken=null;throw new Error('session');}
+    if(!response.ok)throw new Error(data.detail||'request');
+    canvasWork.classList.add('text-only');problemPreview.hidden=true;
+    backToWhiteboard.classList.add('hidden');
+    showCanvasAnswer(data.reply,'Worked solution');
+    thinking.textContent='I’ve placed the complete worked solution on the Teaching Canvas.';
+  }catch(err){
+    thinking.textContent=err.message&&err.message.includes('wait')?err.message:'Sorry, I had a small technical hiccup. Please try your question again in a moment.';
+  }finally{sendButton.disabled=false;sendButton.textContent='Send';question.focus()}
+});

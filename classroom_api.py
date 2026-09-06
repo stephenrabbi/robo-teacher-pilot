@@ -1,0 +1,393 @@
+"""Browser API for the Robo-Teacher V2.5 classroom.
+
+The browser receives a short-lived signed pseudonymous session. No Gemini key or
+provider credential is ever exposed to JavaScript. The server reuses the same
+Robo-Teacher tutoring engine used by the messaging channels.
+"""
+import base64
+import binascii
+import hashlib
+import hmac
+import os
+import secrets
+import time
+from collections import defaultdict, deque
+from typing import Literal
+
+from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel, Field
+from curriculum import ALL_TOPICS, CLASS_TOPICS, CURRICULUM
+from diagnostic import answer_diagnostic, change_diagnostic_language, next_diagnostic, start_diagnostic
+from diagnostic_progress import save_diagnostic_result
+from practice import answer_practice, change_practice_language, next_question, start_practice
+from practice_progress import build_dashboard, build_teacher_dashboard, recommend_difficulty_for_topic, save_result
+
+from tutor import (
+    MAX_AUDIO_BYTES,
+    MAX_IMAGE_BYTES,
+    SUPPORTED_AUDIO_MIME_TYPES,
+    SUPPORTED_IMAGE_MIME_TYPES,
+    get_tutor_audio_reply,
+    get_tutor_image_reply,
+    get_tutor_reply,
+    stream_tutor_speech,
+)
+
+router = APIRouter(prefix="/api/classroom", tags=["classroom"])
+_SESSION_TTL_SECONDS = 60 * 60 * 4
+_RATE_WINDOW_SECONDS = 60
+_RATE_MAX_REQUESTS = 12
+_SESSION_KEY = os.getenv("CLASSROOM_SESSION_SECRET", "").encode() or secrets.token_bytes(32)
+_request_times: dict[str, deque] = defaultdict(deque)
+_classroom_profiles: dict[str, dict[str, str]] = {}
+SupportedLanguage = Literal["English", "Yoruba", "Igbo", "Hausa"]
+
+
+class ClassroomQuestion(BaseModel):
+    message: str = Field(min_length=1, max_length=1200)
+    session_token: str = Field(min_length=20, max_length=300)
+    language: SupportedLanguage = "English"
+
+
+class ClassroomSessionRequest(BaseModel):
+    learner_key: str | None = Field(default=None, min_length=32, max_length=64, pattern=r"^[a-f0-9]+$")
+    nickname: str = Field(default="Learner", min_length=2, max_length=30, pattern=r"^[^<>\r\n]+$")
+    class_level: Literal["JSS1", "JSS2", "JSS3"] = "JSS2"
+
+
+class ClassroomWhiteboard(BaseModel):
+    image_data: str = Field(min_length=30, max_length=MAX_IMAGE_BYTES * 2)
+    session_token: str = Field(min_length=20, max_length=300)
+    caption: str = Field(default="", max_length=500)
+    language: SupportedLanguage = "English"
+
+
+class ClassroomSpeech(BaseModel):
+    text: str = Field(min_length=1, max_length=6000)
+    session_token: str = Field(min_length=20, max_length=300)
+    language: SupportedLanguage = "English"
+    voice_gender: Literal["female", "male"] = "female"
+
+
+class PracticeStart(BaseModel):
+    session_token: str = Field(min_length=20, max_length=300)
+    topic: str = Field(min_length=2, max_length=80)
+    difficulty: Literal["Auto", "Easy", "Medium", "Challenge"] = "Auto"
+    question_count: Literal[5, 10, 20] = 5
+    class_level: Literal["JSS1", "JSS2", "JSS3"] = "JSS2"
+    language: SupportedLanguage = "English"
+
+
+class PracticeAnswer(BaseModel):
+    session_token: str = Field(min_length=20, max_length=300)
+    answer: str = Field(min_length=1, max_length=100)
+
+
+class PracticeNext(BaseModel):
+    session_token: str = Field(min_length=20, max_length=300)
+
+
+class PracticeLanguage(PracticeNext):
+    language: SupportedLanguage = "English"
+
+
+class DiagnosticStart(BaseModel):
+    session_token: str = Field(min_length=20, max_length=300)
+    class_level: Literal["JSS1", "JSS2", "JSS3"]
+    term: Literal["First Term", "Second Term", "Third Term"]
+    language: SupportedLanguage = "English"
+
+
+class PracticeProgress(PracticeNext):
+    class_level: Literal["JSS1", "JSS2", "JSS3"] = "JSS2"
+
+
+class TeacherDashboardRequest(BaseModel):
+    access_key: str = Field(min_length=16, max_length=200)
+    class_level: Literal["JSS1", "JSS2", "JSS3"] = "JSS2"
+
+
+def _sign(payload: str) -> str:
+    return hmac.new(_SESSION_KEY, payload.encode(), hashlib.sha256).hexdigest()
+
+
+def _new_session(learner_key: str | None = None) -> tuple[str, str]:
+    student_id = (
+        f"WEB-{hashlib.sha256(learner_key.encode()).hexdigest()[:16]}"
+        if learner_key else f"WEB-{secrets.token_hex(8)}"
+    )
+    issued = str(int(time.time()))
+    payload = f"{student_id}.{issued}"
+    return student_id, f"{payload}.{_sign(payload)}"
+
+
+def _verify_session(token: str) -> str:
+    try:
+        student_id, issued, signature = token.split(".", 2)
+        issued_int = int(issued)
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=401, detail="Invalid classroom session")
+    payload = f"{student_id}.{issued}"
+    if not hmac.compare_digest(signature, _sign(payload)):
+        raise HTTPException(status_code=401, detail="Invalid classroom session")
+    now = int(time.time())
+    if issued_int > now + 60 or now - issued_int > _SESSION_TTL_SECONDS:
+        raise HTTPException(status_code=401, detail="Classroom session expired")
+    if not student_id.startswith("WEB-"):
+        raise HTTPException(status_code=401, detail="Invalid classroom session")
+    return student_id
+
+
+def _enforce_rate_limit(student_id: str, scope: str = "tutor", max_requests: int = _RATE_MAX_REQUESTS) -> None:
+    now = time.time()
+    bucket = _request_times[f"{scope}:{student_id}"]
+    while bucket and now - bucket[0] > _RATE_WINDOW_SECONDS:
+        bucket.popleft()
+    if len(bucket) >= max_requests:
+        raise HTTPException(status_code=429, detail="Please wait a moment before asking another question")
+    bucket.append(now)
+
+
+@router.post("/session")
+def create_classroom_session(request: ClassroomSessionRequest | None = None):
+    student_id, token = _new_session(request.learner_key if request else None)
+    profile = {
+        "nickname": request.nickname if request else "Learner",
+        "class_level": request.class_level if request else "JSS2",
+    }
+    _classroom_profiles[student_id] = profile
+    return {
+        "session_token": token,
+        "learner_id": student_id,
+        **profile,
+        "expires_in": _SESSION_TTL_SECONDS,
+    }
+
+
+@router.get("/practice/options")
+def practice_options():
+    return {
+        "topics": list(ALL_TOPICS),
+        "topics_by_class": {level: list(topics) for level, topics in CLASS_TOPICS.items()},
+        "curriculum": {
+            level: {term: list(topics) for term, topics in terms.items()}
+            for level, terms in CURRICULUM.items()
+        },
+        "difficulties": ["Easy", "Medium", "Challenge"],
+    }
+
+
+@router.post("/practice/start")
+def classroom_practice_start(selection: PracticeStart):
+    student_id = _verify_session(selection.session_token)
+    _enforce_rate_limit(student_id, "practice", 120)
+    try:
+        difficulty = selection.difficulty
+        if difficulty == "Auto":
+            difficulty = recommend_difficulty_for_topic(student_id, selection.class_level, selection.topic)
+        result = start_practice(student_id, selection.topic, difficulty, selection.question_count, selection.class_level, selection.language)
+        result["difficulty_was_automatic"] = selection.difficulty == "Auto"
+        return result
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail="Choose a supported topic and difficulty") from exc
+
+
+@router.post("/practice/answer")
+def classroom_practice_answer(submission: PracticeAnswer, background_tasks: BackgroundTasks):
+    student_id = _verify_session(submission.session_token)
+    _enforce_rate_limit(student_id, "practice", 120)
+    try:
+        result = answer_practice(student_id, submission.answer)
+        if result["completed"]:
+            background_tasks.add_task(save_result, student_id, result["summary"])
+            result["progress_saving"] = True
+        return result
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail="Start a practice session first") from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=409, detail="Move to the next question before answering again") from exc
+
+
+@router.post("/practice/next")
+def classroom_practice_next(request: PracticeNext):
+    student_id = _verify_session(request.session_token)
+    _enforce_rate_limit(student_id, "practice", 120)
+    try:
+        return next_question(student_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail="Start a practice session first") from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=409, detail="Answer the current question first") from exc
+
+
+@router.post("/practice/language")
+def classroom_practice_language(request: PracticeLanguage):
+    student_id = _verify_session(request.session_token)
+    _enforce_rate_limit(student_id, "practice", 120)
+    try:
+        return change_practice_language(student_id, request.language)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail="Start a practice session first") from exc
+
+
+@router.post("/practice/progress")
+def classroom_practice_progress(request: PracticeProgress):
+    student_id = _verify_session(request.session_token)
+    _enforce_rate_limit(student_id, "practice-progress", 30)
+    return build_dashboard(student_id, request.class_level)
+
+
+@router.post("/diagnostic/start")
+def classroom_diagnostic_start(request: DiagnosticStart):
+    student_id = _verify_session(request.session_token);_enforce_rate_limit(student_id, "diagnostic", 120)
+    try: return start_diagnostic(student_id, request.class_level, request.term, request.language)
+    except (ValueError, RuntimeError) as exc: raise HTTPException(status_code=422, detail="Unable to prepare that diagnostic") from exc
+
+
+@router.post("/diagnostic/answer")
+def classroom_diagnostic_answer(request: PracticeAnswer, background_tasks: BackgroundTasks):
+    student_id = _verify_session(request.session_token);_enforce_rate_limit(student_id, "diagnostic", 120)
+    try:
+        result=answer_diagnostic(student_id, request.answer)
+        if result["completed"]: background_tasks.add_task(save_diagnostic_result,student_id,result["summary"]);result["diagnostic_saving"]=True
+        return result
+    except LookupError as exc: raise HTTPException(status_code=404, detail="Start a diagnostic first") from exc
+    except RuntimeError as exc: raise HTTPException(status_code=409, detail="Move to the next diagnostic question") from exc
+
+
+@router.post("/diagnostic/next")
+def classroom_diagnostic_next(request: PracticeNext):
+    student_id = _verify_session(request.session_token);_enforce_rate_limit(student_id, "diagnostic", 120)
+    try: return next_diagnostic(student_id)
+    except LookupError as exc: raise HTTPException(status_code=404, detail="Start a diagnostic first") from exc
+    except RuntimeError as exc: raise HTTPException(status_code=409, detail="Answer the current diagnostic question") from exc
+
+
+@router.post("/diagnostic/language")
+def classroom_diagnostic_language(request: PracticeLanguage):
+    student_id = _verify_session(request.session_token);_enforce_rate_limit(student_id, "diagnostic", 120)
+    try: return change_diagnostic_language(student_id, request.language)
+    except LookupError as exc: raise HTTPException(status_code=404, detail="Start a diagnostic first") from exc
+
+
+@router.post("/teacher/dashboard")
+def classroom_teacher_dashboard(request: TeacherDashboardRequest):
+    configured = os.getenv("TEACHER_DASHBOARD_KEY", "")
+    if len(configured) < 16:
+        raise HTTPException(status_code=503, detail="Teacher dashboard access is not configured")
+    if not hmac.compare_digest(request.access_key, configured):
+        raise HTTPException(status_code=403, detail="Incorrect teacher access key")
+    return build_teacher_dashboard(request.class_level)
+
+
+@router.post("/chat")
+def classroom_chat(question: ClassroomQuestion, request: Request):
+    student_id = _verify_session(question.session_token)
+    _enforce_rate_limit(student_id)
+    message = question.message.strip()
+    if not message:
+        raise HTTPException(status_code=422, detail="Question cannot be empty")
+    try:
+        class_level = _classroom_profiles.get(student_id, {}).get("class_level", "JSS2")
+        reply, latency = get_tutor_reply(student_id, message, question.language, class_level)
+    except Exception as exc:
+        # Never expose provider details, prompts, credentials, or stack traces to learners.
+        raise HTTPException(status_code=503, detail="Robo-Teacher is temporarily unavailable") from exc
+    return {"reply": reply, "latency_seconds": round(float(latency), 3), "learner_id": student_id}
+
+
+@router.post("/speech", response_class=StreamingResponse)
+def classroom_speech(speech: ClassroomSpeech):
+    student_id = _verify_session(speech.session_token)
+    # Reading an answer aloud is a playback request, not a second tutor
+    # question. Keep it out of the question bucket so repeated voice lessons
+    # do not disable both the answer and its automatic narration.
+    _enforce_rate_limit(student_id, "speech", 30)
+    audio_stream = stream_tutor_speech(speech.text.strip(), speech.language, speech.voice_gender)
+    return StreamingResponse(
+        audio_stream,
+        media_type="audio/l16;rate=24000;channels=1",
+        headers={"Cache-Control": "no-store", "X-Audio-Sample-Rate": "24000"},
+    )
+
+
+@router.post("/image")
+async def classroom_image(
+    session_token: str = Form(..., min_length=20, max_length=300),
+    image: UploadFile = File(...),
+    caption: str = Form("", max_length=500),
+    language: SupportedLanguage = Form("English"),
+):
+    student_id = _verify_session(session_token)
+    _enforce_rate_limit(student_id)
+    mime_type = (image.content_type or "").lower()
+    if mime_type not in SUPPORTED_IMAGE_MIME_TYPES:
+        raise HTTPException(status_code=415, detail="Please upload a JPEG, PNG, or WebP image")
+    image_bytes = await image.read(MAX_IMAGE_BYTES + 1)
+    if not image_bytes:
+        raise HTTPException(status_code=422, detail="The image is empty")
+    if len(image_bytes) > MAX_IMAGE_BYTES:
+        raise HTTPException(status_code=413, detail="The image must be 8 MB or smaller")
+    try:
+        class_level = _classroom_profiles.get(student_id, {}).get("class_level", "JSS2")
+        reply, latency = get_tutor_image_reply(student_id, image_bytes, mime_type, caption.strip(), language, class_level)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail="The image could not be processed") from exc
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Robo-Teacher is temporarily unavailable") from exc
+    return {"reply": reply, "latency_seconds": round(float(latency), 3), "learner_id": student_id}
+
+
+@router.post("/whiteboard")
+def classroom_whiteboard(board: ClassroomWhiteboard):
+    """Accept a browser canvas without relying on multipart File construction."""
+    student_id = _verify_session(board.session_token)
+    _enforce_rate_limit(student_id)
+    prefix = "data:image/png;base64,"
+    if not board.image_data.startswith(prefix):
+        raise HTTPException(status_code=415, detail="The whiteboard must be a PNG image")
+    try:
+        image_bytes = base64.b64decode(board.image_data[len(prefix):], validate=True)
+    except (binascii.Error, ValueError) as exc:
+        raise HTTPException(status_code=422, detail="The whiteboard image is invalid") from exc
+    if not image_bytes:
+        raise HTTPException(status_code=422, detail="The whiteboard image is empty")
+    if len(image_bytes) > MAX_IMAGE_BYTES:
+        raise HTTPException(status_code=413, detail="The whiteboard image must be 8 MB or smaller")
+    try:
+        reply, latency = get_tutor_image_reply(
+            student_id, image_bytes, "image/png", board.caption.strip(), board.language,
+            _classroom_profiles.get(student_id, {}).get("class_level", "JSS2"),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail="The whiteboard could not be processed") from exc
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Robo-Teacher is temporarily unavailable") from exc
+    return {"reply": reply, "latency_seconds": round(float(latency), 3), "learner_id": student_id}
+
+
+@router.post("/audio")
+async def classroom_audio(
+    session_token: str = Form(..., min_length=20, max_length=300),
+    audio: UploadFile = File(...),
+    language: SupportedLanguage = Form("English"),
+):
+    student_id = _verify_session(session_token)
+    _enforce_rate_limit(student_id)
+    mime_type = (audio.content_type or "").split(";", 1)[0].lower()
+    if mime_type not in SUPPORTED_AUDIO_MIME_TYPES:
+        raise HTTPException(status_code=415, detail="Please record or upload a supported audio file")
+    audio_bytes = await audio.read(MAX_AUDIO_BYTES + 1)
+    if not audio_bytes:
+        raise HTTPException(status_code=422, detail="The recording is empty")
+    if len(audio_bytes) > MAX_AUDIO_BYTES:
+        raise HTTPException(status_code=413, detail="The recording must be 12 MB or smaller")
+    try:
+        class_level = _classroom_profiles.get(student_id, {}).get("class_level", "JSS2")
+        reply, latency = get_tutor_audio_reply(student_id, audio_bytes, mime_type, language, class_level)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail="The recording could not be processed") from exc
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Robo-Teacher is temporarily unavailable") from exc
+    return {"reply": reply, "latency_seconds": round(float(latency), 3), "learner_id": student_id}

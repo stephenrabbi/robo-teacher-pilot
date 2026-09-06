@@ -1,0 +1,491 @@
+"""Durable, pseudonymous Practice Mode progress stored in Google Sheets."""
+
+import datetime
+import json
+import os
+import threading
+
+import gspread
+from curriculum import CLASS_TOPICS, TOPIC_TERM
+from diagnostic_progress import diagnostic_class_summary, latest_diagnostic
+
+
+_LEGACY_TOPICS = {
+    "JSS1": {
+        "Factors, Multiples & Roots": "Factors, Multiples, LCM & HCF",
+        "Algebra": "Introductory Algebra",
+        "Geometry & Mensuration": "Plane Shapes & Mensuration",
+        "Statistics & Probability": "Mean, Median & Mode",
+    },
+    "JSS2": {
+        "Whole Numbers": "Standard Form",
+        "Fractions": "Fractions, Ratios, Decimals & Percentages",
+        "Algebra": "Simple Equations",
+        "Ratio & Percentage": "Fractions, Ratios, Decimals & Percentages",
+        "Factors, Multiples & Roots": "Prime Factors, Squares & Roots",
+        "Decimals & Approximation": "Approximation",
+        "Inequalities & Graphs": "Linear Inequalities",
+        "Geometry & Mensuration": "Pythagoras & Mensuration",
+        "Statistics & Probability": "Statistics & Data Presentation",
+    },
+    "JSS3": {
+        "Whole Numbers": "Number Bases",
+        "Directed Numbers": "Rational & Irrational Numbers",
+        "Algebra": "Factorisation & Quadratic Expressions",
+        "Ratio & Percentage": "Ratio, Proportion & Variation",
+        "Inequalities & Graphs": "Equations Involving Fractions",
+        "Geometry & Mensuration": "Geometry & Construction",
+        "Statistics & Probability": "Statistics & Averages",
+    },
+}
+
+
+def _normalise_curriculum_records(records: list[dict], class_level: str) -> list[dict]:
+    """Map saved V2.5 topic labels to the audited curriculum without rewriting Sheets."""
+    normalised = []
+    for item in records:
+        copy = item.copy()
+        copy["topic"] = _LEGACY_TOPICS[class_level].get(copy["topic"], copy["topic"])
+        normalised.append(copy)
+    return normalised
+
+
+_HEADER = [
+    "Timestamp (UTC)", "Session ID", "Learner ID", "Topic", "Difficulty",
+    "Score", "Questions", "Percentage", "Class Level",
+]
+_client = None
+_worksheet = None
+_memory_records: list[dict] = []
+_unsynced_ids: set[str] = set()
+_lock = threading.Lock()
+
+
+def _sheet_configured() -> bool:
+    return bool(os.getenv("GOOGLE_SHEET_ID") and os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON"))
+
+
+def _get_worksheet():
+    global _client, _worksheet
+    if _worksheet is None:
+        if _client is None:
+            credentials = json.loads(os.environ["GOOGLE_SERVICE_ACCOUNT_JSON"])
+            _client = gspread.service_account_from_dict(credentials)
+        spreadsheet = _client.open_by_key(os.environ["GOOGLE_SHEET_ID"])
+        try:
+            _worksheet = spreadsheet.worksheet("Practice Progress")
+            headings = _worksheet.row_values(1)
+            if "Class Level" not in headings:
+                current_columns = getattr(_worksheet, "col_count", len(headings))
+                if current_columns < len(_HEADER):
+                    _worksheet.add_cols(len(_HEADER) - current_columns)
+                _worksheet.update_cell(1, len(_HEADER), "Class Level")
+        except gspread.WorksheetNotFound:
+            _worksheet = spreadsheet.add_worksheet(
+                title="Practice Progress", rows=2000, cols=len(_HEADER)
+            )
+            _worksheet.append_row(_HEADER)
+    return _worksheet
+
+
+def save_result(learner_id: str, summary: dict) -> bool:
+    """Save one completed session. Returns False if durable storage is unavailable."""
+    record = {
+        "timestamp": datetime.datetime.now(datetime.UTC).isoformat(timespec="seconds"),
+        "session_id": summary["session_id"],
+        "learner_id": learner_id,
+        "topic": summary["topic"],
+        "difficulty": summary["difficulty"],
+        "score": int(summary["score"]),
+        "attempted": int(summary["attempted"]),
+        "percentage": int(summary["percentage"]),
+        "class_level": summary.get("class_level", "JSS2"),
+    }
+    with _lock:
+        if not any(item["session_id"] == record["session_id"] for item in _memory_records):
+            _memory_records.append(record)
+    if not _sheet_configured():
+        _unsynced_ids.add(record["session_id"])
+        return False
+    try:
+        _get_worksheet().append_row([
+            record["timestamp"], record["session_id"], learner_id, record["topic"],
+            record["difficulty"], record["score"], record["attempted"], record["percentage"],
+            record["class_level"],
+        ])
+        _unsynced_ids.discard(record["session_id"])
+        return True
+    except Exception as exc:
+        _unsynced_ids.add(record["session_id"])
+        print(f"[practice_progress] WARNING: failed to save progress: {type(exc).__name__}")
+        return False
+
+
+def _sheet_records(learner_id: str) -> list[dict]:
+    rows = _get_worksheet().get_all_records()
+    records = []
+    for row in rows:
+        if str(row.get("Learner ID", "")) != learner_id:
+            continue
+        try:
+            records.append({
+                "timestamp": str(row.get("Timestamp (UTC)", "")),
+                "session_id": str(row.get("Session ID", "")),
+                "learner_id": learner_id,
+                "topic": str(row["Topic"]),
+                "difficulty": str(row["Difficulty"]),
+                "score": int(row["Score"]),
+                "attempted": int(row["Questions"]),
+                "percentage": int(row["Percentage"]),
+                "class_level": str(row.get("Class Level", "JSS2") or "JSS2"),
+            })
+        except (KeyError, TypeError, ValueError):
+            continue
+    return records
+
+
+def get_records(learner_id: str) -> tuple[list[dict], bool]:
+    """Return learner-owned records and whether durable storage was reached."""
+    if _sheet_configured():
+        try:
+            sheet_items = _sheet_records(learner_id)
+            known_ids = {item["session_id"] for item in sheet_items}
+            with _lock:
+                pending = [
+                    item.copy() for item in _memory_records
+                    if item["learner_id"] == learner_id and item["session_id"] not in known_ids
+                ]
+            learner_unsynced = any(item["session_id"] in _unsynced_ids for item in pending)
+            return sheet_items + pending, not learner_unsynced
+        except Exception as exc:
+            print(f"[practice_progress] WARNING: failed to load progress: {type(exc).__name__}")
+    with _lock:
+        return [item.copy() for item in _memory_records if item["learner_id"] == learner_id], False
+
+
+def get_all_records() -> tuple[list[dict], bool]:
+    """Load aggregate source data without returning identities to the caller."""
+    if _sheet_configured():
+        try:
+            rows = _get_worksheet().get_all_records()
+            combined = []
+            for row in rows:
+                try:
+                    combined.append({
+                        "timestamp": str(row.get("Timestamp (UTC)", "")),
+                        "session_id": str(row.get("Session ID", "")),
+                        "learner_id": str(row.get("Learner ID", "")),
+                        "topic": str(row["Topic"]), "difficulty": str(row["Difficulty"]),
+                        "score": int(row["Score"]), "attempted": int(row["Questions"]),
+                        "percentage": int(row["Percentage"]),
+                        "class_level": str(row.get("Class Level", "JSS2") or "JSS2"),
+                    })
+                except (KeyError, TypeError, ValueError):
+                    continue
+            known = {item["session_id"] for item in combined}
+            combined.extend(item.copy() for item in _memory_records if item["session_id"] not in known)
+            return combined, True
+        except Exception as exc:
+            print(f"[practice_progress] WARNING: failed to load aggregate progress: {type(exc).__name__}")
+    with _lock:
+        return [item.copy() for item in _memory_records], False
+
+
+def build_teacher_dashboard(class_level: str = "JSS2") -> dict:
+    records, synced = get_all_records()
+    class_level = class_level if class_level in CLASS_TOPICS else "JSS2"
+    records = _normalise_curriculum_records(
+        [item for item in records if item.get("class_level", "JSS2") == class_level],
+        class_level,
+    )
+    learners = {item["learner_id"] for item in records}
+    attempted = sum(item["attempted"] for item in records)
+    correct = sum(item["score"] for item in records)
+    topics = []
+    for topic in CLASS_TOPICS[class_level]:
+        items = [item for item in records if item["topic"] == topic]
+        questions = sum(item["attempted"] for item in items)
+        if questions:
+            topics.append({"topic": topic, "sessions": len(items), "questions": questions, "percentage": round(sum(item["score"] for item in items) / questions * 100)})
+    topics.sort(key=lambda item: (item["percentage"], item["topic"]))
+    strongest = max(topics, key=lambda item: (item["percentage"], item["questions"])) if topics else None
+    weakest = min(topics, key=lambda item: (item["percentage"], -item["questions"])) if topics else None
+    weekly = _teacher_weekly_trend(records)
+    weekly_summary = _teacher_weekly_summary(records, weekly)
+    recommendation = _teacher_recommendation(weakest, attempted)
+    return {
+        "class_level": class_level, "learners": len(learners), "sessions": len(records),
+        "questions": attempted, "average_percentage": round(correct / attempted * 100) if attempted else 0,
+        "focus_topic": weakest["topic"] if weakest else None,
+        "strongest_topic": strongest["topic"] if strongest else None,
+        "weakest_topic": weakest["topic"] if weakest else None,
+        "recommendation": recommendation, "weekly_trend": weekly, "weekly_summary": weekly_summary, "topics": topics,
+        "storage_synced": synced, "diagnostic_summary": diagnostic_class_summary(class_level),
+    }
+
+
+def _teacher_recommendation(weakest: dict | None, attempted: int) -> str:
+    if not attempted:
+        return "Ask learners to complete a Practice Mode session before planning topic intervention."
+    if weakest is None:
+        return "Review the recorded topic results and assign another class-appropriate practice session."
+    if weakest["percentage"] < 50:
+        return f"Reteach {weakest['topic']} with worked examples, then assign an Easy practice session."
+    if weakest["percentage"] < 80:
+        return f"Review {weakest['topic']} in a small group and assign another practice session."
+    return f"The class is performing strongly. Extend {weakest['topic']} with Challenge questions."
+
+
+def _teacher_weekly_trend(records: list[dict], weeks: int = 6) -> list[dict]:
+    now = datetime.datetime.now(datetime.UTC)
+    this_week = (now - datetime.timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+    buckets = []
+    for offset in range(weeks - 1, -1, -1):
+        start = this_week - datetime.timedelta(weeks=offset)
+        end = start + datetime.timedelta(days=7)
+        items = []
+        for item in records:
+            try: stamp = datetime.datetime.fromisoformat(item["timestamp"].replace("Z", "+00:00"))
+            except (ValueError, TypeError): continue
+            if start <= stamp < end: items.append(item)
+        questions = sum(item["attempted"] for item in items)
+        correct = sum(item["score"] for item in items)
+        buckets.append({"week_start": start.date().isoformat(), "sessions": len(items), "questions": questions, "percentage": round(correct / questions * 100) if questions else None})
+    return buckets
+
+
+def _teacher_weekly_summary(records: list[dict], trend: list[dict]) -> dict:
+    current = trend[-1]
+    current_start = datetime.datetime.fromisoformat(current["week_start"]).replace(tzinfo=datetime.UTC)
+    current_end = current_start + datetime.timedelta(days=7)
+    current_records = []
+    for item in records:
+        try:
+            stamp = datetime.datetime.fromisoformat(item["timestamp"].replace("Z", "+00:00"))
+        except (ValueError, TypeError):
+            continue
+        if current_start <= stamp < current_end:
+            current_records.append(item)
+    topic_results = []
+    for topic in sorted({item["topic"] for item in current_records}):
+        items = [item for item in current_records if item["topic"] == topic]
+        questions = sum(item["attempted"] for item in items)
+        topic_results.append({
+            "topic": topic, "questions": questions,
+            "percentage": round(sum(item["score"] for item in items) / questions * 100) if questions else 0,
+        })
+    strongest = max(topic_results, key=lambda item: (item["percentage"], item["questions"])) if topic_results else None
+    weakest = min(topic_results, key=lambda item: (item["percentage"], -item["questions"])) if topic_results else None
+    previous = trend[-2] if len(trend) > 1 and trend[-2]["percentage"] is not None else None
+    change = current["percentage"] - previous["percentage"] if current["percentage"] is not None and previous else None
+    if current["percentage"] is None:
+        action = "No Practice sessions are recorded this week. Assign one class-appropriate session."
+    elif weakest and weakest["percentage"] < 50:
+        action = f"Reteach {weakest['topic']} with worked examples, then assign an Easy session."
+    elif weakest and weakest["percentage"] < 80:
+        action = f"Review {weakest['topic']} in a small group and assign another session."
+    else:
+        action = f"This week's results are strong. Extend {weakest['topic']} with Challenge questions."
+    return {
+        **current,
+        "change_points": change,
+        "strongest_topic": strongest["topic"] if strongest else None,
+        "weakest_topic": weakest["topic"] if weakest else None,
+        "action": action,
+    }
+
+
+def build_dashboard(learner_id: str, class_level: str = "JSS2") -> dict:
+    records, synced = get_records(learner_id)
+    class_level = class_level if class_level in CLASS_TOPICS else "JSS2"
+    records = _normalise_curriculum_records(
+        [item for item in records if item.get("class_level", "JSS2") == class_level],
+        class_level,
+    )
+    records.sort(key=lambda item: item["timestamp"], reverse=True)
+    total_questions = sum(item["attempted"] for item in records)
+    total_correct = sum(item["score"] for item in records)
+    average = round(total_correct / total_questions * 100) if total_questions else 0
+
+    topic_rows = []
+    for topic in sorted({item["topic"] for item in records}):
+        topic_records = [item for item in records if item["topic"] == topic]
+        attempted = sum(item["attempted"] for item in topic_records)
+        correct = sum(item["score"] for item in topic_records)
+        topic_rows.append({
+            "topic": topic,
+            "sessions": len(topic_records),
+            "correct": correct,
+            "attempted": attempted,
+            "percentage": round(correct / attempted * 100) if attempted else 0,
+        })
+    topic_rows.sort(key=lambda item: (-item["percentage"], item["topic"]))
+
+    diagnostic = latest_diagnostic(learner_id, class_level)
+    strongest = topic_rows[0] if topic_rows else None
+    weakest = min(topic_rows, key=lambda item: (item["percentage"], item["topic"])) if topic_rows else None
+    recommended_topic, recommendation_reason = _recommended_topic(class_level, records, topic_rows, weakest)
+    recommended_difficulty = _recommended_difficulty(records, recommended_topic)
+    if not records and diagnostic and diagnostic["recommended_topic"] in CLASS_TOPICS[class_level]:
+        recommended_topic=diagnostic["recommended_topic"];recommended_difficulty=diagnostic["recommended_difficulty"];recommendation_reason="diagnostic"
+    recommended_term = TOPIC_TERM[class_level][recommended_topic]
+    recommendation = _recommendation(
+        records, recommended_topic, recommended_term, recommended_difficulty,
+        recommendation_reason,
+    )
+    scores_by_topic = {row["topic"]: row for row in topic_rows}
+    learning_path = []
+    for term in ("First Term", "Second Term", "Third Term"):
+        path_topics = []
+        for topic in (item for item in CLASS_TOPICS[class_level] if TOPIC_TERM[class_level][item] == term):
+            result = scores_by_topic.get(topic)
+            status = "not_started"
+            if result:
+                status = "mastered" if result["percentage"] >= 80 else "needs_practice"
+            if topic == recommended_topic:
+                status = "recommended"
+            path_topics.append({
+                "topic": topic, "status": status,
+                "percentage": result["percentage"] if result else None,
+                "sessions": result["sessions"] if result else 0,
+            })
+        learning_path.append({"term": term, "topics": path_topics})
+    weekly = _weekly_summary(records)
+    return {
+        "class_level": class_level,
+        "sessions": len(records),
+        "total_questions": total_questions,
+        "total_correct": total_correct,
+        "average_percentage": average,
+        "strongest_topic": strongest["topic"] if strongest else None,
+        "focus_topic": weakest["topic"] if weakest else None,
+        "topics": topic_rows,
+        "recent_sessions": records[:5],
+        "recommendation": recommendation,
+        "recommended_topic": recommended_topic,
+        "recommended_term": recommended_term,
+        "recommended_difficulty": recommended_difficulty,
+        "recommendation_reason": recommendation_reason,
+        "learning_path": learning_path,
+        "weekly_summary": weekly,
+        "storage_synced": synced,
+        "latest_diagnostic": diagnostic,
+    }
+
+
+def recommend_difficulty_for_topic(learner_id: str, class_level: str, topic: str) -> str:
+    """Choose a stable next level from this learner's topic-specific history."""
+    class_level = class_level if class_level in CLASS_TOPICS else "JSS2"
+    records, _synced = get_records(learner_id)
+    records = _normalise_curriculum_records(
+        [item for item in records if item.get("class_level", "JSS2") == class_level],
+        class_level,
+    )
+    records.sort(key=lambda item: item["timestamp"], reverse=True)
+    return _recommended_difficulty(records, topic)
+
+
+def _recommended_topic(class_level: str, records: list[dict], topic_rows: list[dict], weakest: dict | None) -> tuple[str, str]:
+    topics = CLASS_TOPICS[class_level]
+    if not records:
+        return topics[0], "start"
+    if weakest and weakest["percentage"] < 80:
+        return weakest["topic"], "strengthen"
+    latest_topic = records[0]["topic"]
+    latest_results = [item for item in records if item["topic"] == latest_topic][:2]
+    if (
+        latest_topic in topics
+        and len(latest_results) == 2
+        and all(item["percentage"] >= 80 for item in latest_results)
+        and latest_results[0]["difficulty"] != "Challenge"
+    ):
+        return latest_topic, "extend"
+    attempted_topics = {row["topic"] for row in topic_rows}
+    start = topics.index(latest_topic) + 1 if latest_topic in topics else 0
+    ordered = topics[start:] + topics[:start]
+    next_topic = next((topic for topic in ordered if topic not in attempted_topics), None)
+    if next_topic:
+        return next_topic, "next"
+    return latest_topic if latest_topic in topics else topics[0], "extend"
+
+
+def _recommendation(records: list[dict], topic: str, term: str, difficulty: str, reason: str) -> str:
+    if not records:
+        if reason == "diagnostic":
+            return f"Your diagnostic recommends {topic} from {term} at {difficulty} level."
+        return f"Start with {topic} from {term} at {difficulty} level."
+    if reason == "strengthen":
+        return f"Strengthen {topic} from {term} at {difficulty} level and review each worked explanation."
+    if reason == "next":
+        return f"You have done well so far. Continue with {topic} from {term} at {difficulty} level."
+    return f"Keep extending {topic} from {term} at {difficulty} level."
+
+
+def _recommended_difficulty(records: list[dict], topic: str) -> str:
+    matching = [item for item in records if item["topic"] == topic]
+    if not matching:
+        return "Easy"
+    current = matching[0]["difficulty"]
+    levels = ["Easy", "Medium", "Challenge"]
+    # Require two results at the learner's current level. A strong Easy result
+    # followed by one strong Medium result must not jump straight to Challenge.
+    recent = [item for item in matching if item["difficulty"] == current][:2]
+    if len(recent) >= 2 and all(item["percentage"] >= 80 for item in recent):
+        return levels[min(levels.index(current) + 1, 2)]
+    if len(recent) >= 2 and all(item["percentage"] < 50 for item in recent):
+        return levels[max(levels.index(current) - 1, 0)]
+    return current
+
+
+def _weekly_summary(records: list[dict]) -> dict:
+    now = datetime.datetime.now(datetime.UTC)
+    current_start = now - datetime.timedelta(days=7)
+    previous_start = now - datetime.timedelta(days=14)
+
+    def parsed(item):
+        try: return datetime.datetime.fromisoformat(item["timestamp"].replace("Z", "+00:00"))
+        except (ValueError, TypeError): return None
+
+    current = [item for item in records if parsed(item) and parsed(item) >= current_start]
+    previous = [item for item in records if parsed(item) and previous_start <= parsed(item) < current_start]
+    attempted = sum(item["attempted"] for item in current)
+    correct = sum(item["score"] for item in current)
+    score = round(correct / attempted * 100) if attempted else 0
+    old_attempted = sum(item["attempted"] for item in previous)
+    old_score = round(sum(item["score"] for item in previous) / old_attempted * 100) if old_attempted else None
+    improvement = score - old_score if old_score is not None and attempted else None
+    topic_results = []
+    for topic in sorted({item["topic"] for item in current}):
+        items = [item for item in current if item["topic"] == topic]
+        questions = sum(item["attempted"] for item in items)
+        topic_results.append({
+            "topic": topic,
+            "questions": questions,
+            "percentage": round(sum(item["score"] for item in items) / questions * 100) if questions else 0,
+        })
+    strongest = max(topic_results, key=lambda item: (item["percentage"], item["questions"])) if topic_results else None
+    focus = min(topic_results, key=lambda item: (item["percentage"], -item["questions"])) if topic_results else None
+    if not focus:
+        next_action = "Complete a Practice session to receive a weekly recommendation."
+    elif focus["percentage"] < 50:
+        next_action = f"Review worked examples for {focus['topic']}, then practise it at an easier level."
+    elif focus["percentage"] < 80:
+        next_action = f"Practise {focus['topic']} again and review every missed question."
+    else:
+        next_action = f"Strong week. Try the next level in {focus['topic']}."
+    return {
+        "sessions": len(current), "questions": attempted, "percentage": score,
+        "improvement_points": improvement,
+        "strongest_topic": strongest["topic"] if strongest else None,
+        "focus_topic": focus["topic"] if focus else None,
+        "next_action": next_action,
+    }
+
+
+def _reset_for_tests() -> None:
+    global _worksheet, _client
+    with _lock:
+        _memory_records.clear()
+        _unsynced_ids.clear()
+    _worksheet = None
+    _client = None

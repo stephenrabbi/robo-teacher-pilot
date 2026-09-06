@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Robo-Teacher Classroom</title>
+  <link rel="stylesheet" href="/classroom/styles.css?v=20260905-practiceclass1" />
+</head>
+<body>
+  <main class="app-shell">
+    <header class="brandbar">
+      <div class="brandmark" aria-label="Robo-Teacher logo">
+        <img class="brand-logo" src="/classroom/assets/robo-teacher-logo.png" alt="Robo-Teacher — AI-Powered Learning for Everyone" />
+        <div><strong>ROBO-TEACHER</strong><small>AI-POWERED LEARNING FOR EVERYONE</small></div>
+      </div>
+      <span class="version">V2.5.2 Practice Mode</span>
+    </header>
+
+    <section id="welcome" class="screen welcome-screen">
+      <div class="founder-panel">
+        <img class="founder-avatar" src="/classroom/assets/herbert-stephen-founder.jpg" alt="Herbert Stephen, founder of Robo-Teacher" />
+        <span class="status">● Online & Ready</span>
+      </div>
+      <div class="welcome-copy">
+        <p class="eyebrow">WELCOME TO YOUR AI CLASSROOM</p>
+        <h1>Welcome to <span>Robo-Teacher</span></h1>
+        <div class="speech-card">
+          <h2>Hello there! 👋</h2>
+          <p>I’m Stephen, the founder of Robo-Teacher. I’ll help you get started, then introduce you to your AI teacher.</p>
+          <p>Ask questions, show your work, speak naturally and learn step by step.</p>
+          <div class="learner-onboarding">
+            <label for="learnerNickname">What should your teacher call you?</label>
+            <input id="learnerNickname" maxlength="30" autocomplete="nickname" placeholder="Nickname, for example Tobi" />
+            <label for="learnerClass">Choose your class</label>
+            <select id="learnerClass">
+              <option value="JSS1">JSS1</option>
+              <option value="JSS2" selected>JSS2</option>
+              <option value="JSS3">JSS3</option>
+            </select>
+            <p id="onboardingError" class="onboarding-error hidden" role="alert"></p>
+          </div>
+        </div>
+        <button id="startLearning" class="primary">Start Learning Now →</button>
+        <button id="showTeacherLogin" class="teacher-entry" type="button">📊 Open Teacher Dashboard</button>
+        <div id="teacherLogin" class="teacher-login hidden">
+          <label for="teacherAccessKey">Private teacher access key</label>
+          <div><input id="teacherAccessKey" type="password" autocomplete="current-password" placeholder="Enter private key" /><button id="openTeacherDashboard" type="button">Open Dashboard →</button></div>
+          <p id="teacherLoginError" class="onboarding-error hidden" role="alert"></p>
+        </div>
+        <p class="privacy-note">Your learning experience is designed with privacy and safety in mind.</p>
+      </div>
+    </section>
+
+    <section id="classroom" class="screen classroom-screen hidden">
+      <aside id="teacherPanel" class="teacher-panel" data-voice-gender="female">
+        <div class="teacher-toolbar">
+          <strong>Your AI Teacher</strong>
+          <div class="teacher-actions">
+            <button id="readAnswer" class="icon-button read-answer" type="button" aria-label="Read the current answer aloud" disabled>🔊 <span>Read answer</span></button>
+            <button id="toggleTeacher" class="icon-button" type="button" aria-label="Minimize teacher" aria-expanded="true">↙</button>
+          </div>
+        </div>
+        <div class="teacher-portrait">
+          <img class="teacher-avatar" src="/classroom/assets/ai-maths-teacher.jpg" alt="Robo-Teacher AI Mathematics teacher" />
+          <span id="teacherVoiceStatus" class="teacher-voice-status" aria-live="polite">Ready</span>
+        </div>
+        <div class="teacher-caption">Ready to guide you step by step. Voice questions receive spoken answers.</div>
+      </aside>
+
+      <section class="learning-area">
+        <div class="lesson-header">
+          <div><p id="learnerIdentity" class="eyebrow">ROBO-TEACHER CLASSROOM</p><h2>What would you like to learn today?</h2></div>
+          <div class="lesson-actions"><select id="language" aria-label="Teaching language"><option value="English">English</option><option value="Yoruba">Yorùbá</option><option value="Igbo">Igbo</option><option value="Hausa">Hausa</option></select><button id="changeLearner" type="button">Change learner</button></div>
+        </div>
+        <div id="canvas" class="teaching-canvas">
+          <div id="canvasEmpty" class="canvas-empty"><strong>Teaching Canvas</strong><p>Upload or photograph a Maths problem. Your image and Robo-Teacher’s guidance will appear here.</p></div>
+          <div id="canvasWork" class="canvas-work hidden">
+            <img id="problemPreview" alt="Learner's Maths problem" />
+            <div><div class="canvas-result-toolbar"><span id="canvasStatus" class="canvas-status">Image ready</span><button id="backToWhiteboard" type="button" class="back-to-board hidden">← Back to Whiteboard</button></div><div id="canvasAnswer" class="canvas-answer"></div></div>
+          </div>
+          <div id="whiteboardArea" class="whiteboard-area hidden">
+            <div class="whiteboard-toolbar" aria-label="Whiteboard drawing tools">
+              <button id="penTool" type="button" class="active">✏ Pen</button>
+              <button id="eraserTool" type="button">⌫ Eraser</button>
+              <button id="clearBoard" type="button">Clear</button>
+              <span class="whiteboard-hint">Write a Maths problem or show your working</span>
+              <button id="closeBoard" type="button">Close</button>
+              <button id="submitBoard" type="button" class="ask-board">Ask Teacher →</button>
+            </div>
+            <canvas id="whiteboard" width="1200" height="600" aria-label="Interactive Maths whiteboard"></canvas>
+          </div>
+          <section id="practiceArea" class="practice-area hidden" aria-labelledby="practiceTitle">
+            <div id="practiceSetup" class="practice-setup">
+              <p class="practice-kicker">PRACTICE MODE</p>
+              <h3 id="practiceTitle">Choose what you want to practise</h3>
+              <p id="practiceClassSummary" class="practice-class-summary">Showing JSS2 Mathematics topics</p>
+              <div class="practice-selectors">
+                <label>Practice class<select id="practiceClass"><option>JSS1</option><option selected>JSS2</option><option>JSS3</option></select></label>
+                <label>School term<select id="practiceTerm"><option>First Term</option><option>Second Term</option><option>Third Term</option></select></label>
+                <label>Topic<select id="practiceTopic"><option>Standard Form</option></select></label>
+                <label>Difficulty<select id="practiceDifficulty"><option value="Auto" selected>Auto (Recommended)</option><option>Easy</option><option>Medium</option><option>Challenge</option></select></label>
+                <label>Questions<select id="practiceCount"><option value="5">5 questions</option><option value="10">10 questions</option><option value="20">20 questions</option></select></label>
+              </div>
+              <p class="practice-class-summary">Auto uses your recent results in this topic. Two strong sessions move you up; two scores below 50% move you down.</p>
+              <div class="practice-actions"><button id="startPractice" type="button" class="practice-primary">Start Practice →</button><button id="startDiagnostic" type="button">Take 10-Question Diagnostic</button></div>
+            </div>
+            <div id="practiceQuestion" class="practice-question hidden">
+              <div class="practice-meta"><span id="practiceProgress">Question 1</span><strong id="practiceScore">Score: 0/0</strong></div>
+              <p id="practiceContext" class="practice-context"></p>
+              <h3 id="practicePrompt"></h3>
+              <form id="practiceForm" class="practice-answer-form"><input id="practiceAnswer" autocomplete="off" placeholder="Type your answer" aria-label="Practice answer" /><button type="submit">Check Answer</button></form>
+              <div class="practice-actions"><button id="showHint" type="button">Show Hint</button><button id="nextPractice" type="button" class="hidden">Next Question →</button><button id="closePractice" type="button">Exit Practice</button></div>
+              <p id="practiceFeedback" class="practice-feedback hidden" aria-live="polite"></p>
+            </div>
+            <div id="practiceResults" class="practice-results hidden">
+              <p class="practice-kicker">SESSION COMPLETE</p>
+              <h3>Practice results</h3>
+              <div class="result-score"><strong id="resultPercentage">0%</strong><span id="resultScore">0 out of 5 correct</span></div>
+              <p id="resultRecommendation" class="result-recommendation"></p>
+              <div id="missedReview" class="missed-review"></div>
+              <div class="practice-actions result-actions"><button id="practiceAgain" type="button" class="practice-primary">Practise Again</button><button id="viewProgressFromResults" type="button">View Progress</button><button id="changePracticeTopic" type="button">Change Topic</button><button id="exitPracticeResults" type="button">Exit Practice</button></div>
+            </div>
+          </section>
+          <section id="progressArea" class="progress-area hidden" aria-labelledby="progressTitle">
+            <div class="progress-heading"><div><p class="practice-kicker">MY PROGRESS</p><h3 id="progressTitle">Learning dashboard</h3></div><button id="closeProgress" type="button">Close</button></div>
+            <div id="progressLoading" class="progress-empty">Loading your progress…</div>
+            <div id="progressEmpty" class="progress-empty hidden"><strong>Your progress starts here</strong><p>Complete a Practice Mode session to see scores, strengths and recommendations.</p><button id="emptyStartPractice" type="button" class="practice-primary">Start Practice →</button></div>
+            <div id="progressDashboard" class="hidden">
+              <div class="progress-stats"><article><span data-progress-label="sessions">Sessions</span><strong id="progressSessions">0</strong></article><article><span data-progress-label="questions">Questions</span><strong id="progressQuestions">0</strong></article><article><span data-progress-label="overall">Overall score</span><strong id="progressAverage">0%</strong></article><article><span data-progress-label="strongest">Strongest topic</span><strong id="progressStrongest">—</strong></article></div>
+              <div class="progress-recommendation"><span data-progress-label="next">Recommended next step</span><strong id="progressRecommendation"></strong><button id="practiceRecommendation" type="button">Continue Learning →</button></div>
+              <section class="learning-path-section" aria-labelledby="learningPathTitle"><div class="learning-path-heading"><div><span>PERSONALISED PLAN</span><h4 id="learningPathTitle">My Learning Path</h4></div><div class="learning-path-key"><span class="mastered">Mastered</span><span class="needs-practice">Needs practice</span></div></div><div id="learningPath" class="learning-path"></div></section>
+              <div class="weekly-summary"><span data-progress-label="week">This week</span><strong id="weeklySessions">0 sessions</strong><strong id="weeklyQuestions">0 questions</strong><strong id="weeklyScore">0%</strong><em id="weeklyImprovement">Start practising to measure improvement.</em><div class="weekly-insights"><p><span data-progress-label="weekStrongest">Strongest this week</span><strong id="weeklyStrongest">—</strong></p><p><span data-progress-label="attention">Needs attention</span><strong id="weeklyFocus">—</strong></p></div><p id="weeklyNextAction" class="weekly-next-action"></p></div>
+              <div class="progress-columns"><section><h4>Topic performance</h4><div id="progressTopics" class="topic-progress"></div></section><section><h4>Recent sessions</h4><div id="recentSessions" class="recent-sessions"></div></section></div>
+              <p id="progressStorageNotice" class="progress-storage hidden">Your latest result is visible now, but permanent storage is temporarily unavailable.</p>
+            </div>
+          </section>
+          <section id="teacherDashboard" class="progress-area hidden" aria-labelledby="teacherDashboardTitle"><div class="progress-heading"><div><p class="practice-kicker">TEACHER VIEW</p><h3 id="teacherDashboardTitle">Class performance</h3></div><div class="teacher-dashboard-actions"><label>Class<select id="teacherClass"><option>JSS1</option><option selected>JSS2</option><option>JSS3</option></select></label><button id="openQaChecklist" type="button">QA checklist</button><button id="downloadTeacherReport" type="button">Download report</button><button id="closeTeacherDashboard" type="button">Close</button></div></div><div id="teacherDashboardContent" class="teacher-dashboard-content"></div></section>
+          <section id="qaChecklist" class="progress-area hidden" aria-labelledby="qaTitle"><div class="progress-heading"><div><p class="practice-kicker">RELEASE READINESS</p><h3 id="qaTitle">Staging QA checklist</h3></div><div class="teacher-dashboard-actions"><button id="downloadQaReport" type="button">Download QA report</button><button id="closeQaChecklist" type="button">Back to Teacher View</button></div></div><div class="qa-summary"><article><span>Completed</span><strong id="qaCompleted">0/0</strong></article><article><span>Passed</span><strong id="qaPassed">0</strong></article><article><span>Release blockers</span><strong id="qaBlockers">0</strong></article></div><p id="qaReleaseStatus" class="teacher-recommendation"></p><div id="qaChecklistItems" class="qa-checklist-items"></div></section>
+        </div>
+        <div id="messages" class="messages" aria-live="polite">
+          <div class="message teacher">Hello! I’m your Robo-Teacher. Ask me a Maths question and we’ll work through it together.</div>
+        </div>
+        <form id="chatForm" class="composer">
+          <button id="uploadButton" type="button" class="tool" title="Upload image" aria-label="Upload Maths image">＋</button>
+          <input id="imageUpload" class="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" />
+          <input id="cameraCapture" class="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" />
+          <input id="question" autocomplete="off" placeholder="Ask your teacher a question…" aria-label="Question" />
+          <button id="micButton" type="button" class="tool" title="Record voice question" aria-label="Start voice question">🎙</button>
+          <button type="submit" class="send">Send</button>
+        </form>
+        <nav class="class-tools" aria-label="Classroom tools">
+          <button type="button">💬 Chat</button><button id="practiceButton" type="button">🧠 Practice</button><button id="progressButton" type="button">📈 Progress</button><button id="teacherDashboardButton" type="button">📊 Teacher</button><button id="cameraButton" type="button">📷 Camera</button><button id="navMicButton" type="button">🎙 Mic</button><button id="whiteboardButton" type="button">▣ Whiteboard</button><button id="languageButton" type="button">🌐 Language</button>
+        </nav>
+      </section>
+    </section>
+  </main>
+  <script src="/classroom/app.js?v=20260906-resultcopy1"></script>
+</body>
+</html>

@@ -6,20 +6,28 @@ Robo-Teacher is an AI tutoring system designed to extend individualized learning
 
 > **Current status:** Robo-Teacher V2 has been merged into the production `main` branch, passed the automated CI test suite, and is deployed to production on Render.
 
-## Active Development Update — 4 September 2026
+> **V2.5 release candidate:** The interactive classroom has completed staging user-acceptance testing on the `v2.5-classroom` branch. PR #9 is awaiting its final CI and production-release gate. [Open the V2.5 staging classroom](https://robo-teacher-v25-staging.onrender.com/classroom-app).
 
-Robo-Teacher remains in active development following the completed 56-student pilot. The current **V2.5 staging release** expands the project from a messaging tutor into a multilingual, multimodal AI classroom with:
+## V2.5 Interactive Classroom — Release Candidate
 
-- text, camera/image, voice and interactive-whiteboard Mathematics tutoring;
-- English, Yorùbá, Igbo and Hausa questions and responses;
-- Practice Mode covering 11 JSS2 Mathematics topic groups at Easy, Medium and Challenge levels;
-- varied 5-, 10- and 20-question sessions without repeated prompts;
-- praise for correct answers, worked explanations for mistakes and missed-question review; and
-- persistent, pseudonymous learner-progress tracking with topic performance and recommended next steps.
+The browser classroom extends the messaging tutor into one learning workspace while preserving the existing production release. Learners can currently:
 
-**[Test the latest Robo-Teacher V2.5 classroom](https://robo-teacher-v25-staging.onrender.com/classroom-app)**
+- ask typed Mathematics questions and receive step-by-step teaching;
+- submit questions using camera capture or image upload;
+- record voice questions;
+- write problems or show working on an interactive whiteboard with pen, eraser, clear, close and **Ask Teacher** controls;
+- learn in English, Yorùbá, Igbo or Hausa across text, voice, image and whiteboard pathways;
+- enter questions in the selected Nigerian language and receive the explanation and final-answer wording in that language;
+- select JSS1, JSS2 or JSS3 and receive class-level tutoring across text, image, voice and whiteboard;
+- practise class-appropriate Mathematics topic groups at Easy, Medium or Challenge level;
+- choose 5-, 10- or 20-question practice sessions generated with no repeated prompt within a session;
+- receive praise for correct answers and a worked explanation after incorrect answers;
+- review missed questions, scores, percentages and next-step recommendations; and
+- reopen a persistent progress dashboard showing completed sessions, total questions, overall score, topic performance, strongest and focus topics, and recent history.
 
-V2.5 is being validated on the unmerged `v2.5-classroom` branch through draft PR #9. These are controlled staging capabilities—not additions to the frozen pilot dataset—and the production application remains unchanged.
+Browser learners are represented by stable pseudonymous identifiers derived from a device-generated random key. Practice history is stored in a separate **Practice Progress** worksheet; names, phone numbers and email addresses are not required for this feature.
+
+These capabilities have passed controlled automated staging tests. They are product-development results and are not included in the frozen 56-student pilot evidence below.
 
 ## Why Robo-Teacher
 
@@ -121,6 +129,8 @@ Pseudonymized analytics (`sheet_logger.py`) --> Google Sheets
 
 The production architecture separates participant identity data from pseudonymized interaction records.
 
+The V2.5 staging application adds a browser classroom (`classroom/` and `classroom_api.py`), generated Practice Mode sessions (`practice.py` and `practice_generator.py`), and pseudonymous progress aggregation backed by Google Sheets (`practice_progress.py`).
+
 ## Messaging Channels
 
 ### Telegram
@@ -149,6 +159,15 @@ The production tutor remains deliberately scoped to **JSS2 Basic Mathematics**, 
 - relevant JSS2 geometry
 
 The curriculum and pedagogical instructions are maintained in `tutor.py`.
+
+The V2.5 staging classroom extends Practice Mode across JSS1–JSS3. Its audited
+class and First/Second/Third Term mapping is maintained in `curriculum.py`, while
+`practice_generator.py` generates class-appropriate marked questions and worked
+explanations. Reference material used for the audit includes the official
+[NERDC JSS1–JSS3 curriculum index](https://www.nerdc.gov.ng/content_manager/jss1-3.html)
+and published Lagos unified scheme transcriptions for
+[JSS1 Mathematics](https://syllabus.ng/jss1-scheme-of-work/math/) and
+[JSS2 Mathematics](https://syllabus.ng/jss2-scheme-of-work/mathematics/).
 
 ## Data and Privacy
 
@@ -289,6 +308,12 @@ Keep `ALLOW_AUTO_ENROLL=false` for a controlled/closed pilot unless there is a d
 - `roster_sheet.py` — Google Sheets-backed learner recognition/onboarding
 - `learner_profile.py` — adaptive learner profile and PII-minimized recent-question memory
 - `sheet_logger.py` — pseudonymized interaction logging
+- `classroom/` — responsive V2.5 browser classroom interface
+- `classroom_api.py` — signed browser sessions and classroom endpoints
+- `practice.py` — Practice Mode session, marking and review logic
+- `practice_generator.py` — varied questions across topics and difficulty levels
+- `practice_progress.py` — durable pseudonymous learner-progress records and recommendations
+- `v25_app.py` — isolated V2.5 staging entrypoint
 - `telegram_adapter.py` — Telegram messaging integration
 - `whatsapp_adapter.py` — Twilio WhatsApp integration
 - `evaluation/` — pilot instruments, evidence summaries and evaluation documentation
@@ -312,15 +337,45 @@ Robo-Teacher V2 is a production-deployed early-stage system, not a finished auto
 
 ## Roadmap
 
-### V2.5 — Interactive AI teacher experience
+### V2.5 — Interactive AI teacher experience (staging)
 
-Planned work includes:
+Implemented on the draft staging branch:
 
-- interactive teacher/avatar interface
-- richer visual explanations and demonstrations
-- improved voice interaction
-- stronger image/handwriting understanding
-- local-language support, beginning with priority Nigerian languages
+- interactive teacher/classroom interface
+- text, image/camera, voice and whiteboard tutoring
+- English, Yorùbá, Igbo and Hausa tutoring
+- curriculum-based Practice Mode with varied questions and worked feedback
+- visible JSS1, JSS2 and JSS3 Practice class selector with class- and term-specific topic lists
+- audited Junior Secondary Mathematics mapping based on the NERDC curriculum index and Lagos State unified scheme transcriptions
+- dedicated Practice generators for topics including binary numbers, bearings, scale drawing, simultaneous equations, trigonometry, construction, mensuration and pie charts
+- multilingual Practice sessions in English, simple conversational Yorùbá, Igbo and Hausa, including translated questions, hints, praise, corrections, worked explanations and session recommendations
+- live Practice language switching that immediately refreshes the current question, hint or worked feedback and keeps every remaining question in the newly selected language
+- pause-and-continue teacher audio playback that resumes the current explanation instead of restarting it
+- browser-unlocked audio playback so spoken answers to voice questions start automatically after processing
+- automatic Practice difficulty selection based on two recent results at the learner's current level, with manual level selection still available
+- weekly learner summaries with strongest topic, focus area, score trend and a specific action for the following week
+- weekly Teacher View summaries with class activity, score change, strongest and weakest topics, a teaching action and CSV export
+- multilingual learner and teacher dashboards in English, simple Yorùbá, Igbo and Hausa, while retaining official curriculum topic names
+- separate 10-question class-and-term diagnostic assessments with mixed topics and a recommended starting topic and difficulty
+- permanent diagnostic placement storage in a separate Google Sheets worksheet, restored into the learner's personalised path without changing Practice averages
+- privacy-safe Teacher View diagnostic aggregates showing completions, assessed learners, average placement score and the most common starting topic
+- teacher-protected staging QA checklist with local Pass/Fail/Needs Improvement tracking, release-blocker status and dated CSV export
+- single-request session translation that preserves the original answer key and mathematical notation for reliable marking
+- session results, missed-question review and learner progress dashboard
+- persistent, pseudonymous Practice Mode history in Google Sheets
+- privacy-safe nickname and JSS1–JSS3 learner onboarding
+- Junior Secondary curriculum scope with class-aware tutoring and Practice topic selection
+- class-filtered recommendations with automatic Easy, Medium and Challenge adjustment
+- term-aware recommendations that strengthen weak topics, increase difficulty after consistent success, and advance to the next curriculum topic after mastery
+- **Continue Learning** routing to the recommended class, term, topic and difficulty
+- visible **My Learning Path** organised by term, with Mastered, Needs practice, Recommended next and Not started topic states
+- one-click practice access from every topic in the learner's path
+- non-destructive mapping of earlier V2.5 JSS2 progress labels into the audited curriculum
+- seven-day learner summaries with comparison against the previous week
+- access-key-protected teacher dashboard showing class aggregates without learner identities
+- Teacher Dashboard V2 with JSS class switching, strongest/weakest topics, six-week trends, teaching recommendations and privacy-safe CSV reports
+
+Before production release, V2.5 still requires broader learner testing, accessibility review, monitoring and a deliberate merge decision.
 
 ### V2.6 — School and commercialization layer
 
@@ -328,7 +383,7 @@ Planned work includes:
 
 - school administration tools
 - teacher dashboards
-- learner progress reporting
+- teacher- and school-level learner progress reporting
 - expanded evaluation and safeguarding controls
 - school-level deployment and pricing workflows
 - additional subjects and grade levels

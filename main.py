@@ -3,7 +3,8 @@ import datetime
 import logging
 import os
 from fastapi import FastAPI, Request, BackgroundTasks, HTTPException
-from fastapi.responses import Response
+from fastapi.responses import Response, FileResponse
+from fastapi.staticfiles import StaticFiles
 from twilio.request_validator import RequestValidator
 from twilio.twiml.messaging_response import MessagingResponse
 from dotenv import load_dotenv
@@ -16,6 +17,8 @@ from roster_sheet import lookup_student, is_awaiting_school_choice, mark_awaitin
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("robo-teacher")
 app = FastAPI(title="Robo-Teacher Pilot")
+if os.path.isdir("classroom"):
+    app.mount("/classroom", StaticFiles(directory="classroom"), name="classroom-static")
 WHATSAPP_MIGRATION_MESSAGE = "Robo-Teacher WhatsApp Pilot Update\n\nOur WhatsApp pilot has now ended while we improve Robo-Teacher.\n\nPlease continue learning with Robo-Teacher FREE on Telegram:\nhttps://t.me/RoboTeacherAfricaBot\n\nOpen the link, tap Start, and continue asking your Maths questions there.\n\nThank you for being part of the Robo-Teacher journey.\nEvery learner. Their own AI teacher."
 
 @app.on_event("startup")
@@ -38,6 +41,10 @@ def _validate_telegram_request(request):
 
 @app.get("/")
 def health_check(): return {"status":"Robo-Teacher pilot bot is running"}
+
+@app.get("/classroom-app")
+def classroom_app():
+    return FileResponse("classroom/index.html")
 
 def _get_or_onboard(channel, identifier, message):
     student = lookup_student(channel, identifier)
