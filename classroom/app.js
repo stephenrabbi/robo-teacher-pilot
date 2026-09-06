@@ -52,6 +52,7 @@ const practiceTopic=document.getElementById('practiceTopic');
 const practiceDifficulty=document.getElementById('practiceDifficulty');
 const practiceCount=document.getElementById('practiceCount');
 const startPracticeButton=document.getElementById('startPractice');
+const startDiagnosticButton=document.getElementById('startDiagnostic');
 const practiceProgress=document.getElementById('practiceProgress');
 const practiceScore=document.getElementById('practiceScore');
 const practiceContext=document.getElementById('practiceContext');
@@ -103,6 +104,7 @@ const teacherClass=document.getElementById('teacherClass');
 const downloadTeacherReport=document.getElementById('downloadTeacherReport');
 let currentPractice=null;
 let currentPracticeSummary=null;
+let practiceMode='practice';
 let currentProgress=null;
 let sessionToken=null;
 let previewUrl=null;
@@ -404,12 +406,13 @@ language.addEventListener('change',async()=>{
 languageButton.addEventListener('click',()=>language.focus());
 practiceButton.addEventListener('click',openPractice);
 startPracticeButton.addEventListener('click',startPracticeSession);
+startDiagnosticButton.addEventListener('click',startDiagnosticSession);
 practiceForm.addEventListener('submit',submitPracticeAnswer);
 showHintButton.addEventListener('click',showPracticeHint);
 nextPracticeButton.addEventListener('click',loadNextPracticeQuestion);
 closePracticeButton.addEventListener('click',closePractice);
 practiceAgainButton.addEventListener('click',startPracticeSession);
-changePracticeTopicButton.addEventListener('click',resetPracticeSetup);
+changePracticeTopicButton.addEventListener('click',openResultRecommendation);
 exitPracticeResultsButton.addEventListener('click',closePractice);
 progressButton.addEventListener('click',openProgress);
 teacherDashboardButton.addEventListener('click',openTeacherDashboard);
@@ -454,16 +457,28 @@ async function practiceRequest(path,body){
   finally{clearTimeout(timeout)}
 }
 
+async function diagnosticRequest(path,body){
+  const token=await ensureSession();const response=await fetch(`/api/classroom/diagnostic/${path}`,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({session_token:token,...body})});const data=await response.json();if(!response.ok)throw new Error(data.detail||'Diagnostic request failed.');return data
+}
+
 async function startPracticeSession(){
+  practiceMode='practice';
   startPracticeButton.disabled=true;practiceAgainButton.disabled=true;startPracticeButton.textContent='Preparing…';
   try{renderPracticeQuestion(await practiceRequest('start',{topic:practiceTopic.value,difficulty:practiceDifficulty.value,question_count:Number(practiceCount.value),class_level:practiceClass.value,language:language.value}))}
   catch(err){addMessage(err.message,'teacher')}
   finally{startPracticeButton.disabled=false;practiceAgainButton.disabled=false;startPracticeButton.textContent='Start Practice →'}
 }
 
+async function startDiagnosticSession(){
+  startDiagnosticButton.disabled=true;startDiagnosticButton.textContent='Preparing diagnostic…';practiceMode='diagnostic';
+  try{renderPracticeQuestion(await diagnosticRequest('start',{class_level:practiceClass.value,term:practiceTerm.value,language:language.value}))}
+  catch(err){addMessage(err.message,'teacher');practiceMode='practice'}
+  finally{startDiagnosticButton.disabled=false;startDiagnosticButton.textContent='Take 10-Question Diagnostic'}
+}
+
 async function switchPracticeLanguage(){
   try{
-    const data=await practiceRequest('language',{language:language.value});
+    const data=await (practiceMode==='diagnostic'?diagnosticRequest('language',{language:language.value}):practiceRequest('language',{language:language.value}));
     currentPractice={...currentPractice,...data};practicePrompt.textContent=data.question;
     if(data.answered&&data.feedback){
       const feedback=data.feedback;
@@ -482,7 +497,7 @@ async function submitPracticeAnswer(event){
   event.preventDefault();const answer=practiceAnswer.value.trim();if(!answer)return;
   const checkButton=practiceForm.querySelector('button');checkButton.disabled=true;
   try{
-    const result=await practiceRequest('answer',{answer});practiceAnswer.disabled=true;
+    const result=await (practiceMode==='diagnostic'?diagnosticRequest('answer',{answer}):practiceRequest('answer',{answer}));practiceAnswer.disabled=true;
     practiceScore.textContent=`Score: ${result.score}/${result.attempted} (${result.percentage}%)`;
     practiceFeedback.textContent=result.correct?`${result.message}\n\n${result.explanation}`:`${result.message}\n\n${result.explanation}\n\n${result.correct_answer_label}: ${result.expected_answer}`;
     practiceFeedback.className=`practice-feedback ${result.correct?'correct':'incorrect'}`;nextPracticeButton.classList.remove('hidden');showHintButton.disabled=true;
@@ -493,7 +508,7 @@ async function submitPracticeAnswer(event){
 async function loadNextPracticeQuestion(){
   if(currentPracticeSummary){renderPracticeResults(currentPracticeSummary);return}
   nextPracticeButton.disabled=true;
-  try{renderPracticeQuestion(await practiceRequest('next',{}))}
+  try{renderPracticeQuestion(await (practiceMode==='diagnostic'?diagnosticRequest('next',{}):practiceRequest('next',{})))}
   catch(err){practiceFeedback.textContent=err.message;practiceFeedback.className='practice-feedback incorrect'}
   finally{nextPracticeButton.disabled=false}
 }
@@ -506,6 +521,8 @@ function renderPracticeResults(summary){
   currentPracticeSummary=summary;practiceSetup.classList.add('hidden');practiceQuestion.classList.add('hidden');practiceResults.classList.remove('hidden');
   resultPercentage.textContent=`${summary.percentage}%`;resultScore.textContent=`${summary.score} out of ${summary.attempted} correct`;
   resultRecommendation.textContent=summary.recommendation;missedReview.replaceChildren();
+  changePracticeTopicButton.textContent=summary.diagnostic?'Practise Recommended Topic':'Change Topic';
+  if(summary.topic_results){const topicHeading=document.createElement('h4');topicHeading.textContent='Diagnostic topic results';missedReview.appendChild(topicHeading);summary.topic_results.forEach(item=>{const row=document.createElement('article');row.textContent=`${item.topic}: ${item.percentage}% (${item.correct}/${item.attempted})`;missedReview.appendChild(row)})}
   const heading=document.createElement('h4');heading.textContent=summary.missed.length?'Questions to review':'Perfect score!';missedReview.appendChild(heading);
   if(!summary.missed.length){const note=document.createElement('p');note.textContent='You answered every question correctly. Excellent work!';missedReview.appendChild(note);return}
   summary.missed.forEach((item,index)=>{
@@ -515,6 +532,11 @@ function renderPracticeResults(summary){
     const explanation=document.createElement('p');explanation.textContent=item.explanation;
     card.append(title,answers,explanation);missedReview.appendChild(card);
   });
+}
+
+function openResultRecommendation(){
+  const summary=currentPracticeSummary;resetPracticeSetup();
+  if(summary?.diagnostic){practiceClass.value=summary.class_level;practiceTerm.value=summary.term;updatePracticeTopics();practiceTopic.value=summary.recommended_topic;practiceDifficulty.value=summary.recommended_difficulty}
 }
 
 async function openProgress(){

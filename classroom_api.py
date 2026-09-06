@@ -18,6 +18,7 @@ from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, Reque
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from curriculum import ALL_TOPICS, CLASS_TOPICS, CURRICULUM
+from diagnostic import answer_diagnostic, change_diagnostic_language, next_diagnostic, start_diagnostic
 from practice import answer_practice, change_practice_language, next_question, start_practice
 from practice_progress import build_dashboard, build_teacher_dashboard, recommend_difficulty_for_topic, save_result
 
@@ -87,6 +88,13 @@ class PracticeNext(BaseModel):
 
 
 class PracticeLanguage(PracticeNext):
+    language: SupportedLanguage = "English"
+
+
+class DiagnosticStart(BaseModel):
+    session_token: str = Field(min_length=20, max_length=300)
+    class_level: Literal["JSS1", "JSS2", "JSS3"]
+    term: Literal["First Term", "Second Term", "Third Term"]
     language: SupportedLanguage = "English"
 
 
@@ -227,6 +235,36 @@ def classroom_practice_progress(request: PracticeProgress):
     student_id = _verify_session(request.session_token)
     _enforce_rate_limit(student_id, "practice-progress", 30)
     return build_dashboard(student_id, request.class_level)
+
+
+@router.post("/diagnostic/start")
+def classroom_diagnostic_start(request: DiagnosticStart):
+    student_id = _verify_session(request.session_token);_enforce_rate_limit(student_id, "diagnostic", 120)
+    try: return start_diagnostic(student_id, request.class_level, request.term, request.language)
+    except (ValueError, RuntimeError) as exc: raise HTTPException(status_code=422, detail="Unable to prepare that diagnostic") from exc
+
+
+@router.post("/diagnostic/answer")
+def classroom_diagnostic_answer(request: PracticeAnswer):
+    student_id = _verify_session(request.session_token);_enforce_rate_limit(student_id, "diagnostic", 120)
+    try: return answer_diagnostic(student_id, request.answer)
+    except LookupError as exc: raise HTTPException(status_code=404, detail="Start a diagnostic first") from exc
+    except RuntimeError as exc: raise HTTPException(status_code=409, detail="Move to the next diagnostic question") from exc
+
+
+@router.post("/diagnostic/next")
+def classroom_diagnostic_next(request: PracticeNext):
+    student_id = _verify_session(request.session_token);_enforce_rate_limit(student_id, "diagnostic", 120)
+    try: return next_diagnostic(student_id)
+    except LookupError as exc: raise HTTPException(status_code=404, detail="Start a diagnostic first") from exc
+    except RuntimeError as exc: raise HTTPException(status_code=409, detail="Answer the current diagnostic question") from exc
+
+
+@router.post("/diagnostic/language")
+def classroom_diagnostic_language(request: PracticeLanguage):
+    student_id = _verify_session(request.session_token);_enforce_rate_limit(student_id, "diagnostic", 120)
+    try: return change_diagnostic_language(student_id, request.language)
+    except LookupError as exc: raise HTTPException(status_code=404, detail="Start a diagnostic first") from exc
 
 
 @router.post("/teacher/dashboard")

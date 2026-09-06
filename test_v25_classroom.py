@@ -30,6 +30,8 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert 'id="downloadTeacherReport"' in html
     assert 'downloadTeacherDashboardReport' in script
     assert 'id="practiceClass"' in html
+    assert 'id="startDiagnostic"' in html
+    assert "diagnosticRequest('start'" in script
     assert 'id="practiceClassSummary"' in html
     assert "class_level:practiceClass.value" in script
     assert "data.class_level} · ${data.topic}" in script
