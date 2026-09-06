@@ -271,6 +271,10 @@ def test_teacher_dashboard_returns_aggregates_without_identities():
     assert dashboard['weakest_topic'] == 'Simple Equations'
     assert dashboard['recommendation']
     assert len(dashboard['weekly_trend']) == 6
+    assert dashboard['weekly_summary']['sessions'] == 1
+    assert dashboard['weekly_summary']['strongest_topic'] == 'Simple Equations'
+    assert dashboard['weekly_summary']['weakest_topic'] == 'Simple Equations'
+    assert dashboard['weekly_summary']['action']
     assert 'learner_id' not in dashboard
     assert 'recent_sessions' not in dashboard
 

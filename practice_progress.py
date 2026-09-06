@@ -210,6 +210,7 @@ def build_teacher_dashboard(class_level: str = "JSS2") -> dict:
     strongest = max(topics, key=lambda item: (item["percentage"], item["questions"])) if topics else None
     weakest = min(topics, key=lambda item: (item["percentage"], -item["questions"])) if topics else None
     weekly = _teacher_weekly_trend(records)
+    weekly_summary = _teacher_weekly_summary(records, weekly)
     recommendation = _teacher_recommendation(weakest, attempted)
     return {
         "class_level": class_level, "learners": len(learners), "sessions": len(records),
@@ -217,7 +218,7 @@ def build_teacher_dashboard(class_level: str = "JSS2") -> dict:
         "focus_topic": weakest["topic"] if weakest else None,
         "strongest_topic": strongest["topic"] if strongest else None,
         "weakest_topic": weakest["topic"] if weakest else None,
-        "recommendation": recommendation, "weekly_trend": weekly, "topics": topics,
+        "recommendation": recommendation, "weekly_trend": weekly, "weekly_summary": weekly_summary, "topics": topics,
         "storage_synced": synced,
     }
 
@@ -250,6 +251,47 @@ def _teacher_weekly_trend(records: list[dict], weeks: int = 6) -> list[dict]:
         correct = sum(item["score"] for item in items)
         buckets.append({"week_start": start.date().isoformat(), "sessions": len(items), "questions": questions, "percentage": round(correct / questions * 100) if questions else None})
     return buckets
+
+
+def _teacher_weekly_summary(records: list[dict], trend: list[dict]) -> dict:
+    current = trend[-1]
+    current_start = datetime.datetime.fromisoformat(current["week_start"]).replace(tzinfo=datetime.UTC)
+    current_end = current_start + datetime.timedelta(days=7)
+    current_records = []
+    for item in records:
+        try:
+            stamp = datetime.datetime.fromisoformat(item["timestamp"].replace("Z", "+00:00"))
+        except (ValueError, TypeError):
+            continue
+        if current_start <= stamp < current_end:
+            current_records.append(item)
+    topic_results = []
+    for topic in sorted({item["topic"] for item in current_records}):
+        items = [item for item in current_records if item["topic"] == topic]
+        questions = sum(item["attempted"] for item in items)
+        topic_results.append({
+            "topic": topic, "questions": questions,
+            "percentage": round(sum(item["score"] for item in items) / questions * 100) if questions else 0,
+        })
+    strongest = max(topic_results, key=lambda item: (item["percentage"], item["questions"])) if topic_results else None
+    weakest = min(topic_results, key=lambda item: (item["percentage"], -item["questions"])) if topic_results else None
+    previous = trend[-2] if len(trend) > 1 and trend[-2]["percentage"] is not None else None
+    change = current["percentage"] - previous["percentage"] if current["percentage"] is not None and previous else None
+    if current["percentage"] is None:
+        action = "No Practice sessions are recorded this week. Assign one class-appropriate session."
+    elif weakest and weakest["percentage"] < 50:
+        action = f"Reteach {weakest['topic']} with worked examples, then assign an Easy session."
+    elif weakest and weakest["percentage"] < 80:
+        action = f"Review {weakest['topic']} in a small group and assign another session."
+    else:
+        action = f"This week's results are strong. Extend {weakest['topic']} with Challenge questions."
+    return {
+        **current,
+        "change_points": change,
+        "strongest_topic": strongest["topic"] if strongest else None,
+        "weakest_topic": weakest["topic"] if weakest else None,
+        "action": action,
+    }
 
 
 def build_dashboard(learner_id: str, class_level: str = "JSS2") -> dict:
