@@ -355,6 +355,7 @@ Implemented on the draft staging branch:
 - automatic Practice difficulty selection based on two recent results at the learner's current level, with manual level selection still available
 - weekly learner summaries with strongest topic, focus area, score trend and a specific action for the following week
 - weekly Teacher View summaries with class activity, score change, strongest and weakest topics, a teaching action and CSV export
+- multilingual learner and teacher dashboards in English, simple Yorùbá, Igbo and Hausa, while retaining official curriculum topic names
 - single-request session translation that preserves the original answer key and mathematical notation for reliable marking
 - session results, missed-question review and learner progress dashboard
 - persistent, pseudonymous Practice Mode history in Google Sheets

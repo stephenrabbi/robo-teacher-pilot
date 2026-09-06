@@ -123,6 +123,45 @@ let currentTeacherDashboard=null;
 const boardContext=whiteboard.getContext('2d');
 const savedLanguage=localStorage.getItem('roboTeacherLanguage');
 if(['English','Yoruba','Igbo','Hausa'].includes(savedLanguage))language.value=savedLanguage;
+const dashboardCopy={
+  English:{sessions:'Sessions',questions:'Questions',overall:'Overall score',strongest:'Strongest topic',next:'Recommended next step',continue:'Continue Learning →',week:'This week',weekStrongest:'Strongest this week',attention:'Needs attention',learners:'Learners',average:'Average',weakest:'Weakest topic',score:'Score',trend:'Trend',noData:'Not enough data',noCompare:'No previous-week comparison',noChange:'No score change',sixWeek:'Six-week performance trend',topicPerformance:'Topic performance'},
+  Yoruba:{sessions:'Ìgbà ìdánwò',questions:'Àwọn ìbéèrè',overall:'Àpapọ̀ máàkì',strongest:'Kókó tó dára jù',next:'Ohun tó yẹ kó tẹ̀lé',continue:'Tẹ̀síwájú Kíkọ́ →',week:'Ọ̀sẹ̀ yìí',weekStrongest:'Kókó tó dára jù lọ ọ̀sẹ̀ yìí',attention:'Ohun tó nílò àtúnṣe',learners:'Àwọn akẹ́kọ̀ọ́',average:'Àpapọ̀',weakest:'Kókó tó nílò iṣẹ́ síi',score:'Máàkì',trend:'Bí máàkì ṣe ń lọ',noData:'Kò tíì sí data tó',noCompare:'Kò tíì sí ọ̀sẹ̀ míì láti fi wé e',noChange:'Máàkì kò yí padà',sixWeek:'Bí máàkì ṣe lọ fún ọ̀sẹ̀ mẹ́fà',topicPerformance:'Máàkì àwọn kókó'},
+  Igbo:{sessions:'Oge omume',questions:'Ajụjụ',overall:'Akara niile',strongest:'Isiokwu kacha mma',next:'Ihe ị ga-eme ọzọ',continue:'Gaa n’Ihu n’Ịmụ →',week:'Izu a',weekStrongest:'Isiokwu kacha mma n’izu a',attention:'Ihe chọrọ mgbakwunye',learners:'Ụmụ akwụkwọ',average:'Nkezi',weakest:'Isiokwu chọrọ ọrụ ọzọ',score:'Akara',trend:'Mgbanwe akara',noData:'Data ezughị',noCompare:'Enweghị izu gara aga iji tụnyere',noChange:'Akara agbanwebeghị',sixWeek:'Mgbanwe akara izu isii',topicPerformance:'Nsonaazụ isiokwu'},
+  Hausa:{sessions:'Zaman atisaye',questions:'Tambayoyi',overall:'Jimillar maki',strongest:'Darasi mafi ƙarfi',next:'Mataki na gaba',continue:'Ci Gaba da Koyo →',week:'Wannan makon',weekStrongest:'Darasi mafi ƙarfi a makon nan',attention:'Abin da ke buƙatar kulawa',learners:'Dalibai',average:'Matsakaici',weakest:'Darasi mai buƙatar ƙarin aiki',score:'Maki',trend:'Canjin maki',noData:'Babu isasshen bayani',noCompare:'Babu makon baya don kwatantawa',noChange:'Maki bai canza ba',sixWeek:'Canjin maki na makonni shida',topicPerformance:'Sakamakon darussa'}
+};
+function dcopy(key){return (dashboardCopy[language.value]||dashboardCopy.English)[key]}
+const pathCopy={English:{not_started:'Not started',needs_practice:'Needs practice',mastered:'Mastered',recommended:'Recommended next',continue:'Continue →',start:'Start',practise:'Practise'},Yoruba:{not_started:'Kò tíì bẹ̀rẹ̀',needs_practice:'Ó nílò Practice',mastered:'Ó ti mọ̀ ọ́',recommended:'Èyí ló kàn',continue:'Tẹ̀síwájú →',start:'Bẹ̀rẹ̀',practise:'Ṣe Practice'},Igbo:{not_started:'Amalitebeghị',needs_practice:'Ọ chọrọ Practice',mastered:'Ọ mụtala ya',recommended:'Ihe na-esote',continue:'Gaa n’ihu →',start:'Bido',practise:'Mee Practice'},Hausa:{not_started:'Ba a fara ba',needs_practice:'Yana buƙatar Practice',mastered:'An iya shi',recommended:'Mataki na gaba',continue:'Ci gaba →',start:'Fara',practise:'Yi Practice'}};
+function learnerRecommendation(data){
+  if(language.value==='English')return data.recommendation;const topic=data.recommended_topic,term=data.recommended_term,level=data.recommended_difficulty;
+  if(language.value==='Yoruba')return data.recommendation_reason==='strengthen'?`Tun ${topic} ṣe ní ipele ${level}. Wo gbogbo àlàyé dáadáa.`:`Tẹ̀síwájú pẹ̀lú ${topic} ní ipele ${level}.`;
+  if(language.value==='Igbo')return data.recommendation_reason==='strengthen'?`Megharịa ${topic} n’ọkwa ${level}, gụọkwa nkọwa niile.`:`Gaa n’ihu na ${topic} n’ọkwa ${level}.`;
+  return data.recommendation_reason==='strengthen'?`Sake yin ${topic} a matakin ${level}, ka duba duk bayanin.`:`Ci gaba da ${topic} a matakin ${level}.`;
+}
+function weeklyAction(week){
+  if(language.value==='English')return week.next_action;const topic=week.focus_topic||'';
+  if(language.value==='Yoruba')return !week.sessions?'Ṣe Practice kan kí o lè rí ìmọ̀ràn ọ̀sẹ̀.':week.percentage<50?`Wo àpẹẹrẹ ${topic}, kí o sì ṣe ipele tó rọrùn.`:week.percentage<80?`Tun ${topic} ṣe, kí o sì wo ibi tí o ṣìṣe.`:`O ṣe dáadáa. Gbìyànjú ipele tó kàn ní ${topic}.`;
+  if(language.value==='Igbo')return !week.sessions?'Mee otu Practice ka ị nweta ndụmọdụ izu.':week.percentage<50?`Gụọ ihe atụ ${topic}, wee mee ọkwa dị mfe.`:week.percentage<80?`Megharịa ${topic} ma lelee ebe i mejọrọ.`:`Ị mere nke ọma. Gbalịa ọkwa ọzọ na ${topic}.`;
+  return !week.sessions?'Yi Practice ɗaya domin samun shawarar mako.':week.percentage<50?`Duba misalan ${topic}, sannan ka yi mataki mai sauƙi.`:week.percentage<80?`Sake yin ${topic}, ka duba kurakuranka.`:`Ka yi kyau. Gwada mataki na gaba a ${topic}.`;
+}
+function teacherAction(data){
+  if(language.value==='English')return data.weekly_summary.action;const week=data.weekly_summary,topic=week.weakest_topic||'';
+  if(language.value==='Yoruba')return !week.sessions?'Kò sí Practice lọ́sẹ̀ yìí. Yan ìdánwò tó bá kíláàsì mu.':week.percentage<50?`Tun ${topic} kọ́ pẹ̀lú àpẹẹrẹ, kí o sì fún wọn ní Easy.`:week.percentage<80?`Ṣe àtúnyẹ̀wò ${topic} pẹ̀lú ẹgbẹ́ kékeré, kí wọn tún Practice ṣe.`:`Kíláàsì ṣe dáadáa. Fún wọn ní Challenge lórí ${topic}.`;
+  if(language.value==='Igbo')return !week.sessions?'Enweghị Practice n’izu a. Nye otu omume dabara na klas.':week.percentage<50?`Kụzie ${topic} ọzọ site n’ihe atụ, nyezie Easy.`:week.percentage<80?`Legharịa ${topic} na obere otu, nyezie Practice ọzọ.`:`Klas mere nke ọma. Nye Challenge na ${topic}.`;
+  return !week.sessions?'Babu Practice a makon nan. Ba ajin atisayen da ya dace.':week.percentage<50?`Sake koyar da ${topic} da misalai, sannan a yi Easy.`:week.percentage<80?`Sake duba ${topic} a ƙaramin rukuni, sannan a sake Practice.`:`Ajin ya yi kyau. Ba su Challenge a ${topic}.`;
+}
+function teacherOverallAction(data){
+  if(language.value==='English')return data.recommendation;const weakest=data.topics[0],topic=data.weakest_topic||'';
+  if(language.value==='Yoruba')return !data.questions?'Jẹ́ kí àwọn akẹ́kọ̀ọ́ ṣe Practice kan kí o tó ṣètò ìrànlọ́wọ́.':weakest.percentage<50?`Tun ${topic} kọ́ pẹ̀lú àpẹẹrẹ, kí o sì fún wọn ní Easy.`:weakest.percentage<80?`Ṣe àtúnyẹ̀wò ${topic}, kí wọn sì tún Practice ṣe.`:`Kíláàsì ṣe dáadáa. Lo Challenge fún ${topic}.`;
+  if(language.value==='Igbo')return !data.questions?'Gwa ụmụ akwụkwọ ka ha mee otu Practice tupu ịhazi enyemaka.':weakest.percentage<50?`Kụzie ${topic} ọzọ site n’ihe atụ, nyezie Easy.`:weakest.percentage<80?`Legharịa ${topic}, nyezie Practice ọzọ.`:`Klas mere nke ọma. Jiri Challenge maka ${topic}.`;
+  return !data.questions?'Ka dalibai yi Practice ɗaya kafin a shirya taimako.':weakest.percentage<50?`Sake koyar da ${topic} da misalai, sannan a yi Easy.`:weakest.percentage<80?`Sake duba ${topic}, sannan a sake Practice.`:`Ajin ya yi kyau. Yi amfani da Challenge a ${topic}.`;
+}
+function weeklyImprovementText(week){
+  if(language.value==='English')return week.improvement_points===null?'Complete another week to measure improvement.':week.improvement_points>0?`Improved by ${week.improvement_points} percentage points.`:week.improvement_points<0?`Down ${Math.abs(week.improvement_points)} points—review the recommended topic.`:'Your score is steady compared with last week.';
+  const points=Math.abs(week.improvement_points||0);
+  if(language.value==='Yoruba')return week.improvement_points===null?'Parí ọ̀sẹ̀ míì ká lè rí ìlọsíwájú.':week.improvement_points>0?`Máàkì pọ̀ sí i pẹ̀lú ${points}.`:week.improvement_points<0?`Máàkì dín kù pẹ̀lú ${points}; tún kókó náà ṣe.`:'Máàkì dúró bí ọ̀sẹ̀ tó kọjá.';
+  if(language.value==='Igbo')return week.improvement_points===null?'Mechaa izu ọzọ ka a tụọ ọganihu.':week.improvement_points>0?`Akara rịrị site na ${points}.`:week.improvement_points<0?`Akara dara site na ${points}; megharịa isiokwu ahụ.`:'Akara gị ka dị ka izu gara aga.';
+  return week.improvement_points===null?'Kammala wani mako domin a auna ci gaba.':week.improvement_points>0?`Maki ya ƙaru da ${points}.`:week.improvement_points<0?`Maki ya ragu da ${points}; sake duba darasin.`:'Maki bai canza daga makon baya ba.';
+}
 // Always show clean onboarding. Anonymous progress profiles remain on-device
 // and reconnect when the same nickname and class are entered again.
 learnerNickname.value='';
@@ -358,6 +397,8 @@ language.addEventListener('change',async()=>{
   const notices={English:'I will teach you in English from now on.',Yoruba:'Mo máa kọ́ ọ ní Yorùbá láti ìsinsin yìí.',Igbo:'Aga m akụziri gị ihe n’Igbo site ugbu a.',Hausa:'Zan koyar da kai da Hausa daga yanzu.'};
   addMessage(notices[language.value],'teacher');
   if(currentPractice)await switchPracticeLanguage();
+  if(currentProgress&&!progressArea.classList.contains('hidden'))renderProgress(currentProgress);
+  if(currentTeacherDashboard&&!teacherDashboard.classList.contains('hidden'))renderTeacherDashboard(currentTeacherDashboard);
   question.focus();
 });
 languageButton.addEventListener('click',()=>language.focus());
@@ -504,17 +545,17 @@ function showTeacherDashboard(data){
 
 function renderTeacherDashboard(data){
   teacherDashboardContent.replaceChildren();const stats=document.createElement('div');stats.className='progress-stats';
-  [['Learners',data.learners],['Sessions',data.sessions],['Questions',data.questions],['Average',`${data.average_percentage}%`]].forEach(([label,value])=>{const card=document.createElement('article');const name=document.createElement('span');name.textContent=label;const score=document.createElement('strong');score.textContent=value;card.append(name,score);stats.appendChild(card)});
+  [[dcopy('learners'),data.learners],[dcopy('sessions'),data.sessions],[dcopy('questions'),data.questions],[dcopy('average'),`${data.average_percentage}%`]].forEach(([label,value])=>{const card=document.createElement('article');const name=document.createElement('span');name.textContent=label;const score=document.createElement('strong');score.textContent=value;card.append(name,score);stats.appendChild(card)});
   const insight=document.createElement('div');insight.className='teacher-insights';
-  [['Strongest topic',data.strongest_topic||'Not enough data'],['Weakest topic',data.weakest_topic||'Not enough data']].forEach(([label,value])=>{const card=document.createElement('article');const name=document.createElement('span');name.textContent=label;const topic=document.createElement('strong');topic.textContent=value;card.append(name,topic);insight.appendChild(card)});
-  const recommendation=document.createElement('p');recommendation.className='teacher-recommendation';recommendation.textContent=data.recommendation;
-  const week=data.weekly_summary;const weekly=document.createElement('section');weekly.className='teacher-weekly';const weeklyTitle=document.createElement('h4');weeklyTitle.textContent='This week';const weeklyStats=document.createElement('div');weeklyStats.className='teacher-weekly-stats';
-  const change=week.change_points===null?'No previous-week comparison':week.change_points>0?`Up ${week.change_points} points`:week.change_points<0?`Down ${Math.abs(week.change_points)} points`:'No score change';
-  [['Sessions',week.sessions],['Questions',week.questions],['Score',week.percentage===null?'—':`${week.percentage}%`],['Trend',change],['Strongest',week.strongest_topic||'Not enough data'],['Needs attention',week.weakest_topic||'Not enough data']].forEach(([label,value])=>{const card=document.createElement('article');const name=document.createElement('span');name.textContent=label;const detail=document.createElement('strong');detail.textContent=value;card.append(name,detail);weeklyStats.appendChild(card)});const weeklyAction=document.createElement('p');weeklyAction.textContent=week.action;weekly.append(weeklyTitle,weeklyStats,weeklyAction);
-  const trend=document.createElement('section');trend.className='teacher-trend';const trendTitle=document.createElement('h4');trendTitle.textContent='Six-week performance trend';const bars=document.createElement('div');bars.className='teacher-trend-bars';
+  [[dcopy('strongest'),data.strongest_topic||dcopy('noData')],[dcopy('weakest'),data.weakest_topic||dcopy('noData')]].forEach(([label,value])=>{const card=document.createElement('article');const name=document.createElement('span');name.textContent=label;const topic=document.createElement('strong');topic.textContent=value;card.append(name,topic);insight.appendChild(card)});
+  const recommendation=document.createElement('p');recommendation.className='teacher-recommendation';recommendation.textContent=teacherOverallAction(data);
+  const week=data.weekly_summary;const weekly=document.createElement('section');weekly.className='teacher-weekly';const weeklyTitle=document.createElement('h4');weeklyTitle.textContent=dcopy('week');const weeklyStats=document.createElement('div');weeklyStats.className='teacher-weekly-stats';
+  const change=week.change_points===null?dcopy('noCompare'):week.change_points>0?`+${week.change_points}`:week.change_points<0?`-${Math.abs(week.change_points)}`:dcopy('noChange');
+  [[dcopy('sessions'),week.sessions],[dcopy('questions'),week.questions],[dcopy('score'),week.percentage===null?'—':`${week.percentage}%`],[dcopy('trend'),change],[dcopy('strongest'),week.strongest_topic||dcopy('noData')],[dcopy('attention'),week.weakest_topic||dcopy('noData')]].forEach(([label,value])=>{const card=document.createElement('article');const name=document.createElement('span');name.textContent=label;const detail=document.createElement('strong');detail.textContent=value;card.append(name,detail);weeklyStats.appendChild(card)});const weeklyAction=document.createElement('p');weeklyAction.textContent=teacherAction(data);weekly.append(weeklyTitle,weeklyStats,weeklyAction);
+  const trend=document.createElement('section');trend.className='teacher-trend';const trendTitle=document.createElement('h4');trendTitle.textContent=dcopy('sixWeek');const bars=document.createElement('div');bars.className='teacher-trend-bars';
   data.weekly_trend.forEach(item=>{const column=document.createElement('div');const value=document.createElement('strong');value.textContent=item.percentage===null?'—':`${item.percentage}%`;const bar=document.createElement('i');bar.style.height=`${Math.max(item.percentage||0,4)}%`;bar.title=`${item.sessions} sessions · ${item.questions} questions`;const label=document.createElement('span');label.textContent=new Date(`${item.week_start}T00:00:00`).toLocaleDateString(undefined,{day:'numeric',month:'short'});column.append(value,bar,label);bars.appendChild(column)});trend.append(trendTitle,bars);
   const note=document.createElement('p');note.className='teacher-privacy-note';note.textContent=`${data.class_level} aggregate only. No learner names or identifiers are displayed.`;
-  const topics=document.createElement('section');topics.className='topic-progress';const topicTitle=document.createElement('h4');topicTitle.textContent='Topic performance';topics.appendChild(topicTitle);data.topics.forEach(item=>{const row=document.createElement('article');row.textContent=`${item.topic}: ${item.percentage}% across ${item.questions} questions`;topics.appendChild(row)});teacherDashboardContent.append(stats,weekly,insight,recommendation,trend,note,topics);
+  const topics=document.createElement('section');topics.className='topic-progress';const topicTitle=document.createElement('h4');topicTitle.textContent=dcopy('topicPerformance');topics.appendChild(topicTitle);data.topics.forEach(item=>{const row=document.createElement('article');row.textContent=`${item.topic}: ${item.percentage}% · ${item.questions} ${dcopy('questions').toLowerCase()}`;topics.appendChild(row)});teacherDashboardContent.append(stats,weekly,insight,recommendation,trend,note,topics);
 }
 
 async function refreshTeacherDashboard(){
@@ -531,10 +572,10 @@ function renderProgress(data){
   progressLoading.classList.add('hidden');progressLoading.classList.remove('error');
   if(!data.sessions){progressEmpty.classList.remove('hidden');return}
   progressDashboard.classList.remove('hidden');progressSessions.textContent=data.sessions;progressQuestions.textContent=data.total_questions;
-  progressAverage.textContent=`${data.average_percentage}%`;progressStrongest.textContent=data.strongest_topic||'—';progressRecommendation.textContent=data.recommendation;
-  const week=data.weekly_summary;weeklySessions.textContent=`${week.sessions} session${week.sessions===1?'':'s'}`;weeklyQuestions.textContent=`${week.questions} question${week.questions===1?'':'s'}`;weeklyScore.textContent=`${week.percentage}%`;
-  weeklyImprovement.textContent=week.improvement_points===null?'Complete another week to measure improvement.':week.improvement_points>0?`Improved by ${week.improvement_points} percentage points.`:week.improvement_points<0?`Down ${Math.abs(week.improvement_points)} points—review the recommended topic.`:'Your score is steady compared with last week.';
-  weeklyStrongest.textContent=week.strongest_topic||'—';weeklyFocus.textContent=week.focus_topic||'—';weeklyNextAction.textContent=week.next_action;
+  progressAverage.textContent=`${data.average_percentage}%`;progressStrongest.textContent=data.strongest_topic||'—';progressRecommendation.textContent=learnerRecommendation(data);document.querySelectorAll('[data-progress-label]').forEach(item=>{item.textContent=dcopy(item.dataset.progressLabel)});practiceRecommendation.textContent=dcopy('continue');
+  const week=data.weekly_summary;weeklySessions.textContent=`${week.sessions} ${dcopy('sessions').toLowerCase()}`;weeklyQuestions.textContent=`${week.questions} ${dcopy('questions').toLowerCase()}`;weeklyScore.textContent=`${week.percentage}%`;
+  weeklyImprovement.textContent=weeklyImprovementText(week);
+  weeklyStrongest.textContent=week.strongest_topic||'—';weeklyFocus.textContent=week.focus_topic||'—';weeklyNextAction.textContent=weeklyAction(week);
   progressStorageNotice.classList.toggle('hidden',data.storage_synced);progressTopics.replaceChildren();recentSessions.replaceChildren();renderLearningPath(data.learning_path||[]);
   data.topics.forEach(item=>{
     const row=document.createElement('article');const label=document.createElement('div');const name=document.createElement('strong');const score=document.createElement('span');
@@ -572,9 +613,9 @@ function openLearningPathTopic(term,topic){
 }
 
 function renderLearningPath(terms){
-  learningPath.replaceChildren();const labels={not_started:'Not started',needs_practice:'Needs practice',mastered:'Mastered',recommended:'Recommended next'};
+  learningPath.replaceChildren();const labels=pathCopy[language.value]||pathCopy.English;
   terms.forEach(term=>{const section=document.createElement('section');const heading=document.createElement('h5');heading.textContent=term.term;const topics=document.createElement('div');topics.className='learning-path-topics';
-    term.topics.forEach(item=>{const card=document.createElement('article');card.className=`learning-path-topic ${item.status.replace('_','-')}`;const copy=document.createElement('div');const name=document.createElement('strong');name.textContent=item.topic;const detail=document.createElement('span');detail.textContent=item.percentage===null?labels[item.status]:`${labels[item.status]} · ${item.percentage}%`;copy.append(name,detail);const button=document.createElement('button');button.type='button';button.dataset.term=term.term;button.dataset.topic=item.topic;button.textContent=item.status==='recommended'?'Continue →':item.status==='not_started'?'Start':'Practise';button.setAttribute('aria-label',`${button.textContent.replace(' →','')} ${item.topic}`);card.append(copy,button);topics.appendChild(card)});
+    term.topics.forEach(item=>{const card=document.createElement('article');card.className=`learning-path-topic ${item.status.replace('_','-')}`;const copy=document.createElement('div');const name=document.createElement('strong');name.textContent=item.topic;const detail=document.createElement('span');detail.textContent=item.percentage===null?labels[item.status]:`${labels[item.status]} · ${item.percentage}%`;copy.append(name,detail);const button=document.createElement('button');button.type='button';button.dataset.term=term.term;button.dataset.topic=item.topic;button.textContent=item.status==='recommended'?labels.continue:item.status==='not_started'?labels.start:labels.practise;button.setAttribute('aria-label',`${button.textContent.replace(' →','')} ${item.topic}`);card.append(copy,button);topics.appendChild(card)});
     section.append(heading,topics);learningPath.appendChild(section)});
 }
 

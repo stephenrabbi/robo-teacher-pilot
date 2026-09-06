@@ -61,6 +61,10 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert "teacherAudioContext.state==='closed'" in script
     assert 'teacherAudioContext.close()' not in script
     assert "error.name==='AbortError'" in script
+    assert 'const dashboardCopy=' in script
+    assert 'function learnerRecommendation(data)' in script
+    assert 'function teacherAction(data)' in script
+    assert "renderTeacherDashboard(currentTeacherDashboard)" in script
     assert 'response.body.getReader()' in script
     assert 'createBuffer(1,samples,24000)' in script
 
