@@ -148,6 +148,12 @@ const dashboardCopy={
   Igbo:{sessions:'Oge omume',questions:'Ajụjụ',overall:'Akara niile',strongest:'Isiokwu kacha mma',next:'Ihe ị ga-eme ọzọ',continue:'Gaa n’Ihu n’Ịmụ →',week:'Izu a',weekStrongest:'Isiokwu kacha mma n’izu a',attention:'Ihe chọrọ mgbakwunye',learners:'Ụmụ akwụkwọ',average:'Nkezi',weakest:'Isiokwu chọrọ ọrụ ọzọ',score:'Akara',trend:'Mgbanwe akara',noData:'Data ezughị',noCompare:'Enweghị izu gara aga iji tụnyere',noChange:'Akara agbanwebeghị',sixWeek:'Mgbanwe akara izu isii',topicPerformance:'Nsonaazụ isiokwu'},
   Hausa:{sessions:'Zaman atisaye',questions:'Tambayoyi',overall:'Jimillar maki',strongest:'Darasi mafi ƙarfi',next:'Mataki na gaba',continue:'Ci Gaba da Koyo →',week:'Wannan makon',weekStrongest:'Darasi mafi ƙarfi a makon nan',attention:'Abin da ke buƙatar kulawa',learners:'Dalibai',average:'Matsakaici',weakest:'Darasi mai buƙatar ƙarin aiki',score:'Maki',trend:'Canjin maki',noData:'Babu isasshen bayani',noCompare:'Babu makon baya don kwatantawa',noChange:'Maki bai canza ba',sixWeek:'Canjin maki na makonni shida',topicPerformance:'Sakamakon darussa'}
 };
+const resultCopy={
+  English:{score:(correct,total)=>`${correct} out of ${total} correct`,diagnostic:'Diagnostic topic results',review:'Questions to review',perfect:'Perfect score!',perfectNote:'You answered every question correctly. Excellent work!',yourAnswer:'Your answer',noAnswer:'No answer',correctAnswer:'Correct answer',again:'Practise Again',progress:'View Progress',change:'Change Topic',recommended:'Practise Recommended Topic',exit:'Exit Practice'},
+  Yoruba:{score:(correct,total)=>`${correct} nínú ${total} ló dáa`,diagnostic:'Àbájáde kókó nínú ìdánwò',review:'Àwọn ìbéèrè láti tún wo',perfect:'Gbogbo rẹ̀ dáa!',perfectNote:'O dáhùn gbogbo ìbéèrè dáadáa. Iṣẹ́ rere!',yourAnswer:'Ìdáhùn rẹ',noAnswer:'Kò sí ìdáhùn',correctAnswer:'Ìdáhùn tó tọ́',again:'Ṣe lẹ́ẹ̀kan sí',progress:'Wo Ìtẹ̀síwájú',change:'Yí Kókó Padà',recommended:'Ṣe Kókó Tí A Dábàá',exit:'Jáde nínú Practice'},
+  Igbo:{score:(correct,total)=>`${correct} n’ime ${total} ziri ezi`,diagnostic:'Nsona isiokwu ule',review:'Ajụjụ ị ga-elegharị anya',perfect:'Akara zuru oke!',perfectNote:'Ị zara ajụjụ niile nke ọma. Ezigbo ọrụ!',yourAnswer:'Azịza gị',noAnswer:'Enweghị azịza',correctAnswer:'Azịza ziri ezi',again:'Mee ọzọ',progress:'Lee Ọganihu',change:'Gbanwee Isiokwu',recommended:'Mee Isiokwu A Tụrụ Aro',exit:'Kwidata Practice'},
+  Hausa:{score:(correct,total)=>`${correct} cikin ${total} daidai`,diagnostic:'Sakamakon batutuwan gwaji',review:'Tambayoyin da za a sake dubawa',perfect:'Cikakken maki!',perfectNote:'Ka amsa duk tambayoyin daidai. Madalla!',yourAnswer:'Amsarka',noAnswer:'Babu amsa',correctAnswer:'Amsa daidai',again:'Sake Gwaji',progress:'Duba Ci Gaba',change:'Canja Batu',recommended:'Gwada Batun da Aka Ba da Shawara',exit:'Fita daga Practice'}
+};
 function dcopy(key){return (dashboardCopy[language.value]||dashboardCopy.English)[key]}
 const pathCopy={English:{not_started:'Not started',needs_practice:'Needs practice',mastered:'Mastered',recommended:'Recommended next',continue:'Continue →',start:'Start',practise:'Practise'},Yoruba:{not_started:'Kò tíì bẹ̀rẹ̀',needs_practice:'Ó nílò Practice',mastered:'Ó ti mọ̀ ọ́',recommended:'Èyí ló kàn',continue:'Tẹ̀síwájú →',start:'Bẹ̀rẹ̀',practise:'Ṣe Practice'},Igbo:{not_started:'Amalitebeghị',needs_practice:'Ọ chọrọ Practice',mastered:'Ọ mụtala ya',recommended:'Ihe na-esote',continue:'Gaa n’ihu →',start:'Bido',practise:'Mee Practice'},Hausa:{not_started:'Ba a fara ba',needs_practice:'Yana buƙatar Practice',mastered:'An iya shi',recommended:'Mataki na gaba',continue:'Ci gaba →',start:'Fara',practise:'Yi Practice'}};
 const diagnosticLabels={English:{title:'Diagnostic placement',completed:'Completed tests',learners:'Learners assessed',average:'Average score',focus:'Most common starting topic'},Yoruba:{title:'Ìdánwò ìbẹ̀rẹ̀',completed:'Ìdánwò tó parí',learners:'Akẹ́kọ̀ọ́ tí a yẹ̀wò',average:'Àpapọ̀ máàkì',focus:'Kókó ìbẹ̀rẹ̀ tó wọ́pọ̀'},Igbo:{title:'Nnwale mbido',completed:'Nnwale emechara',learners:'Ụmụ akwụkwọ enyochara',average:'Nkezi akara',focus:'Isiokwu mmalite kacha pụta'},Hausa:{title:'Gwajin farawa',completed:'Gwajin da aka kammala',learners:'Daliban da aka gwada',average:'Matsakaicin maki',focus:'Darasin farawa mafi yawa'}};
@@ -540,16 +546,18 @@ function resetPracticeSetup(){
 
 function renderPracticeResults(summary){
   currentPracticeSummary=summary;practiceSetup.classList.add('hidden');practiceQuestion.classList.add('hidden');practiceResults.classList.remove('hidden');
-  resultPercentage.textContent=`${summary.percentage}%`;resultScore.textContent=`${summary.score} out of ${summary.attempted} correct`;
+  const labels=resultCopy[language.value]||resultCopy.English;
+  resultPercentage.textContent=`${summary.percentage}%`;resultScore.textContent=labels.score(summary.score,summary.attempted);
   resultRecommendation.textContent=summary.recommendation;missedReview.replaceChildren();
-  changePracticeTopicButton.textContent=summary.diagnostic?'Practise Recommended Topic':'Change Topic';
-  if(summary.topic_results){const topicHeading=document.createElement('h4');topicHeading.textContent='Diagnostic topic results';missedReview.appendChild(topicHeading);summary.topic_results.forEach(item=>{const row=document.createElement('article');row.textContent=`${item.topic}: ${item.percentage}% (${item.correct}/${item.attempted})`;missedReview.appendChild(row)})}
-  const heading=document.createElement('h4');heading.textContent=summary.missed.length?'Questions to review':'Perfect score!';missedReview.appendChild(heading);
-  if(!summary.missed.length){const note=document.createElement('p');note.textContent='You answered every question correctly. Excellent work!';missedReview.appendChild(note);return}
+  practiceAgainButton.textContent=labels.again;viewProgressFromResults.textContent=labels.progress;exitPracticeResultsButton.textContent=labels.exit;
+  changePracticeTopicButton.textContent=summary.diagnostic?labels.recommended:labels.change;
+  if(summary.topic_results){const topicHeading=document.createElement('h4');topicHeading.textContent=labels.diagnostic;missedReview.appendChild(topicHeading);summary.topic_results.forEach(item=>{const row=document.createElement('article');row.textContent=`${item.topic}: ${item.percentage}% (${item.correct}/${item.attempted})`;missedReview.appendChild(row)})}
+  const heading=document.createElement('h4');heading.textContent=summary.missed.length?labels.review:labels.perfect;missedReview.appendChild(heading);
+  if(!summary.missed.length){const note=document.createElement('p');note.textContent=labels.perfectNote;missedReview.appendChild(note);return}
   summary.missed.forEach((item,index)=>{
     const card=document.createElement('article');
     const title=document.createElement('strong');title.textContent=`${index+1}. ${item.question}`;
-    const answers=document.createElement('p');answers.textContent=`Your answer: ${item.learner_answer || 'No answer'} · Correct answer: ${item.correct_answer}`;
+    const answers=document.createElement('p');answers.textContent=`${labels.yourAnswer}: ${item.learner_answer || labels.noAnswer} · ${labels.correctAnswer}: ${item.correct_answer}`;
     const explanation=document.createElement('p');explanation.textContent=item.explanation;
     card.append(title,answers,explanation);missedReview.appendChild(card);
   });
