@@ -9,10 +9,19 @@ import classroom_api
 import practice
 import practice_progress
 import diagnostic_progress
+from practice_generator import generate_question
 from tutor import GEMINI_STREAMING_TTS_MODEL, GEMINI_TTS_MODEL, TTS_VOICES, _language_instruction, _pcm_to_wav, _prepare_spoken_transcript, _speech_chunks, _spoken_excerpt, get_tutor_reply
 
 client = TestClient(app)
 PROJECT_ROOT = Path(__file__).parent
+
+
+def test_linear_inequality_and_graph_generators_stay_in_their_topics():
+    for level in ('Easy', 'Medium', 'Challenge'):
+        inequality = generate_question('Linear Inequalities', level)[0]
+        graph = generate_question('Linear Graphs', level)[0]
+        assert any(symbol in inequality for symbol in ('<', '>', '≥', '≤'))
+        assert 'y =' in graph or 'gradient' in graph.lower()
 
 
 def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
