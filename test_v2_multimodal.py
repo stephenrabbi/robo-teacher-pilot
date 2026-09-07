@@ -84,6 +84,14 @@ async def test_stream_limit():
             assert "too large" in str(exc)
 
 
+async def test_webhook_setup_skips_classroom_only_environment():
+    with patch.dict("os.environ", {}, clear=True), patch("telegram_adapter.httpx.AsyncClient") as client:
+        configured = await telegram_adapter.configure_telegram_webhook()
+        assert configured is False
+        client.assert_not_called()
+
+
 asyncio.run(test_download_contract())
 asyncio.run(test_stream_limit())
+asyncio.run(test_webhook_setup_skips_classroom_only_environment())
 print("V2 multimodal safety tests passed.")

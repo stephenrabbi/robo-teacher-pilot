@@ -57,9 +57,12 @@ def _validate_webhook_url(webhook_url: str) -> None:
         raise ValueError("TELEGRAM_WEBHOOK_URL must be an absolute HTTPS URL")
 
 
-async def configure_telegram_webhook() -> None:
-    token = os.environ["TELEGRAM_BOT_TOKEN"]
-    secret = os.environ["TELEGRAM_WEBHOOK_SECRET"]
+async def configure_telegram_webhook() -> bool:
+    """Register Telegram when configured; skip cleanly for classroom-only environments."""
+    token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
+    secret = os.getenv("TELEGRAM_WEBHOOK_SECRET", "").strip()
+    if not token or not secret:
+        return False
     if not _WEBHOOK_SECRET_RE.fullmatch(secret):
         raise ValueError("TELEGRAM_WEBHOOK_SECRET must be 1-256 characters using only letters, numbers, underscore, or hyphen")
     webhook_url = os.getenv("TELEGRAM_WEBHOOK_URL", "https://robo-teacher-jfg7.onrender.com/webhook/telegram")
@@ -68,6 +71,7 @@ async def configure_telegram_webhook() -> None:
     async with httpx.AsyncClient(timeout=30) as client:
         resp = await client.post(url, json={"url": webhook_url, "secret_token": secret, "drop_pending_updates": False})
         _ensure_telegram_ok(resp, "Telegram webhook registration")
+    return True
 
 
 async def send_telegram_message(chat_id: int | str, text: str) -> None:
