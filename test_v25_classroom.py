@@ -28,7 +28,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260907-fullcanvas1' in html
+    assert '20260907-voiceplayer1' in html
     assert 'id="learnerNickname"' in html
     assert 'id="learnerClass"' in html
     assert "learnerNickname.value=''" in script
@@ -103,12 +103,14 @@ def test_ui_refinement_exposes_clear_modes_and_activity_status():
     assert 'teacherAudioContext.suspend()' in script
     assert 'teacherAudioContext.resume()' in script
     assert "teacherSpeechPaused){await resumeTeacherAudio()" in script
-    assert '!teacherSpeechPaused&&requestId===teacherSpeechRequest' in script
+    assert 'new Uint8Array(await response.arrayBuffer())' in script
+    assert 'source.start(context.currentTime+.04);setTeacherSpeaking(true)' in script
+    assert "setTimeout(()=>{teacherSpeechTimedOut=true;teacherSpeechController?.abort()},30000)" in script
     assert 'teacherSpeechPaused=true;\n  teacherPanel.classList.remove' in script
     assert 'await prepareTeacherAudio();\n    await ensureSession();' in script
     assert "teacherAudioContext.state==='closed'" in script
     assert 'teacherAudioContext.close()' not in script
-    assert "error.name==='AbortError'" in script
+    assert "timedOut?'The teacher voice took too long." in script
     assert 'const dashboardCopy=' in script
     assert 'function learnerRecommendation(data)' in script
     assert 'function teacherAction(data)' in script
