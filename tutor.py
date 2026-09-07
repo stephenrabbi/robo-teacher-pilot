@@ -299,8 +299,8 @@ def generate_tutor_speech(text: str, language: str = "English", voice_gender: st
     )
     for chunk in _speech_chunks(spoken_text):
         prompt = (
-            "Synthesize speech for the transcript below. Do not read these directions aloud. "
-            f"Use the same unmistakably adult {gender} teacher voice speaking {language_name}. "
+            "Read only the transcript below aloud. Do not read these directions. "
+            f"Speak in {language_name}. "
             f"{local_number_direction}"
             f"{delivery_style}"
             "Use the written punctuation for natural pauses, vary emphasis slightly, and avoid a stiff announcer cadence.\n\n"
@@ -309,13 +309,21 @@ def generate_tutor_speech(text: str, language: str = "English", voice_gender: st
         last_error = None
         for _attempt in range(2):
             try:
-                interaction = client.interactions.create(
+                response = client.models.generate_content(
                     model=GEMINI_TTS_MODEL,
-                    input=prompt,
-                    response_format={"type": "audio"},
-                    generation_config={"speech_config": [{"voice": TTS_VOICES[gender]}]},
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        response_modalities=["AUDIO"],
+                        speech_config=types.SpeechConfig(
+                            voice_config=types.VoiceConfig(
+                                prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                                    voice_name=TTS_VOICES[gender]
+                                )
+                            )
+                        ),
+                    ),
                 )
-                encoded = interaction.output_audio.data
+                encoded = response.candidates[0].content.parts[0].inline_data.data
                 pcm = base64.b64decode(encoded) if isinstance(encoded, str) else bytes(encoded)
                 if not pcm:
                     raise ValueError("Gemini TTS returned empty audio")
