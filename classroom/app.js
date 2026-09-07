@@ -130,6 +130,7 @@ const teacherAudioSources=new Set();
 let teacherStreamComplete=false;
 let teacherSpeechPaused=false;
 let teacherAudioKeepAlive=null;
+let teacherNativeUtterance=null;
 let drawing=false;
 let drawingTool='pen';
 let boardHasInk=false;
@@ -297,20 +298,20 @@ function setTeacherSpeaking(speaking){
 }
 
 async function pauseTeacherAudio(){
-  if(!teacherAudioContext||teacherSpeechPaused)return;
+  if((!teacherAudioContext&&!teacherNativeUtterance)||teacherSpeechPaused)return;
   // Lock the state before suspension so a final streamed chunk cannot close
   // the audio context while the learner is pausing it.
   teacherSpeechPaused=true;
   teacherPanel.classList.remove('speaking');teacherPanel.classList.add('paused');teacherVoiceStatus.textContent='Paused';
   readAnswerButton.innerHTML='<span>Continue</span>';readAnswerButton.setAttribute('aria-label','Continue reading the answer');setLearningStatus('Audio paused','paused');
-  try{await teacherAudioContext.suspend()}
+  try{if(teacherNativeUtterance)window.speechSynthesis.pause();else await teacherAudioContext.suspend()}
   catch(_error){teacherSpeechPaused=false;setTeacherSpeaking(true)}
 }
 
 async function resumeTeacherAudio(){
-  if(!teacherAudioContext||!teacherSpeechPaused)return;
+  if((!teacherAudioContext&&!teacherNativeUtterance)||!teacherSpeechPaused)return;
   try{
-    await teacherAudioContext.resume();teacherSpeechPaused=false;setTeacherSpeaking(true);
+    if(teacherNativeUtterance)window.speechSynthesis.resume();else await teacherAudioContext.resume();teacherSpeechPaused=false;setTeacherSpeaking(true);
     if(teacherStreamComplete&&!teacherAudioSources.size)stopTeacherAudio();
   }catch(_error){
     teacherSpeechPaused=false;stopTeacherAudio();
@@ -323,6 +324,7 @@ function stopTeacherAudio(preserveAudioUnlock=false){
   if(teacherSpeechController){teacherSpeechController.abort();teacherSpeechController=null}
   if(!preserveAudioUnlock)stopAudioKeepAlive();
   teacherAudioSources.forEach(source=>{try{source.stop()}catch(_error){/* Already stopped. */}});teacherAudioSources.clear();
+  if(teacherNativeUtterance&&window.speechSynthesis)window.speechSynthesis.cancel();teacherNativeUtterance=null;
   teacherStreamComplete=false;
   teacherSpeechPaused=false;
   teacherPanel.classList.remove('paused');
@@ -361,6 +363,18 @@ async function playTeacherAudio(response,requestId){
   teacherStreamComplete=true;source.start();
 }
 
+function speakWithDeviceVoice(text,requestId){
+  if(!window.speechSynthesis||!window.SpeechSynthesisUtterance)throw new Error('device voice unavailable');
+  stopAudioKeepAlive();const utterance=new SpeechSynthesisUtterance(prepareSpeechText(text));teacherNativeUtterance=utterance;
+  const languageCodes={English:'en-NG',Yoruba:'yo-NG',Igbo:'ig-NG',Hausa:'ha-NG'};utterance.lang=languageCodes[language.value]||'en-NG';utterance.rate=.92;utterance.pitch=1.06;
+  const voices=window.speechSynthesis.getVoices();const code=utterance.lang.split('-')[0].toLowerCase();const localVoices=voices.filter(voice=>voice.lang.toLowerCase().startsWith(code));
+  utterance.voice=localVoices.find(voice=>/female|zira|samantha|victoria|aria|jenny|susan|moira|tessa|karen/i.test(voice.name))||localVoices[0]||voices.find(voice=>/female|zira|samantha|aria|jenny/i.test(voice.name))||null;
+  utterance.addEventListener('start',()=>{if(requestId===teacherSpeechRequest)setTeacherSpeaking(true)},{once:true});
+  utterance.addEventListener('end',()=>{if(requestId===teacherSpeechRequest)stopTeacherAudio()},{once:true});
+  utterance.addEventListener('error',()=>{if(requestId===teacherSpeechRequest)stopTeacherAudio()},{once:true});
+  teacherStreamComplete=true;window.speechSynthesis.speak(utterance);
+}
+
 async function speakText(text,preserveAudioUnlock=false){
   if(!text.trim())return;
   stopTeacherAudio(preserveAudioUnlock);teacherVoiceStatus.textContent='Preparing…';readAnswerButton.innerHTML='<span>Preparing…</span>';setLearningStatus('Preparing teacher voice','thinking');
@@ -372,7 +386,7 @@ async function speakText(text,preserveAudioUnlock=false){
     if(requestId!==teacherSpeechRequest)return;
     const response=await fetch('/api/classroom/speech',{method:'POST',headers:{'Content-Type':'application/json','Accept':'audio/wav'},body:JSON.stringify({text:prepareSpeechText(text),session_token:token,language:language.value,voice_gender:teacherPanel.dataset.voiceGender==='male'?'male':'female'}),signal:teacherSpeechController.signal});
     if(response.status===401){sessionToken=null;throw new Error('session')}
-    if(!response.ok)throw new Error('natural voice unavailable');
+    if(!response.ok){speakWithDeviceVoice(text,requestId);return;}
     await playTeacherAudio(response,requestId);
   }catch(error){
     if(requestId!==teacherSpeechRequest)return;
