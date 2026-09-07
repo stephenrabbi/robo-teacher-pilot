@@ -307,7 +307,7 @@ def generate_tutor_speech(text: str, language: str = "English", voice_gender: st
             f"TRANSCRIPT:\n{chunk}"
         )
         last_error = None
-        for _attempt in range(2):
+        for _attempt in range(1):
             try:
                 response = client.models.generate_content(
                     model=GEMINI_TTS_MODEL,
