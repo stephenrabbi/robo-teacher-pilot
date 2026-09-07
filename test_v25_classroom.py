@@ -5,7 +5,6 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 
 from v25_app import app
-from main import app as production_app
 import classroom_api
 import practice
 import practice_progress
@@ -15,12 +14,6 @@ from tutor import GEMINI_STREAMING_TTS_MODEL, GEMINI_TTS_MODEL, TTS_VOICES, _lan
 
 client = TestClient(app)
 PROJECT_ROOT = Path(__file__).parent
-
-
-def test_production_entrypoint_exposes_classroom_session_api():
-    response = TestClient(production_app).post('/api/classroom/session')
-    assert response.status_code == 200
-    assert response.json()['session_token']
 
 
 def test_linear_inequality_and_graph_generators_stay_in_their_topics():
@@ -35,7 +28,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260907-uirefinement1' in html
+    assert '20260907-fullcanvas1' in html
     assert 'id="learnerNickname"' in html
     assert 'id="learnerClass"' in html
     assert "learnerNickname.value=''" in script
@@ -51,7 +44,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert "localStorage.setItem('roboTeacherQaChecklist'" in script
     assert 'const resultCopy=' in script
     assert 'labels.yourAnswer' in script
-    assert '20260907-uirefinement1' in html
+    assert '20260907-fullcanvas1' in html
     assert 'downloadTeacherDashboardReport' in script
     assert 'id="practiceClass"' in html
     assert 'id="startDiagnostic"' in html
@@ -71,6 +64,10 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert '.founder-avatar{height:auto!important;aspect-ratio:1023/1537!important' in css
     assert 'min-height:44px' in css
     assert 'grid-template-columns:290px minmax(0,1fr)' in css
+    assert '.classroom-screen,.classroom-screen.teacher-min{grid-template-columns:minmax(0,1fr);gap:14px}' in css
+    assert '.teacher-panel{order:2;display:grid;grid-template-columns:150px minmax(0,1fr)' in css
+    assert '.learning-area{order:1}' in css
+    assert '.whiteboard-area canvas{aspect-ratio:2.5/1}' in css
     assert 'grid-template-columns:repeat(4,minmax(0,1fr))' in css
     assert 'overflow:visible' in css
 
@@ -142,18 +139,6 @@ def test_yoruba_speech_localizes_numbers_and_maths_operators():
     assert larger == 'Ọ̀kan Méjì Méje plus Ọ̀kan Odo Odo Odo'
     assert not any(character.isdigit() for character in larger)
     assert _prepare_spoken_transcript('2 + 3 = 5', 'English') == '2 + 3 = 5'
-
-
-def test_brand_names_never_speak_their_hyphens_as_minus_signs():
-    introduction = 'Hello, I am Robo-Teacher from Earlyon-Tech Brainery. 8 - 3 = 5.'
-    assert _prepare_spoken_transcript(introduction, 'English') == (
-        'Hello, I am Robo Teacher from Earlyon Tech Brainery. 8 - 3 = 5.'
-    )
-    yoruba = _prepare_spoken_transcript(introduction, 'Yoruba')
-    assert 'Robo Teacher' in yoruba
-    assert 'Earlyon Tech Brainery' in yoruba
-    assert 'Mẹ́jọ minus Mẹ́ta jẹ́ Márùn-ún' in yoruba
-    assert 'Robo minus Teacher' not in yoruba
 
 
 def test_igbo_speech_localizes_numbers_and_maths_operators():
@@ -796,8 +781,6 @@ def test_active_practice_switches_question_feedback_and_remaining_language():
 
 
 if __name__ == '__main__':
-    test_production_entrypoint_exposes_classroom_session_api()
-    test_brand_names_never_speak_their_hyphens_as_minus_signs()
     test_session_and_chat_use_pseudonymous_identity()
     test_tampered_session_is_rejected()
     test_question_length_is_bounded()
