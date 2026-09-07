@@ -92,8 +92,8 @@ def test_ui_refinement_exposes_clear_modes_and_activity_status():
     assert '.class-tools button.active' in css
     assert '.composer{position:sticky;bottom:92px' in css
     assert 'linear-gradient(135deg,#eaf7ff' in css
-    assert 'void speakText(data.reply)' in script
-    assert 'stopTeacherAudio();\n    await ensureSession();' in script
+    assert 'void speakText(data.reply,true)' in script
+    assert 'stopTeacherAudio();\n    try{await startAudioKeepAlive()}' in script
     assert 'data-voice-gender="female"' in html
     assert 'prepareSpeechText(text)' in script
     assert "fetch('/api/classroom/speech'" in script
@@ -108,7 +108,12 @@ def test_ui_refinement_exposes_clear_modes_and_activity_status():
     assert 'if(!receivedAudio){receivedAudio=true;stopAudioKeepAlive();setTeacherSpeaking(true)}' in script
     assert "if(!receivedAudio)throw new Error('empty voice')" in script
     assert 'teacherSpeechPaused=true;\n  teacherPanel.classList.remove' in script
-    assert 'await prepareTeacherAudio();\n    await ensureSession();' in script
+    assert 'await startAudioKeepAlive();\n    await ensureSession();' in script
+    assert 'function stopTeacherAudio(preserveAudioUnlock=false)' in script
+    assert "showCanvasAnswer(data.reply,'Whiteboard solution ready',true)" in script
+    assert "showCanvasAnswer(data.reply,'Voice question explained',true)" in script
+    assert 'stopTeacherAudio(preserveAudioUnlock);' in script
+    assert 'if(!preserveAudioUnlock||!teacherAudioKeepAlive)await startAudioKeepAlive()' in script
     assert "teacherAudioContext.state==='closed'" in script
     assert 'teacherAudioContext.close()' not in script
     assert 'stopAudioKeepAlive()' in script
