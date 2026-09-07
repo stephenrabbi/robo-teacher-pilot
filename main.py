@@ -13,12 +13,10 @@ from tutor import get_tutor_reply, get_tutor_image_reply, get_tutor_audio_reply
 from sheet_logger import log_interaction
 from telegram_adapter import send_telegram_message, configure_telegram_webhook, download_telegram_image, download_telegram_audio, SUPPORTED_AUDIO_MIME_TYPES
 from roster_sheet import lookup_student, is_awaiting_school_choice, mark_awaiting_school_choice, parse_school_choice, register_student, auto_enrollment_enabled, ONBOARDING_PROMPT, ONBOARDING_RETRY, ENROLLMENT_CLOSED_PROMPT
-from classroom_api import router as classroom_router
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("robo-teacher")
 app = FastAPI(title="Robo-Teacher Pilot")
-app.include_router(classroom_router)
 if os.path.isdir("classroom"):
     app.mount("/classroom", StaticFiles(directory="classroom"), name="classroom-static")
 WHATSAPP_MIGRATION_MESSAGE = "Robo-Teacher WhatsApp Pilot Update\n\nOur WhatsApp pilot has now ended while we improve Robo-Teacher.\n\nPlease continue learning with Robo-Teacher FREE on Telegram:\nhttps://t.me/RoboTeacherAfricaBot\n\nOpen the link, tap Start, and continue asking your Maths questions there.\n\nThank you for being part of the Robo-Teacher journey.\nEvery learner. Their own AI teacher."
@@ -26,8 +24,11 @@ WHATSAPP_MIGRATION_MESSAGE = "Robo-Teacher WhatsApp Pilot Update\n\nOur WhatsApp
 @app.on_event("startup")
 async def _sync_telegram_webhook_on_startup():
     try:
-        await configure_telegram_webhook()
-        logger.info("Telegram webhook synchronized successfully")
+        configured = await configure_telegram_webhook()
+        if configured:
+            logger.info("Telegram webhook synchronized successfully")
+        else:
+            logger.info("Telegram webhook synchronization skipped: credentials are not configured for this environment")
     except Exception as exc:
         logger.error("Telegram webhook synchronization failed (%s)", type(exc).__name__)
 
