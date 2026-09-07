@@ -15,6 +15,7 @@ const toggle=document.getElementById('toggleTeacher');
 const teacherPanel=document.getElementById('teacherPanel');
 const readAnswerButton=document.getElementById('readAnswer');
 const teacherVoiceStatus=document.getElementById('teacherVoiceStatus');
+const learningStatus=document.getElementById('learningStatus');
 const form=document.getElementById('chatForm');
 const question=document.getElementById('question');
 const messages=document.getElementById('messages');
@@ -25,6 +26,7 @@ const imageUpload=document.getElementById('imageUpload');
 const cameraCapture=document.getElementById('cameraCapture');
 const micButton=document.getElementById('micButton');
 const navMicButton=document.getElementById('navMicButton');
+const teachingCanvas=document.getElementById('canvas');
 const canvasEmpty=document.getElementById('canvasEmpty');
 const canvasWork=document.getElementById('canvasWork');
 const problemPreview=document.getElementById('problemPreview');
@@ -41,6 +43,7 @@ const submitBoardButton=document.getElementById('submitBoard');
 const backToWhiteboard=document.getElementById('backToWhiteboard');
 const language=document.getElementById('language');
 const languageButton=document.getElementById('languageButton');
+const chatButton=document.getElementById('chatButton');
 const practiceButton=document.getElementById('practiceButton');
 const practiceArea=document.getElementById('practiceArea');
 const practiceSetup=document.getElementById('practiceSetup');
@@ -268,7 +271,7 @@ changeLearnerButton.addEventListener('click',()=>{
 toggle.addEventListener('click',()=>{
   const mini=teacherPanel.classList.toggle('minimized');
   classroom.classList.toggle('teacher-min',mini);
-  toggle.textContent=mini?'↗':'↙';
+  toggle.textContent=mini?'Show':'Hide';
   toggle.setAttribute('aria-label',mini?'Maximize teacher':'Minimize teacher');
   toggle.setAttribute('aria-expanded',String(!mini));
 });
@@ -286,8 +289,9 @@ function prepareSpeechText(text){
 function setTeacherSpeaking(speaking){
   teacherPanel.classList.toggle('speaking',speaking);
   teacherVoiceStatus.textContent=speaking?'Speaking…':'Ready';
-  readAnswerButton.innerHTML=speaking?'⏸ <span>Pause</span>':'🔊 <span>Read answer</span>';
+  readAnswerButton.innerHTML=speaking?'<span>Pause</span>':'<span>Read answer</span>';
   readAnswerButton.setAttribute('aria-label',speaking?'Pause reading the answer':'Read the current answer aloud');
+  if(speaking)setLearningStatus('Speaking','speaking');
 }
 
 async function pauseTeacherAudio(){
@@ -296,7 +300,7 @@ async function pauseTeacherAudio(){
   // the audio context while the learner is pausing it.
   teacherSpeechPaused=true;
   teacherPanel.classList.remove('speaking');teacherVoiceStatus.textContent='Paused';
-  readAnswerButton.innerHTML='▶ <span>Continue</span>';readAnswerButton.setAttribute('aria-label','Continue reading the answer');
+  readAnswerButton.innerHTML='<span>Continue</span>';readAnswerButton.setAttribute('aria-label','Continue reading the answer');setLearningStatus('Audio paused','paused');
   try{await teacherAudioContext.suspend()}
   catch(_error){teacherSpeechPaused=false;setTeacherSpeaking(true)}
 }
@@ -378,10 +382,28 @@ function addMessage(text,role){
   messages.appendChild(el);messages.scrollTop=messages.scrollHeight;return el;
 }
 
+function setLearningStatus(message,state=''){
+  learningStatus.textContent=message;learningStatus.dataset.state=state;
+  teachingCanvas.setAttribute('aria-busy',String(state==='thinking'));
+}
+
+function setActiveMode(button){
+  document.querySelectorAll('.class-tools [data-mode]').forEach(item=>{
+    const active=item===button;item.classList.toggle('active',active);
+    if(active)item.setAttribute('aria-current','page');else item.removeAttribute('aria-current');
+  });
+}
+
+function openChat(){
+  whiteboardArea.classList.add('hidden');practiceArea.classList.add('hidden');progressArea.classList.add('hidden');teacherDashboard.classList.add('hidden');qaChecklist.classList.add('hidden');
+  if(canvasAnswer.textContent.trim())canvasWork.classList.remove('hidden');else canvasEmpty.classList.remove('hidden');
+  setActiveMode(chatButton);setLearningStatus('Ready to learn');question.focus();
+}
+
 function showCanvasAnswer(answer,status='Worked solution'){
   whiteboardArea.classList.add('hidden');practiceArea.classList.add('hidden');progressArea.classList.add('hidden');canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');
   canvasStatus.textContent=status;renderLesson(canvasAnswer,answer);
-  readAnswerButton.disabled=!answer.trim();
+  readAnswerButton.disabled=!answer.trim();setActiveMode(chatButton);setLearningStatus('Answer ready');
 }
 
 function renderLesson(container,text){
@@ -428,6 +450,7 @@ language.addEventListener('change',async()=>{
   question.focus();
 });
 languageButton.addEventListener('click',()=>language.focus());
+chatButton.addEventListener('click',openChat);
 practiceButton.addEventListener('click',openPractice);
 startPracticeButton.addEventListener('click',startPracticeSession);
 startDiagnosticButton.addEventListener('click',startDiagnosticSession);
@@ -453,7 +476,7 @@ practiceRecommendation.addEventListener('click',openRecommendedPractice);
 learningPath.addEventListener('click',event=>{const button=event.target.closest('button[data-topic]');if(button)openLearningPathTopic(button.dataset.term,button.dataset.topic)});
 
 function openPractice(){
-  whiteboardArea.classList.add('hidden');progressArea.classList.add('hidden');canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');practiceArea.classList.remove('hidden');
+  whiteboardArea.classList.add('hidden');progressArea.classList.add('hidden');canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');practiceArea.classList.remove('hidden');setActiveMode(practiceButton);setLearningStatus('Practice Mode');
   if(currentPracticeSummary)renderPracticeResults(currentPracticeSummary);
   else if(currentPractice){practiceSetup.classList.add('hidden');practiceQuestion.classList.remove('hidden');practiceResults.classList.add('hidden');practiceAnswer.focus()}
   else resetPracticeSetup();
@@ -461,7 +484,7 @@ function openPractice(){
 
 function closePractice(){
   practiceArea.classList.add('hidden');
-  if(canvasAnswer.textContent.trim())canvasWork.classList.remove('hidden');else canvasEmpty.classList.remove('hidden');
+  if(canvasAnswer.textContent.trim())canvasWork.classList.remove('hidden');else canvasEmpty.classList.remove('hidden');setActiveMode(chatButton);setLearningStatus('Ready to learn');
 }
 
 function renderPracticeQuestion(data){
@@ -470,7 +493,7 @@ function renderPracticeQuestion(data){
   practiceContext.textContent=`${data.class_level} · ${data.topic} · ${data.difficulty}`;practicePrompt.textContent=data.question;
   practiceAnswer.value='';practiceAnswer.disabled=false;practiceForm.querySelector('button').disabled=false;
   practiceFeedback.textContent='';practiceFeedback.className='practice-feedback hidden';showHintButton.disabled=false;
-  showHintButton.textContent='Show Hint';nextPracticeButton.textContent='Next Question →';nextPracticeButton.classList.add('hidden');practiceAnswer.focus();
+  showHintButton.textContent='Show Hint';nextPracticeButton.textContent='Next Question →';nextPracticeButton.classList.add('hidden');setLearningStatus(`Question ${data.question_number} of ${data.total_questions}`);practiceAnswer.focus();
 }
 
 async function practiceRequest(path,body){
@@ -490,10 +513,10 @@ async function diagnosticRequest(path,body){
 
 async function startPracticeSession(){
   practiceMode='practice';
-  startPracticeButton.disabled=true;practiceAgainButton.disabled=true;startPracticeButton.textContent='Preparing…';
+  startPracticeButton.disabled=true;practiceAgainButton.disabled=true;startPracticeButton.textContent='Preparing…';setLearningStatus('Preparing your practice','thinking');
   try{renderPracticeQuestion(await practiceRequest('start',{topic:practiceTopic.value,difficulty:practiceDifficulty.value,question_count:Number(practiceCount.value),class_level:practiceClass.value,language:language.value}))}
   catch(err){addMessage(err.message,'teacher')}
-  finally{startPracticeButton.disabled=false;practiceAgainButton.disabled=false;startPracticeButton.textContent='Start Practice →'}
+  finally{startPracticeButton.disabled=false;practiceAgainButton.disabled=false;startPracticeButton.textContent='Start Practice →';setLearningStatus('Practice ready')}
 }
 
 async function startDiagnosticSession(){
@@ -522,13 +545,13 @@ function showPracticeHint(){
 
 async function submitPracticeAnswer(event){
   event.preventDefault();const answer=practiceAnswer.value.trim();if(!answer)return;
-  const checkButton=practiceForm.querySelector('button');checkButton.disabled=true;
+  const checkButton=practiceForm.querySelector('button');checkButton.disabled=true;setLearningStatus('Checking your answer','thinking');
   try{
     const result=await (practiceMode==='diagnostic'?diagnosticRequest('answer',{answer}):practiceRequest('answer',{answer}));practiceAnswer.disabled=true;
     practiceScore.textContent=`Score: ${result.score}/${result.attempted} (${result.percentage}%)`;
     practiceFeedback.textContent=result.correct?`${result.message}\n\n${result.explanation}`:`${result.message}\n\n${result.explanation}\n\n${result.correct_answer_label}: ${result.expected_answer}`;
     practiceFeedback.className=`practice-feedback ${result.correct?'correct':'incorrect'}`;nextPracticeButton.classList.remove('hidden');showHintButton.disabled=true;
-    if(result.completed){currentPracticeSummary=result.summary;nextPracticeButton.textContent='View Results →'}
+    if(result.completed){currentPracticeSummary=result.summary;nextPracticeButton.textContent='View Results →'}setLearningStatus(result.correct?'Correct answer':'Review the explanation',result.correct?'success':'attention')
   }catch(err){practiceFeedback.textContent=err.message;practiceFeedback.className='practice-feedback incorrect';checkButton.disabled=false}
 }
 
@@ -569,7 +592,7 @@ function openResultRecommendation(){
 }
 
 async function openProgress(){
-  whiteboardArea.classList.add('hidden');practiceArea.classList.add('hidden');teacherDashboard.classList.add('hidden');canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');progressArea.classList.remove('hidden');
+  whiteboardArea.classList.add('hidden');practiceArea.classList.add('hidden');teacherDashboard.classList.add('hidden');canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');progressArea.classList.remove('hidden');setActiveMode(progressButton);setLearningStatus('Loading your progress','thinking');
   progressLoading.classList.remove('hidden');progressEmpty.classList.add('hidden');progressDashboard.classList.add('hidden');
   try{currentProgress=await practiceRequest('progress',{class_level:learnerClass.value});renderProgress(currentProgress)}
   catch(error){progressLoading.textContent=error.message;progressLoading.classList.add('error')}
@@ -582,7 +605,7 @@ async function openTeacherDashboard(){
 }
 
 async function loadTeacherDashboard(accessKey){
-  whiteboardArea.classList.add('hidden');practiceArea.classList.add('hidden');progressArea.classList.add('hidden');canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');teacherDashboard.classList.remove('hidden');teacherDashboardContent.textContent='Loading class performance…';
+  whiteboardArea.classList.add('hidden');practiceArea.classList.add('hidden');progressArea.classList.add('hidden');canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');teacherDashboard.classList.remove('hidden');teacherDashboardContent.textContent='Loading class performance…';setActiveMode(teacherDashboardButton);setLearningStatus('Loading Teacher View','thinking');
   showTeacherDashboard(await fetchTeacherDashboard(accessKey))
 }
 
@@ -591,7 +614,7 @@ async function fetchTeacherDashboard(accessKey){
 }
 
 function showTeacherDashboard(data){
-  currentTeacherDashboard=data;whiteboardArea.classList.add('hidden');practiceArea.classList.add('hidden');progressArea.classList.add('hidden');canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');teacherDashboard.classList.remove('hidden');renderTeacherDashboard(data)
+  currentTeacherDashboard=data;whiteboardArea.classList.add('hidden');practiceArea.classList.add('hidden');progressArea.classList.add('hidden');canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');teacherDashboard.classList.remove('hidden');renderTeacherDashboard(data);setLearningStatus('Teacher View ready')
 }
 
 function renderTeacherDashboard(data){
@@ -630,7 +653,7 @@ function renderQaChecklist(){
 function downloadQaChecklistReport(){const saved=qaStorage();const rows=[['Robo-Teacher V2.5 Staging QA Report'],['Generated',new Date().toISOString()],[],['Test group','Check','Status','Note','Last updated']];Object.entries(qaChecks).forEach(([group,checks])=>checks.forEach(check=>{const record=saved[`${group}:${check}`]||{};rows.push([group,check,record.status||'Not tested',record.note||'',record.updated||''])}));const csv=rows.map(row=>row.map(value=>`"${String(value).replaceAll('"','""')}"`).join(',')).join('\r\n');const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));const link=document.createElement('a');link.href=url;link.download=`robo-teacher-v25-qa-${new Date().toISOString().slice(0,10)}.csv`;link.click();URL.revokeObjectURL(url)}
 
 function renderProgress(data){
-  progressLoading.classList.add('hidden');progressLoading.classList.remove('error');
+  progressLoading.classList.add('hidden');progressLoading.classList.remove('error');setLearningStatus('Progress ready');
   if(!data.sessions&&!data.latest_diagnostic){progressEmpty.classList.remove('hidden');return}
   progressEmpty.classList.add('hidden');
   progressDashboard.classList.remove('hidden');progressSessions.textContent=data.sessions;progressQuestions.textContent=data.total_questions;
@@ -655,7 +678,7 @@ function formatProgressDate(value){
 }
 
 function closeProgress(){
-  progressArea.classList.add('hidden');if(canvasAnswer.textContent.trim())canvasWork.classList.remove('hidden');else canvasEmpty.classList.remove('hidden');
+  progressArea.classList.add('hidden');if(canvasAnswer.textContent.trim())canvasWork.classList.remove('hidden');else canvasEmpty.classList.remove('hidden');setActiveMode(chatButton);setLearningStatus('Ready to learn');
 }
 
 function openPracticeFromProgress(){resetPracticeSetup();openPractice()}
@@ -687,13 +710,13 @@ function clearWhiteboard(){
 }
 
 function openWhiteboard(){
-  canvasEmpty.classList.add('hidden');canvasWork.classList.add('hidden');practiceArea.classList.add('hidden');progressArea.classList.add('hidden');whiteboardArea.classList.remove('hidden');
+  canvasEmpty.classList.add('hidden');canvasWork.classList.add('hidden');practiceArea.classList.add('hidden');progressArea.classList.add('hidden');whiteboardArea.classList.remove('hidden');setActiveMode(whiteboardButton);setLearningStatus('Whiteboard ready');
   if(!whiteboard.dataset.ready){clearWhiteboard();whiteboard.dataset.ready='true'}
 }
 
 function closeWhiteboard(){
   whiteboardArea.classList.add('hidden');
-  if(canvasAnswer.textContent.trim())canvasWork.classList.remove('hidden');else canvasEmpty.classList.remove('hidden');
+  if(canvasAnswer.textContent.trim())canvasWork.classList.remove('hidden');else canvasEmpty.classList.remove('hidden');setActiveMode(chatButton);setLearningStatus('Ready to learn');
 }
 
 function selectDrawingTool(tool){
@@ -749,7 +772,7 @@ async function submitWhiteboard(){
 
 function setRecordingState(recording){
   micButton.classList.toggle('recording',recording);navMicButton.classList.toggle('recording',recording);
-  micButton.textContent=recording?'■':'🎙';navMicButton.textContent=recording?'■ Stop':'🎙 Mic';
+  micButton.textContent=recording?'Stop':'Voice';navMicButton.textContent=recording?'Stop':'Voice';setLearningStatus(recording?'Listening':'Preparing your answer',recording?'listening':'thinking');
   micButton.setAttribute('aria-label',recording?'Stop voice question':'Start voice question');
 }
 
@@ -820,7 +843,7 @@ async function handleImage(file,source='upload'){
   backToWhiteboard.classList.toggle('hidden',source!=='whiteboard');
   whiteboardArea.classList.add('hidden');
   canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');
-  canvasStatus.textContent='Robo-Teacher is reading your image…';canvasAnswer.textContent='';
+  canvasStatus.textContent='Robo-Teacher is reading your image…';canvasAnswer.textContent='';setLearningStatus('Reading your image','thinking');
   const thinking=addMessage('I’m reading the Maths problem in your image…','teacher');
   uploadButton.disabled=true;cameraButton.disabled=true;
   try{
@@ -842,7 +865,7 @@ async function handleImage(file,source='upload'){
 
 form.addEventListener('submit',async(e)=>{
   e.preventDefault();const text=question.value.trim();if(!text||sendButton.disabled)return;
-  addMessage(text,'student');question.value='';sendButton.disabled=true;sendButton.textContent='Thinking…';
+  addMessage(text,'student');question.value='';sendButton.disabled=true;sendButton.textContent='Thinking…';setLearningStatus('Working through your question','thinking');
   const thinking=addMessage('Let me work through that with you…','teacher');
   try{
     const token=await ensureSession();
@@ -856,5 +879,5 @@ form.addEventListener('submit',async(e)=>{
     thinking.textContent='I’ve placed the complete worked solution on the Teaching Canvas.';
   }catch(err){
     thinking.textContent=err.message&&err.message.includes('wait')?err.message:'Sorry, I had a small technical hiccup. Please try your question again in a moment.';
-  }finally{sendButton.disabled=false;sendButton.textContent='Send';question.focus()}
+  }finally{sendButton.disabled=false;sendButton.textContent='Send';setLearningStatus('Answer ready');question.focus()}
 });
