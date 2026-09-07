@@ -527,6 +527,9 @@ async function startDiagnosticSession(){
 }
 
 async function switchPracticeLanguage(){
+  const languageNames={English:'English',Yoruba:'Yorùbá',Igbo:'Igbo',Hausa:'Hausa'};
+  const selectedLanguage=languageNames[language.value]||language.value;
+  language.disabled=true;setLearningStatus(`Switching question to ${selectedLanguage}…`,'thinking');
   try{
     const data=await (practiceMode==='diagnostic'?diagnosticRequest('language',{language:language.value}):practiceRequest('language',{language:language.value}));
     currentPractice={...currentPractice,...data};practicePrompt.textContent=data.question;
@@ -536,7 +539,9 @@ async function switchPracticeLanguage(){
       practiceFeedback.className=`practice-feedback ${feedback.correct?'correct':'incorrect'}`;
     }else if(showHintButton.disabled){practiceFeedback.textContent=`Hint: ${data.hint}`}
     if(data.summary){currentPracticeSummary=data.summary;if(!practiceResults.classList.contains('hidden'))renderPracticeResults(data.summary)}
-  }catch(err){addMessage(err.message,'teacher')}
+    setLearningStatus(`${selectedLanguage} question ready`);
+  }catch(err){addMessage(err.message,'teacher');setLearningStatus('Language switch needs attention','attention')}
+  finally{language.disabled=false}
 }
 
 function showPracticeHint(){
