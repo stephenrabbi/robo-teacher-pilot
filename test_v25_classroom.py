@@ -107,6 +107,11 @@ def test_ui_refinement_exposes_clear_modes_and_activity_status():
     assert 'gain.gain.value=.00001' in script
     assert 'if(!receivedAudio){receivedAudio=true;stopAudioKeepAlive();setTeacherSpeaking(true)}' in script
     assert "if(!receivedAudio)throw new Error('empty voice')" in script
+    assert 'if(!receivedAudio)throw error' in script
+    assert "teacherPanel.classList.add('paused')" in script
+    assert "teacherPanel.classList.remove('paused')" in script
+    assert '.teacher-panel.speaking .read-answer,.teacher-panel.paused .read-answer{position:fixed' in css
+    assert '.read-answer span{display:none}' not in css
     assert 'teacherSpeechPaused=true;\n  teacherPanel.classList.remove' in script
     assert 'await startAudioKeepAlive();\n    await ensureSession();' in script
     assert 'function stopTeacherAudio(preserveAudioUnlock=false)' in script
