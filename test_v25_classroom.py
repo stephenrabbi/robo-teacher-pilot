@@ -28,7 +28,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260905-practiceclass1' in html
+    assert '20260907-spaciousboard1' in html
     assert 'id="learnerNickname"' in html
     assert 'id="learnerClass"' in html
     assert "learnerNickname.value=''" in script
@@ -62,7 +62,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert '@media(max-width:600px)' in css
     assert '.teacher-panel{grid-template-columns:82px 1fr' in css
     assert '.founder-avatar{height:205px!important}' in css
-    assert 'min-height:44px' in css
+    assert 'min-height:44px' in css\n    assert 'grid-template-columns:290px minmax(0,1fr)' in css\n    assert 'grid-template-columns:repeat(4,minmax(0,1fr))' in css\n    assert 'overflow:visible' in css\n    assert 'linear-gradient(135deg,#eaf7ff' in css
     assert 'void speakText(data.reply)' in script
     assert 'stopTeacherAudio();\n    await ensureSession();' in script
     assert 'data-voice-gender="female"' in html
