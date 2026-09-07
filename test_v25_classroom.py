@@ -62,9 +62,14 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert '@media(max-width:600px)' in css
     assert '.teacher-panel{grid-template-columns:82px 1fr' in css
     assert '.founder-avatar{height:205px!important}' in css
-    assert 'min-height:44px' in css\n    assert 'grid-template-columns:290px minmax(0,1fr)' in css\n    assert 'grid-template-columns:repeat(4,minmax(0,1fr))' in css\n    assert 'overflow:visible' in css\n    assert 'linear-gradient(135deg,#eaf7ff' in css
+    assert 'min-height:44px' in css
+    assert 'grid-template-columns:290px minmax(0,1fr)' in css
+    assert 'grid-template-columns:repeat(4,minmax(0,1fr))' in css
+    assert 'overflow:visible' in css
+    assert 'linear-gradient(135deg,#eaf7ff' in css
     assert 'void speakText(data.reply)' in script
-    assert 'stopTeacherAudio();\n    await ensureSession();' in script
+    assert 'stopTeacherAudio();
+    await ensureSession();' in script
     assert 'data-voice-gender="female"' in html
     assert 'prepareSpeechText(text)' in script
     assert "fetch('/api/classroom/speech'" in script
@@ -75,8 +80,10 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert 'teacherAudioContext.resume()' in script
     assert "teacherSpeechPaused){await resumeTeacherAudio()" in script
     assert '!teacherSpeechPaused&&requestId===teacherSpeechRequest' in script
-    assert 'teacherSpeechPaused=true;\n  teacherPanel.classList.remove' in script
-    assert 'await prepareTeacherAudio();\n    await ensureSession();' in script
+    assert 'teacherSpeechPaused=true;
+  teacherPanel.classList.remove' in script
+    assert 'await prepareTeacherAudio();
+    await ensureSession();' in script
     assert "teacherAudioContext.state==='closed'" in script
     assert 'teacherAudioContext.close()' not in script
     assert "error.name==='AbortError'" in script
@@ -177,7 +184,8 @@ def test_stable_anonymous_key_restores_progress_without_exposing_identity():
     assert first['learner_id'] == second['learner_id']
     assert first['learner_id'] != other['learner_id']
     assert learner_key not in first['session_token']
-    fixed = ("What is 2 + 3?", "Count on from 2.", "5", "Step 1: Add 2 and 3.\nStep 2: The result is 5.")
+    fixed = ("What is 2 + 3?", "Count on from 2.", "5", "Step 1: Add 2 and 3.
+Step 2: The result is 5.")
     with patch.object(practice, '_build_question_queue', return_value=[fixed] * 5):
         client.post('/api/classroom/practice/start', json={
             'session_token': first['session_token'], 'topic': 'Whole Numbers',
@@ -445,7 +453,8 @@ def test_practice_mode_marks_answers_and_tracks_score():
 
 def test_five_question_session_returns_final_results_and_missed_review():
     session = client.post('/api/classroom/session').json()
-    fixed = ("What is 2 + 3?", "Count on from 2.", "5", "Step 1: Add 2 and 3.\nStep 2: The result is 5.")
+    fixed = ("What is 2 + 3?", "Count on from 2.", "5", "Step 1: Add 2 and 3.
+Step 2: The result is 5.")
     final_result = None
     with patch.object(practice, '_build_question_queue', return_value=[fixed] * 5):
         started = client.post('/api/classroom/practice/start', json={
@@ -495,7 +504,8 @@ def test_practice_mode_prevents_skipping_and_duplicate_marking():
 
 def test_incorrect_practice_answer_returns_teaching_steps():
     session = client.post('/api/classroom/session').json()
-    fixed = ("What is 9 × 7?", "Think of equal groups.", "63", "Step 1: Use 9 groups of 7.\nStep 2: 9 × 7 = 63.")
+    fixed = ("What is 9 × 7?", "Think of equal groups.", "63", "Step 1: Use 9 groups of 7.
+Step 2: 9 × 7 = 63.")
     with patch.object(practice, '_build_question_queue', return_value=[fixed] * 5):
         client.post('/api/classroom/practice/start', json={
             'session_token': session['session_token'], 'topic': 'Whole Numbers', 'difficulty': 'Easy'
@@ -512,8 +522,10 @@ def test_incorrect_practice_answer_returns_teaching_steps():
 
 def test_practice_mode_uses_selected_language_without_changing_marking():
     session = client.post('/api/classroom/session').json()
-    english = ("What is 2 + 3?", "Add the numbers.", "5", "Step 1: Add 2 and 3.\nTherefore, the answer is 5.")
-    yoruba = ("Kí ni 2 + 3?", "Da àwọn nọ́mbà náà pọ̀.", "5", "Ìgbésẹ̀ 1: Da 2 àti 3 pọ̀.\nNítorí náà, ìdáhùn jẹ́ 5.")
+    english = ("What is 2 + 3?", "Add the numbers.", "5", "Step 1: Add 2 and 3.
+Therefore, the answer is 5.")
+    yoruba = ("Kí ni 2 + 3?", "Da àwọn nọ́mbà náà pọ̀.", "5", "Ìgbésẹ̀ 1: Da 2 àti 3 pọ̀.
+Nítorí náà, ìdáhùn jẹ́ 5.")
     with patch.object(practice, '_build_question_queue', return_value=[english] * 5), patch.object(practice, 'translate_question_batch', return_value=[yoruba] * 5) as translated:
         started = client.post('/api/classroom/practice/start', json={
             'session_token': session['session_token'], 'topic': 'Standard Form',
@@ -531,15 +543,21 @@ def test_practice_mode_uses_selected_language_without_changing_marking():
 
 def test_yoruba_deterministic_answer_uses_yoruba_number_word():
     reply, latency = get_tutor_reply("WEB-language-test", "2*3", "Yoruba")
-    assert reply == "2*3 = 6\n\nÌdáhùn: Ẹ̀fà"
+    assert reply == "2*3 = 6
+
+Ìdáhùn: Ẹ̀fà"
     assert latency == 0.0
 
 
 def test_igbo_and_hausa_deterministic_answers_use_local_number_words():
     igbo_reply, _ = get_tutor_reply("WEB-igbo-test", "2*3", "Igbo")
     hausa_reply, _ = get_tutor_reply("WEB-hausa-test", "2*3", "Hausa")
-    assert igbo_reply == "2*3 = 6\n\nAzịza: Isii"
-    assert hausa_reply == "2*3 = 6\n\nAmsa: Shida"
+    assert igbo_reply == "2*3 = 6
+
+Azịza: Isii"
+    assert hausa_reply == "2*3 = 6
+
+Amsa: Shida"
 
 
 def test_language_instructions_accept_typed_and_spoken_yoruba():
@@ -570,7 +588,8 @@ def test_session_and_chat_use_pseudonymous_identity():
     data = session.json()
     assert data['learner_id'].startswith('WEB-')
     assert 'session_token' in data
-    with patch.object(classroom_api, 'get_tutor_reply', return_value=('Step 1: Find a common denominator.\nFinal answer: 5/6', 0.12)) as tutor:
+    with patch.object(classroom_api, 'get_tutor_reply', return_value=('Step 1: Find a common denominator.
+Final answer: 5/6', 0.12)) as tutor:
         response = client.post('/api/classroom/chat', json={'message':'Teach me 2/3 + 1/6','session_token':data['session_token']})
     assert response.status_code == 200
     assert 'common denominator' in response.json()['reply']
