@@ -83,6 +83,8 @@ def test_ui_refinement_exposes_clear_modes_and_activity_status():
     assert 'aria-current="page"' in html
     assert 'function setActiveMode(button)' in script
     assert "setLearningStatus('Checking your answer','thinking')" in script
+    assert 'Switching question to ${selectedLanguage}…' in script
+    assert 'language.disabled=false' in script
     assert '.class-tools button.active' in css
     assert '.composer{position:sticky;bottom:92px' in css
     assert 'linear-gradient(135deg,#eaf7ff' in css
