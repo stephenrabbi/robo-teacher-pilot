@@ -129,7 +129,7 @@ let teacherAudioContext=null;
 const teacherAudioSources=new Set();
 let teacherStreamComplete=false;
 let teacherSpeechPaused=false;
-let teacherSpeechTimedOut=false;
+let teacherAudioKeepAlive=null;
 let drawing=false;
 let drawingTool='pen';
 let boardHasInk=false;
@@ -320,10 +320,10 @@ async function resumeTeacherAudio(){
 function stopTeacherAudio(){
   teacherSpeechRequest+=1;
   if(teacherSpeechController){teacherSpeechController.abort();teacherSpeechController=null}
+  stopAudioKeepAlive();
   teacherAudioSources.forEach(source=>{try{source.stop()}catch(_error){/* Already stopped. */}});teacherAudioSources.clear();
   teacherStreamComplete=false;
   teacherSpeechPaused=false;
-  teacherSpeechTimedOut=false;
   setTeacherSpeaking(false);
 }
 
@@ -335,17 +335,33 @@ async function prepareTeacherAudio(){
   return teacherAudioContext;
 }
 
-async function playTeacherAudio(response,requestId){
-  // Decode one validated WAV response and play it through a single source.
-  // This avoids successful-but-empty raw streams and keeps pause/resume stable.
-  const encoded=await response.arrayBuffer();
-  if(requestId!==teacherSpeechRequest)return;
-  if(encoded.byteLength<=44)throw new Error('empty voice');
-  const context=await prepareTeacherAudio();const buffer=await context.decodeAudioData(encoded.slice(0));
-  if(requestId!==teacherSpeechRequest||!buffer.duration)throw new Error('empty voice');
-  const source=context.createBufferSource();source.buffer=buffer;source.connect(context.destination);teacherAudioSources.add(source);teacherStreamComplete=true;
-  source.addEventListener('ended',()=>{teacherAudioSources.delete(source);if(!teacherSpeechPaused&&requestId===teacherSpeechRequest)stopTeacherAudio()},{once:true});
-  source.start(context.currentTime+.04);setTeacherSpeaking(true);
+function stopAudioKeepAlive(){
+  if(!teacherAudioKeepAlive)return;
+  try{teacherAudioKeepAlive.oscillator.stop()}catch(_error){/* Already stopped. */}
+  teacherAudioKeepAlive=null;
+}
+
+async function startAudioKeepAlive(){
+  const context=await prepareTeacherAudio();stopAudioKeepAlive();
+  const oscillator=context.createOscillator();const gain=context.createGain();gain.gain.value=.00001;
+  oscillator.connect(gain);gain.connect(context.destination);oscillator.start();teacherAudioKeepAlive={oscillator,gain};
+}
+
+async function playPcmStream(response,requestId){
+  const context=await prepareTeacherAudio();const reader=response.body.getReader();let pending=new Uint8Array(0);let nextStart=context.currentTime+.06;let receivedAudio=false;
+  const finishIfDone=()=>{if(teacherStreamComplete&&!teacherAudioSources.size&&!teacherSpeechPaused&&requestId===teacherSpeechRequest)stopTeacherAudio()};
+  while(requestId===teacherSpeechRequest){
+    const {done,value}=await reader.read();if(done)break;
+    const joined=new Uint8Array(pending.length+value.length);joined.set(pending);joined.set(value,pending.length);
+    const evenLength=joined.length-joined.length%2;pending=joined.slice(evenLength);if(!evenLength)continue;
+    if(!receivedAudio){receivedAudio=true;stopAudioKeepAlive();setTeacherSpeaking(true)}
+    const samples=evenLength/2;const buffer=context.createBuffer(1,samples,24000);const channel=buffer.getChannelData(0);const view=new DataView(joined.buffer,joined.byteOffset,evenLength);
+    for(let index=0;index<samples;index++)channel[index]=view.getInt16(index*2,true)/32768;
+    const source=context.createBufferSource();source.buffer=buffer;source.connect(context.destination);teacherAudioSources.add(source);
+    source.addEventListener('ended',()=>{teacherAudioSources.delete(source);finishIfDone()},{once:true});
+    const startAt=Math.max(nextStart,context.currentTime+.025);source.start(startAt);nextStart=startAt+buffer.duration;
+  }
+  stopAudioKeepAlive();if(!receivedAudio)throw new Error('empty voice');teacherStreamComplete=true;finishIfDone();
 }
 
 async function speakText(text){
@@ -353,21 +369,20 @@ async function speakText(text){
   stopTeacherAudio();teacherVoiceStatus.textContent='Preparing…';readAnswerButton.innerHTML='<span>Preparing…</span>';setLearningStatus('Preparing teacher voice','thinking');
   const requestId=teacherSpeechRequest;
   teacherSpeechController=new AbortController();
-  teacherSpeechTimedOut=false;const speechTimeout=setTimeout(()=>{teacherSpeechTimedOut=true;teacherSpeechController?.abort()},30000);
   try{
+    await startAudioKeepAlive();
     const token=await ensureSession();
     if(requestId!==teacherSpeechRequest)return;
-    const response=await fetch('/api/classroom/speech',{method:'POST',headers:{'Content-Type':'application/json','Accept':'audio/wav'},body:JSON.stringify({text:prepareSpeechText(text),session_token:token,language:language.value,voice_gender:teacherPanel.dataset.voiceGender==='male'?'male':'female'}),signal:teacherSpeechController.signal});
+    const response=await fetch('/api/classroom/speech',{method:'POST',headers:{'Content-Type':'application/json','Accept':'audio/L16'},body:JSON.stringify({text:prepareSpeechText(text),session_token:token,language:language.value,voice_gender:teacherPanel.dataset.voiceGender==='male'?'male':'female'}),signal:teacherSpeechController.signal});
     if(response.status===401){sessionToken=null;throw new Error('session')}
     if(!response.ok)throw new Error('natural voice unavailable');
     if(!response.body)throw new Error('stream unavailable');
-    await playTeacherAudio(response,requestId);
+    await playPcmStream(response,requestId);
   }catch(error){
     if(requestId!==teacherSpeechRequest)return;
-    const timedOut=teacherSpeechTimedOut;
     stopTeacherAudio();
-    addMessage(timedOut?'The teacher voice took too long. Tap Read answer to try again.':'The natural teacher voice is temporarily unavailable. Tap Read answer to try again.','teacher');
-  }finally{clearTimeout(speechTimeout)}
+    addMessage('The natural teacher voice is temporarily unavailable. Tap Read answer to try again.','teacher');
+  }
 }
 
 readAnswerButton.addEventListener('click',async()=>{
