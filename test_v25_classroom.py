@@ -123,6 +123,18 @@ def test_yoruba_speech_localizes_numbers_and_maths_operators():
     assert _prepare_spoken_transcript('2 + 3 = 5', 'English') == '2 + 3 = 5'
 
 
+def test_brand_names_never_speak_their_hyphens_as_minus_signs():
+    introduction = 'Hello, I am Robo-Teacher from Earlyon-Tech Brainery. 8 - 3 = 5.'
+    assert _prepare_spoken_transcript(introduction, 'English') == (
+        'Hello, I am Robo Teacher from Earlyon Tech Brainery. 8 - 3 = 5.'
+    )
+    yoruba = _prepare_spoken_transcript(introduction, 'Yoruba')
+    assert 'Robo Teacher' in yoruba
+    assert 'Earlyon Tech Brainery' in yoruba
+    assert 'Mẹ́jọ minus Mẹ́ta jẹ́ Márùn-ún' in yoruba
+    assert 'Robo minus Teacher' not in yoruba
+
+
 def test_igbo_speech_localizes_numbers_and_maths_operators():
     spoken = _prepare_spoken_transcript('2 × 3 = 6. Then 20 + 5 = 25.', 'Igbo')
     assert spoken == 'Abụọ ugboro Atọ ha nhata Isii. Then Iri abụọ gbakwunyere Ise ha nhata Iri abụọ na ise.'
@@ -764,6 +776,7 @@ def test_active_practice_switches_question_feedback_and_remaining_language():
 
 if __name__ == '__main__':
     test_production_entrypoint_exposes_classroom_session_api()
+    test_brand_names_never_speak_their_hyphens_as_minus_signs()
     test_session_and_chat_use_pseudonymous_identity()
     test_tampered_session_is_rejected()
     test_question_length_is_bounded()
