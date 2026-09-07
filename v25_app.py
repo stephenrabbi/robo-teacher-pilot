@@ -1,10 +1,6 @@
-"""Robo-Teacher V2.5 staging entrypoint.
+"""Backward-compatible Robo-Teacher V2.5 staging entrypoint.
 
-This composes the stable V2 application with the browser classroom API without
-changing the production uvicorn entrypoint (main:app). Staging should run:
-    uvicorn v25_app:app --host 0.0.0.0 --port $PORT
+The classroom API is registered by ``main`` so production and staging expose
+the same browser endpoints. Staging may continue to run this module.
 """
 from main import app
-from classroom_api import router as classroom_router
-
-app.include_router(classroom_router)
