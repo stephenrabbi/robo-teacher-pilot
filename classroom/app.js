@@ -349,27 +349,16 @@ async function startAudioKeepAlive(){
   oscillator.connect(gain);gain.connect(context.destination);oscillator.start();teacherAudioKeepAlive={oscillator,gain};
 }
 
-async function playPcmStream(response,requestId){
-  const context=await prepareTeacherAudio();const reader=response.body.getReader();let pending=new Uint8Array(0);let nextStart=context.currentTime+.06;let receivedAudio=false;
-  const finishIfDone=()=>{if(teacherStreamComplete&&!teacherAudioSources.size&&!teacherSpeechPaused&&requestId===teacherSpeechRequest)stopTeacherAudio()};
-  try{
-    while(requestId===teacherSpeechRequest){
-      const {done,value}=await reader.read();if(done)break;
-      const joined=new Uint8Array(pending.length+value.length);joined.set(pending);joined.set(value,pending.length);
-      const evenLength=joined.length-joined.length%2;pending=joined.slice(evenLength);if(!evenLength)continue;
-      if(!receivedAudio){receivedAudio=true;stopAudioKeepAlive();setTeacherSpeaking(true)}
-      const samples=evenLength/2;const buffer=context.createBuffer(1,samples,24000);const channel=buffer.getChannelData(0);const view=new DataView(joined.buffer,joined.byteOffset,evenLength);
-      for(let index=0;index<samples;index++)channel[index]=view.getInt16(index*2,true)/32768;
-      const source=context.createBufferSource();source.buffer=buffer;source.connect(context.destination);teacherAudioSources.add(source);
-      source.addEventListener('ended',()=>{teacherAudioSources.delete(source);finishIfDone()},{once:true});
-      const startAt=Math.max(nextStart,context.currentTime+.025);source.start(startAt);nextStart=startAt+buffer.duration;
-    }
-  }catch(error){
-    // A mobile network may close a completed stream abruptly. Keep playing
-    // audio already received instead of cancelling it with a false error.
-    if(!receivedAudio)throw error;
-  }
-  stopAudioKeepAlive();if(!receivedAudio)throw new Error('empty voice');teacherStreamComplete=true;finishIfDone();
+async function playTeacherAudio(response,requestId){
+  const context=await prepareTeacherAudio();const encoded=await response.arrayBuffer();
+  if(requestId!==teacherSpeechRequest)return;
+  if(!encoded.byteLength)throw new Error('empty voice');
+  const buffer=await context.decodeAudioData(encoded.slice(0));
+  if(requestId!==teacherSpeechRequest)return;
+  stopAudioKeepAlive();setTeacherSpeaking(true);
+  const source=context.createBufferSource();source.buffer=buffer;source.connect(context.destination);teacherAudioSources.add(source);
+  source.addEventListener('ended',()=>{teacherAudioSources.delete(source);if(!teacherSpeechPaused&&requestId===teacherSpeechRequest)stopTeacherAudio()},{once:true});
+  teacherStreamComplete=true;source.start();
 }
 
 async function speakText(text,preserveAudioUnlock=false){
@@ -381,13 +370,13 @@ async function speakText(text,preserveAudioUnlock=false){
     if(!preserveAudioUnlock||!teacherAudioKeepAlive)await startAudioKeepAlive();
     const token=await ensureSession();
     if(requestId!==teacherSpeechRequest)return;
-    const response=await fetch('/api/classroom/speech',{method:'POST',headers:{'Content-Type':'application/json','Accept':'audio/L16'},body:JSON.stringify({text:prepareSpeechText(text),session_token:token,language:language.value,voice_gender:teacherPanel.dataset.voiceGender==='male'?'male':'female'}),signal:teacherSpeechController.signal});
+    const response=await fetch('/api/classroom/speech',{method:'POST',headers:{'Content-Type':'application/json','Accept':'audio/wav'},body:JSON.stringify({text:prepareSpeechText(text),session_token:token,language:language.value,voice_gender:teacherPanel.dataset.voiceGender==='male'?'male':'female'}),signal:teacherSpeechController.signal});
     if(response.status===401){sessionToken=null;throw new Error('session')}
     if(!response.ok)throw new Error('natural voice unavailable');
-    if(!response.body)throw new Error('stream unavailable');
-    await playPcmStream(response,requestId);
+    await playTeacherAudio(response,requestId);
   }catch(error){
     if(requestId!==teacherSpeechRequest)return;
+    console.error('Teacher voice playback failed',error);
     stopTeacherAudio();
     addMessage('The natural teacher voice is temporarily unavailable. Tap Read answer to try again.','teacher');
   }
