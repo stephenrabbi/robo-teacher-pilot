@@ -98,8 +98,12 @@ def test_ui_refinement_exposes_clear_modes_and_activity_status():
     assert 'prepareSpeechText(text)' in script
     assert "fetch('/api/classroom/speech'" in script
     assert "voice_gender:teacherPanel.dataset.voiceGender" in script
-    assert 'function speakWithDeviceVoice(text,requestId)' in script
-    assert "if(!response.ok){speakWithDeviceVoice(text,requestId);return;}" in script
+    assert 'async function speakWithDeviceVoice(text,requestId)' in script
+    assert 'async function availableDeviceVoices()' in script
+    assert "if(!response.ok){await speakWithDeviceVoice(text,requestId);return;}" in script
+    assert 'naturalVoiceTimedOut=true' in script
+    assert "},7000)" in script
+    assert 'female.test(voice.name)' in script
     assert 'window.speechSynthesis.pause()' in script
     assert 'window.speechSynthesis.resume()' in script
     assert 'teacherSpeechController.abort()' in script
