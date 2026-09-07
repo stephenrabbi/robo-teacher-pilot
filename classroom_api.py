@@ -15,7 +15,7 @@ from collections import defaultdict, deque
 from typing import Literal
 
 from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import Response
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from curriculum import ALL_TOPICS, CLASS_TOPICS, CURRICULUM
 from diagnostic import answer_diagnostic, change_diagnostic_language, next_diagnostic, start_diagnostic
@@ -31,7 +31,7 @@ from tutor import (
     get_tutor_audio_reply,
     get_tutor_image_reply,
     get_tutor_reply,
-    generate_tutor_speech,
+    stream_tutor_speech,
 )
 
 router = APIRouter(prefix="/api/classroom", tags=["classroom"])
@@ -297,20 +297,19 @@ def classroom_chat(question: ClassroomQuestion, request: Request):
     return {"reply": reply, "latency_seconds": round(float(latency), 3), "learner_id": student_id}
 
 
-@router.post("/speech", response_class=Response)
+@router.post("/speech", response_class=StreamingResponse)
 def classroom_speech(speech: ClassroomSpeech):
     student_id = _verify_session(speech.session_token)
     # Reading an answer aloud is a playback request, not a second tutor
     # question. Keep it out of the question bucket so repeated voice lessons
     # do not disable both the answer and its automatic narration.
     _enforce_rate_limit(student_id, "speech", 30)
-    try:
-        audio = generate_tutor_speech(speech.text.strip(), speech.language, speech.voice_gender)
-        if not audio.startswith(b"RIFF") or len(audio) <= 44:
-            raise ValueError("empty speech audio")
-    except Exception as exc:
-        raise HTTPException(status_code=503, detail="Teacher voice is temporarily unavailable") from exc
-    return Response(content=audio, media_type="audio/wav", headers={"Cache-Control": "no-store"})
+    audio_stream = stream_tutor_speech(speech.text.strip(), speech.language, speech.voice_gender)
+    return StreamingResponse(
+        audio_stream,
+        media_type="audio/l16;rate=24000;channels=1",
+        headers={"Cache-Control": "no-store", "X-Audio-Sample-Rate": "24000"},
+    )
 
 
 @router.post("/image")
