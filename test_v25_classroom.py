@@ -28,7 +28,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260907-uirefinement1' in html
+    assert '20260907-fullcanvas1' in html
     assert 'id="learnerNickname"' in html
     assert 'id="learnerClass"' in html
     assert "learnerNickname.value=''" in script
@@ -44,7 +44,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert "localStorage.setItem('roboTeacherQaChecklist'" in script
     assert 'const resultCopy=' in script
     assert 'labels.yourAnswer' in script
-    assert '20260907-uirefinement1' in html
+    assert '20260907-fullcanvas1' in html
     assert 'downloadTeacherDashboardReport' in script
     assert 'id="practiceClass"' in html
     assert 'id="startDiagnostic"' in html
@@ -64,6 +64,10 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert '.founder-avatar{height:auto!important;aspect-ratio:1023/1537!important' in css
     assert 'min-height:44px' in css
     assert 'grid-template-columns:290px minmax(0,1fr)' in css
+    assert '.classroom-screen,.classroom-screen.teacher-min{grid-template-columns:minmax(0,1fr);gap:14px}' in css
+    assert '.teacher-panel{order:2;display:grid;grid-template-columns:150px minmax(0,1fr)' in css
+    assert '.learning-area{order:1}' in css
+    assert '.whiteboard-area canvas{aspect-ratio:2.5/1}' in css
     assert 'grid-template-columns:repeat(4,minmax(0,1fr))' in css
     assert 'overflow:visible' in css
 
