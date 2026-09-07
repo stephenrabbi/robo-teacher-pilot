@@ -286,11 +286,22 @@ def generate_tutor_speech(text: str, language: str = "English", voice_gender: st
     language_name = TTS_LANGUAGE_NAMES.get(language, "English")
     client = _get_client()
     pcm_chunks = []
-    for chunk in _speech_chunks(text):
+    transcript = _spoken_excerpt(_prepare_spoken_transcript(text, language))
+    local_number_direction = (
+        f"Pronounce every number and Maths operation only in {language_name}, never in English. "
+        if language in SPOKEN_MATH else ""
+    )
+    delivery_style = (
+        "Use simple modern Lagos classroom Yorùbá. Avoid deep vocabulary, proverbs and old-fashioned expressions. "
+        if language == "Yoruba" else
+        "Use a warm, patient Nigerian classroom tone. "
+    )
+    for chunk in _speech_chunks(transcript):
         prompt = (
             "Synthesize speech for the transcript below. Do not read these directions aloud. "
             f"Use the same unmistakably adult {gender} teacher voice speaking {language_name}. "
-            "Sound warm, patient and conversational, with a gentle Nigerian classroom tone and a friendly vocal smile. "
+            f"{local_number_direction}{delivery_style}"
+            "Sound natural and conversational, with a friendly vocal smile. "
             "Use the written punctuation for natural pauses, vary emphasis slightly, and avoid a stiff announcer cadence.\n\n"
             f"TRANSCRIPT:\n{chunk}"
         )
