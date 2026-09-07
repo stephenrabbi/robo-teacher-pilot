@@ -8,6 +8,7 @@ import base64
 import binascii
 import hashlib
 import hmac
+import logging
 import os
 import secrets
 import time
@@ -32,6 +33,8 @@ from tutor import (
     get_tutor_reply,
     generate_tutor_speech,
 )
+
+logger = logging.getLogger("robo-teacher.classroom")
 
 router = APIRouter(prefix="/api/classroom", tags=["classroom"])
 _SESSION_TTL_SECONDS = 60 * 60 * 4
@@ -303,7 +306,11 @@ def classroom_speech(speech: ClassroomSpeech):
     # question. Keep it out of the question bucket so repeated voice lessons
     # do not disable both the answer and its automatic narration.
     _enforce_rate_limit(student_id, "speech", 30)
-    audio = generate_tutor_speech(speech.text.strip(), speech.language, speech.voice_gender)
+    try:
+        audio = generate_tutor_speech(speech.text.strip(), speech.language, speech.voice_gender)
+    except Exception as exc:
+        logger.warning("Teacher speech generation failed: %s", type(exc).__name__)
+        raise HTTPException(status_code=503, detail="Teacher voice is temporarily unavailable") from exc
     return Response(content=audio, media_type="audio/wav", headers={"Cache-Control": "no-store"})
 
 
