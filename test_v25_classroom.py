@@ -105,9 +105,10 @@ def test_ui_refinement_exposes_clear_modes_and_activity_status():
     assert "teacherSpeechPaused){await resumeTeacherAudio()" in script
     assert 'async function startAudioKeepAlive()' in script
     assert 'gain.gain.value=.00001' in script
-    assert 'if(!receivedAudio){receivedAudio=true;stopAudioKeepAlive();setTeacherSpeaking(true)}' in script
-    assert "if(!receivedAudio)throw new Error('empty voice')" in script
-    assert 'if(!receivedAudio)throw error' in script
+    assert 'const encoded=await response.arrayBuffer()' in script
+    assert "if(!encoded.byteLength)throw new Error('empty voice')" in script
+    assert 'context.decodeAudioData(encoded.slice(0))' in script
+    assert 'stopAudioKeepAlive();setTeacherSpeaking(true)' in script
     assert "teacherPanel.classList.add('paused')" in script
     assert "teacherPanel.classList.remove('paused')" in script
     assert '.teacher-panel.speaking .read-answer,.teacher-panel.paused .read-answer{position:fixed' in css
@@ -179,7 +180,7 @@ def test_long_speech_is_split_into_short_voice_consistent_chunks():
 
 def test_natural_speech_endpoint_uses_female_avatar_voice():
     session = client.post('/api/classroom/session').json()
-    with patch.object(classroom_api, 'stream_tutor_speech', return_value=iter([b'pcm-', b'audio'])) as tts:
+    with patch.object(classroom_api, 'generate_tutor_speech', return_value=b'RIFF-audio') as tts:
         response = client.post('/api/classroom/speech', json={
             'text': 'Let us solve this carefully.',
             'session_token': session['session_token'],
@@ -187,8 +188,8 @@ def test_natural_speech_endpoint_uses_female_avatar_voice():
             'voice_gender': 'female',
         })
     assert response.status_code == 200
-    assert response.headers['content-type'].startswith('audio/l16')
-    assert response.content == b'pcm-audio'
+    assert response.headers['content-type'].startswith('audio/wav')
+    assert response.content == b'RIFF-audio'
     assert tts.call_args.args[1:] == ('English', 'female')
 
 
@@ -198,7 +199,7 @@ def test_speech_playback_does_not_consume_the_tutor_question_limit():
     learner_id = session['learner_id']
     for _ in range(classroom_api._RATE_MAX_REQUESTS):
         classroom_api._enforce_rate_limit(learner_id)
-    with patch.object(classroom_api, 'stream_tutor_speech', return_value=iter([b'audio'])):
+    with patch.object(classroom_api, 'generate_tutor_speech', return_value=b'RIFF-audio'):
         response = client.post('/api/classroom/speech', json={
             'text': 'The answer is six.',
             'session_token': session['session_token'],
@@ -206,7 +207,7 @@ def test_speech_playback_does_not_consume_the_tutor_question_limit():
             'voice_gender': 'female',
         })
     assert response.status_code == 200
-    assert response.content == b'audio'
+    assert response.content == b'RIFF-audio'
     assert len(classroom_api._request_times[f'speech:{learner_id}']) == 1
 
 
