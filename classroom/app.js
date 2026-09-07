@@ -335,16 +335,14 @@ async function prepareTeacherAudio(){
   return teacherAudioContext;
 }
 
-async function playPcmStream(response,requestId){
-  // Buffer one complete answer and play it through a single source. Hundreds
-  // of tiny scheduled sources were unreliable after pause, interruption and
-  // mobile microphone use, and could leave the controls in a frozen state.
-  const raw=new Uint8Array(await response.arrayBuffer());
+async function playTeacherAudio(response,requestId){
+  // Decode one validated WAV response and play it through a single source.
+  // This avoids successful-but-empty raw streams and keeps pause/resume stable.
+  const encoded=await response.arrayBuffer();
   if(requestId!==teacherSpeechRequest)return;
-  const evenLength=raw.length-raw.length%2;if(!evenLength)throw new Error('empty voice');
-  const context=await prepareTeacherAudio();const samples=evenLength/2;
-  const buffer=context.createBuffer(1,samples,24000);const channel=buffer.getChannelData(0);const view=new DataView(raw.buffer,raw.byteOffset,evenLength);
-  for(let index=0;index<samples;index++)channel[index]=view.getInt16(index*2,true)/32768;
+  if(encoded.byteLength<=44)throw new Error('empty voice');
+  const context=await prepareTeacherAudio();const buffer=await context.decodeAudioData(encoded.slice(0));
+  if(requestId!==teacherSpeechRequest||!buffer.duration)throw new Error('empty voice');
   const source=context.createBufferSource();source.buffer=buffer;source.connect(context.destination);teacherAudioSources.add(source);teacherStreamComplete=true;
   source.addEventListener('ended',()=>{teacherAudioSources.delete(source);if(!teacherSpeechPaused&&requestId===teacherSpeechRequest)stopTeacherAudio()},{once:true});
   source.start(context.currentTime+.04);setTeacherSpeaking(true);
@@ -359,11 +357,11 @@ async function speakText(text){
   try{
     const token=await ensureSession();
     if(requestId!==teacherSpeechRequest)return;
-    const response=await fetch('/api/classroom/speech',{method:'POST',headers:{'Content-Type':'application/json','Accept':'audio/L16'},body:JSON.stringify({text:prepareSpeechText(text),session_token:token,language:language.value,voice_gender:teacherPanel.dataset.voiceGender==='male'?'male':'female'}),signal:teacherSpeechController.signal});
+    const response=await fetch('/api/classroom/speech',{method:'POST',headers:{'Content-Type':'application/json','Accept':'audio/wav'},body:JSON.stringify({text:prepareSpeechText(text),session_token:token,language:language.value,voice_gender:teacherPanel.dataset.voiceGender==='male'?'male':'female'}),signal:teacherSpeechController.signal});
     if(response.status===401){sessionToken=null;throw new Error('session')}
     if(!response.ok)throw new Error('natural voice unavailable');
     if(!response.body)throw new Error('stream unavailable');
-    await playPcmStream(response,requestId);
+    await playTeacherAudio(response,requestId);
   }catch(error){
     if(requestId!==teacherSpeechRequest)return;
     const timedOut=teacherSpeechTimedOut;
