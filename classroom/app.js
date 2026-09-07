@@ -390,7 +390,7 @@ async function speakText(text,preserveAudioUnlock=false){
     if(requestId!==teacherSpeechRequest)return;
     console.error('Teacher voice playback failed',error);
     stopTeacherAudio();
-    addMessage('The natural teacher voice is temporarily unavailable. Tap Read answer to try again.','teacher');
+    addMessage(`Voice diagnostic: ${error.name||'Error'} — ${error.message||'unknown playback failure'}`,'teacher');
   }
 }
 
