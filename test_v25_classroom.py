@@ -5,6 +5,7 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 
 from v25_app import app
+from main import app as production_app
 import classroom_api
 import practice
 import practice_progress
@@ -14,6 +15,12 @@ from tutor import GEMINI_STREAMING_TTS_MODEL, GEMINI_TTS_MODEL, TTS_VOICES, _lan
 
 client = TestClient(app)
 PROJECT_ROOT = Path(__file__).parent
+
+
+def test_production_entrypoint_exposes_classroom_session_api():
+    response = TestClient(production_app).post('/api/classroom/session')
+    assert response.status_code == 200
+    assert response.json()['session_token']
 
 
 def test_linear_inequality_and_graph_generators_stay_in_their_topics():
@@ -752,6 +759,7 @@ def test_active_practice_switches_question_feedback_and_remaining_language():
 
 
 if __name__ == '__main__':
+    test_production_entrypoint_exposes_classroom_session_api()
     test_session_and_chat_use_pseudonymous_identity()
     test_tampered_session_is_rejected()
     test_question_length_is_bounded()
