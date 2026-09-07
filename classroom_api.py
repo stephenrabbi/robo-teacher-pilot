@@ -309,7 +309,8 @@ def classroom_speech(speech: ClassroomSpeech):
     try:
         audio = generate_tutor_speech(speech.text.strip(), speech.language, speech.voice_gender)
     except Exception as exc:
-        logger.warning("Teacher speech generation failed: %s", type(exc).__name__)
+        cause = exc.__cause__ or exc
+        logger.warning("Teacher speech generation failed: %s: %s", type(cause).__name__, str(cause)[:300])
         raise HTTPException(status_code=503, detail="Teacher voice is temporarily unavailable") from exc
     return Response(content=audio, media_type="audio/wav", headers={"Cache-Control": "no-store"})
 
