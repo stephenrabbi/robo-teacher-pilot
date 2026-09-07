@@ -317,10 +317,10 @@ async function resumeTeacherAudio(){
   }
 }
 
-function stopTeacherAudio(){
+function stopTeacherAudio(preserveAudioUnlock=false){
   teacherSpeechRequest+=1;
   if(teacherSpeechController){teacherSpeechController.abort();teacherSpeechController=null}
-  stopAudioKeepAlive();
+  if(!preserveAudioUnlock)stopAudioKeepAlive();
   teacherAudioSources.forEach(source=>{try{source.stop()}catch(_error){/* Already stopped. */}});teacherAudioSources.clear();
   teacherStreamComplete=false;
   teacherSpeechPaused=false;
@@ -364,13 +364,13 @@ async function playPcmStream(response,requestId){
   stopAudioKeepAlive();if(!receivedAudio)throw new Error('empty voice');teacherStreamComplete=true;finishIfDone();
 }
 
-async function speakText(text){
+async function speakText(text,preserveAudioUnlock=false){
   if(!text.trim())return;
-  stopTeacherAudio();teacherVoiceStatus.textContent='Preparing…';readAnswerButton.innerHTML='<span>Preparing…</span>';setLearningStatus('Preparing teacher voice','thinking');
+  stopTeacherAudio(preserveAudioUnlock);teacherVoiceStatus.textContent='Preparing…';readAnswerButton.innerHTML='<span>Preparing…</span>';setLearningStatus('Preparing teacher voice','thinking');
   const requestId=teacherSpeechRequest;
   teacherSpeechController=new AbortController();
   try{
-    await startAudioKeepAlive();
+    if(!preserveAudioUnlock||!teacherAudioKeepAlive)await startAudioKeepAlive();
     const token=await ensureSession();
     if(requestId!==teacherSpeechRequest)return;
     const response=await fetch('/api/classroom/speech',{method:'POST',headers:{'Content-Type':'application/json','Accept':'audio/L16'},body:JSON.stringify({text:prepareSpeechText(text),session_token:token,language:language.value,voice_gender:teacherPanel.dataset.voiceGender==='male'?'male':'female'}),signal:teacherSpeechController.signal});
@@ -415,7 +415,9 @@ function openChat(){
   setActiveMode(chatButton);setLearningStatus('Ready to learn');question.focus();
 }
 
-function showCanvasAnswer(answer,status='Worked solution'){
+function showCanvasAnswer(answer,status='Worked solution',preserveAudioUnlock=false){
+  // A newly displayed solution always replaces any playing or paused answer.
+  stopTeacherAudio(preserveAudioUnlock);
   whiteboardArea.classList.add('hidden');practiceArea.classList.add('hidden');progressArea.classList.add('hidden');canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');
   canvasStatus.textContent=status;renderLesson(canvasAnswer,answer);
   readAnswerButton.disabled=!answer.trim();setActiveMode(chatButton);setLearningStatus('Answer ready');
@@ -768,6 +770,10 @@ function stopDrawing(event){
 
 async function submitWhiteboard(){
   if(!boardHasInk){addMessage('Please write a Maths problem or show some working on the whiteboard first.','teacher');return;}
+  // This runs inside the learner's tap. Keep the audio session active while
+  // the server reads the board so mobile browsers permit automatic playback.
+  stopTeacherAudio();
+  try{await startAudioKeepAlive()}catch(_error){/* The written answer still works without audio. */}
   submitBoardButton.disabled=true;submitBoardButton.textContent='Preparing…';
   const imageData=whiteboard.toDataURL('image/png');
   problemPreview.src=imageData;canvasWork.classList.remove('text-only');problemPreview.hidden=false;
@@ -781,9 +787,11 @@ async function submitWhiteboard(){
     const data=await response.json();
     if(response.status===401){sessionToken=null;throw new Error('session');}
     if(!response.ok)throw new Error(data.detail||'request');
-    showCanvasAnswer(data.reply,'Whiteboard solution ready');
+    showCanvasAnswer(data.reply,'Whiteboard solution ready',true);
+    void speakText(data.reply,true);
     thinking.textContent='I’ve placed the complete whiteboard explanation on the Teaching Canvas.';question.value='';
   }catch(err){
+    stopTeacherAudio();
     const detail=err.message||'';
     thinking.textContent=detail&&!['request','session','Failed to fetch'].includes(detail)?detail:'I could not send that whiteboard. Please return to it and try again.';
     canvasStatus.textContent='Whiteboard needs attention';
@@ -806,7 +814,7 @@ async function toggleRecording(){
     stopTeacherAudio();
     // Unlock audio during the learner's click so the later automatic spoken
     // answer is not blocked after transcription and tutoring have completed.
-    await prepareTeacherAudio();
+    await startAudioKeepAlive();
     await ensureSession();
     micStream=await navigator.mediaDevices.getUserMedia({audio:true});recordedChunks=[];
     const preferred=['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus'];
@@ -817,7 +825,7 @@ async function toggleRecording(){
     mediaRecorder.start();setRecordingState(true);
     addMessage('Listening… Tap Stop when you finish your Maths question.','teacher');
   }catch(_){
-    stopMicTracks();setRecordingState(false);
+    stopTeacherAudio();stopMicTracks();setRecordingState(false);
     addMessage('I could not access the microphone. Please allow microphone access or type your question.','teacher');
   }
 }
@@ -828,8 +836,8 @@ async function finishRecording(){
   setRecordingState(false);stopMicTracks();
   const type=(mediaRecorder?.mimeType||recordedChunks[0]?.type||'audio/webm').split(';',1)[0];
   const blob=new Blob(recordedChunks,{type});mediaRecorder=null;recordedChunks=[];
-  if(!blob.size){addMessage('I did not receive any audio. Please try recording again.','teacher');return;}
-  if(blob.size>12*1024*1024){addMessage('That recording is too large. Please keep it shorter and try again.','teacher');return;}
+  if(!blob.size){stopTeacherAudio();addMessage('I did not receive any audio. Please try recording again.','teacher');return;}
+  if(blob.size>12*1024*1024){stopTeacherAudio();addMessage('That recording is too large. Please keep it shorter and try again.','teacher');return;}
   const thinking=addMessage('I’m listening carefully to your Maths question…','teacher');
   micButton.disabled=true;navMicButton.disabled=true;
   try{
@@ -841,11 +849,12 @@ async function finishRecording(){
     if(!response.ok)throw new Error(data.detail||'request');
     canvasWork.classList.add('text-only');problemPreview.hidden=true;
     backToWhiteboard.classList.add('hidden');
-    showCanvasAnswer(data.reply,'Voice question explained');
+    showCanvasAnswer(data.reply,'Voice question explained',true);
     // Start reading as soon as the written voice answer reaches the canvas.
-    void speakText(data.reply);
+    void speakText(data.reply,true);
     thinking.textContent='I’ve placed the complete answer to your voice question on the Teaching Canvas.';
   }catch(err){
+    stopTeacherAudio();
     const detail=err.message||'';
     thinking.textContent=detail&&!['request','session','Failed to fetch'].includes(detail)?detail:'I could not process that recording. Please try again or type your question.';
   }finally{micButton.disabled=false;navMicButton.disabled=false;}
