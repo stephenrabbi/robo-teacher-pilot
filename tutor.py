@@ -226,15 +226,28 @@ def _localized_spoken_number(match: re.Match, number_words: dict[int, str], deci
     return _localized_integer_word(raw, number_words)
 
 
+def _normalize_spoken_brand_names(text: str) -> str:
+    """Remove brand-name hyphens without changing genuine subtraction signs."""
+    spoken = re.sub(r"\bRobo\s*[-‐‑‒–—]\s*Teacher\b", "Robo Teacher", text, flags=re.IGNORECASE)
+    return re.sub(
+        r"\bEarlyon\s*[-‐‑‒–—]\s*Tech\s+Brainery\b",
+        "Earlyon Tech Brainery",
+        spoken,
+        flags=re.IGNORECASE,
+    )
+
+
 def _prepare_spoken_transcript(text: str, language: str) -> str:
     """Localize numbers and Maths operators before the TTS model sees them."""
+    # A hyphen joins the words in these proper names; it is not a Maths sign.
+    # Normalize only known brands so expressions such as "8 - 3" stay intact.
+    spoken = _normalize_spoken_brand_names(text)
     settings = SPOKEN_MATH.get(language)
     if not settings:
-        return text
+        return spoken
     number_words, decimal_word, replacements = settings
     # Replace operators first so hyphens inside generated words such as
     # "Márùn-ún" are not mistaken for subtraction signs.
-    spoken = text
     for symbol, wording in replacements:
         spoken = spoken.replace(symbol, f" {wording} ")
     spoken = re.sub(r"\b\d[\d,]*(?:\.\d+)?\b", lambda match: _localized_spoken_number(match, number_words, decimal_word), spoken)
@@ -261,6 +274,7 @@ def stream_tutor_speech(text: str, language: str = "English", voice_gender: str 
         f"Use the same unmistakably adult {gender} teacher voice speaking {language_name}. "
         f"{local_number_direction}"
         f"{delivery_style}"
+        "Say Robo Teacher and Earlyon Tech Brainery as natural proper names. Never pronounce a brand-name hyphen as minus. "
         "Use punctuation for natural pauses and keep the delivery fluid.\n\n"
         f"TRANSCRIPT:\n{transcript}"
     )
