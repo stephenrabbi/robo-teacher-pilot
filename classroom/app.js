@@ -129,6 +129,7 @@ let teacherAudioContext=null;
 const teacherAudioSources=new Set();
 let teacherStreamComplete=false;
 let teacherSpeechPaused=false;
+let teacherSpeechTimedOut=false;
 let drawing=false;
 let drawingTool='pen';
 let boardHasInk=false;
@@ -322,6 +323,7 @@ function stopTeacherAudio(){
   teacherAudioSources.forEach(source=>{try{source.stop()}catch(_error){/* Already stopped. */}});teacherAudioSources.clear();
   teacherStreamComplete=false;
   teacherSpeechPaused=false;
+  teacherSpeechTimedOut=false;
   setTeacherSpeaking(false);
 }
 
@@ -334,27 +336,26 @@ async function prepareTeacherAudio(){
 }
 
 async function playPcmStream(response,requestId){
-  const context=await prepareTeacherAudio();const reader=response.body.getReader();let pending=new Uint8Array(0);let nextStart=context.currentTime+.06;
-  const finishIfDone=()=>{if(teacherStreamComplete&&!teacherAudioSources.size&&!teacherSpeechPaused&&requestId===teacherSpeechRequest)stopTeacherAudio()};
-  while(requestId===teacherSpeechRequest){
-    const {done,value}=await reader.read();if(done)break;
-    const joined=new Uint8Array(pending.length+value.length);joined.set(pending);joined.set(value,pending.length);
-    const evenLength=joined.length-joined.length%2;pending=joined.slice(evenLength);
-    if(!evenLength)continue;
-    const samples=evenLength/2;const buffer=context.createBuffer(1,samples,24000);const channel=buffer.getChannelData(0);const view=new DataView(joined.buffer,joined.byteOffset,evenLength);
-    for(let index=0;index<samples;index++)channel[index]=view.getInt16(index*2,true)/32768;
-    const source=context.createBufferSource();source.buffer=buffer;source.connect(context.destination);teacherAudioSources.add(source);
-    source.addEventListener('ended',()=>{teacherAudioSources.delete(source);finishIfDone()},{once:true});
-    const startAt=Math.max(nextStart,context.currentTime+.025);source.start(startAt);nextStart=startAt+buffer.duration;
-  }
-  teacherStreamComplete=true;finishIfDone();
+  // Buffer one complete answer and play it through a single source. Hundreds
+  // of tiny scheduled sources were unreliable after pause, interruption and
+  // mobile microphone use, and could leave the controls in a frozen state.
+  const raw=new Uint8Array(await response.arrayBuffer());
+  if(requestId!==teacherSpeechRequest)return;
+  const evenLength=raw.length-raw.length%2;if(!evenLength)throw new Error('empty voice');
+  const context=await prepareTeacherAudio();const samples=evenLength/2;
+  const buffer=context.createBuffer(1,samples,24000);const channel=buffer.getChannelData(0);const view=new DataView(raw.buffer,raw.byteOffset,evenLength);
+  for(let index=0;index<samples;index++)channel[index]=view.getInt16(index*2,true)/32768;
+  const source=context.createBufferSource();source.buffer=buffer;source.connect(context.destination);teacherAudioSources.add(source);teacherStreamComplete=true;
+  source.addEventListener('ended',()=>{teacherAudioSources.delete(source);if(!teacherSpeechPaused&&requestId===teacherSpeechRequest)stopTeacherAudio()},{once:true});
+  source.start(context.currentTime+.04);setTeacherSpeaking(true);
 }
 
 async function speakText(text){
   if(!text.trim())return;
-  stopTeacherAudio();setTeacherSpeaking(true);
+  stopTeacherAudio();teacherVoiceStatus.textContent='Preparing…';readAnswerButton.innerHTML='<span>Preparing…</span>';setLearningStatus('Preparing teacher voice','thinking');
   const requestId=teacherSpeechRequest;
   teacherSpeechController=new AbortController();
+  teacherSpeechTimedOut=false;const speechTimeout=setTimeout(()=>{teacherSpeechTimedOut=true;teacherSpeechController?.abort()},30000);
   try{
     const token=await ensureSession();
     if(requestId!==teacherSpeechRequest)return;
@@ -364,10 +365,11 @@ async function speakText(text){
     if(!response.body)throw new Error('stream unavailable');
     await playPcmStream(response,requestId);
   }catch(error){
-    if(error.name==='AbortError'||requestId!==teacherSpeechRequest)return;
+    if(requestId!==teacherSpeechRequest)return;
+    const timedOut=teacherSpeechTimedOut;
     stopTeacherAudio();
-    addMessage('The natural teacher voice is temporarily unavailable. You can continue reading the worked answer on the Teaching Canvas.','teacher');
-  }
+    addMessage(timedOut?'The teacher voice took too long. Tap Read answer to try again.':'The natural teacher voice is temporarily unavailable. Tap Read answer to try again.','teacher');
+  }finally{clearTimeout(speechTimeout)}
 }
 
 readAnswerButton.addEventListener('click',async()=>{
