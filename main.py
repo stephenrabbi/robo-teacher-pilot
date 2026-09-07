@@ -24,8 +24,11 @@ WHATSAPP_MIGRATION_MESSAGE = "Robo-Teacher WhatsApp Pilot Update\n\nOur WhatsApp
 @app.on_event("startup")
 async def _sync_telegram_webhook_on_startup():
     try:
-        await configure_telegram_webhook()
-        logger.info("Telegram webhook synchronized successfully")
+        configured = await configure_telegram_webhook()
+        if configured:
+            logger.info("Telegram webhook synchronized successfully")
+        else:
+            logger.info("Telegram webhook synchronization skipped: credentials are not configured for this environment")
     except Exception as exc:
         logger.error("Telegram webhook synchronization failed (%s)", type(exc).__name__)
 
