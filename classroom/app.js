@@ -289,6 +289,7 @@ function prepareSpeechText(text){
 
 function setTeacherSpeaking(speaking){
   teacherPanel.classList.toggle('speaking',speaking);
+  if(speaking)teacherPanel.classList.remove('paused');
   teacherVoiceStatus.textContent=speaking?'Speaking…':'Ready';
   readAnswerButton.innerHTML=speaking?'<span>Pause</span>':'<span>Read answer</span>';
   readAnswerButton.setAttribute('aria-label',speaking?'Pause reading the answer':'Read the current answer aloud');
@@ -300,7 +301,7 @@ async function pauseTeacherAudio(){
   // Lock the state before suspension so a final streamed chunk cannot close
   // the audio context while the learner is pausing it.
   teacherSpeechPaused=true;
-  teacherPanel.classList.remove('speaking');teacherVoiceStatus.textContent='Paused';
+  teacherPanel.classList.remove('speaking');teacherPanel.classList.add('paused');teacherVoiceStatus.textContent='Paused';
   readAnswerButton.innerHTML='<span>Continue</span>';readAnswerButton.setAttribute('aria-label','Continue reading the answer');setLearningStatus('Audio paused','paused');
   try{await teacherAudioContext.suspend()}
   catch(_error){teacherSpeechPaused=false;setTeacherSpeaking(true)}
@@ -324,6 +325,7 @@ function stopTeacherAudio(preserveAudioUnlock=false){
   teacherAudioSources.forEach(source=>{try{source.stop()}catch(_error){/* Already stopped. */}});teacherAudioSources.clear();
   teacherStreamComplete=false;
   teacherSpeechPaused=false;
+  teacherPanel.classList.remove('paused');
   setTeacherSpeaking(false);
 }
 
@@ -350,16 +352,22 @@ async function startAudioKeepAlive(){
 async function playPcmStream(response,requestId){
   const context=await prepareTeacherAudio();const reader=response.body.getReader();let pending=new Uint8Array(0);let nextStart=context.currentTime+.06;let receivedAudio=false;
   const finishIfDone=()=>{if(teacherStreamComplete&&!teacherAudioSources.size&&!teacherSpeechPaused&&requestId===teacherSpeechRequest)stopTeacherAudio()};
-  while(requestId===teacherSpeechRequest){
-    const {done,value}=await reader.read();if(done)break;
-    const joined=new Uint8Array(pending.length+value.length);joined.set(pending);joined.set(value,pending.length);
-    const evenLength=joined.length-joined.length%2;pending=joined.slice(evenLength);if(!evenLength)continue;
-    if(!receivedAudio){receivedAudio=true;stopAudioKeepAlive();setTeacherSpeaking(true)}
-    const samples=evenLength/2;const buffer=context.createBuffer(1,samples,24000);const channel=buffer.getChannelData(0);const view=new DataView(joined.buffer,joined.byteOffset,evenLength);
-    for(let index=0;index<samples;index++)channel[index]=view.getInt16(index*2,true)/32768;
-    const source=context.createBufferSource();source.buffer=buffer;source.connect(context.destination);teacherAudioSources.add(source);
-    source.addEventListener('ended',()=>{teacherAudioSources.delete(source);finishIfDone()},{once:true});
-    const startAt=Math.max(nextStart,context.currentTime+.025);source.start(startAt);nextStart=startAt+buffer.duration;
+  try{
+    while(requestId===teacherSpeechRequest){
+      const {done,value}=await reader.read();if(done)break;
+      const joined=new Uint8Array(pending.length+value.length);joined.set(pending);joined.set(value,pending.length);
+      const evenLength=joined.length-joined.length%2;pending=joined.slice(evenLength);if(!evenLength)continue;
+      if(!receivedAudio){receivedAudio=true;stopAudioKeepAlive();setTeacherSpeaking(true)}
+      const samples=evenLength/2;const buffer=context.createBuffer(1,samples,24000);const channel=buffer.getChannelData(0);const view=new DataView(joined.buffer,joined.byteOffset,evenLength);
+      for(let index=0;index<samples;index++)channel[index]=view.getInt16(index*2,true)/32768;
+      const source=context.createBufferSource();source.buffer=buffer;source.connect(context.destination);teacherAudioSources.add(source);
+      source.addEventListener('ended',()=>{teacherAudioSources.delete(source);finishIfDone()},{once:true});
+      const startAt=Math.max(nextStart,context.currentTime+.025);source.start(startAt);nextStart=startAt+buffer.duration;
+    }
+  }catch(error){
+    // A mobile network may close a completed stream abruptly. Keep playing
+    // audio already received instead of cancelling it with a false error.
+    if(!receivedAudio)throw error;
   }
   stopAudioKeepAlive();if(!receivedAudio)throw new Error('empty voice');teacherStreamComplete=true;finishIfDone();
 }
