@@ -363,12 +363,18 @@ async function playTeacherAudio(response,requestId){
   teacherStreamComplete=true;source.start();
 }
 
-function speakWithDeviceVoice(text,requestId){
+async function availableDeviceVoices(){
+  let voices=window.speechSynthesis.getVoices();if(voices.length)return voices;
+  await new Promise(resolve=>{const done=()=>{window.speechSynthesis.removeEventListener('voiceschanged',done);resolve()};window.speechSynthesis.addEventListener('voiceschanged',done,{once:true});setTimeout(done,700)});
+  return window.speechSynthesis.getVoices();
+}
+
+async function speakWithDeviceVoice(text,requestId){
   if(!window.speechSynthesis||!window.SpeechSynthesisUtterance)throw new Error('device voice unavailable');
   stopAudioKeepAlive();const utterance=new SpeechSynthesisUtterance(prepareSpeechText(text));teacherNativeUtterance=utterance;
   const languageCodes={English:'en-NG',Yoruba:'yo-NG',Igbo:'ig-NG',Hausa:'ha-NG'};utterance.lang=languageCodes[language.value]||'en-NG';utterance.rate=.92;utterance.pitch=1.06;
-  const voices=window.speechSynthesis.getVoices();const code=utterance.lang.split('-')[0].toLowerCase();const localVoices=voices.filter(voice=>voice.lang.toLowerCase().startsWith(code));
-  utterance.voice=localVoices.find(voice=>/female|zira|samantha|victoria|aria|jenny|susan|moira|tessa|karen/i.test(voice.name))||localVoices[0]||voices.find(voice=>/female|zira|samantha|aria|jenny/i.test(voice.name))||null;
+  const voices=await availableDeviceVoices();if(requestId!==teacherSpeechRequest)return;const code=utterance.lang.split('-')[0].toLowerCase();const female=/female|zira|samantha|victoria|aria|jenny|susan|moira|tessa|karen|hazel|salli|joanna/i;const male=/male|david|mark|george|daniel|charles|guy/i;
+  utterance.voice=voices.find(voice=>voice.lang.toLowerCase().startsWith(code)&&female.test(voice.name))||voices.find(voice=>female.test(voice.name)&&!male.test(voice.name))||voices.find(voice=>voice.lang.toLowerCase().startsWith(code)&&!male.test(voice.name))||null;
   utterance.addEventListener('start',()=>{if(requestId===teacherSpeechRequest)setTeacherSpeaking(true)},{once:true});
   utterance.addEventListener('end',()=>{if(requestId===teacherSpeechRequest)stopTeacherAudio()},{once:true});
   utterance.addEventListener('error',()=>{if(requestId===teacherSpeechRequest)stopTeacherAudio()},{once:true});
@@ -379,17 +385,21 @@ async function speakText(text,preserveAudioUnlock=false){
   if(!text.trim())return;
   stopTeacherAudio(preserveAudioUnlock);teacherVoiceStatus.textContent='Preparing…';readAnswerButton.innerHTML='<span>Preparing…</span>';setLearningStatus('Preparing teacher voice','thinking');
   const requestId=teacherSpeechRequest;
-  teacherSpeechController=new AbortController();
+  const controller=new AbortController();teacherSpeechController=controller;
+  let naturalVoiceTimedOut=false;const naturalVoiceTimer=setTimeout(()=>{naturalVoiceTimedOut=true;controller.abort()},7000);
   try{
     if(!preserveAudioUnlock||!teacherAudioKeepAlive)await startAudioKeepAlive();
     const token=await ensureSession();
-    if(requestId!==teacherSpeechRequest)return;
-    const response=await fetch('/api/classroom/speech',{method:'POST',headers:{'Content-Type':'application/json','Accept':'audio/wav'},body:JSON.stringify({text:prepareSpeechText(text),session_token:token,language:language.value,voice_gender:teacherPanel.dataset.voiceGender==='male'?'male':'female'}),signal:teacherSpeechController.signal});
+    if(requestId!==teacherSpeechRequest){clearTimeout(naturalVoiceTimer);return;}
+    const response=await fetch('/api/classroom/speech',{method:'POST',headers:{'Content-Type':'application/json','Accept':'audio/wav'},body:JSON.stringify({text:prepareSpeechText(text),session_token:token,language:language.value,voice_gender:teacherPanel.dataset.voiceGender==='male'?'male':'female'}),signal:controller.signal});
     if(response.status===401){sessionToken=null;throw new Error('session')}
-    if(!response.ok){speakWithDeviceVoice(text,requestId);return;}
+    clearTimeout(naturalVoiceTimer);
+    if(!response.ok){await speakWithDeviceVoice(text,requestId);return;}
     await playTeacherAudio(response,requestId);
   }catch(error){
     if(requestId!==teacherSpeechRequest)return;
+    clearTimeout(naturalVoiceTimer);
+    if(naturalVoiceTimedOut){try{await speakWithDeviceVoice(text,requestId);return}catch(_fallbackError){/* Show the voice error below. */}}
     console.error('Teacher voice playback failed',error);
     stopTeacherAudio();
     addMessage('The natural teacher voice is temporarily unavailable. Tap Read answer to try again.','teacher');
