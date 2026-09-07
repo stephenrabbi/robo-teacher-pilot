@@ -28,7 +28,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260907-spaciousboard1' in html
+    assert '20260907-uirefinement1' in html
     assert 'id="learnerNickname"' in html
     assert 'id="learnerClass"' in html
     assert "learnerNickname.value=''" in script
@@ -44,7 +44,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert "localStorage.setItem('roboTeacherQaChecklist'" in script
     assert 'const resultCopy=' in script
     assert 'labels.yourAnswer' in script
-    assert '20260906-resultcopy1' in html
+    assert '20260907-uirefinement1' in html
     assert 'downloadTeacherDashboardReport' in script
     assert 'id="practiceClass"' in html
     assert 'id="startDiagnostic"' in html
@@ -61,11 +61,30 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert 'aria-expanded="true"' in html
     assert '@media(max-width:600px)' in css
     assert '.teacher-panel{grid-template-columns:82px 1fr' in css
-    assert '.founder-avatar{height:205px!important}' in css
+    assert '.founder-avatar{height:auto!important;aspect-ratio:1023/1537!important' in css
     assert 'min-height:44px' in css
     assert 'grid-template-columns:290px minmax(0,1fr)' in css
     assert 'grid-template-columns:repeat(4,minmax(0,1fr))' in css
     assert 'overflow:visible' in css
+
+
+def test_founder_portrait_is_not_cropped_on_mobile():
+    css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
+    assert 'object-fit:contain!important;object-position:center top!important' in css
+    assert '@media(max-width:600px){.founder-panel{width:min(100%,250px)}' in css
+
+
+def test_ui_refinement_exposes_clear_modes_and_activity_status():
+    html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
+    css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
+    script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
+    assert 'id="learningStatus"' in html
+    assert 'id="chatButton"' in html
+    assert 'aria-current="page"' in html
+    assert 'function setActiveMode(button)' in script
+    assert "setLearningStatus('Checking your answer','thinking')" in script
+    assert '.class-tools button.active' in css
+    assert '.composer{position:sticky;bottom:92px' in css
     assert 'linear-gradient(135deg,#eaf7ff' in css
     assert 'void speakText(data.reply)' in script
     assert 'stopTeacherAudio();\n    await ensureSession();' in script
