@@ -642,17 +642,26 @@ def generate_visual_aid(text: str, response_language: str, class_level: str = "J
     )
     response = _get_client().models.generate_content(model=GEMINI_MODEL, contents=prompt, config=types.GenerateContentConfig(system_instruction=SYSTEM_PROMPT, max_output_tokens=450, thinking_config=types.ThinkingConfig(thinking_budget=0), response_mime_type="application/json"))
     raw = _extract_text(response).strip();data = json.loads(re.sub(r"^```(?:json)?\s*|\s*```$", "", raw, flags=re.IGNORECASE))
-    kind=data.get("kind");items=data.get("items")
-    if kind not in {"steps","bars","number_line","square_grid","fraction","balance","coordinate"} or not isinstance(items,list) or not 2<=len(items)<=8: raise ValueError("Invalid visual aid")
+    aliases={"fraction_bar":"fraction","fraction_model":"fraction","balance_scale":"balance","equation_balance":"balance","coordinate_plane":"coordinate","graph":"coordinate","grid":"square_grid"}
+    kind=aliases.get(str(data.get("kind","")).lower(),str(data.get("kind","")).lower());items=data.get("items")
+    if kind not in {"steps","bars","number_line","square_grid","fraction","balance","coordinate"} or not isinstance(items,list) or not 1<=len(items)<=8: raise ValueError("Invalid visual aid")
     cleaned=[]
     for item in items:
-        if not isinstance(item,dict) or not isinstance(item.get("label"),str) or not isinstance(item.get("value"),(int,float)): raise ValueError("Invalid visual item")
-        cleaned.append({"label":item["label"].strip()[:45],"value":item["value"]})
+        if not isinstance(item,dict): raise ValueError("Invalid visual item")
+        label=str(item.get("label",item.get("name",""))).strip()[:45];value=item.get("value",item.get("position",item.get("amount")))
+        if isinstance(value,str):
+            try: value=float(value)
+            except ValueError:
+                if kind!="balance": raise ValueError("Invalid visual value")
+                value=value.strip()[:30]
+        if not label or not isinstance(value,(int,float,str)): raise ValueError("Invalid visual item")
+        cleaned.append({"label":label,"value":value})
     if kind=="number_line": cleaned.sort(key=lambda item:item["value"])
     if kind=="square_grid":
         total=int(cleaned[0]["value"]);side=int(total**0.5)
         if total<1 or total>100 or side*side!=total: raise ValueError("Invalid square grid")
     if kind=="fraction":
+        if len(cleaned)<2: raise ValueError("Invalid fraction")
         numerator,denominator=int(cleaned[0]["value"]),int(cleaned[1]["value"])
         if denominator<1 or denominator>24 or numerator<0 or numerator>denominator: raise ValueError("Invalid fraction")
     return {"title":str(data.get("title","Visual explanation"))[:80],"kind":kind,"items":cleaned,"caption":str(data.get("caption",""))[:240]}
