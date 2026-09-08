@@ -684,7 +684,9 @@ def select_lesson_media(text: str, response_language: str = "English") -> dict:
     ]
     for keywords,title,url in catalog:
         if any(keyword in lesson for keyword in keywords): return {"kind":"simulation","title":title,"url":url,"source":"PhET Interactive Simulations"}
-    steps=[part.strip() for part in re.split(r"(?:\n+|(?<=[.!?])\s+)",text) if part.strip()][:6]
+    replay_text=re.sub(r"(?i)(?<!^)(?=step\s*\d+\s*[:.])","\n",text)
+    replay_text=re.sub(r"(?i)(?<!^)(?=final\s+(?:answer|estimation)\s*[:.])","\n",replay_text)
+    steps=[part.strip() for part in re.split(r"(?:\n+|(?<=[.!?])\s+)",replay_text) if part.strip()][:6]
     return {"kind":"replay","title":"Worked example replay","steps":steps or [text.strip()[:240]],"source":"Robo-Teacher"}
 
 

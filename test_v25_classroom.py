@@ -31,7 +31,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260908-mobilemedia2' in html
+    assert '20260908-mobilemedia3' in html
     assert 'id="learnerNickname"' in html
     assert 'id="learnerClass"' in html
     assert "learnerNickname.value=''" in script
@@ -47,7 +47,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert "localStorage.setItem('roboTeacherQaChecklist'" in script
     assert 'const resultCopy=' in script
     assert 'labels.yourAnswer' in script
-    assert '20260908-mobilemedia2' in html
+    assert '20260908-mobilemedia3' in html
     assert 'downloadTeacherDashboardReport' in script
     assert 'id="practiceClass"' in html
     assert 'id="startDiagnostic"' in html
@@ -1031,6 +1031,14 @@ def test_mobile_simulation_always_exposes_an_escape_control():
     assert 'allowfullscreen' not in html
     assert '.media-area>.exit-media{position:fixed' in css
     assert 'height:55vh' in css and 'overscroll-behavior:contain' in css
+
+
+def test_mobile_toolbar_is_one_scrollable_row_and_replay_keeps_paragraphs():
+    html=(PROJECT_ROOT/'classroom'/'index.html').read_text();script=(PROJECT_ROOT/'classroom'/'app.js').read_text();css=(PROJECT_ROOT/'classroom'/'styles.css').read_text()
+    assert '>Watch or Explore</button>' in html
+    assert "map(item=>item.innerText.trim()).filter(Boolean).join('\\n')" in script
+    assert 'flex-wrap:nowrap!important' in css and 'overflow-x:auto!important' in css
+    assert "data.kind==='simulation'?'← Exit simulation':'← Exit example'" in script
 
 
 def test_media_endpoint_requires_a_valid_session():
