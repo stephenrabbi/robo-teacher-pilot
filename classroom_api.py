@@ -12,10 +12,11 @@ import os
 import secrets
 import time
 from collections import defaultdict, deque
+from itertools import chain
 from typing import Literal
 
 from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel, Field
 from curriculum import ALL_TOPICS, CLASS_TOPICS, CURRICULUM
 from diagnostic import answer_diagnostic, change_diagnostic_language, next_diagnostic, start_diagnostic
@@ -31,6 +32,7 @@ from tutor import (
     get_tutor_audio_reply,
     get_tutor_image_reply,
     get_tutor_reply,
+    generate_tutor_speech,
     stream_tutor_speech,
     translate_tutor_text,
 )
@@ -311,12 +313,31 @@ def classroom_speech(speech: ClassroomSpeech):
     # question. Keep it out of the question bucket so repeated voice lessons
     # do not disable both the answer and its automatic narration.
     _enforce_rate_limit(student_id, "speech", 30)
-    audio_stream = stream_tutor_speech(speech.text.strip(), speech.language, speech.voice_gender)
-    return StreamingResponse(
-        audio_stream,
-        media_type="audio/l16;rate=24000;channels=1",
-        headers={"Cache-Control": "no-store", "X-Audio-Sample-Rate": "24000"},
-    )
+    text = speech.text.strip()
+    headers = {"Cache-Control": "no-store", "X-Audio-Sample-Rate": "24000"}
+    try:
+        # Do not send HTTP 200 until Gemini has produced actual audio. This
+        # prevents an empty provider stream from making the browser flash
+        # "Pause" and then silently stop.
+        audio_stream = iter(stream_tutor_speech(text, speech.language, speech.voice_gender))
+        first_chunk = next(audio_stream)
+        return StreamingResponse(
+            chain((first_chunk,), audio_stream),
+            media_type="audio/l16;rate=24000;channels=1",
+            headers=headers,
+        )
+    except (StopIteration, RuntimeError, ValueError):
+        try:
+            # Keep Gemini 3.1 streaming as the primary voice, then use the
+            # stable Gemini TTS endpoint with the same Aoede/Charon voice if
+            # the preview stream returns no audio.
+            wav_audio = generate_tutor_speech(text, speech.language, speech.voice_gender)
+            pcm_audio = wav_audio[44:]
+            if not pcm_audio:
+                raise ValueError("Gemini fallback returned no audio")
+            return Response(content=pcm_audio, media_type="audio/l16;rate=24000;channels=1", headers=headers)
+        except Exception as exc:
+            raise HTTPException(status_code=503, detail="The natural teacher voice is temporarily unavailable") from exc
 
 
 @router.post("/translate")

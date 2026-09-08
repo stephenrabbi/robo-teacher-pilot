@@ -188,6 +188,22 @@ def test_natural_speech_endpoint_uses_female_avatar_voice():
     assert tts.call_args.args[1:] == ('English', 'female')
 
 
+def test_empty_stream_uses_stable_gemini_tts_fallback():
+    session = client.post('/api/classroom/session').json()
+    wav_audio = _pcm_to_wav(b'fallback-pcm')
+    with patch.object(classroom_api, 'stream_tutor_speech', return_value=iter(())), \
+         patch.object(classroom_api, 'generate_tutor_speech', return_value=wav_audio) as fallback:
+        response = client.post('/api/classroom/speech', json={
+            'text': 'The answer is six.',
+            'session_token': session['session_token'],
+            'language': 'English',
+            'voice_gender': 'female',
+        })
+    assert response.status_code == 200
+    assert response.content == b'fallback-pcm'
+    fallback.assert_called_once_with('The answer is six.', 'English', 'female')
+
+
 def test_speech_playback_does_not_consume_the_tutor_question_limit():
     classroom_api._request_times.clear()
     session = client.post('/api/classroom/session').json()
