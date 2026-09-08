@@ -618,6 +618,37 @@ def test_native_language_prompts_limit_english_to_unavoidable_maths_terms():
     assert "Hausa is not the main language spoken in their home" in _language_instruction("Hausa")
 
 
+def test_active_voice_language_change_translates_and_restarts_stream():
+    script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
+    assert "const wasReading=teacherPanel.classList.contains('speaking')||teacherSpeechPaused" in script
+    assert "fetch('/api/classroom/translate'" in script
+    assert "renderLesson(canvasAnswer,data.translation)" in script
+    assert "void speakText(data.translation)" in script
+
+
+def test_translate_endpoint_preserves_selected_language_and_class():
+    session = client.post('/api/classroom/session', json={
+        'learner_key': 'f' * 48, 'nickname': 'Ada', 'class_level': 'JSS3',
+    }).json()
+    with patch.object(classroom_api, 'translate_tutor_text', return_value='Ka anyị gaa n’ihu.') as translator:
+        response = client.post('/api/classroom/translate', json={
+            'session_token': session['session_token'],
+            'text': 'Let us continue.', 'language': 'Igbo',
+        })
+    assert response.status_code == 200
+    assert response.json() == {'translation': 'Ka anyị gaa n’ihu.', 'language': 'Igbo'}
+    assert translator.call_args.args == ('Let us continue.', 'Igbo', 'JSS3')
+
+
+def test_translation_function_explicitly_targets_english():
+    import tutor
+    fake_response = type('Response', (), {'text': 'The answer is six.', 'candidates': []})()
+    fake_models = type('Models', (), {'generate_content': lambda self, **kwargs: fake_response})()
+    fake_client = type('Client', (), {'models': fake_models})()
+    with patch.object(tutor, '_get_client', return_value=fake_client):
+        assert tutor.translate_tutor_text('Ìdáhùn ni mẹ́fà.', 'English') == 'The answer is six.'
+
+
 def test_practice_translation_prompt_requires_mostly_native_language():
     from practice_translation import LANGUAGE_STYLE
     assert "modern conversational Yorùbá" in LANGUAGE_STYLE["Yoruba"]

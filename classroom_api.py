@@ -32,6 +32,7 @@ from tutor import (
     get_tutor_image_reply,
     get_tutor_reply,
     stream_tutor_speech,
+    translate_tutor_text,
 )
 
 router = APIRouter(prefix="/api/classroom", tags=["classroom"])
@@ -90,6 +91,12 @@ class PracticeNext(BaseModel):
 
 class PracticeLanguage(PracticeNext):
     language: SupportedLanguage = "English"
+
+
+class ClassroomTranslation(BaseModel):
+    session_token: str = Field(min_length=20, max_length=300)
+    text: str = Field(min_length=1, max_length=6000)
+    language: SupportedLanguage
 
 
 class DiagnosticStart(BaseModel):
@@ -310,6 +317,18 @@ def classroom_speech(speech: ClassroomSpeech):
         media_type="audio/l16;rate=24000;channels=1",
         headers={"Cache-Control": "no-store", "X-Audio-Sample-Rate": "24000"},
     )
+
+
+@router.post("/translate")
+def classroom_translate(request: ClassroomTranslation):
+    student_id = _verify_session(request.session_token)
+    _enforce_rate_limit(student_id, "translation", 30)
+    class_level = _classroom_profiles.get(student_id, {}).get("class_level", "JSS2")
+    try:
+        translated = translate_tutor_text(request.text, request.language, class_level)
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="I could not switch this explanation right now") from exc
+    return {"translation": translated, "language": request.language}
 
 
 @router.post("/image")

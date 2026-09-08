@@ -129,6 +129,7 @@ let teacherAudioContext=null;
 const teacherAudioSources=new Set();
 let teacherStreamComplete=false;
 let teacherSpeechPaused=false;
+let languageSwitchRequest=0;
 let drawing=false;
 let drawingTool='pen';
 let boardHasInk=false;
@@ -444,11 +445,33 @@ whiteboard.addEventListener('pointerup',stopDrawing);
 whiteboard.addEventListener('pointercancel',stopDrawing);
 backToWhiteboard.addEventListener('click',openWhiteboard);
 language.addEventListener('change',async()=>{
+  const wasReading=teacherPanel.classList.contains('speaking')||teacherSpeechPaused;
+  const answerToTranslate=canvasAnswer.textContent.trim();
   stopTeacherAudio();
+  const switchId=++languageSwitchRequest;
   localStorage.setItem('roboTeacherLanguage',language.value);
   const notices={English:'I will teach you in English from now on.',Yoruba:'Mo máa kọ́ ọ ní Yorùbá láti ìsinsin yìí.',Igbo:'Aga m akụziri gị ihe n’Igbo site ugbu a.',Hausa:'Zan koyar da kai da Hausa daga yanzu.'};
   addMessage(notices[language.value],'teacher');
   if(currentPractice)await switchPracticeLanguage();
+  if(wasReading&&answerToTranslate){
+    setLearningStatus(`Switching explanation to ${language.options[language.selectedIndex].text}…`,'thinking');
+    readAnswerButton.disabled=true;
+    try{
+      const token=await ensureSession();
+      const response=await fetch('/api/classroom/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:answerToTranslate,session_token:token,language:language.value})});
+      const data=await response.json();
+      if(switchId!==languageSwitchRequest)return;
+      if(response.status===401){sessionToken=null;throw new Error('session')}
+      if(!response.ok)throw new Error(data.detail||'translation');
+      renderLesson(canvasAnswer,data.translation);readAnswerButton.disabled=false;
+      canvasStatus.textContent=`Explanation switched to ${language.options[language.selectedIndex].text}`;
+      void speakText(data.translation);
+    }catch(error){
+      if(switchId!==languageSwitchRequest)return;
+      readAnswerButton.disabled=false;setLearningStatus('Language switch needs another try','attention');
+      addMessage(error.message&&!['translation','session'].includes(error.message)?error.message:'I could not switch the current explanation. Please change the language again.','teacher');
+    }
+  }
   if(currentProgress&&!progressArea.classList.contains('hidden'))renderProgress(currentProgress);
   if(currentTeacherDashboard&&!teacherDashboard.classList.contains('hidden'))renderTeacherDashboard(currentTeacherDashboard);
   question.focus();
