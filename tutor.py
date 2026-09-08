@@ -264,20 +264,32 @@ def stream_tutor_speech(text: str, language: str = "English", voice_gender: str 
         "Use punctuation for natural pauses and keep the delivery fluid.\n\n"
         f"TRANSCRIPT:\n{transcript}"
     )
-    stream = _get_client().interactions.create(
-        model=GEMINI_STREAMING_TTS_MODEL,
-        input=prompt,
-        response_format={"type": "audio"},
-        generation_config={"speech_config": [{"voice": TTS_VOICES[gender]}]},
-        stream=True,
+    retry_prompt = (
+        f"Read only this transcript aloud in {language_name}, in a warm, natural adult {gender} teacher voice. "
+        "Do not translate it and do not read these directions.\n\n"
+        f"{transcript}"
     )
-    for event in stream:
-        delta = getattr(event, "delta", None)
-        if getattr(event, "event_type", "") != "step.delta" or getattr(delta, "type", "") != "audio":
-            continue
-        encoded = getattr(delta, "data", None)
-        if encoded:
-            yield base64.b64decode(encoded) if isinstance(encoded, str) else bytes(encoded)
+    client = _get_client()
+    for attempt_prompt in (prompt, retry_prompt):
+        emitted_audio = False
+        stream = client.interactions.create(
+            model=GEMINI_STREAMING_TTS_MODEL,
+            input=attempt_prompt,
+            response_format={"type": "audio"},
+            generation_config={"speech_config": [{"voice": TTS_VOICES[gender]}]},
+            stream=True,
+        )
+        for event in stream:
+            delta = getattr(event, "delta", None)
+            if getattr(event, "event_type", "") != "step.delta" or getattr(delta, "type", "") != "audio":
+                continue
+            encoded = getattr(delta, "data", None)
+            if encoded:
+                emitted_audio = True
+                yield base64.b64decode(encoded) if isinstance(encoded, str) else bytes(encoded)
+        if emitted_audio:
+            return
+    raise RuntimeError("Gemini streaming TTS returned no audio")
 
 
 def generate_tutor_speech(text: str, language: str = "English", voice_gender: str = "female") -> bytes:

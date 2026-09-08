@@ -337,19 +337,21 @@ async function prepareTeacherAudio(){
 }
 
 async function playPcmStream(response,requestId){
-  const context=await prepareTeacherAudio();const reader=response.body.getReader();let pending=new Uint8Array(0);let nextStart=context.currentTime+.06;
+  const context=await prepareTeacherAudio();const reader=response.body.getReader();let pending=new Uint8Array(0);let nextStart=context.currentTime+.06;let receivedAudio=false;
   const finishIfDone=()=>{if(teacherStreamComplete&&!teacherAudioSources.size&&!teacherSpeechPaused&&requestId===teacherSpeechRequest)stopTeacherAudio()};
   while(requestId===teacherSpeechRequest){
     const {done,value}=await reader.read();if(done)break;
     const joined=new Uint8Array(pending.length+value.length);joined.set(pending);joined.set(value,pending.length);
     const evenLength=joined.length-joined.length%2;pending=joined.slice(evenLength);
     if(!evenLength)continue;
+    receivedAudio=true;
     const samples=evenLength/2;const buffer=context.createBuffer(1,samples,24000);const channel=buffer.getChannelData(0);const view=new DataView(joined.buffer,joined.byteOffset,evenLength);
     for(let index=0;index<samples;index++)channel[index]=view.getInt16(index*2,true)/32768;
     const source=context.createBufferSource();source.buffer=buffer;source.connect(context.destination);teacherAudioSources.add(source);
     source.addEventListener('ended',()=>{teacherAudioSources.delete(source);finishIfDone()},{once:true});
     const startAt=Math.max(nextStart,context.currentTime+.025);source.start(startAt);nextStart=startAt+buffer.duration;
   }
+  if(requestId===teacherSpeechRequest&&!receivedAudio)throw new Error('empty voice stream');
   teacherStreamComplete=true;finishIfDone();
 }
 
@@ -453,7 +455,7 @@ language.addEventListener('change',async()=>{
   const notices={English:'I will teach you in English from now on.',Yoruba:'Mo máa kọ́ ọ ní Yorùbá láti ìsinsin yìí.',Igbo:'Aga m akụziri gị ihe n’Igbo site ugbu a.',Hausa:'Zan koyar da kai da Hausa daga yanzu.'};
   addMessage(notices[language.value],'teacher');
   if(currentPractice)await switchPracticeLanguage();
-  if(wasReading&&answerToTranslate){
+  if(answerToTranslate){
     setLearningStatus(`Switching explanation to ${language.options[language.selectedIndex].text}…`,'thinking');
     readAnswerButton.disabled=true;
     try{
@@ -465,7 +467,8 @@ language.addEventListener('change',async()=>{
       if(!response.ok)throw new Error(data.detail||'translation');
       renderLesson(canvasAnswer,data.translation);readAnswerButton.disabled=false;
       canvasStatus.textContent=`Explanation switched to ${language.options[language.selectedIndex].text}`;
-      void speakText(data.translation);
+      setLearningStatus('Explanation ready');
+      if(wasReading)void speakText(data.translation);
     }catch(error){
       if(switchId!==languageSwitchRequest)return;
       readAnswerButton.disabled=false;setLearningStatus('Language switch needs another try','attention');

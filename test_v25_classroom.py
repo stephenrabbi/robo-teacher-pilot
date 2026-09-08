@@ -626,6 +626,13 @@ def test_active_voice_language_change_translates_and_restarts_stream():
     assert "void speakText(data.translation)" in script
 
 
+def test_language_change_always_translates_visible_answer_and_only_resumes_active_voice():
+    script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
+    assert "if(answerToTranslate){" in script
+    assert "if(wasReading)void speakText(data.translation)" in script
+    assert "!receivedAudio)throw new Error('empty voice stream')" in script
+
+
 def test_translate_endpoint_preserves_selected_language_and_class():
     session = client.post('/api/classroom/session', json={
         'learner_key': 'f' * 48, 'nickname': 'Ada', 'class_level': 'JSS3',
