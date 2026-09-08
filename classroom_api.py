@@ -8,14 +8,15 @@ import base64
 import binascii
 import hashlib
 import hmac
-import logging
 import os
 import secrets
 import time
 from collections import defaultdict, deque
+from itertools import chain
 from typing import Literal
 
 from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from curriculum import ALL_TOPICS, CLASS_TOPICS, CURRICULUM
 from diagnostic import answer_diagnostic, change_diagnostic_language, next_diagnostic, start_diagnostic
@@ -31,10 +32,10 @@ from tutor import (
     get_tutor_audio_reply,
     get_tutor_image_reply,
     get_tutor_reply,
-    generate_tutor_speech,
+    stream_stable_tutor_speech,
+    stream_tutor_speech,
+    translate_tutor_text,
 )
-
-logger = logging.getLogger("robo-teacher.classroom")
 
 router = APIRouter(prefix="/api/classroom", tags=["classroom"])
 _SESSION_TTL_SECONDS = 60 * 60 * 4
@@ -92,6 +93,12 @@ class PracticeNext(BaseModel):
 
 class PracticeLanguage(PracticeNext):
     language: SupportedLanguage = "English"
+
+
+class ClassroomTranslation(BaseModel):
+    session_token: str = Field(min_length=20, max_length=300)
+    text: str = Field(min_length=1, max_length=6000)
+    language: SupportedLanguage
 
 
 class DiagnosticStart(BaseModel):
@@ -299,20 +306,52 @@ def classroom_chat(question: ClassroomQuestion, request: Request):
     return {"reply": reply, "latency_seconds": round(float(latency), 3), "learner_id": student_id}
 
 
-@router.post("/speech")
+@router.post("/speech", response_class=StreamingResponse)
 def classroom_speech(speech: ClassroomSpeech):
     student_id = _verify_session(speech.session_token)
     # Reading an answer aloud is a playback request, not a second tutor
     # question. Keep it out of the question bucket so repeated voice lessons
     # do not disable both the answer and its automatic narration.
     _enforce_rate_limit(student_id, "speech", 30)
+    text = speech.text.strip()
+    headers = {"Cache-Control": "no-store", "X-Audio-Sample-Rate": "24000"}
     try:
-        audio = generate_tutor_speech(speech.text.strip(), speech.language, speech.voice_gender)
+        # Do not send HTTP 200 until Gemini has produced actual audio. This
+        # prevents an empty provider stream from making the browser flash
+        # "Pause" and then silently stop.
+        audio_stream = iter(stream_tutor_speech(text, speech.language, speech.voice_gender))
+        first_chunk = next(audio_stream)
+        return StreamingResponse(
+            chain((first_chunk,), audio_stream),
+            media_type="audio/l16;rate=24000;channels=1",
+            headers=headers,
+        )
+    except Exception:
+        try:
+            # Keep Gemini 3.1 streaming as the primary voice, then use the
+            # stable Gemini TTS endpoint with the same Aoede/Charon voice if
+            # the preview stream returns no audio.
+            fallback_stream = iter(stream_stable_tutor_speech(text, speech.language, speech.voice_gender))
+            first_fallback_chunk = next(fallback_stream)
+            return StreamingResponse(
+                chain((first_fallback_chunk,), fallback_stream),
+                media_type="audio/l16;rate=24000;channels=1",
+                headers=headers,
+            )
+        except Exception as exc:
+            raise HTTPException(status_code=503, detail="The natural teacher voice is temporarily unavailable") from exc
+
+
+@router.post("/translate")
+def classroom_translate(request: ClassroomTranslation):
+    student_id = _verify_session(request.session_token)
+    _enforce_rate_limit(student_id, "translation", 30)
+    class_level = _classroom_profiles.get(student_id, {}).get("class_level", "JSS2")
+    try:
+        translated = translate_tutor_text(request.text, request.language, class_level)
     except Exception as exc:
-        cause = exc.__cause__ or exc
-        logger.warning("Teacher speech generation failed: %s: %s", type(cause).__name__, str(cause)[:300])
-        raise HTTPException(status_code=503, detail="Teacher voice is temporarily unavailable") from exc
-    return Response(content=audio, media_type="audio/wav", headers={"Cache-Control": "no-store"})
+        raise HTTPException(status_code=503, detail="I could not switch this explanation right now") from exc
+    return {"translation": translated, "language": request.language}
 
 
 @router.post("/image")

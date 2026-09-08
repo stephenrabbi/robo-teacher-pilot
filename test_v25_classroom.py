@@ -1,5 +1,7 @@
 """Controlled tests for the V2.5 browser classroom API; no live services used."""
 import base64
+import inspect
+from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
 from fastapi.testclient import TestClient
@@ -9,6 +11,7 @@ import classroom_api
 import practice
 import practice_progress
 import diagnostic_progress
+import tutor
 from practice_generator import generate_question
 from tutor import GEMINI_STREAMING_TTS_MODEL, GEMINI_TTS_MODEL, TTS_VOICES, _language_instruction, _pcm_to_wav, _prepare_spoken_transcript, _speech_chunks, _spoken_excerpt, get_tutor_reply
 
@@ -28,7 +31,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260907-streamkeepalive1' in html
+    assert '20260908-streamrestore1' in html
     assert 'id="learnerNickname"' in html
     assert 'id="learnerClass"' in html
     assert "learnerNickname.value=''" in script
@@ -44,7 +47,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert "localStorage.setItem('roboTeacherQaChecklist'" in script
     assert 'const resultCopy=' in script
     assert 'labels.yourAnswer' in script
-    assert '20260907-fullcanvas1' in html
+    assert '20260908-streamrestore1' in html
     assert 'downloadTeacherDashboardReport' in script
     assert 'id="practiceClass"' in html
     assert 'id="startDiagnostic"' in html
@@ -92,44 +95,31 @@ def test_ui_refinement_exposes_clear_modes_and_activity_status():
     assert '.class-tools button.active' in css
     assert '.composer{position:sticky;bottom:92px' in css
     assert 'linear-gradient(135deg,#eaf7ff' in css
-    assert 'void speakText(data.reply,true)' in script
-    assert 'stopTeacherAudio();\n    try{await startAudioKeepAlive()}' in script
+    assert 'void speakText(data.reply)' in script
+    assert 'await prepareTeacherAudio();\n    await ensureSession();' in script
     assert 'data-voice-gender="female"' in html
     assert 'prepareSpeechText(text)' in script
     assert "fetch('/api/classroom/speech'" in script
     assert "voice_gender:teacherPanel.dataset.voiceGender" in script
-    assert 'async function speakWithDeviceVoice(text,requestId)' in script
-    assert 'async function availableDeviceVoices()' in script
-    assert "if(!response.ok){await speakWithDeviceVoice(text,requestId);return;}" in script
-    assert 'naturalVoiceTimedOut=true' in script
-    assert "},7000)" in script
-    assert 'female.test(voice.name)' in script
-    assert 'window.speechSynthesis.pause()' in script
-    assert 'window.speechSynthesis.resume()' in script
+    assert 'speechSynthesis' not in script
     assert 'teacherSpeechController.abort()' in script
     assert 'teacherAudioContext.suspend()' in script
     assert 'teacherAudioContext.resume()' in script
     assert "teacherSpeechPaused){await resumeTeacherAudio()" in script
-    assert 'async function startAudioKeepAlive()' in script
-    assert 'gain.gain.value=.00001' in script
-    assert 'const encoded=await response.arrayBuffer()' in script
-    assert "if(!encoded.byteLength)throw new Error('empty voice')" in script
-    assert 'context.decodeAudioData(encoded.slice(0))' in script
-    assert 'stopAudioKeepAlive();setTeacherSpeaking(true)' in script
+    assert 'async function playPcmStream(response,requestId)' in script
+    assert "const reader=response.body.getReader()" in script
     assert "teacherPanel.classList.add('paused')" in script
     assert "teacherPanel.classList.remove('paused')" in script
     assert '.teacher-panel.speaking .read-answer,.teacher-panel.paused .read-answer{position:fixed' in css
     assert '.read-answer span{display:none}' not in css
     assert 'teacherSpeechPaused=true;\n  teacherPanel.classList.remove' in script
-    assert 'await startAudioKeepAlive();\n    await ensureSession();' in script
-    assert 'function stopTeacherAudio(preserveAudioUnlock=false)' in script
-    assert "showCanvasAnswer(data.reply,'Whiteboard solution ready',true)" in script
-    assert "showCanvasAnswer(data.reply,'Voice question explained',true)" in script
-    assert 'stopTeacherAudio(preserveAudioUnlock);' in script
-    assert 'if(!preserveAudioUnlock||!teacherAudioKeepAlive)await startAudioKeepAlive()' in script
+    assert 'await prepareTeacherAudio();\n    await ensureSession();' in script
+    assert 'function stopTeacherAudio()' in script
+    assert "showCanvasAnswer(data.reply,'Whiteboard solution ready')" in script
+    assert "showCanvasAnswer(data.reply,'Voice question explained')" in script
     assert "teacherAudioContext.state==='closed'" in script
     assert 'teacherAudioContext.close()' not in script
-    assert 'stopAudioKeepAlive()' in script
+    assert "'Accept':'audio/L16'" in script
     assert 'const dashboardCopy=' in script
     assert 'function learnerRecommendation(data)' in script
     assert 'function teacherAction(data)' in script
@@ -187,7 +177,7 @@ def test_long_speech_is_split_into_short_voice_consistent_chunks():
 
 def test_natural_speech_endpoint_uses_female_avatar_voice():
     session = client.post('/api/classroom/session').json()
-    with patch.object(classroom_api, 'generate_tutor_speech', return_value=b'RIFF-audio') as tts:
+    with patch.object(classroom_api, 'stream_tutor_speech', return_value=iter([b'pcm-', b'audio'])) as tts:
         response = client.post('/api/classroom/speech', json={
             'text': 'Let us solve this carefully.',
             'session_token': session['session_token'],
@@ -195,9 +185,39 @@ def test_natural_speech_endpoint_uses_female_avatar_voice():
             'voice_gender': 'female',
         })
     assert response.status_code == 200
-    assert response.headers['content-type'].startswith('audio/wav')
-    assert response.content == b'RIFF-audio'
+    assert response.headers['content-type'].startswith('audio/l16')
+    assert response.content == b'pcm-audio'
     assert tts.call_args.args[1:] == ('English', 'female')
+
+
+def test_empty_stream_uses_stable_gemini_tts_fallback():
+    session = client.post('/api/classroom/session').json()
+    with patch.object(classroom_api, 'stream_tutor_speech', return_value=iter(())), \
+         patch.object(classroom_api, 'stream_stable_tutor_speech', return_value=iter([b'fallback-', b'pcm'])) as fallback:
+        response = client.post('/api/classroom/speech', json={
+            'text': 'The answer is six.',
+            'session_token': session['session_token'],
+            'language': 'English',
+            'voice_gender': 'female',
+        })
+    assert response.status_code == 200
+    assert response.content == b'fallback-pcm'
+    fallback.assert_called_once_with('The answer is six.', 'English', 'female')
+
+
+def test_voice_fallback_is_chunked_for_faster_first_audio():
+    source = inspect.getsource(tutor.stream_stable_tutor_speech)
+    assert "_speech_chunks(spoken_text, max_chars=220)" in source
+    primary_source = inspect.getsource(tutor.stream_tutor_speech)
+    assert "retry_prompt" not in primary_source
+
+
+def test_pause_is_enabled_only_after_real_audio_arrives():
+    script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
+    assert "teacherVoiceStatus.textContent='Preparing teacher voice…'" in script
+    assert "readAnswerButton.disabled=true" in script
+    assert "if(!receivedAudio){" in script
+    assert "readAnswerButton.disabled=false;\n      setTeacherSpeaking(true)" in script
 
 
 def test_speech_playback_does_not_consume_the_tutor_question_limit():
@@ -206,7 +226,7 @@ def test_speech_playback_does_not_consume_the_tutor_question_limit():
     learner_id = session['learner_id']
     for _ in range(classroom_api._RATE_MAX_REQUESTS):
         classroom_api._enforce_rate_limit(learner_id)
-    with patch.object(classroom_api, 'generate_tutor_speech', return_value=b'RIFF-audio'):
+    with patch.object(classroom_api, 'stream_tutor_speech', return_value=iter([b'audio'])):
         response = client.post('/api/classroom/speech', json={
             'text': 'The answer is six.',
             'session_token': session['session_token'],
@@ -214,7 +234,7 @@ def test_speech_playback_does_not_consume_the_tutor_question_limit():
             'voice_gender': 'female',
         })
     assert response.status_code == 200
-    assert response.content == b'RIFF-audio'
+    assert response.content == b'audio'
     assert len(classroom_api._request_times[f'speech:{learner_id}']) == 1
 
 
@@ -344,11 +364,12 @@ def test_diagnostic_placement_is_separate_and_privacy_safe():
 def test_teacher_dashboard_returns_aggregates_without_identities():
     practice_progress._reset_for_tests()
     diagnostic_progress._memory.clear()
-    diagnostic_progress._memory.append({'timestamp':'2026-09-05T09:00:00+00:00','session_id':'class-diagnostic','learner_id':'WEB-private','class_level':'JSS2','term':'First Term','score':6,'attempted':10,'percentage':60,'recommended_topic':'Standard Form','recommended_difficulty':'Medium','topic_results':[]})
+    current_timestamp = datetime.now(timezone.utc).isoformat()
+    diagnostic_progress._memory.append({'timestamp':current_timestamp,'session_id':'class-diagnostic','learner_id':'WEB-private','class_level':'JSS2','term':'First Term','score':6,'attempted':10,'percentage':60,'recommended_topic':'Standard Form','recommended_difficulty':'Medium','topic_results':[]})
     practice_progress._memory_records.append({
         'learner_id': 'WEB-private', 'class_level': 'JSS2', 'session_id': 'aggregate-1',
         'topic': 'Simple Equations', 'difficulty': 'Easy', 'score': 4, 'attempted': 5,
-        'percentage': 80, 'timestamp': '2026-09-05T10:00:00+00:00',
+            'percentage': 80, 'timestamp': current_timestamp,
     })
     dashboard = practice_progress.build_teacher_dashboard('JSS2')
     assert dashboard['learners'] == 1
@@ -596,22 +617,82 @@ def test_language_instructions_accept_typed_and_spoken_yoruba():
     automatic = _language_instruction("English")
     selected = _language_instruction("Yoruba")
     assert "current Maths question is in English, Yorùbá, Igbo, or Hausa" in automatic
-    assert "Reply entirely in the language used" in automatic
+    assert "Reply in at least 90 percent of the language used" in automatic
     assert "write the final-answer value as a number word" in automatic
     assert "may ask the Maths question in Yorùbá or English" in selected
-    assert "reply entirely in clear, natural Yorùbá" in selected
+    assert "reply in at least 90 percent Yorùbá" in selected
     assert "natural punctuation" in selected
     assert "clear pauses when the answer is read aloud" in selected
     assert "simple, modern conversational Yorùbá" in selected
-    assert "Avoid deep or literary Yorùbá" in selected
-    assert "Never say the numbers in English" in selected
+    assert "Avoid deep, literary, ceremonial or old-fashioned Yorùbá" in selected
+    assert "Never say explanatory numbers in English" in selected
 
 
 def test_igbo_and_hausa_language_instructions_cover_text_and_voice():
     for language in ("Igbo", "Hausa"):
         instruction = _language_instruction(language)
+        assert "at least 90 percent" in instruction
+        assert "Never write a complete explanatory sentence in English" in instruction
+        assert "deep" in instruction
+        assert "silently check every sentence" in instruction
         assert f"ask the Maths question in {language} or English" in instruction
-        assert f"reply entirely in clear, natural {language}" in instruction
+        assert f"reply in at least 90 percent {language}" in instruction
+
+
+def test_native_language_prompts_limit_english_to_unavoidable_maths_terms():
+    for language in ("Yoruba", "Igbo", "Hausa"):
+        instruction = _language_instruction(language, "JSS1")
+        assert "Translate the teaching itself" in instruction
+        assert "English is permitted only for a standard Maths term" in instruction
+        assert "formula letters, units and proper names" in instruction
+    assert "did not grow up in their ancestral town" in _language_instruction("Yoruba")
+    assert "did not grow up in an Igbo-speaking hometown" in _language_instruction("Igbo")
+    assert "Hausa is not the main language spoken in their home" in _language_instruction("Hausa")
+
+
+def test_active_voice_language_change_translates_and_restarts_stream():
+    script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
+    assert "const wasReading=teacherPanel.classList.contains('speaking')||teacherSpeechPaused" in script
+    assert "fetch('/api/classroom/translate'" in script
+    assert "renderLesson(canvasAnswer,data.translation)" in script
+    assert "void speakText(data.translation)" in script
+
+
+def test_language_change_always_translates_visible_answer_and_only_resumes_active_voice():
+    script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
+    assert "if(answerToTranslate){" in script
+    assert "if(wasReading)void speakText(data.translation)" in script
+    assert "!receivedAudio)throw new Error('empty voice stream')" in script
+
+
+def test_translate_endpoint_preserves_selected_language_and_class():
+    session = client.post('/api/classroom/session', json={
+        'learner_key': 'f' * 48, 'nickname': 'Ada', 'class_level': 'JSS3',
+    }).json()
+    with patch.object(classroom_api, 'translate_tutor_text', return_value='Ka anyị gaa n’ihu.') as translator:
+        response = client.post('/api/classroom/translate', json={
+            'session_token': session['session_token'],
+            'text': 'Let us continue.', 'language': 'Igbo',
+        })
+    assert response.status_code == 200
+    assert response.json() == {'translation': 'Ka anyị gaa n’ihu.', 'language': 'Igbo'}
+    assert translator.call_args.args == ('Let us continue.', 'Igbo', 'JSS3')
+
+
+def test_translation_function_explicitly_targets_english():
+    import tutor
+    fake_response = type('Response', (), {'text': 'The answer is six.', 'candidates': []})()
+    fake_models = type('Models', (), {'generate_content': lambda self, **kwargs: fake_response})()
+    fake_client = type('Client', (), {'models': fake_models})()
+    with patch.object(tutor, '_get_client', return_value=fake_client):
+        assert tutor.translate_tutor_text('Ìdáhùn ni mẹ́fà.', 'English') == 'The answer is six.'
+
+
+def test_practice_translation_prompt_requires_mostly_native_language():
+    from practice_translation import LANGUAGE_STYLE
+    assert "modern conversational Yorùbá" in LANGUAGE_STYLE["Yoruba"]
+    assert "modern everyday Igbo" in LANGUAGE_STYLE["Igbo"]
+    assert "modern everyday Hausa" in LANGUAGE_STYLE["Hausa"]
 
 
 def test_session_and_chat_use_pseudonymous_identity():

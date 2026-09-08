@@ -10,9 +10,9 @@ from tutor import GEMINI_MODEL, _get_client
 logger = logging.getLogger("robo-teacher.practice-translation")
 
 LANGUAGE_STYLE = {
-    "Yoruba": "simple, modern conversational Yorùbá used by Lagos Junior Secondary learners; avoid deep or literary words",
-    "Igbo": "clear, everyday Igbo suitable for Junior Secondary learners",
-    "Hausa": "clear, everyday Hausa suitable for Junior Secondary learners",
+    "Yoruba": "simple, modern conversational Yorùbá understood by Lagos Junior Secondary learners, including children who did not grow up in their ancestral town; avoid deep, literary, ceremonial and old-fashioned words",
+    "Igbo": "simple, modern everyday Igbo understood by Junior Secondary learners who may not have grown up in an Igbo-speaking hometown; avoid deep regional dialect, literary, ceremonial and old-fashioned words",
+    "Hausa": "simple, modern everyday Hausa understood by Junior Secondary learners even when Hausa is not their main home language; avoid deep regional, literary, ceremonial and old-fashioned words",
 }
 
 
@@ -27,7 +27,11 @@ def translate_question_batch(questions: list[tuple[str, str, str, str]], languag
     prompt = f"""Translate this Junior Secondary Mathematics practice material into {LANGUAGE_STYLE[language]}.
 Return only a JSON array with the same number and order of objects and exactly these keys: question, hint, explanation.
 Preserve every numeral, currency amount, algebraic symbol, equation, unit and mathematical meaning exactly.
-Translate instructional labels such as Step and Therefore naturally. Do not solve, alter or add content.
+Use the selected language for at least 90 percent of the words. Translate every heading, instruction, hint, encouragement, step label, transition and explanatory sentence.
+Do not leave English scaffolding such as Step, First, Next, Because, Therefore, The answer is, Calculate, Multiply, Divide or Equals.
+English is allowed only for a standard Maths term that would become unclear when translated, or for a formula letter, symbol, unit or proper name. Keep the surrounding sentence in the selected language.
+Use short sentences and familiar words. Do not use proverbs, idioms, rare dialect words or unnecessarily formal vocabulary.
+Before returning the JSON, silently inspect every sentence and replace unnecessary English. Do not solve, alter or add content.
 
 {json.dumps(payload, ensure_ascii=False)}"""
     try:

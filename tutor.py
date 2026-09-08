@@ -264,7 +264,9 @@ def stream_tutor_speech(text: str, language: str = "English", voice_gender: str 
         "Use punctuation for natural pauses and keep the delivery fluid.\n\n"
         f"TRANSCRIPT:\n{transcript}"
     )
-    stream = _get_client().interactions.create(
+    client = _get_client()
+    emitted_audio = False
+    stream = client.interactions.create(
         model=GEMINI_STREAMING_TTS_MODEL,
         input=prompt,
         response_format={"type": "audio"},
@@ -277,16 +279,19 @@ def stream_tutor_speech(text: str, language: str = "English", voice_gender: str 
             continue
         encoded = getattr(delta, "data", None)
         if encoded:
+            emitted_audio = True
             yield base64.b64decode(encoded) if isinstance(encoded, str) else bytes(encoded)
+    if emitted_audio:
+        return
+    raise RuntimeError("Gemini streaming TTS returned no audio")
 
 
-def generate_tutor_speech(text: str, language: str = "English", voice_gender: str = "female") -> bytes:
-    """Generate expressive teacher speech as a WAV file using Gemini TTS."""
+def stream_stable_tutor_speech(text: str, language: str = "English", voice_gender: str = "female"):
+    """Yield short Gemini TTS sections so fallback playback can begin quickly."""
     gender = "male" if voice_gender == "male" else "female"
     language_name = TTS_LANGUAGE_NAMES.get(language, "English")
     client = _get_client()
-    pcm_chunks = []
-    spoken_text = _prepare_spoken_transcript(text, language)
+    spoken_text = _spoken_excerpt(_prepare_spoken_transcript(text, language))
     local_number_direction = (
         f"When speaking {language_name}, pronounce every number and Maths operation only in {language_name}, never in English. "
         if language in SPOKEN_MATH else ""
@@ -297,7 +302,7 @@ def generate_tutor_speech(text: str, language: str = "English", voice_gender: st
         if language == "Yoruba" else
         "Sound warm, patient and conversational, with a gentle Nigerian classroom tone and a friendly vocal smile. "
     )
-    for chunk in _speech_chunks(spoken_text):
+    for chunk in _speech_chunks(spoken_text, max_chars=220):
         prompt = (
             "Read only the transcript below aloud. Do not read these directions. "
             f"Speak in {language_name}. "
@@ -327,13 +332,17 @@ def generate_tutor_speech(text: str, language: str = "English", voice_gender: st
                 pcm = base64.b64decode(encoded) if isinstance(encoded, str) else bytes(encoded)
                 if not pcm:
                     raise ValueError("Gemini TTS returned empty audio")
-                pcm_chunks.append(pcm)
+                yield pcm
                 break
             except Exception as exc:
                 last_error = exc
         else:
             raise RuntimeError("Gemini TTS could not generate audio") from last_error
-    return _pcm_to_wav(b"".join(pcm_chunks))
+
+
+def generate_tutor_speech(text: str, language: str = "English", voice_gender: str = "female") -> bytes:
+    """Generate expressive teacher speech as a WAV file using Gemini TTS."""
+    return _pcm_to_wav(b"".join(stream_stable_tutor_speech(text, language, voice_gender)))
 
 
 def _safe_arithmetic(expression: str):
@@ -430,36 +439,57 @@ def _class_instruction(class_level: str) -> str:
 
 def _language_instruction(response_language: str, class_level: str = "JSS2") -> str:
     language_details = {
-        "Yoruba": ("Yorùbá", "Yorùbá"),
-        "Igbo": ("Igbo", "Igbo"),
-        "Hausa": ("Hausa", "Hausa"),
+        "Yoruba": {
+            "name": "Yorùbá",
+            "style": (
+                "Use simple, modern conversational Yorùbá commonly understood by young people in Lagos, including learners who did not grow up in their ancestral town. "
+                "Use short, direct sentences and familiar everyday words. Avoid deep, literary, ceremonial or old-fashioned Yorùbá, proverbs, idioms and rare traditional expressions. "
+                "Use familiar classroom forms such as jẹ́ ká, a máa, nítorí náà and ìdáhùn instead of unusually formal alternatives."
+            ),
+            "numbers": "Use familiar conversational Yorùbá counting forms such as ọ̀kan, méjì, mẹ́ta, márùn-ún and mẹ́fà.",
+        },
+        "Igbo": {
+            "name": "Igbo",
+            "style": (
+                "Use simple, modern everyday Igbo that young Nigerian learners can understand even if they did not grow up in an Igbo-speaking hometown. "
+                "Prefer widely understood classroom words and short, direct sentences. Avoid deep dialect words, literary or ceremonial Igbo, proverbs, idioms and rare traditional expressions."
+            ),
+            "numbers": "Say numbers in clear everyday Igbo, for example otu, abụọ, atọ, anọ, ise and isii.",
+        },
+        "Hausa": {
+            "name": "Hausa",
+            "style": (
+                "Use simple, modern everyday Hausa that young Nigerian learners can understand even if Hausa is not the main language spoken in their home. "
+                "Prefer common school and conversational words with short, direct sentences. Avoid deep regional vocabulary, literary or ceremonial Hausa, proverbs, idioms and uncommon traditional expressions."
+            ),
+            "numbers": "Say numbers in clear everyday Hausa, for example ɗaya, biyu, uku, huɗu, biyar and shida.",
+        },
     }
     if response_language in language_details:
-        language_name, number_word_language = language_details[response_language]
-        simplicity = (
-            f"Use simple, modern conversational Yorùbá commonly understood by {class_level} learners in Lagos. "
-            "Use short direct sentences. Avoid deep or literary Yorùbá, proverbs, idioms and uncommon traditional terms. "
-            "You may naturally code-switch only familiar school Maths words such as plus, minus, times, divide, fraction, decimal and percent. "
-            "Never say the numbers in English; use familiar conversational Yorùbá counting forms such as ọ̀kan, méjì, mẹ́ta, márùn-ún and mẹ́fà. "
-            if response_language == "Yoruba" else ""
-        )
+        details = language_details[response_language]
+        language_name = details["name"]
         return (
             f"The learner may ask the Maths question in {language_name} or English. Understand both languages, "
-            f"but reply entirely in clear, natural {language_name} suitable for a Nigerian {class_level} learner. "
-            f"{simplicity}"
+            f"but reply in at least 90 percent {language_name}, suitable for a Nigerian {class_level} learner. "
+            f"{details['style']} "
+            "Translate the teaching itself: headings, encouragement, instructions, step labels, transitions, explanations and the final-answer label must all be in the selected language. "
+            "Do not write English scaffolding such as 'Step', 'First', 'Next', 'Because', 'Therefore', 'The answer is', 'Calculate', 'Multiply', 'Divide' or 'Equals'. "
+            "English is permitted only for a standard Maths term that would become unclear in translation, such as plus, minus, times, divide, fraction, decimal or percent, and for internationally used symbols, formula letters, units and proper names. "
+            "Even when one English Maths term is necessary, keep the surrounding sentence in the selected language. Never write a complete explanatory sentence in English. "
             "Write as a warm human teacher would speak: use complete sentences, natural punctuation, and short paragraphs. "
             "Use commas and full stops to create clear pauses when the answer is read aloud. "
-            f"Use {number_word_language} number words whenever referring to values in explanatory sentences. "
+            f"{details['numbers']} Never say explanatory numbers in English. "
             "Numerals may remain in written equations, but write the final-answer value "
-            f"as a {number_word_language} number word."
+            f"as a {language_name} number word. Before returning the answer, silently check every sentence and replace any unnecessary English with simple {language_name}."
         )
     return (
         "Detect whether the learner's current Maths question is in English, Yorùbá, Igbo, or Hausa. "
-        "Reply entirely in the language used in the question. When replying in Yorùbá, Igbo, or Hausa, "
+        "Reply in at least 90 percent of the language used in the question. When replying in Yorùbá, Igbo, or Hausa, "
         "write as a warm human teacher would speak, using complete sentences, natural punctuation, and short paragraphs. "
         "Use commas and full stops to create clear pauses when the answer is read aloud. "
-        "keep mathematical symbols and numerals in the working, but write the final-answer value as a "
-        f"number word in that language. Use language suitable for a Nigerian {class_level} learner."
+        "Keep mathematical symbols and numerals in the working, but write the final-answer value as a number word in that language. "
+        "Translate headings, step labels, instructions, explanations and encouragement. English may appear only in an unavoidable standard Maths term, formula, symbol, unit or proper name. "
+        f"Use simple modern language suitable for a Nigerian {class_level} learner, never deep dialect, literary language, proverbs or archaic expressions."
     )
 
 
@@ -492,6 +522,36 @@ def get_tutor_reply(student_id: str, message: str, response_language: str = "Eng
 
     _conversations[student_id] = new_history[-_MAX_TURNS * 2:]
     return _clean_model_reply(text), time.time() - start
+
+
+def translate_tutor_text(text: str, response_language: str, class_level: str = "JSS2") -> str:
+    """Translate an existing worked answer without changing its Maths."""
+    if not text.strip():
+        raise ValueError("Text cannot be empty")
+    client = _get_client()
+    target_instruction = (
+        f"Reply entirely in simple, modern English suitable for a Nigerian {class_level} learner."
+        if response_language == "English"
+        else _language_instruction(response_language, class_level)
+    )
+    prompt = (
+        f"{_class_instruction(class_level)}\n{target_instruction}\n\n"
+        f"Translate the existing Maths explanation below into {response_language}. "
+        "Preserve every equation, numeral, mathematical symbol, formula, unit, answer and step order exactly. "
+        "Do not solve the problem again, add new teaching, shorten it, or change its mathematical meaning. "
+        "Return only the translated explanation.\n\n"
+        f"EXISTING EXPLANATION:\n{text.strip()}"
+    )
+    response = client.models.generate_content(
+        model=GEMINI_MODEL,
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            system_instruction=SYSTEM_PROMPT,
+            max_output_tokens=900,
+            thinking_config=types.ThinkingConfig(thinking_budget=0),
+        ),
+    )
+    return _clean_model_reply(_extract_text(response))
 
 
 def _media_reply(student_id: str, media_bytes: bytes, mime_type: str, prompt: str, profile_message: str, max_tokens: int = 700) -> tuple[str, float]:
