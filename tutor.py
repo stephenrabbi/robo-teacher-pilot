@@ -264,41 +264,34 @@ def stream_tutor_speech(text: str, language: str = "English", voice_gender: str 
         "Use punctuation for natural pauses and keep the delivery fluid.\n\n"
         f"TRANSCRIPT:\n{transcript}"
     )
-    retry_prompt = (
-        f"Read only this transcript aloud in {language_name}, in a warm, natural adult {gender} teacher voice. "
-        "Do not translate it and do not read these directions.\n\n"
-        f"{transcript}"
-    )
     client = _get_client()
-    for attempt_prompt in (prompt, retry_prompt):
-        emitted_audio = False
-        stream = client.interactions.create(
-            model=GEMINI_STREAMING_TTS_MODEL,
-            input=attempt_prompt,
-            response_format={"type": "audio"},
-            generation_config={"speech_config": [{"voice": TTS_VOICES[gender]}]},
-            stream=True,
-        )
-        for event in stream:
-            delta = getattr(event, "delta", None)
-            if getattr(event, "event_type", "") != "step.delta" or getattr(delta, "type", "") != "audio":
-                continue
-            encoded = getattr(delta, "data", None)
-            if encoded:
-                emitted_audio = True
-                yield base64.b64decode(encoded) if isinstance(encoded, str) else bytes(encoded)
-        if emitted_audio:
-            return
+    emitted_audio = False
+    stream = client.interactions.create(
+        model=GEMINI_STREAMING_TTS_MODEL,
+        input=prompt,
+        response_format={"type": "audio"},
+        generation_config={"speech_config": [{"voice": TTS_VOICES[gender]}]},
+        stream=True,
+    )
+    for event in stream:
+        delta = getattr(event, "delta", None)
+        if getattr(event, "event_type", "") != "step.delta" or getattr(delta, "type", "") != "audio":
+            continue
+        encoded = getattr(delta, "data", None)
+        if encoded:
+            emitted_audio = True
+            yield base64.b64decode(encoded) if isinstance(encoded, str) else bytes(encoded)
+    if emitted_audio:
+        return
     raise RuntimeError("Gemini streaming TTS returned no audio")
 
 
-def generate_tutor_speech(text: str, language: str = "English", voice_gender: str = "female") -> bytes:
-    """Generate expressive teacher speech as a WAV file using Gemini TTS."""
+def stream_stable_tutor_speech(text: str, language: str = "English", voice_gender: str = "female"):
+    """Yield short Gemini TTS sections so fallback playback can begin quickly."""
     gender = "male" if voice_gender == "male" else "female"
     language_name = TTS_LANGUAGE_NAMES.get(language, "English")
     client = _get_client()
-    pcm_chunks = []
-    spoken_text = _prepare_spoken_transcript(text, language)
+    spoken_text = _spoken_excerpt(_prepare_spoken_transcript(text, language))
     local_number_direction = (
         f"When speaking {language_name}, pronounce every number and Maths operation only in {language_name}, never in English. "
         if language in SPOKEN_MATH else ""
@@ -309,7 +302,7 @@ def generate_tutor_speech(text: str, language: str = "English", voice_gender: st
         if language == "Yoruba" else
         "Sound warm, patient and conversational, with a gentle Nigerian classroom tone and a friendly vocal smile. "
     )
-    for chunk in _speech_chunks(spoken_text):
+    for chunk in _speech_chunks(spoken_text, max_chars=220):
         prompt = (
             "Read only the transcript below aloud. Do not read these directions. "
             f"Speak in {language_name}. "
@@ -339,13 +332,17 @@ def generate_tutor_speech(text: str, language: str = "English", voice_gender: st
                 pcm = base64.b64decode(encoded) if isinstance(encoded, str) else bytes(encoded)
                 if not pcm:
                     raise ValueError("Gemini TTS returned empty audio")
-                pcm_chunks.append(pcm)
+                yield pcm
                 break
             except Exception as exc:
                 last_error = exc
         else:
             raise RuntimeError("Gemini TTS could not generate audio") from last_error
-    return _pcm_to_wav(b"".join(pcm_chunks))
+
+
+def generate_tutor_speech(text: str, language: str = "English", voice_gender: str = "female") -> bytes:
+    """Generate expressive teacher speech as a WAV file using Gemini TTS."""
+    return _pcm_to_wav(b"".join(stream_stable_tutor_speech(text, language, voice_gender)))
 
 
 def _safe_arithmetic(expression: str):

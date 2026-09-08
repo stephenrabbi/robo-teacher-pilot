@@ -16,7 +16,7 @@ from itertools import chain
 from typing import Literal
 
 from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import Response, StreamingResponse
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from curriculum import ALL_TOPICS, CLASS_TOPICS, CURRICULUM
 from diagnostic import answer_diagnostic, change_diagnostic_language, next_diagnostic, start_diagnostic
@@ -32,7 +32,7 @@ from tutor import (
     get_tutor_audio_reply,
     get_tutor_image_reply,
     get_tutor_reply,
-    generate_tutor_speech,
+    stream_stable_tutor_speech,
     stream_tutor_speech,
     translate_tutor_text,
 )
@@ -326,16 +326,18 @@ def classroom_speech(speech: ClassroomSpeech):
             media_type="audio/l16;rate=24000;channels=1",
             headers=headers,
         )
-    except (StopIteration, RuntimeError, ValueError):
+    except Exception:
         try:
             # Keep Gemini 3.1 streaming as the primary voice, then use the
             # stable Gemini TTS endpoint with the same Aoede/Charon voice if
             # the preview stream returns no audio.
-            wav_audio = generate_tutor_speech(text, speech.language, speech.voice_gender)
-            pcm_audio = wav_audio[44:]
-            if not pcm_audio:
-                raise ValueError("Gemini fallback returned no audio")
-            return Response(content=pcm_audio, media_type="audio/l16;rate=24000;channels=1", headers=headers)
+            fallback_stream = iter(stream_stable_tutor_speech(text, speech.language, speech.voice_gender))
+            first_fallback_chunk = next(fallback_stream)
+            return StreamingResponse(
+                chain((first_fallback_chunk,), fallback_stream),
+                media_type="audio/l16;rate=24000;channels=1",
+                headers=headers,
+            )
         except Exception as exc:
             raise HTTPException(status_code=503, detail="The natural teacher voice is temporarily unavailable") from exc
 

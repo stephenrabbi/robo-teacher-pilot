@@ -1,5 +1,6 @@
 """Controlled tests for the V2.5 browser classroom API; no live services used."""
 import base64
+import inspect
 from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
@@ -10,6 +11,7 @@ import classroom_api
 import practice
 import practice_progress
 import diagnostic_progress
+import tutor
 from practice_generator import generate_question
 from tutor import GEMINI_STREAMING_TTS_MODEL, GEMINI_TTS_MODEL, TTS_VOICES, _language_instruction, _pcm_to_wav, _prepare_spoken_transcript, _speech_chunks, _spoken_excerpt, get_tutor_reply
 
@@ -190,9 +192,8 @@ def test_natural_speech_endpoint_uses_female_avatar_voice():
 
 def test_empty_stream_uses_stable_gemini_tts_fallback():
     session = client.post('/api/classroom/session').json()
-    wav_audio = _pcm_to_wav(b'fallback-pcm')
     with patch.object(classroom_api, 'stream_tutor_speech', return_value=iter(())), \
-         patch.object(classroom_api, 'generate_tutor_speech', return_value=wav_audio) as fallback:
+         patch.object(classroom_api, 'stream_stable_tutor_speech', return_value=iter([b'fallback-', b'pcm'])) as fallback:
         response = client.post('/api/classroom/speech', json={
             'text': 'The answer is six.',
             'session_token': session['session_token'],
@@ -202,6 +203,13 @@ def test_empty_stream_uses_stable_gemini_tts_fallback():
     assert response.status_code == 200
     assert response.content == b'fallback-pcm'
     fallback.assert_called_once_with('The answer is six.', 'English', 'female')
+
+
+def test_voice_fallback_is_chunked_for_faster_first_audio():
+    source = inspect.getsource(tutor.stream_stable_tutor_speech)
+    assert "_speech_chunks(spoken_text, max_chars=220)" in source
+    primary_source = inspect.getsource(tutor.stream_tutor_speech)
+    assert "retry_prompt" not in primary_source
 
 
 def test_speech_playback_does_not_consume_the_tutor_question_limit():
