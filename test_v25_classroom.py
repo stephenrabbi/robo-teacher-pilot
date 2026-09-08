@@ -31,7 +31,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260908-streamrestore1' in html
+    assert '20260908-mobilevoice2' in html
     assert 'id="learnerNickname"' in html
     assert 'id="learnerClass"' in html
     assert "learnerNickname.value=''" in script
@@ -47,7 +47,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert "localStorage.setItem('roboTeacherQaChecklist'" in script
     assert 'const resultCopy=' in script
     assert 'labels.yourAnswer' in script
-    assert '20260908-streamrestore1' in html
+    assert '20260908-mobilevoice2' in html
     assert 'downloadTeacherDashboardReport' in script
     assert 'id="practiceClass"' in html
     assert 'id="startDiagnostic"' in html
@@ -95,8 +95,8 @@ def test_ui_refinement_exposes_clear_modes_and_activity_status():
     assert '.class-tools button.active' in css
     assert '.composer{position:sticky;bottom:92px' in css
     assert 'linear-gradient(135deg,#eaf7ff' in css
-    assert 'void speakText(data.reply)' in script
-    assert 'await prepareTeacherAudio();\n    await ensureSession();' in script
+    assert 'void speakText(data.reply,true)' in script
+    assert 'await startAudioKeepAlive();\n    await ensureSession();' in script
     assert 'data-voice-gender="female"' in html
     assert 'prepareSpeechText(text)' in script
     assert "fetch('/api/classroom/speech'" in script
@@ -113,10 +113,12 @@ def test_ui_refinement_exposes_clear_modes_and_activity_status():
     assert '.teacher-panel.speaking .read-answer,.teacher-panel.paused .read-answer{position:fixed' in css
     assert '.read-answer span{display:none}' not in css
     assert 'teacherSpeechPaused=true;\n  teacherPanel.classList.remove' in script
-    assert 'await prepareTeacherAudio();\n    await ensureSession();' in script
-    assert 'function stopTeacherAudio()' in script
-    assert "showCanvasAnswer(data.reply,'Whiteboard solution ready')" in script
-    assert "showCanvasAnswer(data.reply,'Voice question explained')" in script
+    assert 'await startAudioKeepAlive();\n    await ensureSession();' in script
+    assert 'function stopTeacherAudio(preserveAudioUnlock=false)' in script
+    assert "showCanvasAnswer(data.reply,'Whiteboard solution ready',true)" in script
+    assert "showCanvasAnswer(data.reply,'Voice question explained',true)" in script
+    assert 'async function startAudioKeepAlive()' in script
+    assert 'if(teacherAudioContext.state!==\'running\')' in script
     assert "teacherAudioContext.state==='closed'" in script
     assert 'teacherAudioContext.close()' not in script
     assert "'Accept':'audio/L16'" in script
@@ -655,13 +657,13 @@ def test_active_voice_language_change_translates_and_restarts_stream():
     assert "const wasReading=teacherPanel.classList.contains('speaking')||teacherSpeechPaused" in script
     assert "fetch('/api/classroom/translate'" in script
     assert "renderLesson(canvasAnswer,data.translation)" in script
-    assert "void speakText(data.translation)" in script
+    assert "void speakText(data.translation,true)" in script
 
 
 def test_language_change_always_translates_visible_answer_and_only_resumes_active_voice():
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
     assert "if(answerToTranslate){" in script
-    assert "if(wasReading)void speakText(data.translation)" in script
+    assert "if(wasReading)void speakText(data.translation,true)" in script
     assert "!receivedAudio)throw new Error('empty voice stream')" in script
 
 

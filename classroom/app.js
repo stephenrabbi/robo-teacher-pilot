@@ -130,6 +130,7 @@ const teacherAudioSources=new Set();
 let teacherStreamComplete=false;
 let teacherSpeechPaused=false;
 let languageSwitchRequest=0;
+let teacherAudioKeepAlive=null;
 let drawing=false;
 let drawingTool='pen';
 let boardHasInk=false;
@@ -310,7 +311,9 @@ async function pauseTeacherAudio(){
 async function resumeTeacherAudio(){
   if(!teacherAudioContext||!teacherSpeechPaused)return;
   try{
-    await teacherAudioContext.resume();teacherSpeechPaused=false;setTeacherSpeaking(true);
+    await teacherAudioContext.resume();
+    if(teacherAudioContext.state!=='running')throw new Error('audio context did not resume');
+    teacherSpeechPaused=false;setTeacherSpeaking(true);
     if(teacherStreamComplete&&!teacherAudioSources.size)stopTeacherAudio();
   }catch(_error){
     teacherSpeechPaused=false;stopTeacherAudio();
@@ -318,9 +321,23 @@ async function resumeTeacherAudio(){
   }
 }
 
-function stopTeacherAudio(){
+function stopAudioKeepAlive(){
+  if(!teacherAudioKeepAlive)return;
+  try{teacherAudioKeepAlive.oscillator.stop()}catch(_error){/* Already stopped. */}
+  teacherAudioKeepAlive=null;
+}
+
+async function startAudioKeepAlive(){
+  const context=await prepareTeacherAudio();
+  stopAudioKeepAlive();
+  const oscillator=context.createOscillator();const gain=context.createGain();gain.gain.value=.00001;
+  oscillator.connect(gain);gain.connect(context.destination);oscillator.start();teacherAudioKeepAlive={oscillator,gain};
+}
+
+function stopTeacherAudio(preserveAudioUnlock=false){
   teacherSpeechRequest+=1;
   if(teacherSpeechController){teacherSpeechController.abort();teacherSpeechController=null}
+  if(!preserveAudioUnlock)stopAudioKeepAlive();
   teacherAudioSources.forEach(source=>{try{source.stop()}catch(_error){/* Already stopped. */}});teacherAudioSources.clear();
   teacherStreamComplete=false;
   teacherSpeechPaused=false;
@@ -347,6 +364,7 @@ async function playPcmStream(response,requestId){
     if(!evenLength)continue;
     if(!receivedAudio){
       receivedAudio=true;
+      stopAudioKeepAlive();
       readAnswerButton.disabled=false;
       setTeacherSpeaking(true);
     }
@@ -360,9 +378,9 @@ async function playPcmStream(response,requestId){
   teacherStreamComplete=true;finishIfDone();
 }
 
-async function speakText(text){
+async function speakText(text,preserveAudioUnlock=false){
   if(!text.trim())return;
-  stopTeacherAudio();
+  stopTeacherAudio(preserveAudioUnlock);
   teacherVoiceStatus.textContent='Preparing teacher voice…';
   readAnswerButton.disabled=true;
   readAnswerButton.innerHTML='<span>Preparing…</span>';
@@ -371,6 +389,7 @@ async function speakText(text){
   const requestId=teacherSpeechRequest;
   teacherSpeechController=new AbortController();
   try{
+    if(!preserveAudioUnlock||!teacherAudioKeepAlive)await startAudioKeepAlive();
     const token=await ensureSession();
     if(requestId!==teacherSpeechRequest)return;
     const response=await fetch('/api/classroom/speech',{method:'POST',headers:{'Content-Type':'application/json','Accept':'audio/L16'},body:JSON.stringify({text:prepareSpeechText(text),session_token:token,language:language.value,voice_gender:teacherPanel.dataset.voiceGender==='male'?'male':'female'}),signal:teacherSpeechController.signal});
@@ -416,9 +435,9 @@ function openChat(){
   setActiveMode(chatButton);setLearningStatus('Ready to learn');question.focus();
 }
 
-function showCanvasAnswer(answer,status='Worked solution'){
+function showCanvasAnswer(answer,status='Worked solution',preserveAudioUnlock=false){
   // A newly displayed solution always replaces any playing or paused answer.
-  stopTeacherAudio();
+  stopTeacherAudio(preserveAudioUnlock);
   whiteboardArea.classList.add('hidden');practiceArea.classList.add('hidden');progressArea.classList.add('hidden');canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');
   canvasStatus.textContent=status;renderLesson(canvasAnswer,answer);
   readAnswerButton.disabled=!answer.trim();setActiveMode(chatButton);setLearningStatus('Answer ready');
@@ -461,6 +480,7 @@ language.addEventListener('change',async()=>{
   const wasReading=teacherPanel.classList.contains('speaking')||teacherSpeechPaused;
   const answerToTranslate=canvasAnswer.textContent.trim();
   stopTeacherAudio();
+  if(wasReading){try{await startAudioKeepAlive()}catch(_error){/* Translation still works without automatic audio. */}}
   const switchId=++languageSwitchRequest;
   localStorage.setItem('roboTeacherLanguage',language.value);
   const notices={English:'I will teach you in English from now on.',Yoruba:'Mo máa kọ́ ọ ní Yorùbá láti ìsinsin yìí.',Igbo:'Aga m akụziri gị ihe n’Igbo site ugbu a.',Hausa:'Zan koyar da kai da Hausa daga yanzu.'};
@@ -479,9 +499,10 @@ language.addEventListener('change',async()=>{
       renderLesson(canvasAnswer,data.translation);readAnswerButton.disabled=false;
       canvasStatus.textContent=`Explanation switched to ${language.options[language.selectedIndex].text}`;
       setLearningStatus('Explanation ready');
-      if(wasReading)void speakText(data.translation);
+      if(wasReading)void speakText(data.translation,true);
     }catch(error){
       if(switchId!==languageSwitchRequest)return;
+      stopAudioKeepAlive();
       readAnswerButton.disabled=false;setLearningStatus('Language switch needs another try','attention');
       addMessage(error.message&&!['translation','session'].includes(error.message)?error.message:'I could not switch the current explanation. Please change the language again.','teacher');
     }
@@ -797,7 +818,7 @@ async function submitWhiteboard(){
   // This runs inside the learner's tap. Keep the audio session active while
   // the server reads the board so mobile browsers permit automatic playback.
   stopTeacherAudio();
-  try{await prepareTeacherAudio()}catch(_error){/* The written answer still works without audio. */}
+  try{await startAudioKeepAlive()}catch(_error){/* The written answer still works without audio. */}
   submitBoardButton.disabled=true;submitBoardButton.textContent='Preparing…';
   const imageData=whiteboard.toDataURL('image/png');
   problemPreview.src=imageData;canvasWork.classList.remove('text-only');problemPreview.hidden=false;
@@ -811,8 +832,8 @@ async function submitWhiteboard(){
     const data=await response.json();
     if(response.status===401){sessionToken=null;throw new Error('session');}
     if(!response.ok)throw new Error(data.detail||'request');
-    showCanvasAnswer(data.reply,'Whiteboard solution ready');
-    void speakText(data.reply);
+    showCanvasAnswer(data.reply,'Whiteboard solution ready',true);
+    void speakText(data.reply,true);
     thinking.textContent='I’ve placed the complete whiteboard explanation on the Teaching Canvas.';question.value='';
   }catch(err){
     stopTeacherAudio();
@@ -838,7 +859,7 @@ async function toggleRecording(){
     stopTeacherAudio();
     // Unlock audio during the learner's click so the later automatic spoken
     // answer is not blocked after transcription and tutoring have completed.
-    await prepareTeacherAudio();
+    await startAudioKeepAlive();
     await ensureSession();
     micStream=await navigator.mediaDevices.getUserMedia({audio:true});recordedChunks=[];
     const preferred=['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus'];
@@ -873,9 +894,9 @@ async function finishRecording(){
     if(!response.ok)throw new Error(data.detail||'request');
     canvasWork.classList.add('text-only');problemPreview.hidden=true;
     backToWhiteboard.classList.add('hidden');
-    showCanvasAnswer(data.reply,'Voice question explained');
+    showCanvasAnswer(data.reply,'Voice question explained',true);
     // Start reading as soon as the written voice answer reaches the canvas.
-    void speakText(data.reply);
+    void speakText(data.reply,true);
     thinking.textContent='I’ve placed the complete answer to your voice question on the Teaching Canvas.';
   }catch(err){
     stopTeacherAudio();
