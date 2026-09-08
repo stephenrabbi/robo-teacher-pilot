@@ -34,6 +34,7 @@ from tutor import (
     get_tutor_reply,
     stream_stable_tutor_speech,
     stream_tutor_speech,
+    simplify_tutor_text,
     translate_tutor_text,
 )
 
@@ -352,6 +353,18 @@ def classroom_translate(request: ClassroomTranslation):
     except Exception as exc:
         raise HTTPException(status_code=503, detail="I could not switch this explanation right now") from exc
     return {"translation": translated, "language": request.language}
+
+
+@router.post("/simplify")
+def classroom_simplify(request: ClassroomTranslation):
+    student_id = _verify_session(request.session_token)
+    _enforce_rate_limit(student_id, "simplify", 20)
+    class_level = _classroom_profiles.get(student_id, {}).get("class_level", "JSS2")
+    try:
+        explanation = simplify_tutor_text(request.text, request.language, class_level)
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="I could not simplify this explanation right now") from exc
+    return {"explanation": explanation, "language": request.language}
 
 
 @router.post("/image")

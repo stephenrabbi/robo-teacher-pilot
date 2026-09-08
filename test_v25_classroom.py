@@ -3,7 +3,7 @@ import base64
 import inspect
 from datetime import datetime, timezone
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from fastapi.testclient import TestClient
 
 from v25_app import app
@@ -31,7 +31,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260908-mobilevoice2' in html
+    assert '20260908-simpler1' in html
     assert 'id="learnerNickname"' in html
     assert 'id="learnerClass"' in html
     assert "learnerNickname.value=''" in script
@@ -47,7 +47,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert "localStorage.setItem('roboTeacherQaChecklist'" in script
     assert 'const resultCopy=' in script
     assert 'labels.yourAnswer' in script
-    assert '20260908-mobilevoice2' in html
+    assert '20260908-simpler1' in html
     assert 'downloadTeacherDashboardReport' in script
     assert 'id="practiceClass"' in html
     assert 'id="startDiagnostic"' in html
@@ -882,6 +882,42 @@ def test_active_practice_switches_question_feedback_and_remaining_language():
         })
         assert switched_back.json()['question'] == 'English question 2'
         assert translate.call_count == 2
+
+
+def test_explain_simpler_replaces_duplicate_voice_control():
+    html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
+    script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
+    assert 'id="simplifyButton"' in html
+    assert '>Explain Simpler</button>' in html
+    assert 'id="navMicButton"' not in html
+    assert "fetch('/api/classroom/simplify'" in script
+    assert "showCanvasAnswer(data.explanation,'Simpler explanation',true)" in script
+    assert 'void speakText(data.explanation,true)' in script
+
+
+def test_simplify_endpoint_preserves_language_and_class():
+    session = client.post('/api/classroom/session', json={
+        'learner_key': 'e' * 48, 'nickname': 'Bola', 'class_level': 'JSS1',
+    }).json()
+    with patch.object(classroom_api, 'simplify_tutor_text', return_value='Jẹ́ ká lo àpẹẹrẹ tó rọrùn.') as simplifier:
+        response = client.post('/api/classroom/simplify', json={
+            'session_token': session['session_token'],
+            'text': 'Existing worked answer', 'language': 'Yoruba',
+        })
+    assert response.status_code == 200
+    assert response.json() == {'explanation': 'Jẹ́ ká lo àpẹẹrẹ tó rọrùn.', 'language': 'Yoruba'}
+    assert simplifier.call_args.args == ('Existing worked answer', 'Yoruba', 'JSS1')
+
+
+def test_simplify_prompt_preserves_maths_and_adds_one_example():
+    fake_response = type('Response', (), {'text': 'Simpler answer.', 'candidates': []})()
+    generate_content = Mock(return_value=fake_response)
+    fake_client = type('Client', (), {'models': type('Models', (), {'generate_content': generate_content})()})()
+    with patch.object(tutor, '_get_client', return_value=fake_client):
+        assert tutor.simplify_tutor_text('2 + 2 = 4', 'English', 'JSS2') == 'Simpler answer.'
+    prompt = generate_content.call_args.kwargs['contents']
+    assert 'one familiar everyday example' in prompt
+    assert 'Preserve every equation, value, operation, unit and final answer exactly' in prompt
 
 
 if __name__ == '__main__':

@@ -554,6 +554,35 @@ def translate_tutor_text(text: str, response_language: str, class_level: str = "
     return _clean_model_reply(_extract_text(response))
 
 
+def simplify_tutor_text(text: str, response_language: str, class_level: str = "JSS2") -> str:
+    """Rewrite a worked answer more simply without changing its Maths."""
+    if not text.strip():
+        raise ValueError("Text cannot be empty")
+    language_instruction = (
+        f"Use simple, modern English suitable for a Nigerian {class_level} learner."
+        if response_language == "English"
+        else _language_instruction(response_language, class_level)
+    )
+    prompt = (
+        f"{_class_instruction(class_level)}\n{language_instruction}\n\n"
+        "Rewrite the existing Maths explanation below so a learner who did not understand it the first time can follow it. "
+        "Use shorter sentences, easier words, clearly numbered steps, and one familiar everyday example. "
+        "Preserve every equation, value, operation, unit and final answer exactly. Do not change the Maths or introduce a different solution. "
+        "Return only the simpler explanation.\n\n"
+        f"EXISTING EXPLANATION:\n{text.strip()}"
+    )
+    response = _get_client().models.generate_content(
+        model=GEMINI_MODEL,
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            system_instruction=SYSTEM_PROMPT,
+            max_output_tokens=700,
+            thinking_config=types.ThinkingConfig(thinking_budget=0),
+        ),
+    )
+    return _clean_model_reply(_extract_text(response))
+
+
 def _media_reply(student_id: str, media_bytes: bytes, mime_type: str, prompt: str, profile_message: str, max_tokens: int = 700) -> tuple[str, float]:
     profile = _safe_profile_update(student_id, profile_message)
     adaptive_context = profile_prompt_context(profile)

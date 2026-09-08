@@ -25,7 +25,7 @@ const cameraButton=document.getElementById('cameraButton');
 const imageUpload=document.getElementById('imageUpload');
 const cameraCapture=document.getElementById('cameraCapture');
 const micButton=document.getElementById('micButton');
-const navMicButton=document.getElementById('navMicButton');
+const simplifyButton=document.getElementById('simplifyButton');
 const teachingCanvas=document.getElementById('canvas');
 const canvasEmpty=document.getElementById('canvasEmpty');
 const canvasWork=document.getElementById('canvasWork');
@@ -464,7 +464,7 @@ cameraButton.addEventListener('click',()=>cameraCapture.click());
 imageUpload.addEventListener('change',()=>handleImage(imageUpload.files[0]));
 cameraCapture.addEventListener('change',()=>handleImage(cameraCapture.files[0]));
 micButton.addEventListener('click',toggleRecording);
-navMicButton.addEventListener('click',toggleRecording);
+simplifyButton.addEventListener('click',simplifyCurrentAnswer);
 whiteboardButton.addEventListener('click',openWhiteboard);
 closeBoardButton.addEventListener('click',closeWhiteboard);
 penTool.addEventListener('click',()=>selectDrawingTool('pen'));
@@ -844,8 +844,8 @@ async function submitWhiteboard(){
 }
 
 function setRecordingState(recording){
-  micButton.classList.toggle('recording',recording);navMicButton.classList.toggle('recording',recording);
-  micButton.textContent=recording?'Stop':'Voice';navMicButton.textContent=recording?'Stop':'Voice';setLearningStatus(recording?'Listening':'Preparing your answer',recording?'listening':'thinking');
+  micButton.classList.toggle('recording',recording);
+  micButton.textContent=recording?'Stop':'Voice';setLearningStatus(recording?'Listening':'Preparing your answer',recording?'listening':'thinking');
   micButton.setAttribute('aria-label',recording?'Stop voice question':'Start voice question');
 }
 
@@ -884,7 +884,7 @@ async function finishRecording(){
   if(!blob.size){stopTeacherAudio();addMessage('I did not receive any audio. Please try recording again.','teacher');return;}
   if(blob.size>12*1024*1024){stopTeacherAudio();addMessage('That recording is too large. Please keep it shorter and try again.','teacher');return;}
   const thinking=addMessage('I’m listening carefully to your Maths question…','teacher');
-  micButton.disabled=true;navMicButton.disabled=true;
+  micButton.disabled=true;
   try{
     const token=await ensureSession();const body=new FormData();body.append('session_token',token);body.append('language',language.value);
     body.append('audio',blob,`maths-question.${type.includes('ogg')?'ogg':'webm'}`);
@@ -902,7 +902,31 @@ async function finishRecording(){
     stopTeacherAudio();
     const detail=err.message||'';
     thinking.textContent=detail&&!['request','session','Failed to fetch'].includes(detail)?detail:'I could not process that recording. Please try again or type your question.';
-  }finally{micButton.disabled=false;navMicButton.disabled=false;}
+  }finally{micButton.disabled=false;}
+}
+
+async function simplifyCurrentAnswer(){
+  const currentAnswer=canvasAnswer.textContent.trim();
+  if(!currentAnswer){addMessage('Ask a Maths question first, then I can explain the answer more simply.','teacher');return;}
+  stopTeacherAudio();
+  try{await startAudioKeepAlive()}catch(_error){/* The simpler written answer still works without audio. */}
+  simplifyButton.disabled=true;simplifyButton.textContent='Simplifying…';
+  setLearningStatus('Preparing a simpler explanation','thinking');
+  const thinking=addMessage('I’m rewriting that explanation in a simpler way…','teacher');
+  try{
+    const token=await ensureSession();
+    const response=await fetch('/api/classroom/simplify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:currentAnswer,session_token:token,language:language.value})});
+    const data=await response.json();
+    if(response.status===401){sessionToken=null;throw new Error('session')}
+    if(!response.ok)throw new Error(data.detail||'simplify');
+    showCanvasAnswer(data.explanation,'Simpler explanation',true);
+    void speakText(data.explanation,true);
+    thinking.textContent='I’ve simplified the explanation and added a familiar example.';
+  }catch(error){
+    stopTeacherAudio();
+    thinking.textContent=error.message&&!['simplify','session'].includes(error.message)?error.message:'I could not simplify that explanation right now. Please try again.';
+    setLearningStatus('Simpler explanation needs another try','attention');
+  }finally{simplifyButton.disabled=false;simplifyButton.textContent='Explain Simpler';}
 }
 
 async function handleImage(file,source='upload'){
