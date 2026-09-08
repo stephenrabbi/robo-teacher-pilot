@@ -632,7 +632,10 @@ def generate_visual_aid(text: str, response_language: str, class_level: str = "J
     prompt = (
         f"{_class_instruction(class_level)}\n{language_instruction}\n\n"
         "Create one visual aid for the Maths lesson below. Return valid JSON only with keys title, kind, items and caption. "
-        "kind must be steps, bars, or number_line. items must contain 2 to 6 objects, each with short label and numeric value. "
+        "kind must be steps, bars, number_line, square_grid, fraction, balance, or coordinate. items must contain 2 to 8 objects, each with short label and numeric value. "
+        "Use square_grid for square numbers or square roots: the first value is the total unit cells and must be a perfect square no greater than 100. "
+        "Use fraction with the first value as numerator and second as denominator. Use balance with left and right values. "
+        "Use coordinate with each item's label formatted exactly as x,y and value as its point order. "
         "For steps, value is the step number. For bars, values show relative quantities. For number_line, values are ordered positions. "
         "Use only values and ideas already present in the lesson; never change the Maths. Keep labels under 45 characters.\n\n"
         f"LESSON:\n{text.strip()}"
@@ -640,12 +643,18 @@ def generate_visual_aid(text: str, response_language: str, class_level: str = "J
     response = _get_client().models.generate_content(model=GEMINI_MODEL, contents=prompt, config=types.GenerateContentConfig(system_instruction=SYSTEM_PROMPT, max_output_tokens=450, thinking_config=types.ThinkingConfig(thinking_budget=0), response_mime_type="application/json"))
     raw = _extract_text(response).strip();data = json.loads(re.sub(r"^```(?:json)?\s*|\s*```$", "", raw, flags=re.IGNORECASE))
     kind=data.get("kind");items=data.get("items")
-    if kind not in {"steps","bars","number_line"} or not isinstance(items,list) or not 2<=len(items)<=6: raise ValueError("Invalid visual aid")
+    if kind not in {"steps","bars","number_line","square_grid","fraction","balance","coordinate"} or not isinstance(items,list) or not 2<=len(items)<=8: raise ValueError("Invalid visual aid")
     cleaned=[]
     for item in items:
         if not isinstance(item,dict) or not isinstance(item.get("label"),str) or not isinstance(item.get("value"),(int,float)): raise ValueError("Invalid visual item")
         cleaned.append({"label":item["label"].strip()[:45],"value":item["value"]})
     if kind=="number_line": cleaned.sort(key=lambda item:item["value"])
+    if kind=="square_grid":
+        total=int(cleaned[0]["value"]);side=int(total**0.5)
+        if total<1 or total>100 or side*side!=total: raise ValueError("Invalid square grid")
+    if kind=="fraction":
+        numerator,denominator=int(cleaned[0]["value"]),int(cleaned[1]["value"])
+        if denominator<1 or denominator>24 or numerator<0 or numerator>denominator: raise ValueError("Invalid fraction")
     return {"title":str(data.get("title","Visual explanation"))[:80],"kind":kind,"items":cleaned,"caption":str(data.get("caption",""))[:240]}
 
 

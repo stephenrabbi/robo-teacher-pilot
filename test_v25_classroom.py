@@ -31,7 +31,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260908-visual1' in html
+    assert '20260908-mathvisual2' in html
     assert 'id="learnerNickname"' in html
     assert 'id="learnerClass"' in html
     assert "learnerNickname.value=''" in script
@@ -47,7 +47,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert "localStorage.setItem('roboTeacherQaChecklist'" in script
     assert 'const resultCopy=' in script
     assert 'labels.yourAnswer' in script
-    assert '20260908-visual1' in html
+    assert '20260908-mathvisual2' in html
     assert 'downloadTeacherDashboardReport' in script
     assert 'id="practiceClass"' in html
     assert 'id="startDiagnostic"' in html
@@ -972,6 +972,21 @@ def test_visual_endpoint_uses_selected_language_and_class():
         response=client.post('/api/classroom/visual',json={'session_token':session['session_token'],'text':'Move from 2 to 5.','language':'Yoruba'})
     assert response.status_code==200 and response.json()==visual
     assert generator.call_args.args==('Move from 2 to 5.','Yoruba','JSS3')
+
+
+def test_topic_specific_visual_renderers_are_safe_and_mobile_ready():
+    script=(PROJECT_ROOT/'classroom'/'app.js').read_text();css=(PROJECT_ROOT/'classroom'/'styles.css').read_text()
+    for kind in ('square_grid','fraction','balance','coordinate'):
+        assert f"data.kind==='{kind}'" in script
+    assert "cell.setAttribute('aria-hidden','true')" in script
+    assert '.square-grid' in css and '.fraction-model' in css and '.balance-model' in css and '.coordinate-model' in css
+
+
+def test_visual_generator_accepts_a_true_square_grid():
+    payload={'title':'Square root of 49','kind':'square_grid','items':[{'label':'49 cells','value':49},{'label':'7 by 7','value':7}],'caption':'Seven rows of seven.'}
+    fake_response=type('Response',(),{'text':__import__('json').dumps(payload),'candidates':[]})();generate_content=Mock(return_value=fake_response);fake_client=type('Client',(),{'models':type('Models',(),{'generate_content':generate_content})()})()
+    with patch.object(tutor,'_get_client',return_value=fake_client): result=tutor.generate_visual_aid('The square root of 49 is 7.','English','JSS2')
+    assert result['kind']=='square_grid' and result['items'][0]['value']==49
 
 
 if __name__ == '__main__':
