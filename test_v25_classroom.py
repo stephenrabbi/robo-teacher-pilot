@@ -212,6 +212,14 @@ def test_voice_fallback_is_chunked_for_faster_first_audio():
     assert "retry_prompt" not in primary_source
 
 
+def test_pause_is_enabled_only_after_real_audio_arrives():
+    script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
+    assert "teacherVoiceStatus.textContent='Preparing teacher voice…'" in script
+    assert "readAnswerButton.disabled=true" in script
+    assert "if(!receivedAudio){" in script
+    assert "readAnswerButton.disabled=false;\n      setTeacherSpeaking(true)" in script
+
+
 def test_speech_playback_does_not_consume_the_tutor_question_limit():
     classroom_api._request_times.clear()
     session = client.post('/api/classroom/session').json()

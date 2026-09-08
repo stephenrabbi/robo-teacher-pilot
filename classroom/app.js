@@ -326,6 +326,7 @@ function stopTeacherAudio(){
   teacherSpeechPaused=false;
   teacherPanel.classList.remove('paused');
   setTeacherSpeaking(false);
+  readAnswerButton.disabled=!canvasAnswer.textContent.trim();
 }
 
 async function prepareTeacherAudio(){
@@ -344,7 +345,11 @@ async function playPcmStream(response,requestId){
     const joined=new Uint8Array(pending.length+value.length);joined.set(pending);joined.set(value,pending.length);
     const evenLength=joined.length-joined.length%2;pending=joined.slice(evenLength);
     if(!evenLength)continue;
-    receivedAudio=true;
+    if(!receivedAudio){
+      receivedAudio=true;
+      readAnswerButton.disabled=false;
+      setTeacherSpeaking(true);
+    }
     const samples=evenLength/2;const buffer=context.createBuffer(1,samples,24000);const channel=buffer.getChannelData(0);const view=new DataView(joined.buffer,joined.byteOffset,evenLength);
     for(let index=0;index<samples;index++)channel[index]=view.getInt16(index*2,true)/32768;
     const source=context.createBufferSource();source.buffer=buffer;source.connect(context.destination);teacherAudioSources.add(source);
@@ -357,7 +362,12 @@ async function playPcmStream(response,requestId){
 
 async function speakText(text){
   if(!text.trim())return;
-  stopTeacherAudio();setTeacherSpeaking(true);
+  stopTeacherAudio();
+  teacherVoiceStatus.textContent='Preparing teacher voice…';
+  readAnswerButton.disabled=true;
+  readAnswerButton.innerHTML='<span>Preparing…</span>';
+  readAnswerButton.setAttribute('aria-label','Preparing the teacher voice');
+  setLearningStatus('Preparing teacher voice','thinking');
   const requestId=teacherSpeechRequest;
   teacherSpeechController=new AbortController();
   try{
@@ -371,6 +381,7 @@ async function speakText(text){
   }catch(error){
     if(error.name==='AbortError'||requestId!==teacherSpeechRequest)return;
     stopTeacherAudio();
+    readAnswerButton.disabled=!canvasAnswer.textContent.trim();
     addMessage('The natural teacher voice is temporarily unavailable. You can continue reading the worked answer on the Teaching Canvas.','teacher');
   }
 }
