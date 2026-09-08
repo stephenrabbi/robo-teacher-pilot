@@ -430,36 +430,57 @@ def _class_instruction(class_level: str) -> str:
 
 def _language_instruction(response_language: str, class_level: str = "JSS2") -> str:
     language_details = {
-        "Yoruba": ("Yorùbá", "Yorùbá"),
-        "Igbo": ("Igbo", "Igbo"),
-        "Hausa": ("Hausa", "Hausa"),
+        "Yoruba": {
+            "name": "Yorùbá",
+            "style": (
+                "Use simple, modern conversational Yorùbá commonly understood by young people in Lagos, including learners who did not grow up in their ancestral town. "
+                "Use short, direct sentences and familiar everyday words. Avoid deep, literary, ceremonial or old-fashioned Yorùbá, proverbs, idioms and rare traditional expressions. "
+                "Use familiar classroom forms such as jẹ́ ká, a máa, nítorí náà and ìdáhùn instead of unusually formal alternatives."
+            ),
+            "numbers": "Use familiar conversational Yorùbá counting forms such as ọ̀kan, méjì, mẹ́ta, márùn-ún and mẹ́fà.",
+        },
+        "Igbo": {
+            "name": "Igbo",
+            "style": (
+                "Use simple, modern everyday Igbo that young Nigerian learners can understand even if they did not grow up in an Igbo-speaking hometown. "
+                "Prefer widely understood classroom words and short, direct sentences. Avoid deep dialect words, literary or ceremonial Igbo, proverbs, idioms and rare traditional expressions."
+            ),
+            "numbers": "Say numbers in clear everyday Igbo, for example otu, abụọ, atọ, anọ, ise and isii.",
+        },
+        "Hausa": {
+            "name": "Hausa",
+            "style": (
+                "Use simple, modern everyday Hausa that young Nigerian learners can understand even if Hausa is not the main language spoken in their home. "
+                "Prefer common school and conversational words with short, direct sentences. Avoid deep regional vocabulary, literary or ceremonial Hausa, proverbs, idioms and uncommon traditional expressions."
+            ),
+            "numbers": "Say numbers in clear everyday Hausa, for example ɗaya, biyu, uku, huɗu, biyar and shida.",
+        },
     }
     if response_language in language_details:
-        language_name, number_word_language = language_details[response_language]
-        simplicity = (
-            f"Use simple, modern conversational Yorùbá commonly understood by {class_level} learners in Lagos. "
-            "Use short direct sentences. Avoid deep or literary Yorùbá, proverbs, idioms and uncommon traditional terms. "
-            "You may naturally code-switch only familiar school Maths words such as plus, minus, times, divide, fraction, decimal and percent. "
-            "Never say the numbers in English; use familiar conversational Yorùbá counting forms such as ọ̀kan, méjì, mẹ́ta, márùn-ún and mẹ́fà. "
-            if response_language == "Yoruba" else ""
-        )
+        details = language_details[response_language]
+        language_name = details["name"]
         return (
             f"The learner may ask the Maths question in {language_name} or English. Understand both languages, "
-            f"but reply entirely in clear, natural {language_name} suitable for a Nigerian {class_level} learner. "
-            f"{simplicity}"
+            f"but reply in at least 90 percent {language_name}, suitable for a Nigerian {class_level} learner. "
+            f"{details['style']} "
+            "Translate the teaching itself: headings, encouragement, instructions, step labels, transitions, explanations and the final-answer label must all be in the selected language. "
+            "Do not write English scaffolding such as 'Step', 'First', 'Next', 'Because', 'Therefore', 'The answer is', 'Calculate', 'Multiply', 'Divide' or 'Equals'. "
+            "English is permitted only for a standard Maths term that would become unclear in translation, such as plus, minus, times, divide, fraction, decimal or percent, and for internationally used symbols, formula letters, units and proper names. "
+            "Even when one English Maths term is necessary, keep the surrounding sentence in the selected language. Never write a complete explanatory sentence in English. "
             "Write as a warm human teacher would speak: use complete sentences, natural punctuation, and short paragraphs. "
             "Use commas and full stops to create clear pauses when the answer is read aloud. "
-            f"Use {number_word_language} number words whenever referring to values in explanatory sentences. "
+            f"{details['numbers']} Never say explanatory numbers in English. "
             "Numerals may remain in written equations, but write the final-answer value "
-            f"as a {number_word_language} number word."
+            f"as a {language_name} number word. Before returning the answer, silently check every sentence and replace any unnecessary English with simple {language_name}."
         )
     return (
         "Detect whether the learner's current Maths question is in English, Yorùbá, Igbo, or Hausa. "
-        "Reply entirely in the language used in the question. When replying in Yorùbá, Igbo, or Hausa, "
+        "Reply in at least 90 percent of the language used in the question. When replying in Yorùbá, Igbo, or Hausa, "
         "write as a warm human teacher would speak, using complete sentences, natural punctuation, and short paragraphs. "
         "Use commas and full stops to create clear pauses when the answer is read aloud. "
-        "keep mathematical symbols and numerals in the working, but write the final-answer value as a "
-        f"number word in that language. Use language suitable for a Nigerian {class_level} learner."
+        "Keep mathematical symbols and numerals in the working, but write the final-answer value as a number word in that language. "
+        "Translate headings, step labels, instructions, explanations and encouragement. English may appear only in an unavoidable standard Maths term, formula, symbol, unit or proper name. "
+        f"Use simple modern language suitable for a Nigerian {class_level} learner, never deep dialect, literary language, proverbs or archaic expressions."
     )
 
 

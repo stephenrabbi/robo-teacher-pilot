@@ -585,22 +585,44 @@ def test_language_instructions_accept_typed_and_spoken_yoruba():
     automatic = _language_instruction("English")
     selected = _language_instruction("Yoruba")
     assert "current Maths question is in English, Yorùbá, Igbo, or Hausa" in automatic
-    assert "Reply entirely in the language used" in automatic
+    assert "Reply in at least 90 percent of the language used" in automatic
     assert "write the final-answer value as a number word" in automatic
     assert "may ask the Maths question in Yorùbá or English" in selected
-    assert "reply entirely in clear, natural Yorùbá" in selected
+    assert "reply in at least 90 percent Yorùbá" in selected
     assert "natural punctuation" in selected
     assert "clear pauses when the answer is read aloud" in selected
     assert "simple, modern conversational Yorùbá" in selected
-    assert "Avoid deep or literary Yorùbá" in selected
-    assert "Never say the numbers in English" in selected
+    assert "Avoid deep, literary, ceremonial or old-fashioned Yorùbá" in selected
+    assert "Never say explanatory numbers in English" in selected
 
 
 def test_igbo_and_hausa_language_instructions_cover_text_and_voice():
     for language in ("Igbo", "Hausa"):
         instruction = _language_instruction(language)
+        assert "at least 90 percent" in instruction
+        assert "Never write a complete explanatory sentence in English" in instruction
+        assert "deep" in instruction
+        assert "silently check every sentence" in instruction
         assert f"ask the Maths question in {language} or English" in instruction
-        assert f"reply entirely in clear, natural {language}" in instruction
+        assert f"reply in at least 90 percent {language}" in instruction
+
+
+def test_native_language_prompts_limit_english_to_unavoidable_maths_terms():
+    for language in ("Yoruba", "Igbo", "Hausa"):
+        instruction = _language_instruction(language, "JSS1")
+        assert "Translate the teaching itself" in instruction
+        assert "English is permitted only for a standard Maths term" in instruction
+        assert "formula letters, units and proper names" in instruction
+    assert "did not grow up in their ancestral town" in _language_instruction("Yoruba")
+    assert "did not grow up in an Igbo-speaking hometown" in _language_instruction("Igbo")
+    assert "Hausa is not the main language spoken in their home" in _language_instruction("Hausa")
+
+
+def test_practice_translation_prompt_requires_mostly_native_language():
+    from practice_translation import LANGUAGE_STYLE
+    assert "modern conversational Yorùbá" in LANGUAGE_STYLE["Yoruba"]
+    assert "modern everyday Igbo" in LANGUAGE_STYLE["Igbo"]
+    assert "modern everyday Hausa" in LANGUAGE_STYLE["Hausa"]
 
 
 def test_session_and_chat_use_pseudonymous_identity():
