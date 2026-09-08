@@ -626,6 +626,29 @@ def generate_understanding_check(text: str, response_language: str, class_level:
     return {"question": data["question"].strip(), "choices": [choice.strip() for choice in choices], "correct_index": correct_index, "feedback": data["feedback"].strip()}
 
 
+def generate_visual_aid(text: str, response_language: str, class_level: str = "JSS2") -> dict:
+    """Describe a safe, lightweight visual that the browser can render."""
+    language_instruction = f"Use simple {response_language} suitable for {class_level}." if response_language != "English" else f"Use simple English suitable for {class_level}."
+    prompt = (
+        f"{_class_instruction(class_level)}\n{language_instruction}\n\n"
+        "Create one visual aid for the Maths lesson below. Return valid JSON only with keys title, kind, items and caption. "
+        "kind must be steps, bars, or number_line. items must contain 2 to 6 objects, each with short label and numeric value. "
+        "For steps, value is the step number. For bars, values show relative quantities. For number_line, values are ordered positions. "
+        "Use only values and ideas already present in the lesson; never change the Maths. Keep labels under 45 characters.\n\n"
+        f"LESSON:\n{text.strip()}"
+    )
+    response = _get_client().models.generate_content(model=GEMINI_MODEL, contents=prompt, config=types.GenerateContentConfig(system_instruction=SYSTEM_PROMPT, max_output_tokens=450, thinking_config=types.ThinkingConfig(thinking_budget=0), response_mime_type="application/json"))
+    raw = _extract_text(response).strip();data = json.loads(re.sub(r"^```(?:json)?\s*|\s*```$", "", raw, flags=re.IGNORECASE))
+    kind=data.get("kind");items=data.get("items")
+    if kind not in {"steps","bars","number_line"} or not isinstance(items,list) or not 2<=len(items)<=6: raise ValueError("Invalid visual aid")
+    cleaned=[]
+    for item in items:
+        if not isinstance(item,dict) or not isinstance(item.get("label"),str) or not isinstance(item.get("value"),(int,float)): raise ValueError("Invalid visual item")
+        cleaned.append({"label":item["label"].strip()[:45],"value":item["value"]})
+    if kind=="number_line": cleaned.sort(key=lambda item:item["value"])
+    return {"title":str(data.get("title","Visual explanation"))[:80],"kind":kind,"items":cleaned,"caption":str(data.get("caption",""))[:240]}
+
+
 def _media_reply(student_id: str, media_bytes: bytes, mime_type: str, prompt: str, profile_message: str, max_tokens: int = 700) -> tuple[str, float]:
     profile = _safe_profile_update(student_id, profile_message)
     adaptive_context = profile_prompt_context(profile)

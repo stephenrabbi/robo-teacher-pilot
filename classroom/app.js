@@ -27,6 +27,12 @@ const cameraCapture=document.getElementById('cameraCapture');
 const micButton=document.getElementById('micButton');
 const simplifyButton=document.getElementById('simplifyButton');
 const understandingButton=document.getElementById('understandingButton');
+const visualButton=document.getElementById('visualButton');
+const visualArea=document.getElementById('visualArea');
+const visualTitle=document.getElementById('visualTitle');
+const visualGraphic=document.getElementById('visualGraphic');
+const visualCaption=document.getElementById('visualCaption');
+const closeVisualButton=document.getElementById('closeVisual');
 const understandingArea=document.getElementById('understandingArea');
 const understandingQuestion=document.getElementById('understandingQuestion');
 const understandingForm=document.getElementById('understandingForm');
@@ -474,6 +480,8 @@ cameraCapture.addEventListener('change',()=>handleImage(cameraCapture.files[0]))
 micButton.addEventListener('click',toggleRecording);
 simplifyButton.addEventListener('click',simplifyCurrentAnswer);
 understandingButton.addEventListener('click',startUnderstandingCheck);
+visualButton.addEventListener('click',showVisualExplanation);
+closeVisualButton.addEventListener('click',closeVisualExplanation);
 understandingForm.addEventListener('submit',submitUnderstandingAnswer);
 closeUnderstandingButton.addEventListener('click',closeUnderstandingCheck);
 whiteboardButton.addEventListener('click',openWhiteboard);
@@ -986,6 +994,24 @@ function closeUnderstandingCheck(){
   if(canvasAnswer.textContent.trim())canvasWork.classList.remove('hidden');else canvasEmpty.classList.remove('hidden');
   setLearningStatus('Answer ready');
 }
+
+async function showVisualExplanation(){
+  const lesson=canvasAnswer.textContent.trim();if(!lesson){addMessage('Ask a Maths question first, then I can show a visual explanation.','teacher');return;}
+  stopTeacherAudio();visualButton.disabled=true;visualButton.textContent='Preparing…';setLearningStatus('Drawing a lesson visual','thinking');
+  try{
+    const token=await ensureSession();const response=await fetch('/api/classroom/visual',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:lesson,session_token:token,language:language.value})});const data=await response.json();
+    if(!response.ok)throw new Error(data.detail||'visual');renderVisualAid(data);canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');understandingArea.classList.add('hidden');visualArea.classList.remove('hidden');
+    teacherPanel.classList.add('minimized');classroom.classList.add('teacher-min');toggle.textContent='Show';toggle.setAttribute('aria-expanded','false');setLearningStatus('Visual explanation ready','success');
+  }catch(error){addMessage(error.message&&!['visual'].includes(error.message)?error.message:'I could not prepare the visual right now. Please try again.','teacher');setLearningStatus('Visual needs another try','attention');}
+  finally{visualButton.disabled=false;visualButton.textContent='Show Visual';}
+}
+
+function renderVisualAid(data){
+  visualTitle.textContent=data.title;visualCaption.textContent=data.caption;visualGraphic.replaceChildren();visualGraphic.dataset.kind=data.kind;const max=Math.max(...data.items.map(item=>Math.abs(item.value)),1);
+  data.items.forEach((item,index)=>{const node=document.createElement('div');node.className='visual-item';const mark=document.createElement('strong');const label=document.createElement('span');label.textContent=item.label;if(data.kind==='steps')mark.textContent=String(index+1);else if(data.kind==='bars'){mark.style.width=`${Math.max(12,Math.abs(item.value)/max*100)}%`;mark.textContent=String(item.value)}else mark.textContent=String(item.value);node.append(mark,label);visualGraphic.appendChild(node);});
+}
+
+function closeVisualExplanation(){visualArea.classList.add('hidden');if(canvasAnswer.textContent.trim())canvasWork.classList.remove('hidden');else canvasEmpty.classList.remove('hidden');teacherPanel.classList.remove('minimized');classroom.classList.remove('teacher-min');toggle.textContent='Hide';toggle.setAttribute('aria-expanded','true');setLearningStatus('Answer ready');}
 
 async function handleImage(file,source='upload'){
   if(!file)return;

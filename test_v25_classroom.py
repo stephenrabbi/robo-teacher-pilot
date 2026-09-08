@@ -31,7 +31,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260908-understanding1' in html
+    assert '20260908-visual1' in html
     assert 'id="learnerNickname"' in html
     assert 'id="learnerClass"' in html
     assert "learnerNickname.value=''" in script
@@ -47,7 +47,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert "localStorage.setItem('roboTeacherQaChecklist'" in script
     assert 'const resultCopy=' in script
     assert 'labels.yourAnswer' in script
-    assert '20260908-understanding1' in html
+    assert '20260908-visual1' in html
     assert 'downloadTeacherDashboardReport' in script
     assert 'id="practiceClass"' in html
     assert 'id="startDiagnostic"' in html
@@ -954,6 +954,24 @@ def test_understanding_generator_requires_three_valid_choices():
     prompt = generate_content.call_args.kwargs['contents']
     assert 'exactly one short multiple-choice question' in prompt
     assert 'Do not introduce a topic not taught' in prompt
+
+
+def test_visual_teaching_mode_minimizes_avatar_and_renders_safe_data():
+    html=(PROJECT_ROOT/'classroom'/'index.html').read_text();script=(PROJECT_ROOT/'classroom'/'app.js').read_text()
+    assert 'id="visualButton"' in html and 'id="visualArea"' in html
+    assert "fetch('/api/classroom/visual'" in script
+    assert "teacherPanel.classList.add('minimized')" in script
+    assert 'visualTitle.textContent=data.title' in script
+    assert 'innerHTML=data' not in script
+
+
+def test_visual_endpoint_uses_selected_language_and_class():
+    session=client.post('/api/classroom/session',json={'learner_key':'d'*48,'nickname':'Tola','class_level':'JSS3'}).json()
+    visual={'title':'Number line','kind':'number_line','items':[{'label':'Start','value':2},{'label':'End','value':5}],'caption':'Move three places.'}
+    with patch.object(classroom_api,'generate_visual_aid',return_value=visual) as generator:
+        response=client.post('/api/classroom/visual',json={'session_token':session['session_token'],'text':'Move from 2 to 5.','language':'Yoruba'})
+    assert response.status_code==200 and response.json()==visual
+    assert generator.call_args.args==('Move from 2 to 5.','Yoruba','JSS3')
 
 
 if __name__ == '__main__':
