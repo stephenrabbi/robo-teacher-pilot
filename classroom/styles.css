@@ -61,10 +61,11 @@ body{background:radial-gradient(circle at 10% 4%,#fff2c9 0,transparent 24%),radi
 .media-area{display:grid;gap:14px;padding:22px;border:1px solid #b9cde6;border-radius:16px;background:#f7fbff;color:#10203a}.media-area.hidden,.media-area .hidden{display:none}.media-area h3,.media-area p{margin:0}.media-area iframe{width:100%;height:min(520px,62vh);border:0;border-radius:12px;background:#fff}.media-replay{display:grid;gap:9px;min-height:260px;padding:18px;border-radius:12px;background:#fff}.media-replay p{padding:13px;border-left:5px solid #c3d2e5;border-radius:8px;background:#f2f6fb;opacity:.55;transition:.25s}.media-replay p.active{border-color:#1677ff;background:#e8f2ff;opacity:1;transform:translateX(6px)}.media-area>.exit-media{justify-self:start;border:0;border-radius:10px;padding:10px 14px;background:#17355e;color:#fff;font-weight:800;cursor:pointer}@media(max-width:600px){.media-area{max-height:78vh;overflow:auto;padding:14px 14px 78px;overscroll-behavior:contain}.media-area iframe{height:55vh;min-height:300px;touch-action:auto}.media-area>.exit-media{position:fixed;top:12px;right:12px;z-index:100;box-shadow:0 6px 20px #04112388;background:#a1281c}}
 @media(max-width:900px){.class-tools{display:flex!important;grid-template-columns:none!important;flex-wrap:nowrap!important;overflow-x:auto!important;overflow-y:hidden!important;gap:7px;padding:7px!important;scrollbar-width:thin}.class-tools button{flex:0 0 auto!important;width:auto!important;min-width:max-content!important;white-space:nowrap!important;padding:9px 12px!important}.composer{bottom:59px}}
 
-/* The second portrait frame is active only while spoken audio is playing. */
+/* Keep the portrait fixed; only the feathered mouth crop changes during speech. */
 .teacher-portrait{position:relative;overflow:hidden;border-radius:18px}
-.teacher-avatar-speaking{position:absolute;inset:0;opacity:0;pointer-events:none}
-.teacher-panel.speaking .teacher-avatar-speaking{animation:teacher-mouth 540ms steps(1,end) infinite}
-.teacher-panel.paused .teacher-avatar-speaking{opacity:0;animation:none}
+.teacher-panel.speaking .teacher-avatar{animation:none;transform:none}
+.teacher-mouth-frame{position:absolute;left:39.3%;top:47.5%;width:21.5%;height:auto;opacity:0;pointer-events:none}
+.teacher-panel.speaking .teacher-mouth-frame{animation:teacher-mouth 540ms steps(1,end) infinite}
+.teacher-panel.paused .teacher-mouth-frame{opacity:0;animation:none}
 @keyframes teacher-mouth{0%,100%{opacity:0}22%,48%{opacity:1}64%{opacity:0}78%,90%{opacity:1}}
-@media(prefers-reduced-motion:reduce){.teacher-panel.speaking .teacher-avatar-speaking{opacity:0;animation:none}}
+@media(prefers-reduced-motion:reduce){.teacher-panel.speaking .teacher-mouth-frame{opacity:0;animation:none}}

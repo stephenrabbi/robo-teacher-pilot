@@ -31,7 +31,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260908-avatarspeech1' in html
+    assert '20260908-lipsync2' in html
     assert 'id="learnerNickname"' in html
     assert 'id="learnerClass"' in html
     assert "learnerNickname.value=''" in script
@@ -47,7 +47,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert "localStorage.setItem('roboTeacherQaChecklist'" in script
     assert 'const resultCopy=' in script
     assert 'labels.yourAnswer' in script
-    assert '20260908-avatarspeech1' in html
+    assert '20260908-lipsync2' in html
     assert 'downloadTeacherDashboardReport' in script
     assert 'id="practiceClass"' in html
     assert 'id="startDiagnostic"' in html
@@ -1053,10 +1053,11 @@ def test_switching_modes_unloads_media_before_showing_new_content():
 def test_teacher_portrait_animates_only_during_active_speech():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     styles = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
-    assert 'ai-maths-teacher-speaking.jpg' in html
-    assert 'teacher-avatar-speaking' in html
-    assert '.teacher-panel.speaking .teacher-avatar-speaking' in styles
-    assert '.teacher-panel.paused .teacher-avatar-speaking' in styles
+    assert 'ai-teacher-mouth-speaking.png' in html
+    assert 'teacher-mouth-frame' in html
+    assert '.teacher-panel.speaking .teacher-mouth-frame' in styles
+    assert '.teacher-panel.paused .teacher-mouth-frame' in styles
+    assert '.teacher-panel.speaking .teacher-avatar{animation:none;transform:none}' in styles
     assert '@media(prefers-reduced-motion:reduce)' in styles
 
 
