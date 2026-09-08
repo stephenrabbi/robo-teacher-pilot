@@ -31,7 +31,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260908-coordinate1' in html
+    assert '20260908-media1' in html
     assert 'id="learnerNickname"' in html
     assert 'id="learnerClass"' in html
     assert "learnerNickname.value=''" in script
@@ -47,7 +47,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert "localStorage.setItem('roboTeacherQaChecklist'" in script
     assert 'const resultCopy=' in script
     assert 'labels.yourAnswer' in script
-    assert '20260908-coordinate1' in html
+    assert '20260908-media1' in html
     assert 'downloadTeacherDashboardReport' in script
     assert 'id="practiceClass"' in html
     assert 'id="startDiagnostic"' in html
@@ -1007,6 +1007,29 @@ def test_coordinate_visual_is_deterministic_and_uses_no_model_request():
     assert result['kind']=='coordinate'
     assert [item['label'] for item in result['items']]==['1,2','2,4','3,6']
     client_factory.assert_not_called()
+
+
+def test_watch_example_uses_only_allowlisted_phet_or_local_replay():
+    fraction=tutor.select_lesson_media('The numerator and denominator form a fraction.','English')
+    assert fraction['kind']=='simulation' and fraction['url'].startswith('https://phet.colorado.edu/sims/html/')
+    replay=tutor.select_lesson_media('The square root of 49 is 7.','English')
+    assert replay['kind']=='replay' and replay['source']=='Robo-Teacher' and replay['steps']
+
+
+def test_watch_example_ui_minimizes_avatar_and_stops_embedded_media():
+    html=(PROJECT_ROOT/'classroom'/'index.html').read_text();script=(PROJECT_ROOT/'classroom'/'app.js').read_text()
+    assert 'id="mediaButton"' in html and 'id="mediaFrame"' in html
+    assert "fetch('/api/classroom/media'" in script
+    assert "mediaFrame.removeAttribute('src')" in script
+    assert "teacherPanel.classList.add('minimized')" in script
+
+
+def test_media_endpoint_requires_a_valid_session():
+    session=client.post('/api/classroom/session').json()
+    response=client.post('/api/classroom/media',json={'session_token':session['session_token'],'text':'Explain a fraction.','language':'English'})
+    assert response.status_code==200 and response.json()['source']=='PhET Interactive Simulations'
+    rejected=client.post('/api/classroom/media',json={'session_token':'x'*32,'text':'Explain a fraction.','language':'English'})
+    assert rejected.status_code==401
 
 
 if __name__ == '__main__':

@@ -673,6 +673,21 @@ def generate_visual_aid(text: str, response_language: str, class_level: str = "J
     return {"title":str(data.get("title","Visual explanation"))[:80],"kind":kind,"items":cleaned,"caption":str(data.get("caption",""))[:240]}
 
 
+def select_lesson_media(text: str, response_language: str = "English") -> dict:
+    """Select only allowlisted free learning media; never return model URLs."""
+    lesson=text.lower()
+    catalog=[
+        (("fraction","numerator","denominator"),"Fractions Intro","https://phet.colorado.edu/sims/html/fractions-intro/latest/fractions-intro_all.html"),
+        (("equation","equal","balance","solve x"),"Equality Explorer","https://phet.colorado.edu/sims/html/equality-explorer-basics/latest/equality-explorer-basics_all.html"),
+        (("coordinate","plot","graph","gradient","slope"),"Graphing Lines","https://phet.colorado.edu/sims/html/graphing-lines/latest/graphing-lines_all.html"),
+        (("area","rectangle","multiply","factor"),"Area Model Algebra","https://phet.colorado.edu/sims/html/area-model-algebra/latest/area-model-algebra_all.html"),
+    ]
+    for keywords,title,url in catalog:
+        if any(keyword in lesson for keyword in keywords): return {"kind":"simulation","title":title,"url":url,"source":"PhET Interactive Simulations"}
+    steps=[part.strip() for part in re.split(r"(?:\n+|(?<=[.!?])\s+)",text) if part.strip()][:6]
+    return {"kind":"replay","title":"Worked example replay","steps":steps or [text.strip()[:240]],"source":"Robo-Teacher"}
+
+
 def _media_reply(student_id: str, media_bytes: bytes, mime_type: str, prompt: str, profile_message: str, max_tokens: int = 700) -> tuple[str, float]:
     profile = _safe_profile_update(student_id, profile_message)
     adaptive_context = profile_prompt_context(profile)

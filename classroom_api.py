@@ -34,6 +34,7 @@ from tutor import (
     get_tutor_reply,
     generate_understanding_check,
     generate_visual_aid,
+    select_lesson_media,
     stream_stable_tutor_speech,
     stream_tutor_speech,
     simplify_tutor_text,
@@ -397,6 +398,12 @@ def classroom_visual(request: ClassroomTranslation):
     try: visual = generate_visual_aid(request.text, request.language, class_level)
     except Exception as exc: raise HTTPException(status_code=503, detail="I could not prepare a visual right now") from exc
     return visual
+
+
+@router.post("/media")
+def classroom_media(request: ClassroomTranslation):
+    _verify_session(request.session_token)
+    return select_lesson_media(request.text, request.language)
 
 
 @router.post("/understanding/answer")

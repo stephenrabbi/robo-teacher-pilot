@@ -33,6 +33,13 @@ const visualTitle=document.getElementById('visualTitle');
 const visualGraphic=document.getElementById('visualGraphic');
 const visualCaption=document.getElementById('visualCaption');
 const closeVisualButton=document.getElementById('closeVisual');
+const mediaButton=document.getElementById('mediaButton');
+const mediaArea=document.getElementById('mediaArea');
+const mediaTitle=document.getElementById('mediaTitle');
+const mediaFrame=document.getElementById('mediaFrame');
+const mediaReplay=document.getElementById('mediaReplay');
+const mediaSource=document.getElementById('mediaSource');
+const closeMediaButton=document.getElementById('closeMedia');
 const understandingArea=document.getElementById('understandingArea');
 const understandingQuestion=document.getElementById('understandingQuestion');
 const understandingForm=document.getElementById('understandingForm');
@@ -145,6 +152,7 @@ let teacherSpeechPaused=false;
 let languageSwitchRequest=0;
 let teacherAudioKeepAlive=null;
 let understandingCheckId=null;
+let mediaReplayTimer=null;
 let drawing=false;
 let drawingTool='pen';
 let boardHasInk=false;
@@ -482,6 +490,8 @@ simplifyButton.addEventListener('click',simplifyCurrentAnswer);
 understandingButton.addEventListener('click',startUnderstandingCheck);
 visualButton.addEventListener('click',showVisualExplanation);
 closeVisualButton.addEventListener('click',closeVisualExplanation);
+mediaButton.addEventListener('click',openLessonMedia);
+closeMediaButton.addEventListener('click',closeLessonMedia);
 understandingForm.addEventListener('submit',submitUnderstandingAnswer);
 closeUnderstandingButton.addEventListener('click',closeUnderstandingCheck);
 whiteboardButton.addEventListener('click',openWhiteboard);
@@ -1017,6 +1027,22 @@ function renderVisualAid(data){
 }
 
 function closeVisualExplanation(){visualArea.classList.add('hidden');if(canvasAnswer.textContent.trim())canvasWork.classList.remove('hidden');else canvasEmpty.classList.remove('hidden');teacherPanel.classList.remove('minimized');classroom.classList.remove('teacher-min');toggle.textContent='Hide';toggle.setAttribute('aria-expanded','true');setLearningStatus('Answer ready');}
+
+async function openLessonMedia(){
+  const lesson=canvasAnswer.textContent.trim();if(!lesson){addMessage('Ask a Maths question first, then I can show an example.','teacher');return;}
+  stopTeacherAudio();mediaButton.disabled=true;mediaButton.textContent='Preparing…';setLearningStatus('Preparing a learning example','thinking');
+  try{const token=await ensureSession();const response=await fetch('/api/classroom/media',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:lesson,session_token:token,language:language.value})});const data=await response.json();if(!response.ok)throw new Error(data.detail||'media');renderLessonMedia(data);canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');visualArea.classList.add('hidden');understandingArea.classList.add('hidden');mediaArea.classList.remove('hidden');teacherPanel.classList.add('minimized');classroom.classList.add('teacher-min');toggle.textContent='Show';toggle.setAttribute('aria-expanded','false');setLearningStatus('Learning example ready','success');}
+  catch(error){addMessage(error.message||'I could not prepare that example. Please try again.','teacher');setLearningStatus('Example needs another try','attention');}
+  finally{mediaButton.disabled=false;mediaButton.textContent='Watch Example';}
+}
+
+function renderLessonMedia(data){
+  if(mediaReplayTimer){clearInterval(mediaReplayTimer);mediaReplayTimer=null}mediaTitle.textContent=data.title;mediaSource.textContent=`Source: ${data.source}`;mediaFrame.classList.add('hidden');mediaReplay.classList.add('hidden');mediaFrame.removeAttribute('src');mediaReplay.replaceChildren();
+  if(data.kind==='simulation'){mediaFrame.src=data.url;mediaFrame.classList.remove('hidden');return;}
+  mediaReplay.classList.remove('hidden');const steps=data.steps.map((text,index)=>{const item=document.createElement('p');item.textContent=`${index+1}. ${text}`;mediaReplay.appendChild(item);return item});let active=0;const show=()=>steps.forEach((item,index)=>item.classList.toggle('active',index===active));show();mediaReplayTimer=setInterval(()=>{active=(active+1)%steps.length;show()},2600);
+}
+
+function closeLessonMedia(){if(mediaReplayTimer){clearInterval(mediaReplayTimer);mediaReplayTimer=null}mediaFrame.removeAttribute('src');mediaArea.classList.add('hidden');if(canvasAnswer.textContent.trim())canvasWork.classList.remove('hidden');else canvasEmpty.classList.remove('hidden');teacherPanel.classList.remove('minimized');classroom.classList.remove('teacher-min');toggle.textContent='Hide';toggle.setAttribute('aria-expanded','true');setLearningStatus('Answer ready');}
 
 async function handleImage(file,source='upload'){
   if(!file)return;

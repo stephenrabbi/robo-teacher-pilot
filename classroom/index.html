@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Robo-Teacher Classroom</title>
-  <link rel="stylesheet" href="/classroom/styles.css?v=20260908-coordinate1" />
+  <link rel="stylesheet" href="/classroom/styles.css?v=20260908-media1" />
 </head>
 <body>
   <main class="app-shell">
@@ -85,6 +85,7 @@
             <button id="closeUnderstanding" type="button">Return to lesson</button>
           </section>
           <section id="visualArea" class="visual-area hidden" aria-labelledby="visualTitle"><span class="practice-kicker">VISUAL TEACHING MODE</span><h3 id="visualTitle"></h3><div id="visualGraphic" class="visual-graphic"></div><p id="visualCaption"></p><button id="closeVisual" type="button">Return to explanation</button></section>
+          <section id="mediaArea" class="media-area hidden" aria-labelledby="mediaTitle"><span class="practice-kicker">WATCH AND EXPLORE</span><h3 id="mediaTitle"></h3><iframe id="mediaFrame" class="hidden" title="Interactive Maths example" loading="lazy" allowfullscreen></iframe><div id="mediaReplay" class="media-replay hidden"></div><p id="mediaSource"></p><button id="closeMedia" type="button">Return to explanation</button></section>
           <div id="whiteboardArea" class="whiteboard-area hidden">
             <div class="whiteboard-toolbar" aria-label="Whiteboard drawing tools">
               <button id="penTool" type="button" class="active">Pen</button>
@@ -156,11 +157,11 @@
           <button type="submit" class="send">Send</button>
         </form>
         <nav class="class-tools" aria-label="Classroom tools">
-          <button id="chatButton" type="button" data-mode="chat" class="active" aria-current="page">Chat</button><button id="practiceButton" type="button" data-mode="practice">Practice</button><button id="progressButton" type="button" data-mode="progress">Progress</button><button id="teacherDashboardButton" type="button" data-mode="teacher">Teacher</button><button id="cameraButton" type="button">Camera</button><button id="simplifyButton" type="button">Explain Simpler</button><button id="visualButton" type="button">Show Visual</button><button id="understandingButton" type="button">Check Understanding</button><button id="whiteboardButton" type="button" data-mode="whiteboard">Whiteboard</button><button id="languageButton" type="button">Language</button>
+          <button id="chatButton" type="button" data-mode="chat" class="active" aria-current="page">Chat</button><button id="practiceButton" type="button" data-mode="practice">Practice</button><button id="progressButton" type="button" data-mode="progress">Progress</button><button id="teacherDashboardButton" type="button" data-mode="teacher">Teacher</button><button id="cameraButton" type="button">Camera</button><button id="simplifyButton" type="button">Explain Simpler</button><button id="visualButton" type="button">Show Visual</button><button id="mediaButton" type="button">Watch Example</button><button id="understandingButton" type="button">Check Understanding</button><button id="whiteboardButton" type="button" data-mode="whiteboard">Whiteboard</button><button id="languageButton" type="button">Language</button>
         </nav>
       </section>
     </section>
   </main>
-  <script src="/classroom/app.js?v=20260908-coordinate1"></script>
+  <script src="/classroom/app.js?v=20260908-media1"></script>
 </body>
 </html>
