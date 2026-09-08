@@ -31,7 +31,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260908-mathvisual3' in html
+    assert '20260908-coordinate1' in html
     assert 'id="learnerNickname"' in html
     assert 'id="learnerClass"' in html
     assert "learnerNickname.value=''" in script
@@ -47,7 +47,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert "localStorage.setItem('roboTeacherQaChecklist'" in script
     assert 'const resultCopy=' in script
     assert 'labels.yourAnswer' in script
-    assert '20260908-mathvisual3' in html
+    assert '20260908-coordinate1' in html
     assert 'downloadTeacherDashboardReport' in script
     assert 'id="practiceClass"' in html
     assert 'id="startDiagnostic"' in html
@@ -999,6 +999,14 @@ def test_visual_generator_normalizes_common_model_variations():
 def test_coordinate_renderer_accepts_parenthesized_points():
     script=(PROJECT_ROOT/'classroom'/'app.js').read_text()
     assert "\\(?\\s*(-?\\d+" in script and "\\)?\\s*$/" in script
+
+
+def test_coordinate_visual_is_deterministic_and_uses_no_model_request():
+    with patch.object(tutor,'_get_client') as client_factory:
+        result=tutor.generate_visual_aid('Plot the points (1,2), (2,4), and (3,6).','English','JSS2')
+    assert result['kind']=='coordinate'
+    assert [item['label'] for item in result['items']]==['1,2','2,4','3,6']
+    client_factory.assert_not_called()
 
 
 if __name__ == '__main__':

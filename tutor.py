@@ -628,6 +628,12 @@ def generate_understanding_check(text: str, response_language: str, class_level:
 
 def generate_visual_aid(text: str, response_language: str, class_level: str = "JSS2") -> dict:
     """Describe a safe, lightweight visual that the browser can render."""
+    coordinate_matches = re.findall(r"\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)", text)
+    if len(coordinate_matches) >= 2:
+        labels = {"English": ("Coordinate plot", "Points taken directly from the lesson."), "Yoruba": ("Àwòrán kọ́ọ̀dínéètì", "Àwọn ojúami láti inú ẹ̀kọ́ náà."), "Igbo": ("Eserese koordineti", "Isi ihe ndị sitere n’ihe ọmụmụ ahụ."), "Hausa": ("Jadawalin daidaitawa", "Maki daga darasin kai tsaye.")}
+        title, caption = labels.get(response_language, labels["English"])
+        points = [{"label": f"{x},{y}", "value": index + 1} for index, (x, y) in enumerate(coordinate_matches[:8])]
+        return {"title": title, "kind": "coordinate", "items": points, "caption": caption}
     language_instruction = f"Use simple {response_language} suitable for {class_level}." if response_language != "English" else f"Use simple English suitable for {class_level}."
     prompt = (
         f"{_class_instruction(class_level)}\n{language_instruction}\n\n"
