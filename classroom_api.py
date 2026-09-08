@@ -32,6 +32,7 @@ from tutor import (
     get_tutor_audio_reply,
     get_tutor_image_reply,
     get_tutor_reply,
+    generate_understanding_check,
     stream_stable_tutor_speech,
     stream_tutor_speech,
     simplify_tutor_text,
@@ -45,6 +46,7 @@ _RATE_MAX_REQUESTS = 12
 _SESSION_KEY = os.getenv("CLASSROOM_SESSION_SECRET", "").encode() or secrets.token_bytes(32)
 _request_times: dict[str, deque] = defaultdict(deque)
 _classroom_profiles: dict[str, dict[str, str]] = {}
+_understanding_checks: dict[str, dict] = {}
 SupportedLanguage = Literal["English", "Yoruba", "Igbo", "Hausa"]
 
 
@@ -100,6 +102,12 @@ class ClassroomTranslation(BaseModel):
     session_token: str = Field(min_length=20, max_length=300)
     text: str = Field(min_length=1, max_length=6000)
     language: SupportedLanguage
+
+
+class UnderstandingAnswer(BaseModel):
+    session_token: str = Field(min_length=20, max_length=300)
+    check_id: str = Field(min_length=16, max_length=64, pattern=r"^[a-f0-9]+$")
+    choice_index: Literal[0, 1, 2]
 
 
 class DiagnosticStart(BaseModel):
@@ -365,6 +373,30 @@ def classroom_simplify(request: ClassroomTranslation):
     except Exception as exc:
         raise HTTPException(status_code=503, detail="I could not simplify this explanation right now") from exc
     return {"explanation": explanation, "language": request.language}
+
+
+@router.post("/understanding/start")
+def classroom_understanding_start(request: ClassroomTranslation):
+    student_id = _verify_session(request.session_token)
+    _enforce_rate_limit(student_id, "understanding", 20)
+    class_level = _classroom_profiles.get(student_id, {}).get("class_level", "JSS2")
+    try:
+        check = generate_understanding_check(request.text, request.language, class_level)
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="I could not prepare a check right now") from exc
+    check_id = secrets.token_hex(16)
+    _understanding_checks[check_id] = {**check, "student_id": student_id, "created": time.time()}
+    return {"check_id": check_id, "question": check["question"], "choices": check["choices"], "language": request.language}
+
+
+@router.post("/understanding/answer")
+def classroom_understanding_answer(request: UnderstandingAnswer):
+    student_id = _verify_session(request.session_token)
+    check = _understanding_checks.get(request.check_id)
+    if not check or check["student_id"] != student_id or time.time() - check["created"] > _SESSION_TTL_SECONDS:
+        raise HTTPException(status_code=404, detail="This check has expired. Please start another one")
+    correct = request.choice_index == check["correct_index"]
+    return {"correct": correct, "correct_index": check["correct_index"], "feedback": check["feedback"]}
 
 
 @router.post("/image")

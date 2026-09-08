@@ -31,7 +31,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260908-simpler1' in html
+    assert '20260908-understanding1' in html
     assert 'id="learnerNickname"' in html
     assert 'id="learnerClass"' in html
     assert "learnerNickname.value=''" in script
@@ -47,7 +47,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert "localStorage.setItem('roboTeacherQaChecklist'" in script
     assert 'const resultCopy=' in script
     assert 'labels.yourAnswer' in script
-    assert '20260908-simpler1' in html
+    assert '20260908-understanding1' in html
     assert 'downloadTeacherDashboardReport' in script
     assert 'id="practiceClass"' in html
     assert 'id="startDiagnostic"' in html
@@ -918,6 +918,42 @@ def test_simplify_prompt_preserves_maths_and_adds_one_example():
     prompt = generate_content.call_args.kwargs['contents']
     assert 'one familiar everyday example' in prompt
     assert 'Preserve every equation, value, operation, unit and final answer exactly' in prompt
+
+
+def test_check_my_understanding_ui_is_tied_to_current_lesson():
+    html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
+    script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
+    assert 'id="understandingButton"' in html
+    assert 'id="understandingArea"' in html
+    assert "fetch('/api/classroom/understanding/start'" in script
+    assert "fetch('/api/classroom/understanding/answer'" in script
+    assert "choice_index:Number(selected.value)" in script
+
+
+def test_understanding_check_is_private_to_the_learner_and_marks_locally():
+    first = client.post('/api/classroom/session').json()
+    second = client.post('/api/classroom/session').json()
+    generated = {'question': 'What is 2 + 2?', 'choices': ['3', '4', '5'], 'correct_index': 1, 'feedback': 'Add the two values to get 4.'}
+    with patch.object(classroom_api, 'generate_understanding_check', return_value=generated):
+        started = client.post('/api/classroom/understanding/start', json={'session_token': first['session_token'], 'text': 'Two plus two equals four.', 'language': 'English'})
+    assert started.status_code == 200
+    body = started.json();assert 'correct_index' not in body
+    marked = client.post('/api/classroom/understanding/answer', json={'session_token': first['session_token'], 'check_id': body['check_id'], 'choice_index': 1})
+    assert marked.json() == {'correct': True, 'correct_index': 1, 'feedback': generated['feedback']}
+    blocked = client.post('/api/classroom/understanding/answer', json={'session_token': second['session_token'], 'check_id': body['check_id'], 'choice_index': 1})
+    assert blocked.status_code == 404
+
+
+def test_understanding_generator_requires_three_valid_choices():
+    payload = {'question': 'What comes next?', 'choices': ['2', '3', '4'], 'correct_index': 2, 'feedback': 'Count forward once.'}
+    fake_response = type('Response', (), {'text': __import__('json').dumps(payload), 'candidates': []})()
+    generate_content = Mock(return_value=fake_response)
+    fake_client = type('Client', (), {'models': type('Models', (), {'generate_content': generate_content})()})()
+    with patch.object(tutor, '_get_client', return_value=fake_client):
+        assert tutor.generate_understanding_check('The sequence is 2, 3, 4.', 'English')['correct_index'] == 2
+    prompt = generate_content.call_args.kwargs['contents']
+    assert 'exactly one short multiple-choice question' in prompt
+    assert 'Do not introduce a topic not taught' in prompt
 
 
 if __name__ == '__main__':

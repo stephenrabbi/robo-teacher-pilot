@@ -26,6 +26,13 @@ const imageUpload=document.getElementById('imageUpload');
 const cameraCapture=document.getElementById('cameraCapture');
 const micButton=document.getElementById('micButton');
 const simplifyButton=document.getElementById('simplifyButton');
+const understandingButton=document.getElementById('understandingButton');
+const understandingArea=document.getElementById('understandingArea');
+const understandingQuestion=document.getElementById('understandingQuestion');
+const understandingForm=document.getElementById('understandingForm');
+const understandingChoices=document.getElementById('understandingChoices');
+const understandingFeedback=document.getElementById('understandingFeedback');
+const closeUnderstandingButton=document.getElementById('closeUnderstanding');
 const teachingCanvas=document.getElementById('canvas');
 const canvasEmpty=document.getElementById('canvasEmpty');
 const canvasWork=document.getElementById('canvasWork');
@@ -131,6 +138,7 @@ let teacherStreamComplete=false;
 let teacherSpeechPaused=false;
 let languageSwitchRequest=0;
 let teacherAudioKeepAlive=null;
+let understandingCheckId=null;
 let drawing=false;
 let drawingTool='pen';
 let boardHasInk=false;
@@ -465,6 +473,9 @@ imageUpload.addEventListener('change',()=>handleImage(imageUpload.files[0]));
 cameraCapture.addEventListener('change',()=>handleImage(cameraCapture.files[0]));
 micButton.addEventListener('click',toggleRecording);
 simplifyButton.addEventListener('click',simplifyCurrentAnswer);
+understandingButton.addEventListener('click',startUnderstandingCheck);
+understandingForm.addEventListener('submit',submitUnderstandingAnswer);
+closeUnderstandingButton.addEventListener('click',closeUnderstandingCheck);
 whiteboardButton.addEventListener('click',openWhiteboard);
 closeBoardButton.addEventListener('click',closeWhiteboard);
 penTool.addEventListener('click',()=>selectDrawingTool('pen'));
@@ -927,6 +938,53 @@ async function simplifyCurrentAnswer(){
     thinking.textContent=error.message&&!['simplify','session'].includes(error.message)?error.message:'I could not simplify that explanation right now. Please try again.';
     setLearningStatus('Simpler explanation needs another try','attention');
   }finally{simplifyButton.disabled=false;simplifyButton.textContent='Explain Simpler';}
+}
+
+async function startUnderstandingCheck(){
+  const currentAnswer=canvasAnswer.textContent.trim();
+  if(!currentAnswer){addMessage('Ask a Maths question first, then I can check your understanding.','teacher');return;}
+  stopTeacherAudio();understandingButton.disabled=true;understandingButton.textContent='Preparing…';
+  setLearningStatus('Preparing one understanding question','thinking');
+  try{
+    const token=await ensureSession();
+    const response=await fetch('/api/classroom/understanding/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:currentAnswer,session_token:token,language:language.value})});
+    const data=await response.json();
+    if(response.status===401){sessionToken=null;throw new Error('session')}
+    if(!response.ok)throw new Error(data.detail||'understanding');
+    understandingCheckId=data.check_id;understandingQuestion.textContent=data.question;understandingChoices.replaceChildren();
+    data.choices.forEach((choice,index)=>{
+      const label=document.createElement('label');const input=document.createElement('input');const span=document.createElement('span');
+      input.type='radio';input.name='understandingChoice';input.value=String(index);input.required=true;span.textContent=choice;label.append(input,span);understandingChoices.appendChild(label);
+    });
+    understandingFeedback.className='practice-feedback hidden';understandingFeedback.textContent='';
+    canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');understandingArea.classList.remove('hidden');
+    setLearningStatus('Choose the best answer');
+  }catch(error){
+    addMessage(error.message&&!['understanding','session'].includes(error.message)?error.message:'I could not prepare the question right now. Please try again.','teacher');
+    setLearningStatus('Understanding check needs another try','attention');
+  }finally{understandingButton.disabled=false;understandingButton.textContent='Check Understanding';}
+}
+
+async function submitUnderstandingAnswer(event){
+  event.preventDefault();const selected=understandingForm.querySelector('input[name="understandingChoice"]:checked');
+  if(!selected||!understandingCheckId)return;
+  const submitButton=understandingForm.querySelector('button[type="submit"]');submitButton.disabled=true;submitButton.textContent='Checking…';
+  try{
+    const token=await ensureSession();
+    const response=await fetch('/api/classroom/understanding/answer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_token:token,check_id:understandingCheckId,choice_index:Number(selected.value)})});
+    const data=await response.json();if(!response.ok)throw new Error(data.detail||'answer');
+    understandingChoices.querySelectorAll('label').forEach((label,index)=>{label.classList.toggle('correct-choice',index===data.correct_index);label.querySelector('input').disabled=true});
+    understandingFeedback.textContent=`${data.correct?'Correct!':'Not quite.'} ${data.feedback}`;
+    understandingFeedback.className=`practice-feedback ${data.correct?'correct':'incorrect'}`;
+    setLearningStatus(data.correct?'You understood it':'Review the explanation and try another check',data.correct?'success':'attention');
+    submitButton.textContent=data.correct?'Correct':'Checked';
+  }catch(error){understandingFeedback.textContent=error.message||'I could not check that answer. Please try again.';understandingFeedback.className='practice-feedback incorrect';submitButton.disabled=false;submitButton.textContent='Check my answer';}
+}
+
+function closeUnderstandingCheck(){
+  understandingArea.classList.add('hidden');understandingCheckId=null;
+  if(canvasAnswer.textContent.trim())canvasWork.classList.remove('hidden');else canvasEmpty.classList.remove('hidden');
+  setLearningStatus('Answer ready');
 }
 
 async function handleImage(file,source='upload'){

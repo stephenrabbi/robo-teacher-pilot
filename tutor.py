@@ -7,6 +7,7 @@ preserving deterministic arithmetic and explicit escalation guardrails.
 import ast
 import base64
 import io
+import json
 import logging
 import operator
 import os
@@ -581,6 +582,48 @@ def simplify_tutor_text(text: str, response_language: str, class_level: str = "J
         ),
     )
     return _clean_model_reply(_extract_text(response))
+
+
+def generate_understanding_check(text: str, response_language: str, class_level: str = "JSS2") -> dict:
+    """Create one three-option check based only on the visible lesson."""
+    if not text.strip():
+        raise ValueError("Text cannot be empty")
+    language_instruction = (
+        f"Use simple, modern English suitable for a Nigerian {class_level} learner."
+        if response_language == "English"
+        else _language_instruction(response_language, class_level)
+    )
+    prompt = (
+        f"{_class_instruction(class_level)}\n{language_instruction}\n\n"
+        "Create exactly one short multiple-choice question that checks whether the learner understood the Maths explanation below. "
+        "Use three plausible answer choices and exactly one correct choice. Do not introduce a topic not taught in the explanation. "
+        "Return valid JSON only with keys question, choices, correct_index and feedback. choices must contain exactly three strings; "
+        "correct_index must be 0, 1 or 2; feedback must briefly explain the correct method without merely repeating the choice.\n\n"
+        f"LESSON:\n{text.strip()}"
+    )
+    response = _get_client().models.generate_content(
+        model=GEMINI_MODEL,
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            system_instruction=SYSTEM_PROMPT,
+            max_output_tokens=450,
+            thinking_config=types.ThinkingConfig(thinking_budget=0),
+            response_mime_type="application/json",
+        ),
+    )
+    raw = _extract_text(response).strip()
+    if raw.startswith("```"):
+        raw = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw, flags=re.IGNORECASE)
+    data = json.loads(raw)
+    choices = data.get("choices")
+    correct_index = data.get("correct_index")
+    if not isinstance(data.get("question"), str) or not isinstance(choices, list) or len(choices) != 3:
+        raise ValueError("Invalid understanding check")
+    if not all(isinstance(choice, str) and choice.strip() for choice in choices) or correct_index not in (0, 1, 2):
+        raise ValueError("Invalid understanding check")
+    if not isinstance(data.get("feedback"), str) or not data["feedback"].strip():
+        raise ValueError("Invalid understanding check")
+    return {"question": data["question"].strip(), "choices": [choice.strip() for choice in choices], "correct_index": correct_index, "feedback": data["feedback"].strip()}
 
 
 def _media_reply(student_id: str, media_bytes: bytes, mime_type: str, prompt: str, profile_message: str, max_tokens: int = 700) -> tuple[str, float]:
