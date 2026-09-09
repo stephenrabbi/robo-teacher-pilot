@@ -77,3 +77,6 @@ body{background:radial-gradient(circle at 10% 4%,#fff2c9 0,transparent 24%),radi
 @media(max-width:900px){.teacher-avatar-stage{height:74px}}
 @media(max-width:600px){.teacher-avatar-stage{height:72px}.founder-voice{width:100%;margin-top:8px}}
 @media(prefers-reduced-motion:reduce){.avatar-stage{transform:none!important}.avatar-speaking-frame{opacity:0!important}}
+
+/* Keep voice controls in the toolbar so they never cover the avatar's face. */
+@media(max-width:600px){.teacher-panel.speaking .read-answer,.teacher-panel.paused .read-answer{position:static;right:auto;bottom:auto;z-index:auto;min-width:88px;margin:0;box-shadow:none}.teacher-toolbar{position:relative;z-index:3}.teacher-actions{flex-wrap:nowrap}}
