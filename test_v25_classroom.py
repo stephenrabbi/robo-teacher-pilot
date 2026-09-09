@@ -31,7 +31,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260909-voiceretry1' in html
+    assert '20260909-director1' in html
     assert 'id="learnerNickname"' in html
     assert 'id="learnerClass"' in html
     assert "learnerNickname.value=''" in script
@@ -47,7 +47,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert "localStorage.setItem('roboTeacherQaChecklist'" in script
     assert 'const resultCopy=' in script
     assert 'labels.yourAnswer' in script
-    assert '20260909-voiceretry1' in html
+    assert '20260909-director1' in html
     assert 'downloadTeacherDashboardReport' in script
     assert 'id="practiceClass"' in html
     assert 'id="startDiagnostic"' in html
@@ -1103,6 +1103,19 @@ def test_head_only_rig_and_voice_question_canvas_avatar():
     assert "canvasWork.classList.toggle('voice-avatar-visible',visible)" in script
     assert '.canvas-work.voice-avatar-visible{padding-right:140px' in styles
     assert '.avatar-head-motion{' in styles
+
+
+def test_interactive_lesson_director_supports_steps_and_interruption_recovery():
+    html = Path('classroom/index.html').read_text()
+    script = Path('classroom/app.js').read_text()
+    styles = Path('classroom/styles.css').read_text()
+    for control in ('lessonDirector', 'previousLessonStep', 'nextLessonStep', 'replayLessonStep', 'returnToLesson', 'endLesson'):
+        assert f'id="{control}"' in html
+    assert 'function splitLessonSteps(text)' in script
+    assert 'function renderCurrentLessonStep()' in script
+    assert 'lessonHistory.push(interruptedLesson)' in script
+    assert "void speakText(currentLesson.steps[currentLesson.index])" in script
+    assert '.lesson-director{' in styles
     assert "rig.style.setProperty('--head-x'" not in script.split('function startAvatarMotion(rig)', 1)[1].split('async function startAudioKeepAlive', 1)[0]
 
 

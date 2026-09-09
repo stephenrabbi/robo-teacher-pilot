@@ -54,6 +54,14 @@ const canvasWork=document.getElementById('canvasWork');
 const problemPreview=document.getElementById('problemPreview');
 const canvasStatus=document.getElementById('canvasStatus');
 const canvasAnswer=document.getElementById('canvasAnswer');
+const lessonDirector=document.getElementById('lessonDirector');
+const lessonStepLabel=document.getElementById('lessonStepLabel');
+const lessonStepTrack=document.getElementById('lessonStepTrack');
+const previousLessonStep=document.getElementById('previousLessonStep');
+const nextLessonStep=document.getElementById('nextLessonStep');
+const replayLessonStep=document.getElementById('replayLessonStep');
+const returnToLesson=document.getElementById('returnToLesson');
+const endLesson=document.getElementById('endLesson');
 const canvasVoiceAvatar=document.getElementById('canvasVoiceAvatar');
 const canvasVoiceAvatarStatus=canvasVoiceAvatar.querySelector('span');
 const whiteboardButton=document.getElementById('whiteboardButton');
@@ -162,6 +170,8 @@ let avatarMotionFrame=null;
 let activeAvatarRig=null;
 let avatarEnergy=0;
 let showVoiceAnswerAvatar=false;
+let currentLesson=null;
+const lessonHistory=[];
 let languageSwitchRequest=0;
 let teacherAudioKeepAlive=null;
 let understandingCheckId=null;
@@ -576,24 +586,67 @@ function showCanvasAnswer(answer,status='Worked solution',preserveAudioUnlock=fa
   stopTeacherAudio(preserveAudioUnlock);
   dismissLessonOverlays();restoreTeacherPanel();
   whiteboardArea.classList.add('hidden');practiceArea.classList.add('hidden');progressArea.classList.add('hidden');canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');
-  canvasStatus.textContent=status;renderLesson(canvasAnswer,answer);
+  canvasStatus.textContent=status;startLessonDirector(answer);
   readAnswerButton.disabled=!answer.trim();setActiveMode(chatButton);setLearningStatus('Answer ready');
 }
 
-function renderLesson(container,text){
+function splitLessonSteps(text){
+  const blocks=text.trim().split(/\n\s*\n|(?=\bStep\s+\d+\s*[:.-])/i).map(item=>item.trim()).filter(Boolean);
+  if(blocks.length>1)return blocks;
+  const lines=text.trim().split(/\n+/).map(item=>item.trim()).filter(Boolean);
+  return lines.length>1?lines:[text.trim()];
+}
+
+function renderLessonBlock(container,text){
   container.replaceChildren();
-  text.split(/\n{2,}/).forEach(block=>{
-    const paragraph=document.createElement('p');
-    block.split('\n').forEach((line,lineIndex)=>{
-      if(lineIndex)paragraph.appendChild(document.createElement('br'));
-      line.split('**').forEach((part,index)=>{
-        const node=index%2?document.createElement('strong'):document.createTextNode(part);
-        if(index%2)node.textContent=part;
-        paragraph.appendChild(node);
-      });
+  const paragraph=document.createElement('p');
+  text.split('\n').forEach((line,lineIndex)=>{
+    if(lineIndex)paragraph.appendChild(document.createElement('br'));
+    line.split('**').forEach((part,index)=>{
+      const node=index%2?document.createElement('strong'):document.createTextNode(part);
+      if(index%2)node.textContent=part;
+      paragraph.appendChild(node);
     });
-    container.appendChild(paragraph);
   });
+  container.appendChild(paragraph);
+}
+
+function startLessonDirector(text,index=0){
+  const steps=splitLessonSteps(text);
+  currentLesson={text,steps,index:Math.max(0,Math.min(index,steps.length-1))};
+  lessonDirector.classList.remove('hidden');
+  renderCurrentLessonStep();
+}
+
+function renderCurrentLessonStep(){
+  if(!currentLesson)return;
+  const {steps,index}=currentLesson;
+  renderLessonBlock(canvasAnswer,steps[index]);
+  lessonStepLabel.textContent=`Step ${index+1} of ${steps.length}`;
+  lessonStepTrack.replaceChildren();
+  steps.forEach((_step,stepIndex)=>{const marker=document.createElement('i');marker.classList.toggle('active',stepIndex===index);marker.classList.toggle('complete',stepIndex<index);lessonStepTrack.appendChild(marker)});
+  previousLessonStep.disabled=index===0;
+  nextLessonStep.disabled=index===steps.length-1;
+  nextLessonStep.textContent=index===steps.length-1?'Lesson complete':'Next →';
+  returnToLesson.classList.toggle('hidden',!lessonHistory.length);
+  readAnswerButton.disabled=!steps[index].trim();
+  canvasAnswer.scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+
+function moveLessonStep(direction){
+  if(!currentLesson)return;stopTeacherAudio();
+  currentLesson.index=Math.max(0,Math.min(currentLesson.steps.length-1,currentLesson.index+direction));
+  renderCurrentLessonStep();setLearningStatus(`Lesson step ${currentLesson.index+1} ready`);
+}
+
+previousLessonStep.addEventListener('click',()=>moveLessonStep(-1));
+nextLessonStep.addEventListener('click',()=>moveLessonStep(1));
+replayLessonStep.addEventListener('click',()=>{if(currentLesson)void speakText(currentLesson.steps[currentLesson.index])});
+returnToLesson.addEventListener('click',()=>{if(!lessonHistory.length)return;stopTeacherAudio();const lesson=lessonHistory.pop();startLessonDirector(lesson.text,lesson.index);canvasStatus.textContent='Previous lesson resumed';setLearningStatus('Returned to your lesson')});
+endLesson.addEventListener('click',()=>{stopTeacherAudio();currentLesson=null;lessonHistory.length=0;lessonDirector.classList.add('hidden');canvasWork.classList.add('hidden');canvasEmpty.classList.remove('hidden');canvasAnswer.replaceChildren();readAnswerButton.disabled=true;setLearningStatus('Lesson ended')});
+
+function renderLesson(container,text){
+  renderLessonBlock(container,text);
 }
 
 uploadButton.addEventListener('click',()=>imageUpload.click());
@@ -640,7 +693,7 @@ language.addEventListener('change',async()=>{
       if(switchId!==languageSwitchRequest)return;
       if(response.status===401){sessionToken=null;throw new Error('session')}
       if(!response.ok)throw new Error(data.detail||'translation');
-      renderLesson(canvasAnswer,data.translation);readAnswerButton.disabled=false;
+      startLessonDirector(data.translation,currentLesson?.index||0);readAnswerButton.disabled=false;
       canvasStatus.textContent=`Explanation switched to ${language.options[language.selectedIndex].text}`;
       setLearningStatus('Explanation ready');
       if(wasReading)void speakText(data.translation,true);
@@ -1200,6 +1253,7 @@ async function handleImage(file,source='upload'){
 
 form.addEventListener('submit',async(e)=>{
   e.preventDefault();const text=question.value.trim();if(!text||sendButton.disabled)return;
+  const interruptedLesson=currentLesson?{text:currentLesson.text,index:currentLesson.index}:null;
   addMessage(text,'student');question.value='';sendButton.disabled=true;sendButton.textContent='Thinking…';setLearningStatus('Working through your question','thinking');
   const thinking=addMessage('Let me work through that with you…','teacher');
   try{
@@ -1208,6 +1262,7 @@ form.addEventListener('submit',async(e)=>{
     const data=await response.json();
     if(response.status===401){sessionToken=null;throw new Error('session');}
     if(!response.ok)throw new Error(data.detail||'request');
+    if(interruptedLesson)lessonHistory.push(interruptedLesson);
     canvasWork.classList.add('text-only');problemPreview.hidden=true;
     backToWhiteboard.classList.add('hidden');
     showCanvasAnswer(data.reply,'Worked solution');
