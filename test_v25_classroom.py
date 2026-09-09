@@ -31,7 +31,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260909-headrig1' in html
+    assert '20260909-headrig2' in html
     assert 'id="learnerNickname"' in html
     assert 'id="learnerClass"' in html
     assert "learnerNickname.value=''" in script
@@ -47,7 +47,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert "localStorage.setItem('roboTeacherQaChecklist'" in script
     assert 'const resultCopy=' in script
     assert 'labels.yourAnswer' in script
-    assert '20260909-headrig1' in html
+    assert '20260909-headrig2' in html
     assert 'downloadTeacherDashboardReport' in script
     assert 'id="practiceClass"' in html
     assert 'id="startDiagnostic"' in html
@@ -1099,6 +1099,7 @@ def test_head_only_rig_and_voice_question_canvas_avatar():
     assert 'teacher-head-layer' in html
     assert 'id="canvasVoiceAvatar"' in html
     assert 'void speakText(data.reply,true,true)' in script
+    assert 'displayCanvasAvatar=true' in script
     assert "canvasWork.classList.toggle('voice-avatar-visible',visible)" in script
     assert '.canvas-work.voice-avatar-visible{padding-right:140px' in styles
     assert '.avatar-head-layer{' in styles

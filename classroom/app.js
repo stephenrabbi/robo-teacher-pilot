@@ -472,7 +472,7 @@ async function playPcmStream(response,requestId){
   teacherStreamComplete=true;finishIfDone();
 }
 
-async function speakText(text,preserveAudioUnlock=false,displayCanvasAvatar=false){
+async function speakText(text,preserveAudioUnlock=false,displayCanvasAvatar=true){
   if(!text.trim())return;
   stopTeacherAudio(preserveAudioUnlock);
   setCanvasVoiceAvatar(displayCanvasAvatar);
