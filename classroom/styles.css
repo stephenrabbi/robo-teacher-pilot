@@ -70,7 +70,7 @@ body{background:radial-gradient(circle at 10% 4%,#fff2c9 0,transparent 24%),radi
 .founder-voice{min-height:48px;margin-top:20px;padding:12px 18px;border:1px solid #4774a9;border-radius:14px;background:#eef6ff;color:#123a69;font-weight:800;cursor:pointer}
 .founder-voice:disabled{opacity:.62;cursor:wait}
 .teacher-portrait{position:relative;overflow:hidden;border-radius:18px}
-.teacher-panel.speaking .teacher-avatar{animation:none;transform:none}
+.teacher-panel.speaking .teacher-avatar:not(.avatar-head-motion){animation:none;transform:none}
 .teacher-avatar-stage{height:148px}
 .teacher-panel.paused .avatar-speaking-frame{opacity:0}
 @media(max-width:600px){.teacher-panel{grid-template-columns:74px minmax(0,1fr);min-height:88px}.teacher-avatar{height:72px}}

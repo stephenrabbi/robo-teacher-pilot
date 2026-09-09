@@ -404,8 +404,9 @@ function startAvatarMotion(rig){
     const rms=Math.sqrt(energy/samples.length);const target=Math.max(0,Math.min(1,(rms-.012)*8.5));
     avatarEnergy+=(target>avatarEnergy ? .58 : .2)*(target-avatarEnergy);
     const pulse=.86+.14*Math.sin(now*.041);const mouth=Math.round(Math.max(0,Math.min(1,avatarEnergy*pulse))*120)/120;
-    const nod=Math.sin(now*.0047)*.7*avatarEnergy;
-    const turn=Math.sin(now*.0029)*.55*avatarEnergy;
+    const motion=.55+.45*avatarEnergy;
+    const nod=Math.sin(now*.0047)*1.8*motion;
+    const turn=Math.sin(now*.0029)*1.2*motion;
     rig.style.setProperty('--mouth-open',mouth.toFixed(3));
     rig.style.setProperty('--head-y',`${nod.toFixed(2)}px`);
     rig.style.setProperty('--head-turn',`${turn.toFixed(2)}deg`);
@@ -509,13 +510,13 @@ readAnswerButton.addEventListener('click',async()=>{
 
 function stopFounderSpeech(){
   founderSpeechRequest+=1;if(founderSpeechController){founderSpeechController.abort();founderSpeechController=null}
-  founderAudioSources.forEach(source=>{try{source.stop()}catch(_error){/* Already stopped. */}});founderAudioSources.clear();founderStreamComplete=false;stopAvatarMotion(founderPanel);hearFounderButton.disabled=false;hearFounderButton.textContent='Hear Stephen';
+  founderAudioSources.forEach(source=>{try{source.stop()}catch(_error){/* Already stopped. */}});founderAudioSources.clear();founderStreamComplete=false;stopAvatarMotion(founderPanel);hearFounderButton.disabled=false;hearFounderButton.textContent='Hear Herbert';
 }
 
 async function playFounderPcmStream(response,requestId){
   const context=await prepareTeacherAudio();const reader=response.body.getReader();let pending=new Uint8Array(0);let nextStart=context.currentTime+.06;let received=false;founderStreamComplete=false;
   while(requestId===founderSpeechRequest){const {done,value}=await reader.read();if(done)break;const joined=new Uint8Array(pending.length+value.length);joined.set(pending);joined.set(value,pending.length);const evenLength=joined.length-joined.length%2;pending=joined.slice(evenLength);if(!evenLength)continue;
-    if(!received){received=true;hearFounderButton.disabled=false;hearFounderButton.textContent='Stop Stephen';startAvatarMotion(founderPanel)}
+    if(!received){received=true;hearFounderButton.disabled=false;hearFounderButton.textContent='Stop Herbert';startAvatarMotion(founderPanel)}
     const samples=evenLength/2;const buffer=context.createBuffer(1,samples,24000);const channel=buffer.getChannelData(0);const view=new DataView(joined.buffer,joined.byteOffset,evenLength);for(let index=0;index<samples;index++)channel[index]=view.getInt16(index*2,true)/32768;
     const source=context.createBufferSource();source.buffer=buffer;source.connect(ensureAvatarAnalyser(context));founderAudioSources.add(source);source.addEventListener('ended',()=>{founderAudioSources.delete(source);if(requestId===founderSpeechRequest&&founderStreamComplete&&!founderAudioSources.size)stopFounderSpeech()},{once:true});const startAt=Math.max(nextStart,context.currentTime+.025);source.start(startAt);nextStart=startAt+buffer.duration;
   }
@@ -525,9 +526,9 @@ async function playFounderPcmStream(response,requestId){
 
 hearFounderButton.addEventListener('click',async()=>{
   if(founderAudioSources.size||founderPanel.classList.contains('avatar-speaking')){stopFounderSpeech();return}
-  if(learnerNickname.value.trim().length<2){onboardingError.textContent='Enter your nickname first, then tap Hear Stephen.';onboardingError.classList.remove('hidden');learnerNickname.focus();return}
-  onboardingError.classList.add('hidden');hearFounderButton.disabled=true;hearFounderButton.textContent='Preparing Stephen…';const requestId=++founderSpeechRequest;founderSpeechController=new AbortController();
-  try{await prepareTeacherAudio();const token=await ensureSession();if(requestId!==founderSpeechRequest)return;const intro=`Hello ${learnerNickname.value.trim()}. I am Stephen, the founder of Robo-Teacher. Welcome to your AI classroom. Choose your class, then tap Start Learning Now.`;const response=await fetch('/api/classroom/speech',{method:'POST',headers:{'Content-Type':'application/json','Accept':'audio/L16'},body:JSON.stringify({text:intro,session_token:token,language:'English',voice_gender:'male'}),signal:founderSpeechController.signal});if(!response.ok||!response.body)throw new Error('voice unavailable');await playFounderPcmStream(response,requestId)}catch(error){if(error.name!=='AbortError'&&requestId===founderSpeechRequest){onboardingError.textContent='Stephen’s natural voice is temporarily unavailable. Please try again later.';onboardingError.classList.remove('hidden')}stopFounderSpeech()}
+  if(learnerNickname.value.trim().length<2){onboardingError.textContent='Enter your nickname first, then tap Hear Herbert.';onboardingError.classList.remove('hidden');learnerNickname.focus();return}
+  onboardingError.classList.add('hidden');hearFounderButton.disabled=true;hearFounderButton.textContent='Preparing Herbert…';const requestId=++founderSpeechRequest;founderSpeechController=new AbortController();
+  try{await prepareTeacherAudio();const token=await ensureSession();if(requestId!==founderSpeechRequest)return;const intro=`Hello ${learnerNickname.value.trim()}. I am Herbert, the founder of Robo-Teacher. Welcome to your AI classroom. Choose your class, then tap Start Learning Now.`;const response=await fetch('/api/classroom/speech',{method:'POST',headers:{'Content-Type':'application/json','Accept':'audio/L16'},body:JSON.stringify({text:intro,session_token:token,language:'English',voice_gender:'male'}),signal:founderSpeechController.signal});if(!response.ok||!response.body)throw new Error('voice unavailable');await playFounderPcmStream(response,requestId)}catch(error){if(error.name!=='AbortError'&&requestId===founderSpeechRequest){onboardingError.textContent='Herbert’s natural voice is temporarily unavailable. Please try again later.';onboardingError.classList.remove('hidden')}stopFounderSpeech()}
 });
 
 function addMessage(text,role){
