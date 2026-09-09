@@ -31,7 +31,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260909-mobileux1' in html
+    assert '20260909-responsive1' in html
     assert 'id="learnerNickname"' in html
     assert 'id="learnerClass"' in html
     assert "learnerNickname.value=''" in script
@@ -47,7 +47,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert "localStorage.setItem('roboTeacherQaChecklist'" in script
     assert 'const resultCopy=' in script
     assert 'labels.yourAnswer' in script
-    assert '20260909-mobileux1' in html
+    assert '20260909-responsive1' in html
     assert 'downloadTeacherDashboardReport' in script
     assert 'id="practiceClass"' in html
     assert 'id="startDiagnostic"' in html
@@ -1208,9 +1208,19 @@ def test_mobile_answer_closes_keyboard_keeps_canvas_visible_and_wraps_voice_cont
     assert 'function keepTeachingCanvasVisible()' in script
     assert "if(document.activeElement===question)question.blur()" in script
     assert "teachingCanvas.scrollIntoView({block:'start',behavior:'smooth'})" in script
-    assert "window.matchMedia('(min-width: 701px)').matches&&!handsFree.enabled" in script
+    assert "window.matchMedia('(min-width: 701px)').matches&&!handsFree.enabled" not in script
     assert 'flex-wrap:wrap!important' in styles
     assert '.teacher-actions .hands-free-toggle{flex:1 1 100%' in styles
+
+
+def test_cross_device_controls_wrap_and_all_answers_keep_canvas_visible():
+    script = Path('classroom/app.js').read_text()
+    styles = Path('classroom/styles.css').read_text()
+    assert "if(!window.matchMedia('(max-width: 700px)').matches)return" not in script
+    assert "setLearningStatus('Answer ready');keepTeachingCanvasVisible()" in script
+    assert '.teacher-toolbar>strong{flex:1 1 100%}' in styles
+    assert '.composer>*{min-width:0}' in styles
+    assert '@media(min-width:601px) and (max-width:1100px)' in styles
 
 
 def test_media_endpoint_requires_a_valid_session():
