@@ -85,12 +85,12 @@ body{background:radial-gradient(circle at 10% 4%,#fff2c9 0,transparent 24%),radi
 .teacher-actions .teacher-voice-status{position:static;left:auto;bottom:auto;display:inline-flex;align-items:center;min-height:36px;white-space:nowrap;padding:6px 9px;flex:none}
 @media(max-width:600px){.teacher-actions .teacher-voice-status{min-height:32px;padding:5px 7px;font-size:9px}.teacher-actions .icon-button{min-width:auto;padding:7px 8px}.teacher-toolbar{gap:6px}.teacher-toolbar>strong{font-size:12px}}
 
-/* The portrait stays fixed; only a tightly cropped head layer receives motion. */
-.avatar-head-layer{position:absolute;inset:0;display:block;overflow:hidden;pointer-events:none;opacity:0;transform:translateY(var(--head-y)) rotate(var(--head-turn));transform-origin:50% 72%;will-change:transform}
-.avatar-speaking .avatar-head-layer{opacity:1}
-.avatar-head-layer img{position:absolute;inset:0;width:100%;height:100%;max-width:none;object-fit:cover;object-position:center top}
-.teacher-head-layer{clip-path:ellipse(46% 49% at 50% 49%)}
-.avatar-rig:not(.avatar-speaking) .avatar-head-layer{transform:none}
+/* Image-aligned head masks move without resizing the original portrait. */
+.avatar-head-motion{position:absolute;inset:0;pointer-events:none;opacity:0;will-change:transform}
+.avatar-speaking .avatar-head-motion{opacity:1;transform:translateY(var(--head-y)) rotate(var(--head-turn))}
+.avatar-speaking .avatar-head-speaking{opacity:var(--mouth-open)}
+.founder-head-motion{clip-path:ellipse(22% 20% at 52% 27%);transform-origin:52% 27%}
+.teacher-head-motion{clip-path:ellipse(45% 49% at 50% 49%);transform-origin:50% 62%}
 
 /* A voice-question answer keeps the teacher visible without covering lesson text. */
 .teaching-canvas{position:relative}
@@ -100,4 +100,4 @@ body{background:radial-gradient(circle at 10% 4%,#fff2c9 0,transparent 24%),radi
 .canvas-voice-avatar>span{display:block;padding:5px 2px 2px;font-size:12px;font-weight:800}
 .canvas-work.voice-avatar-visible{padding-right:140px;min-height:148px}
 @media(max-width:600px){.canvas-voice-avatar{right:10px;bottom:10px;width:92px}.canvas-work.voice-avatar-visible{padding-right:0;padding-bottom:116px;min-height:0}}
-@media(prefers-reduced-motion:reduce){.avatar-head-layer,.canvas-avatar-stage{transform:none!important}}
+@media(prefers-reduced-motion:reduce){.avatar-head-motion,.canvas-avatar-stage{transform:none!important}}
