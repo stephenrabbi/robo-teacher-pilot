@@ -698,6 +698,13 @@ function showCanvasAnswer(answer,status='Worked solution',preserveAudioUnlock=fa
   whiteboardArea.classList.add('hidden');practiceArea.classList.add('hidden');progressArea.classList.add('hidden');canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');
   canvasStatus.textContent=status;startLessonDirector(answer);
   readAnswerButton.disabled=!answer.trim();setActiveMode(chatButton);setLearningStatus('Answer ready');
+  keepTeachingCanvasVisible();
+}
+
+function keepTeachingCanvasVisible(){
+  if(!window.matchMedia('(max-width: 700px)').matches)return;
+  if(document.activeElement===question)question.blur();
+  setTimeout(()=>teachingCanvas.scrollIntoView({block:'start',behavior:'smooth'}),220);
 }
 
 function splitLessonSteps(text){
@@ -801,7 +808,7 @@ function renderCurrentLessonStep(){
   lessonPauseNotice.classList.toggle('hidden',!lessonInterruption);
   askLessonQuestion.textContent=lessonInterruption?'Continue this step':'Ask about this step';
   readAnswerButton.disabled=!steps[index].trim();
-  canvasAnswer.scrollIntoView({block:'nearest',behavior:'smooth'});
+  if(!window.matchMedia('(max-width: 700px)').matches)canvasAnswer.scrollIntoView({block:'nearest',behavior:'smooth'});
   scheduleLessonChoreography();
 }
 
@@ -1468,5 +1475,5 @@ form.addEventListener('submit',async(e)=>{
     thinking.textContent='I’ve placed the complete worked solution on the Teaching Canvas.';
   }catch(err){
     thinking.textContent=err.message&&err.message.includes('wait')?err.message:'Sorry, I had a small technical hiccup. Please try your question again in a moment.';
-  }finally{sendButton.disabled=false;sendButton.textContent='Send';setLearningStatus('Answer ready');question.focus();if(handsFree.enabled){handsFree.processing=false;handsFree.restartTimer=setTimeout(startHandsFreeListening,500)}}
+  }finally{sendButton.disabled=false;sendButton.textContent='Send';setLearningStatus('Answer ready');if(window.matchMedia('(min-width: 701px)').matches&&!handsFree.enabled)question.focus();else keepTeachingCanvasVisible();if(handsFree.enabled){handsFree.processing=false;handsFree.restartTimer=setTimeout(startHandsFreeListening,500)}}
 });

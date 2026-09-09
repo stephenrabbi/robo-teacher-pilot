@@ -99,6 +99,9 @@ body{background:radial-gradient(circle at 10% 4%,#fff2c9 0,transparent 24%),radi
 /* Hands-free command state remains visible beside the existing voice controls. */
 .hands-free-toggle[aria-pressed="true"]{border-color:#22b878;background:#073e31;color:#fff;box-shadow:0 0 0 3px #22b87830}.hands-free-toggle[aria-pressed="true"]::before{content:'●';margin-right:6px;color:#54e8a8}.hands-free-toggle{white-space:nowrap}@media(max-width:600px){.teacher-actions .hands-free-toggle{order:4;flex-basis:100%;width:100%}}
 
+/* Keep teacher controls inside narrow phones and preserve the Teaching Canvas after submit. */
+@media(max-width:600px){.teacher-toolbar{min-width:0;align-items:flex-start}.teacher-actions{min-width:0;max-width:100%;flex:1 1 auto;flex-wrap:wrap!important;justify-content:flex-end}.teacher-actions .teacher-voice-status{flex:1 1 auto;justify-content:center;min-width:58px}.teacher-actions .icon-button{flex:0 1 auto;max-width:100%}.teacher-actions .hands-free-toggle{flex:1 1 100%;width:auto;min-width:0;overflow:hidden;text-overflow:ellipsis}.teacher-panel{overflow:hidden}.teaching-canvas{scroll-margin-top:8px}}
+
 /* Image-aligned head masks move without resizing the original portrait. */
 .avatar-head-motion{position:absolute;inset:0;pointer-events:none;opacity:0;will-change:transform}
 .avatar-speaking .avatar-head-motion{opacity:1;transform:translateY(var(--head-y)) rotate(var(--head-turn))}
