@@ -31,7 +31,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260909-director1' in html
+    assert '20260909-interrupt1' in html
     assert 'id="learnerNickname"' in html
     assert 'id="learnerClass"' in html
     assert "learnerNickname.value=''" in script
@@ -47,7 +47,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert "localStorage.setItem('roboTeacherQaChecklist'" in script
     assert 'const resultCopy=' in script
     assert 'labels.yourAnswer' in script
-    assert '20260909-director1' in html
+    assert '20260909-interrupt1' in html
     assert 'downloadTeacherDashboardReport' in script
     assert 'id="practiceClass"' in html
     assert 'id="startDiagnostic"' in html
@@ -1116,6 +1116,18 @@ def test_interactive_lesson_director_supports_steps_and_interruption_recovery():
     assert 'lessonHistory.push(interruptedLesson)' in script
     assert "void speakText(currentLesson.steps[currentLesson.index])" in script
     assert '.lesson-director{' in styles
+
+
+def test_lesson_interruption_engine_handles_text_and_voice_detours():
+    html = Path('classroom/index.html').read_text()
+    script = Path('classroom/app.js').read_text()
+    styles = Path('classroom/styles.css').read_text()
+    assert 'id="askLessonQuestion"' in html
+    assert 'id="lessonPauseNotice"' in html
+    assert "function pauseLessonForQuestion(source='text')" in script
+    assert "if(currentLesson)pauseLessonForQuestion('voice')" in script
+    assert 'The learner paused this lesson step:' in script
+    assert '.lesson-pause-notice{' in styles
     assert "rig.style.setProperty('--head-x'" not in script.split('function startAvatarMotion(rig)', 1)[1].split('async function startAudioKeepAlive', 1)[0]
 
 

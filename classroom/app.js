@@ -60,6 +60,8 @@ const lessonStepTrack=document.getElementById('lessonStepTrack');
 const previousLessonStep=document.getElementById('previousLessonStep');
 const nextLessonStep=document.getElementById('nextLessonStep');
 const replayLessonStep=document.getElementById('replayLessonStep');
+const askLessonQuestion=document.getElementById('askLessonQuestion');
+const lessonPauseNotice=document.getElementById('lessonPauseNotice');
 const returnToLesson=document.getElementById('returnToLesson');
 const endLesson=document.getElementById('endLesson');
 const canvasVoiceAvatar=document.getElementById('canvasVoiceAvatar');
@@ -172,6 +174,7 @@ let avatarEnergy=0;
 let showVoiceAnswerAvatar=false;
 let currentLesson=null;
 const lessonHistory=[];
+let lessonInterruption=null;
 let languageSwitchRequest=0;
 let teacherAudioKeepAlive=null;
 let understandingCheckId=null;
@@ -629,12 +632,14 @@ function renderCurrentLessonStep(){
   nextLessonStep.disabled=index===steps.length-1;
   nextLessonStep.textContent=index===steps.length-1?'Lesson complete':'Next →';
   returnToLesson.classList.toggle('hidden',!lessonHistory.length);
+  lessonPauseNotice.classList.toggle('hidden',!lessonInterruption);
+  askLessonQuestion.textContent=lessonInterruption?'Continue this step':'Ask about this step';
   readAnswerButton.disabled=!steps[index].trim();
   canvasAnswer.scrollIntoView({block:'nearest',behavior:'smooth'});
 }
 
 function moveLessonStep(direction){
-  if(!currentLesson)return;stopTeacherAudio();
+  if(!currentLesson)return;stopTeacherAudio();lessonInterruption=null;
   currentLesson.index=Math.max(0,Math.min(currentLesson.steps.length-1,currentLesson.index+direction));
   renderCurrentLessonStep();setLearningStatus(`Lesson step ${currentLesson.index+1} ready`);
 }
@@ -642,8 +647,20 @@ function moveLessonStep(direction){
 previousLessonStep.addEventListener('click',()=>moveLessonStep(-1));
 nextLessonStep.addEventListener('click',()=>moveLessonStep(1));
 replayLessonStep.addEventListener('click',()=>{if(currentLesson)void speakText(currentLesson.steps[currentLesson.index])});
-returnToLesson.addEventListener('click',()=>{if(!lessonHistory.length)return;stopTeacherAudio();const lesson=lessonHistory.pop();startLessonDirector(lesson.text,lesson.index);canvasStatus.textContent='Previous lesson resumed';setLearningStatus('Returned to your lesson')});
-endLesson.addEventListener('click',()=>{stopTeacherAudio();currentLesson=null;lessonHistory.length=0;lessonDirector.classList.add('hidden');canvasWork.classList.add('hidden');canvasEmpty.classList.remove('hidden');canvasAnswer.replaceChildren();readAnswerButton.disabled=true;setLearningStatus('Lesson ended')});
+function pauseLessonForQuestion(source='text'){
+  if(!currentLesson)return;
+  if(!lessonInterruption)lessonInterruption={text:currentLesson.text,index:currentLesson.index};
+  stopTeacherAudio();
+  lessonPauseNotice.textContent=`Lesson paused at Step ${currentLesson.index+1}. Ask your question ${source==='voice'?'using the microphone':'below'}.`;
+  lessonPauseNotice.classList.remove('hidden');askLessonQuestion.textContent='Continue this step';lessonDirector.classList.add('lesson-paused');
+  setLearningStatus('Lesson paused for your question','paused');
+}
+askLessonQuestion.addEventListener('click',()=>{
+  if(lessonInterruption){lessonInterruption=null;lessonDirector.classList.remove('lesson-paused');renderCurrentLessonStep();setLearningStatus(`Lesson step ${currentLesson.index+1} resumed`);return}
+  pauseLessonForQuestion();question.placeholder='Ask a question about this step…';question.focus();
+});
+returnToLesson.addEventListener('click',()=>{if(!lessonHistory.length)return;stopTeacherAudio();lessonInterruption=null;lessonDirector.classList.remove('lesson-paused');const lesson=lessonHistory.pop();startLessonDirector(lesson.text,lesson.index);canvasStatus.textContent='Previous lesson resumed';setLearningStatus('Returned to your lesson')});
+endLesson.addEventListener('click',()=>{stopTeacherAudio();currentLesson=null;lessonInterruption=null;lessonHistory.length=0;lessonDirector.classList.add('hidden');lessonDirector.classList.remove('lesson-paused');canvasWork.classList.add('hidden');canvasEmpty.classList.remove('hidden');canvasAnswer.replaceChildren();readAnswerButton.disabled=true;question.placeholder='Ask your teacher a question…';setLearningStatus('Lesson ended')});
 
 function renderLesson(container,text){
   renderLessonBlock(container,text);
@@ -1053,6 +1070,7 @@ async function toggleRecording(){
     addMessage('Voice recording is not supported in this browser. Please type your question instead.','teacher');return;
   }
   try{
+    if(currentLesson)pauseLessonForQuestion('voice');
     // A learner starting a new question always interrupts the current answer.
     stopTeacherAudio();
     // Unlock audio during the learner's click so the later automatic spoken
@@ -1090,6 +1108,7 @@ async function finishRecording(){
     const data=await response.json();
     if(response.status===401){sessionToken=null;throw new Error('session');}
     if(!response.ok)throw new Error(data.detail||'request');
+    if(lessonInterruption){lessonHistory.push(lessonInterruption);lessonInterruption=null;lessonDirector.classList.remove('lesson-paused')}
     canvasWork.classList.add('text-only');problemPreview.hidden=true;
     backToWhiteboard.classList.add('hidden');
     showCanvasAnswer(data.reply,'Voice question explained',true);
@@ -1253,16 +1272,17 @@ async function handleImage(file,source='upload'){
 
 form.addEventListener('submit',async(e)=>{
   e.preventDefault();const text=question.value.trim();if(!text||sendButton.disabled)return;
-  const interruptedLesson=currentLesson?{text:currentLesson.text,index:currentLesson.index}:null;
+  const interruptedLesson=lessonInterruption||(currentLesson?{text:currentLesson.text,index:currentLesson.index}:null);
+  const requestText=interruptedLesson?`The learner paused this lesson step: "${currentLesson.steps[currentLesson.index]}"\n\nTheir question is: ${text}`:text;
   addMessage(text,'student');question.value='';sendButton.disabled=true;sendButton.textContent='Thinking…';setLearningStatus('Working through your question','thinking');
   const thinking=addMessage('Let me work through that with you…','teacher');
   try{
     const token=await ensureSession();
-    const response=await fetch('/api/classroom/chat',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({message:text,session_token:token,language:language.value})});
+    const response=await fetch('/api/classroom/chat',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({message:requestText,session_token:token,language:language.value})});
     const data=await response.json();
     if(response.status===401){sessionToken=null;throw new Error('session');}
     if(!response.ok)throw new Error(data.detail||'request');
-    if(interruptedLesson)lessonHistory.push(interruptedLesson);
+    if(interruptedLesson){lessonHistory.push(interruptedLesson);lessonInterruption=null;lessonDirector.classList.remove('lesson-paused')}
     canvasWork.classList.add('text-only');problemPreview.hidden=true;
     backToWhiteboard.classList.add('hidden');
     showCanvasAnswer(data.reply,'Worked solution');
