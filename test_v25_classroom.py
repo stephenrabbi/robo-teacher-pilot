@@ -31,7 +31,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260909-handsfree1' in html
+    assert '20260909-handsfree2' in html
     assert 'id="learnerNickname"' in html
     assert 'id="learnerClass"' in html
     assert "learnerNickname.value=''" in script
@@ -47,7 +47,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert "localStorage.setItem('roboTeacherQaChecklist'" in script
     assert 'const resultCopy=' in script
     assert 'labels.yourAnswer' in script
-    assert '20260909-handsfree1' in html
+    assert '20260909-handsfree2' in html
     assert 'downloadTeacherDashboardReport' in script
     assert 'id="practiceClass"' in html
     assert 'id="startDiagnostic"' in html
@@ -1195,8 +1195,10 @@ def test_hands_free_teaching_pauses_questions_and_resumes_bookmarked_step():
     assert 'function handleHandsFreePhrase(rawPhrase)' in script
     assert "pauseLessonForQuestion('voice')" in script
     assert 'form.requestSubmit()' in script
-    assert 'const step=currentLesson?.steps[currentLesson.index]' in script
+    assert 'function resumeBookmarkedLessonByVoice()' in script
+    assert 'const lesson=lessonHistory.pop()' in script
     assert 'void speakText(step,true,true)' in script
+    assert "if(handsFree.enabled)void speakText(data.reply,true,true)" in script
     assert '.hands-free-toggle[aria-pressed="true"]' in styles
 
 

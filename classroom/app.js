@@ -335,6 +335,15 @@ function startHandsFreeListening(){
 
 function stopHandsFreeListening(){clearTimeout(handsFree.restartTimer);try{handsFree.recognition?.stop()}catch(_error){/* Already stopped. */}}
 
+function resumeBookmarkedLessonByVoice(){
+  stopTeacherAudio();lessonInterruption=null;lessonDirector.classList.remove('lesson-paused');
+  if(lessonHistory.length){
+    const lesson=lessonHistory.pop();startLessonDirector(lesson.text,lesson.index);canvasStatus.textContent='Previous lesson resumed';setLearningStatus(`Returned to lesson step ${lesson.index+1}`);
+  }else if(currentLesson)renderCurrentLessonStep();
+  const step=currentLesson?.steps[currentLesson.index];
+  if(step)void speakText(step,true,true);else void resumeTeacherAudio();
+}
+
 function handleHandsFreePhrase(rawPhrase){
   const phrase=rawPhrase.trim();const command=phrase.toLowerCase().replace(/[^a-zà-ž\s]/gu,'').trim();
   if(!phrase)return;
@@ -346,9 +355,7 @@ function handleHandsFreePhrase(rawPhrase){
     updateHandsFreeStatus('Ask your question…');return;
   }
   if(continueCommand){
-    const step=currentLesson?.steps[currentLesson.index];
-    if(lessonInterruption){lessonInterruption=null;lessonDirector.classList.remove('lesson-paused');renderCurrentLessonStep()}
-    if(step)void speakText(step,true,true);else void resumeTeacherAudio();
+    resumeBookmarkedLessonByVoice();
     updateHandsFreeStatus('Listening…');return;
   }
   if(currentLesson&&!lessonInterruption)pauseLessonForQuestion('voice');
@@ -1457,6 +1464,7 @@ form.addEventListener('submit',async(e)=>{
     canvasWork.classList.add('text-only');problemPreview.hidden=true;
     backToWhiteboard.classList.add('hidden');
     showCanvasAnswer(data.reply,'Worked solution');
+    if(handsFree.enabled)void speakText(data.reply,true,true);
     thinking.textContent='I’ve placed the complete worked solution on the Teaching Canvas.';
   }catch(err){
     thinking.textContent=err.message&&err.message.includes('wait')?err.message:'Sorry, I had a small technical hiccup. Please try your question again in a moment.';
