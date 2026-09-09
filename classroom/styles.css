@@ -84,3 +84,22 @@ body{background:radial-gradient(circle at 10% 4%,#fff2c9 0,transparent 24%),radi
 /* Voice state belongs with the controls, never on top of the teacher portrait. */
 .teacher-actions .teacher-voice-status{position:static;left:auto;bottom:auto;display:inline-flex;align-items:center;min-height:36px;white-space:nowrap;padding:6px 9px;flex:none}
 @media(max-width:600px){.teacher-actions .teacher-voice-status{min-height:32px;padding:5px 7px;font-size:9px}.teacher-actions .icon-button{min-width:auto;padding:7px 8px}.teacher-toolbar{gap:6px}.teacher-toolbar>strong{font-size:12px}}
+
+/* The portrait stays fixed; only a tightly cropped head layer receives motion. */
+.avatar-head-layer{position:absolute;display:block;overflow:hidden;pointer-events:none;transform:translateY(var(--head-y)) rotate(var(--head-turn));transform-origin:50% 72%;will-change:transform}
+.avatar-head-layer img{position:absolute;max-width:none}
+.founder-head-layer{left:31%;top:7.5%;width:43%;height:36%;clip-path:ellipse(48% 49% at 50% 50%)}
+.founder-head-layer img{width:233%;height:auto;left:-72%;top:-21%}
+.teacher-head-layer{left:8%;top:0;width:84%;height:96%;clip-path:ellipse(49% 50% at 50% 50%)}
+.teacher-head-layer img{width:119%;height:auto;left:-9.5%;top:0}
+.avatar-rig:not(.avatar-speaking) .avatar-head-layer{transform:none}
+
+/* A voice-question answer keeps the teacher visible without covering lesson text. */
+.teaching-canvas{position:relative}
+.canvas-voice-avatar{position:absolute;right:18px;bottom:18px;z-index:4;width:116px;padding:6px;border:2px solid #fff;border-radius:18px;background:#0d2445;box-shadow:0 10px 28px #07162d40;color:#fff;text-align:center}
+.canvas-avatar-stage{width:100%;aspect-ratio:1;overflow:hidden;border-radius:13px;background:#102c53;transform:translateY(var(--head-y)) rotate(var(--head-turn));transform-origin:50% 70%}
+.canvas-avatar-stage img{display:block;width:100%;height:100%;object-fit:cover}
+.canvas-voice-avatar>span{display:block;padding:5px 2px 2px;font-size:12px;font-weight:800}
+.canvas-work.voice-avatar-visible{padding-right:140px;min-height:148px}
+@media(max-width:600px){.canvas-voice-avatar{right:10px;bottom:10px;width:92px}.canvas-work.voice-avatar-visible{padding-right:0;padding-bottom:116px;min-height:0}}
+@media(prefers-reduced-motion:reduce){.avatar-head-layer,.canvas-avatar-stage{transform:none!important}}

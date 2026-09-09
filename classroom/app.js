@@ -54,6 +54,8 @@ const canvasWork=document.getElementById('canvasWork');
 const problemPreview=document.getElementById('problemPreview');
 const canvasStatus=document.getElementById('canvasStatus');
 const canvasAnswer=document.getElementById('canvasAnswer');
+const canvasVoiceAvatar=document.getElementById('canvasVoiceAvatar');
+const canvasVoiceAvatarStatus=canvasVoiceAvatar.querySelector('span');
 const whiteboardButton=document.getElementById('whiteboardButton');
 const whiteboardArea=document.getElementById('whiteboardArea');
 const whiteboard=document.getElementById('whiteboard');
@@ -159,6 +161,7 @@ let founderSpeechRequest=0;
 let avatarMotionFrame=null;
 let activeAvatarRig=null;
 let avatarEnergy=0;
+let showVoiceAnswerAvatar=false;
 let languageSwitchRequest=0;
 let teacherAudioKeepAlive=null;
 let understandingCheckId=null;
@@ -326,6 +329,7 @@ function setTeacherSpeaking(speaking){
   if(speaking)startAvatarMotion(teacherPanel);else stopAvatarMotion(teacherPanel);
   if(speaking)teacherPanel.classList.remove('paused');
   teacherVoiceStatus.textContent=speaking?'Speaking…':'Ready';
+  if(showVoiceAnswerAvatar)canvasVoiceAvatarStatus.textContent=speaking?'Speaking':'Ready';
   readAnswerButton.innerHTML=speaking?'<span>Pause</span>':'<span>Read answer</span>';
   readAnswerButton.setAttribute('aria-label',speaking?'Pause reading the answer':'Read the current answer aloud');
   if(speaking)setLearningStatus('Speaking','speaking');
@@ -337,6 +341,7 @@ async function pauseTeacherAudio(){
   // the audio context while the learner is pausing it.
   teacherSpeechPaused=true;
   teacherPanel.classList.remove('speaking');teacherPanel.classList.add('paused');teacherVoiceStatus.textContent='Paused';
+  if(showVoiceAnswerAvatar)canvasVoiceAvatarStatus.textContent='Paused';
   stopAvatarMotion(teacherPanel);
   readAnswerButton.innerHTML='<span>Continue</span>';readAnswerButton.setAttribute('aria-label','Continue reading the answer');setLearningStatus('Audio paused','paused');
   try{await teacherAudioContext.suspend()}
@@ -372,10 +377,20 @@ function resetAvatarRig(rig){
   rig.style.setProperty('--mouth-open','0');rig.style.setProperty('--head-x','0px');rig.style.setProperty('--head-y','0px');rig.style.setProperty('--head-turn','0deg');rig.style.setProperty('--breath','1');
 }
 
+function setCanvasVoiceAvatar(visible){
+  showVoiceAnswerAvatar=visible;
+  if(!visible)resetAvatarRig(canvasVoiceAvatar);
+  canvasVoiceAvatar.classList.toggle('hidden',!visible);
+  canvasWork.classList.toggle('voice-avatar-visible',visible);
+}
+
 function stopAvatarMotion(rig=activeAvatarRig){
   if(rig&&activeAvatarRig&&rig!==activeAvatarRig){resetAvatarRig(rig);return}
   if(avatarMotionFrame){cancelAnimationFrame(avatarMotionFrame);avatarMotionFrame=null}
-  resetAvatarRig(activeAvatarRig||rig);activeAvatarRig=null;avatarEnergy=0;
+  const stoppedRig=activeAvatarRig||rig;
+  resetAvatarRig(stoppedRig);
+  if(stoppedRig===teacherPanel)resetAvatarRig(canvasVoiceAvatar);
+  activeAvatarRig=null;avatarEnergy=0;
 }
 
 function startAvatarMotion(rig){
@@ -389,7 +404,16 @@ function startAvatarMotion(rig){
     const rms=Math.sqrt(energy/samples.length);const target=Math.max(0,Math.min(1,(rms-.012)*8.5));
     avatarEnergy+=(target>avatarEnergy ? .58 : .2)*(target-avatarEnergy);
     const pulse=.86+.14*Math.sin(now*.041);const mouth=Math.round(Math.max(0,Math.min(1,avatarEnergy*pulse))*120)/120;
+    const nod=Math.sin(now*.0047)*.7*avatarEnergy;
+    const turn=Math.sin(now*.0029)*.55*avatarEnergy;
     rig.style.setProperty('--mouth-open',mouth.toFixed(3));
+    rig.style.setProperty('--head-y',`${nod.toFixed(2)}px`);
+    rig.style.setProperty('--head-turn',`${turn.toFixed(2)}deg`);
+    if(rig===teacherPanel&&showVoiceAnswerAvatar){
+      canvasVoiceAvatar.style.setProperty('--mouth-open',mouth.toFixed(3));
+      canvasVoiceAvatar.style.setProperty('--head-y',`${nod.toFixed(2)}px`);
+      canvasVoiceAvatar.style.setProperty('--head-turn',`${turn.toFixed(2)}deg`);
+    }
     avatarMotionFrame=requestAnimationFrame(update);
   };
   avatarMotionFrame=requestAnimationFrame(update);
@@ -411,6 +435,7 @@ function stopTeacherAudio(preserveAudioUnlock=false){
   teacherSpeechPaused=false;
   teacherPanel.classList.remove('paused');
   setTeacherSpeaking(false);
+  setCanvasVoiceAvatar(false);
   readAnswerButton.disabled=!canvasAnswer.textContent.trim();
 }
 
@@ -447,9 +472,10 @@ async function playPcmStream(response,requestId){
   teacherStreamComplete=true;finishIfDone();
 }
 
-async function speakText(text,preserveAudioUnlock=false){
+async function speakText(text,preserveAudioUnlock=false,displayCanvasAvatar=false){
   if(!text.trim())return;
   stopTeacherAudio(preserveAudioUnlock);
+  setCanvasVoiceAvatar(displayCanvasAvatar);
   teacherVoiceStatus.textContent='Preparing teacher voice…';
   readAnswerButton.disabled=true;
   readAnswerButton.innerHTML='<span>Preparing…</span>';
@@ -998,7 +1024,7 @@ async function finishRecording(){
     backToWhiteboard.classList.add('hidden');
     showCanvasAnswer(data.reply,'Voice question explained',true);
     // Start reading as soon as the written voice answer reaches the canvas.
-    void speakText(data.reply,true);
+    void speakText(data.reply,true,true);
     thinking.textContent='I’ve placed the complete answer to your voice question on the Teaching Canvas.';
   }catch(err){
     stopTeacherAudio();
