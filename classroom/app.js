@@ -67,6 +67,7 @@ const endLesson=document.getElementById('endLesson');
 const teachingStageMode=document.getElementById('teachingStageMode');
 const autoTeachToggle=document.getElementById('autoTeachToggle');
 const lessonChoreographyHint=document.getElementById('lessonChoreographyHint');
+const teachingMemoryStatus=document.getElementById('teachingMemoryStatus');
 const showStepVisual=document.getElementById('showStepVisual');
 const watchStepExample=document.getElementById('watchStepExample');
 const checkStepUnderstanding=document.getElementById('checkStepUnderstanding');
@@ -183,6 +184,8 @@ const lessonHistory=[];
 let lessonInterruption=null;
 const teachingStage={mode:'lesson',bookmark:0};
 const lessonChoreography={enabled:true,visited:new Set(),timer:null};
+let learnerMemoryId='';
+let adaptiveMemory={replays:0,simplifications:0,questions:0,correct:0,incorrect:0};
 let languageSwitchRequest=0;
 let teacherAudioKeepAlive=null;
 let understandingCheckId=null;
@@ -279,9 +282,45 @@ function updatePracticeTopics(){
 practiceClass.value=learnerClass.value;updatePracticeTopics();
 learnerClass.addEventListener('change',()=>{practiceClass.value=learnerClass.value;practiceTerm.value='First Term';updatePracticeTopics()});practiceClass.addEventListener('change',()=>{practiceTerm.value='First Term';updatePracticeTopics()});practiceTerm.addEventListener('change',updatePracticeTopics);
 
+function loadAdaptiveMemory(profileId){
+  learnerMemoryId=profileId;
+  try{adaptiveMemory={replays:0,simplifications:0,questions:0,correct:0,incorrect:0,...JSON.parse(localStorage.getItem(`roboTeacherMemory:${profileId}`)||'{}')}}catch(_error){adaptiveMemory={replays:0,simplifications:0,questions:0,correct:0,incorrect:0}}
+  renderAdaptiveMemory();
+}
+
+function recordLearningSignal(signal){
+  if(!learnerMemoryId||!(signal in adaptiveMemory))return;
+  adaptiveMemory[signal]=Math.min(999,(Number(adaptiveMemory[signal])||0)+1);
+  localStorage.setItem(`roboTeacherMemory:${learnerMemoryId}`,JSON.stringify(adaptiveMemory));
+  renderAdaptiveMemory();
+}
+
+function adaptiveSupportLevel(){
+  const difficulty=adaptiveMemory.replays+adaptiveMemory.simplifications*2+adaptiveMemory.questions+adaptiveMemory.incorrect*2;
+  const confidence=adaptiveMemory.correct*2;
+  if(difficulty>=confidence+4)return 'support';
+  if(confidence>=difficulty+4)return 'challenge';
+  return 'learning';
+}
+
+function renderAdaptiveMemory(){
+  if(!teachingMemoryStatus)return;
+  const level=adaptiveSupportLevel();
+  teachingMemoryStatus.dataset.level=level;
+  teachingMemoryStatus.textContent=level==='support'?'Extra support active':level==='challenge'?'Ready for challenge':'Learning your pace';
+}
+
+function adaptivePromptContext(){
+  const level=adaptiveSupportLevel();
+  if(level==='support')return 'Teaching memory: this learner benefits from shorter steps, one familiar example, and a brief check after the explanation.';
+  if(level==='challenge')return 'Teaching memory: this learner is answering confidently. Keep the explanation concise and include one slightly more challenging follow-up.';
+  return 'Teaching memory: use clear age-appropriate steps and one short understanding check.';
+}
+
 async function ensureSession(){
   if(sessionToken)return sessionToken;
   const profileId=`${learnerClass.value}:${learnerNickname.value.trim().toLocaleLowerCase()}`;
+  if(learnerMemoryId!==profileId)loadAdaptiveMemory(profileId);
   let profiles={};
   try{profiles=JSON.parse(localStorage.getItem('roboTeacherProfiles')||'{}')}catch(_){profiles={}}
   let learnerKey=profiles[profileId];
@@ -633,6 +672,8 @@ function startLessonDirector(text,index=0){
 
 function chooseTeachingMode(step,index,total){
   const text=step.toLowerCase();
+  if(adaptiveSupportLevel()==='support'&&index>0)return {mode:'example',label:'Teaching memory recommends an extra worked example'};
+  if(adaptiveSupportLevel()==='challenge'&&index===total-1)return {mode:'check',label:'Teaching memory recommends a challenge check'};
   if(/plot|graph|diagram|shape|angle|coordinate|number line|fraction|triangle|circle|area|perimeter/.test(text))return {mode:'visual',label:'A visual will make this step clearer'};
   if(index===total-1)return {mode:'check',label:'A quick check will confirm understanding'};
   if(/example|calculate|solve|work out|multiply|divide|subtract|add|equation|=|\d/.test(text))return {mode:'example',label:'A worked example will help with this step'};
@@ -712,13 +753,13 @@ function moveLessonStep(direction){
 
 previousLessonStep.addEventListener('click',()=>moveLessonStep(-1));
 nextLessonStep.addEventListener('click',()=>moveLessonStep(1));
-replayLessonStep.addEventListener('click',()=>{if(currentLesson)void speakText(currentLesson.steps[currentLesson.index])});
+replayLessonStep.addEventListener('click',()=>{if(currentLesson){recordLearningSignal('replays');void speakText(currentLesson.steps[currentLesson.index])}});
 showStepVisual.addEventListener('click',showVisualExplanation);
 watchStepExample.addEventListener('click',openLessonMedia);
 checkStepUnderstanding.addEventListener('click',startUnderstandingCheck);
 function pauseLessonForQuestion(source='text'){
   if(!currentLesson)return;
-  if(!lessonInterruption)lessonInterruption={text:currentLesson.text,index:currentLesson.index};
+  if(!lessonInterruption){lessonInterruption={text:currentLesson.text,index:currentLesson.index};recordLearningSignal('questions')}
   stopTeacherAudio();
   lessonPauseNotice.textContent=`Lesson paused at Step ${currentLesson.index+1}. Ask your question ${source==='voice'?'using the microphone':'below'}.`;
   lessonPauseNotice.classList.remove('hidden');askLessonQuestion.textContent='Continue this step';lessonDirector.classList.add('lesson-paused');
@@ -1205,7 +1246,7 @@ async function simplifyCurrentAnswer(){
     const data=await response.json();
     if(response.status===401){sessionToken=null;throw new Error('session')}
     if(!response.ok)throw new Error(data.detail||'simplify');
-    showCanvasAnswer(data.explanation,'Simpler explanation',true);
+    recordLearningSignal('simplifications');showCanvasAnswer(data.explanation,'Simpler explanation',true);
     void speakText(data.explanation,true);
     thinking.textContent='I’ve simplified the explanation and added a familiar example.';
   }catch(error){
@@ -1248,6 +1289,7 @@ async function submitUnderstandingAnswer(event){
     const token=await ensureSession();
     const response=await fetch('/api/classroom/understanding/answer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_token:token,check_id:understandingCheckId,choice_index:Number(selected.value)})});
     const data=await response.json();if(!response.ok)throw new Error(data.detail||'answer');
+    recordLearningSignal(data.correct?'correct':'incorrect');
     understandingChoices.querySelectorAll('label').forEach((label,index)=>{label.classList.toggle('correct-choice',index===data.correct_index);label.querySelector('input').disabled=true});
     understandingFeedback.textContent=`${data.correct?'Correct!':'Not quite.'} ${data.feedback}`;
     understandingFeedback.className=`practice-feedback ${data.correct?'correct':'incorrect'}`;
@@ -1348,7 +1390,8 @@ async function handleImage(file,source='upload'){
 form.addEventListener('submit',async(e)=>{
   e.preventDefault();const text=question.value.trim();if(!text||sendButton.disabled)return;
   const interruptedLesson=lessonInterruption||(currentLesson?{text:currentLesson.text,index:currentLesson.index}:null);
-  const requestText=interruptedLesson?`The learner paused this lesson step: "${currentLesson.steps[currentLesson.index]}"\n\nTheir question is: ${text}`:text;
+  const lessonQuestion=interruptedLesson?`The learner paused this lesson step: "${currentLesson.steps[currentLesson.index]}"\n\nTheir question is: ${text}`:text;
+  const requestText=`${adaptivePromptContext()}\n\n${lessonQuestion}`;
   addMessage(text,'student');question.value='';sendButton.disabled=true;sendButton.textContent='Thinking…';setLearningStatus('Working through your question','thinking');
   const thinking=addMessage('Let me work through that with you…','teacher');
   try{

@@ -31,7 +31,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260909-visualsafe1' in html
+    assert '20260909-memory1' in html
     assert 'id="learnerNickname"' in html
     assert 'id="learnerClass"' in html
     assert "learnerNickname.value=''" in script
@@ -47,7 +47,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert "localStorage.setItem('roboTeacherQaChecklist'" in script
     assert 'const resultCopy=' in script
     assert 'labels.yourAnswer' in script
-    assert '20260909-visualsafe1' in html
+    assert '20260909-memory1' in html
     assert 'downloadTeacherDashboardReport' in script
     assert 'id="practiceClass"' in html
     assert 'id="startDiagnostic"' in html
@@ -1169,6 +1169,21 @@ def test_visual_failure_uses_quota_free_fallback_and_client_retries_transient_er
     script = Path('classroom/app.js').read_text()
     assert 'for(let attempt=1;attempt<=3;attempt++)' in script
     assert "[429,503].includes(response.status)" in script
+
+
+def test_adaptive_teaching_memory_records_signals_and_changes_support_level():
+    html = Path('classroom/index.html').read_text()
+    script = Path('classroom/app.js').read_text()
+    styles = Path('classroom/styles.css').read_text()
+    assert 'id="teachingMemoryStatus"' in html
+    assert 'function recordLearningSignal(signal)' in script
+    assert 'function adaptiveSupportLevel()' in script
+    assert 'function adaptivePromptContext()' in script
+    for signal in ('replays', 'simplifications', 'questions', 'correct', 'incorrect'):
+        assert signal in script
+    assert "localStorage.setItem(`roboTeacherMemory:${learnerMemoryId}`" in script
+    assert "adaptiveSupportLevel()==='support'" in script
+    assert '.teaching-memory-status[data-level="support"]' in styles
 
 
 def test_media_endpoint_requires_a_valid_session():

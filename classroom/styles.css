@@ -93,6 +93,9 @@ body{background:radial-gradient(circle at 10% 4%,#fff2c9 0,transparent 24%),radi
 /* Automatic Lesson Choreography keeps the suggested mode visible and optional. */
 .auto-teach-toggle{min-height:34px;padding:6px 10px;border:1px solid #82a5cc;border-radius:999px;background:#fff;color:#123a69;font-size:12px;font-weight:800;cursor:pointer}.auto-teach-toggle[aria-pressed="true"]{border-color:#159560;background:#e7f8ef;color:#087345}.lesson-choreography-hint{margin:0;padding:8px 11px;border-radius:9px;background:#f4f8fd;color:#375675;font-size:14px;font-weight:700}.lesson-stage-actions button.recommended{border:2px solid #1677ff;background:#eaf3ff;color:#0757c9;box-shadow:0 0 0 2px #1677ff18}.lesson-stage-actions button.recommended::after{content:' • Recommended';font-size:11px}@media(max-width:600px){.canvas-result-toolbar{flex-wrap:wrap}.auto-teach-toggle{margin-left:0}.lesson-choreography-hint{font-size:13px}}
 
+/* Private, device-local adaptive teaching memory. */
+.teaching-memory-status{padding:5px 9px;border-radius:999px;background:#edf2f8;color:#48617d;font-size:12px;font-weight:800}.teaching-memory-status[data-level="support"]{background:#fff2d2;color:#72500e}.teaching-memory-status[data-level="challenge"]{background:#e7f8ef;color:#087345}@media(max-width:600px){.teaching-memory-status{font-size:11px}}
+
 /* Image-aligned head masks move without resizing the original portrait. */
 .avatar-head-motion{position:absolute;inset:0;pointer-events:none;opacity:0;will-change:transform}
 .avatar-speaking .avatar-head-motion{opacity:1;transform:translateY(var(--head-y)) rotate(var(--head-turn))}

@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Robo-Teacher Classroom</title>
-  <link rel="stylesheet" href="/classroom/styles.css?v=20260909-visualsafe1" />
+  <link rel="stylesheet" href="/classroom/styles.css?v=20260909-memory1" />
 </head>
 <body>
   <main class="app-shell">
@@ -85,7 +85,7 @@
           <div id="canvasEmpty" class="canvas-empty"><strong>Teaching Canvas</strong><p>Upload or photograph a Maths problem. Your image and Robo-Teacher’s guidance will appear here.</p></div>
           <div id="canvasWork" class="canvas-work hidden">
             <img id="problemPreview" alt="Learner's Maths problem" />
-            <div><div class="canvas-result-toolbar"><span id="canvasStatus" class="canvas-status">Image ready</span><span id="teachingStageMode" class="teaching-stage-mode">Lesson</span><button id="autoTeachToggle" type="button" class="auto-teach-toggle" aria-pressed="true">Auto Teach: On</button><button id="backToWhiteboard" type="button" class="back-to-board hidden">← Back to Whiteboard</button></div><div id="canvasAnswer" class="canvas-answer"></div><nav id="lessonDirector" class="lesson-director hidden" aria-label="Lesson steps"><div class="lesson-progress"><strong id="lessonStepLabel">Step 1 of 1</strong><div id="lessonStepTrack" class="lesson-step-track" aria-hidden="true"></div></div><p id="lessonChoreographyHint" class="lesson-choreography-hint" aria-live="polite"></p><p id="lessonPauseNotice" class="lesson-pause-notice hidden" aria-live="polite"></p><div class="lesson-stage-actions" aria-label="Teaching options for this step"><button id="showStepVisual" type="button">Show step visual</button><button id="watchStepExample" type="button">Watch step example</button><button id="checkStepUnderstanding" type="button">Check this step</button></div><div class="lesson-controls"><button id="previousLessonStep" type="button">← Previous</button><button id="nextLessonStep" type="button" class="lesson-primary">Next →</button><button id="replayLessonStep" type="button">Replay step</button><button id="askLessonQuestion" type="button" class="lesson-question">Ask about this step</button><button id="returnToLesson" type="button" class="hidden">Return to previous lesson</button><button id="endLesson" type="button">End lesson</button></div></nav></div>
+            <div><div class="canvas-result-toolbar"><span id="canvasStatus" class="canvas-status">Image ready</span><span id="teachingStageMode" class="teaching-stage-mode">Lesson</span><span id="teachingMemoryStatus" class="teaching-memory-status">Learning your pace</span><button id="autoTeachToggle" type="button" class="auto-teach-toggle" aria-pressed="true">Auto Teach: On</button><button id="backToWhiteboard" type="button" class="back-to-board hidden">← Back to Whiteboard</button></div><div id="canvasAnswer" class="canvas-answer"></div><nav id="lessonDirector" class="lesson-director hidden" aria-label="Lesson steps"><div class="lesson-progress"><strong id="lessonStepLabel">Step 1 of 1</strong><div id="lessonStepTrack" class="lesson-step-track" aria-hidden="true"></div></div><p id="lessonChoreographyHint" class="lesson-choreography-hint" aria-live="polite"></p><p id="lessonPauseNotice" class="lesson-pause-notice hidden" aria-live="polite"></p><div class="lesson-stage-actions" aria-label="Teaching options for this step"><button id="showStepVisual" type="button">Show step visual</button><button id="watchStepExample" type="button">Watch step example</button><button id="checkStepUnderstanding" type="button">Check this step</button></div><div class="lesson-controls"><button id="previousLessonStep" type="button">← Previous</button><button id="nextLessonStep" type="button" class="lesson-primary">Next →</button><button id="replayLessonStep" type="button">Replay step</button><button id="askLessonQuestion" type="button" class="lesson-question">Ask about this step</button><button id="returnToLesson" type="button" class="hidden">Return to previous lesson</button><button id="endLesson" type="button">End lesson</button></div></nav></div>
           </div>
           <aside id="canvasVoiceAvatar" class="canvas-voice-avatar avatar-rig hidden" aria-label="AI teacher speaking">
             <div class="canvas-avatar-stage avatar-stage">
@@ -179,6 +179,6 @@
       </section>
     </section>
   </main>
-  <script src="/classroom/app.js?v=20260909-visualsafe1"></script>
+  <script src="/classroom/app.js?v=20260909-memory1"></script>
 </body>
 </html>
