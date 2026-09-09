@@ -65,6 +65,8 @@ const lessonPauseNotice=document.getElementById('lessonPauseNotice');
 const returnToLesson=document.getElementById('returnToLesson');
 const endLesson=document.getElementById('endLesson');
 const teachingStageMode=document.getElementById('teachingStageMode');
+const autoTeachToggle=document.getElementById('autoTeachToggle');
+const lessonChoreographyHint=document.getElementById('lessonChoreographyHint');
 const showStepVisual=document.getElementById('showStepVisual');
 const watchStepExample=document.getElementById('watchStepExample');
 const checkStepUnderstanding=document.getElementById('checkStepUnderstanding');
@@ -180,6 +182,7 @@ let currentLesson=null;
 const lessonHistory=[];
 let lessonInterruption=null;
 const teachingStage={mode:'lesson',bookmark:0};
+const lessonChoreography={enabled:true,visited:new Set(),timer:null};
 let languageSwitchRequest=0;
 let teacherAudioKeepAlive=null;
 let understandingCheckId=null;
@@ -622,10 +625,48 @@ function renderLessonBlock(container,text){
 function startLessonDirector(text,index=0){
   const steps=splitLessonSteps(text);
   currentLesson={text,steps,index:Math.max(0,Math.min(index,steps.length-1))};
+  lessonChoreography.visited.clear();
   lessonDirector.classList.remove('hidden');
   setTeachingStageMode('lesson');
   renderCurrentLessonStep();
 }
+
+function chooseTeachingMode(step,index,total){
+  const text=step.toLowerCase();
+  if(/plot|graph|diagram|shape|angle|coordinate|number line|fraction|triangle|circle|area|perimeter/.test(text))return {mode:'visual',label:'A visual will make this step clearer'};
+  if(index===total-1)return {mode:'check',label:'A quick check will confirm understanding'};
+  if(/example|calculate|solve|work out|multiply|divide|subtract|add|equation|=|\d/.test(text))return {mode:'example',label:'A worked example will help with this step'};
+  return {mode:'lesson',label:'Read and discuss this explanation'};
+}
+
+function scheduleLessonChoreography(){
+  clearTimeout(lessonChoreography.timer);
+  if(!currentLesson)return;
+  const {steps,index}=currentLesson;
+  const choice=chooseTeachingMode(steps[index],index,steps.length);
+  lessonChoreographyHint.textContent=`Recommended: ${choice.label}.`;
+  showStepVisual.classList.toggle('recommended',choice.mode==='visual');
+  watchStepExample.classList.toggle('recommended',choice.mode==='example');
+  checkStepUnderstanding.classList.toggle('recommended',choice.mode==='check');
+  if(!lessonChoreography.enabled||choice.mode==='lesson')return;
+  const key=`${currentLesson.text}\u0000${index}\u0000${choice.mode}`;
+  if(lessonChoreography.visited.has(key))return;
+  lessonChoreography.visited.add(key);
+  lessonChoreography.timer=setTimeout(()=>{
+    if(!lessonChoreography.enabled||!currentLesson||currentLesson.index!==index||lessonInterruption)return;
+    if(choice.mode==='visual')showVisualExplanation();
+    else if(choice.mode==='example')openLessonMedia();
+    else if(choice.mode==='check')startUnderstandingCheck();
+  },650);
+}
+
+autoTeachToggle.addEventListener('click',()=>{
+  lessonChoreography.enabled=!lessonChoreography.enabled;
+  autoTeachToggle.setAttribute('aria-pressed',String(lessonChoreography.enabled));
+  autoTeachToggle.textContent=`Auto Teach: ${lessonChoreography.enabled?'On':'Off'}`;
+  setLearningStatus(`Automatic teaching ${lessonChoreography.enabled?'on':'off'}`);
+  if(lessonChoreography.enabled)scheduleLessonChoreography();else clearTimeout(lessonChoreography.timer);
+});
 
 function setTeachingStageMode(mode){
   const labels={lesson:'Lesson',visual:'Visual',example:'Example',check:'Check'};
@@ -660,6 +701,7 @@ function renderCurrentLessonStep(){
   askLessonQuestion.textContent=lessonInterruption?'Continue this step':'Ask about this step';
   readAnswerButton.disabled=!steps[index].trim();
   canvasAnswer.scrollIntoView({block:'nearest',behavior:'smooth'});
+  scheduleLessonChoreography();
 }
 
 function moveLessonStep(direction){
