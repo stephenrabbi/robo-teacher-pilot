@@ -473,6 +473,22 @@ async function playPcmStream(response,requestId){
   teacherStreamComplete=true;finishIfDone();
 }
 
+async function requestTeacherSpeech(payload,signal,requestId){
+  let response;
+  for(let attempt=0;attempt<3;attempt++){
+    response=await fetch('/api/classroom/speech',{method:'POST',headers:{'Content-Type':'application/json','Accept':'audio/L16'},body:JSON.stringify(payload),signal});
+    if(response.ok||response.status===401||![429,503].includes(response.status))return response;
+    if(attempt<2){
+      teacherVoiceStatus.textContent='Voice busy — retrying…';
+      canvasVoiceAvatarStatus.textContent='Preparing';
+      setLearningStatus('Natural voice is busy — retrying','thinking');
+      await new Promise(resolve=>setTimeout(resolve,900*(attempt+1)));
+      if(requestId!==teacherSpeechRequest)throw new DOMException('Speech cancelled','AbortError');
+    }
+  }
+  return response;
+}
+
 async function speakText(text,preserveAudioUnlock=false,displayCanvasAvatar=true){
   if(!text.trim())return;
   stopTeacherAudio(preserveAudioUnlock);
@@ -488,7 +504,7 @@ async function speakText(text,preserveAudioUnlock=false,displayCanvasAvatar=true
     if(!preserveAudioUnlock||!teacherAudioKeepAlive)await startAudioKeepAlive();
     const token=await ensureSession();
     if(requestId!==teacherSpeechRequest)return;
-    const response=await fetch('/api/classroom/speech',{method:'POST',headers:{'Content-Type':'application/json','Accept':'audio/L16'},body:JSON.stringify({text:prepareSpeechText(text),session_token:token,language:language.value,voice_gender:teacherPanel.dataset.voiceGender==='male'?'male':'female'}),signal:teacherSpeechController.signal});
+    const response=await requestTeacherSpeech({text:prepareSpeechText(text),session_token:token,language:language.value,voice_gender:teacherPanel.dataset.voiceGender==='male'?'male':'female'},teacherSpeechController.signal,requestId);
     if(response.status===401){sessionToken=null;throw new Error('session')}
     if(!response.ok)throw new Error('natural voice unavailable');
     if(!response.body)throw new Error('stream unavailable');
