@@ -389,8 +389,7 @@ function startAvatarMotion(rig){
     const rms=Math.sqrt(energy/samples.length);const target=Math.max(0,Math.min(1,(rms-.012)*8.5));
     avatarEnergy+=(target>avatarEnergy ? .58 : .2)*(target-avatarEnergy);
     const pulse=.86+.14*Math.sin(now*.041);const mouth=Math.round(Math.max(0,Math.min(1,avatarEnergy*pulse))*120)/120;
-    const elapsed=now-started;const headTurn=Math.sin(elapsed/920)*.38*avatarEnergy;const headY=Math.sin(elapsed/610)*.55*avatarEnergy;const headX=Math.sin(elapsed/1270)*.45*avatarEnergy;const breath=1+Math.sin(elapsed/1450)*.0025;
-    rig.style.setProperty('--mouth-open',mouth.toFixed(3));rig.style.setProperty('--head-x',`${headX.toFixed(2)}px`);rig.style.setProperty('--head-y',`${headY.toFixed(2)}px`);rig.style.setProperty('--head-turn',`${headTurn.toFixed(2)}deg`);rig.style.setProperty('--breath',breath.toFixed(4));
+    rig.style.setProperty('--mouth-open',mouth.toFixed(3));
     avatarMotionFrame=requestAnimationFrame(update);
   };
   avatarMotionFrame=requestAnimationFrame(update);

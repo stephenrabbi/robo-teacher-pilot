@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Robo-Teacher Classroom</title>
-  <link rel="stylesheet" href="/classroom/styles.css?v=20260909-avatarcontrols1" />
+  <link rel="stylesheet" href="/classroom/styles.css?v=20260909-avatarclear1" />
 </head>
 <body>
   <main class="app-shell">
@@ -58,6 +58,7 @@
         <div class="teacher-toolbar">
           <strong>Your AI Teacher</strong>
           <div class="teacher-actions">
+            <span id="teacherVoiceStatus" class="teacher-voice-status" aria-live="polite">Ready</span>
             <button id="readAnswer" class="icon-button read-answer" type="button" aria-label="Read the current answer aloud" disabled><span>Read answer</span></button>
             <button id="toggleTeacher" class="icon-button" type="button" aria-label="Minimize teacher" aria-expanded="true">Hide</button>
           </div>
@@ -67,7 +68,6 @@
             <img class="teacher-avatar" src="/classroom/assets/ai-teacher-face.jpg" alt="Robo-Teacher AI Mathematics teacher" />
             <img class="teacher-avatar avatar-speaking-frame" src="/classroom/assets/ai-teacher-face-speaking.jpg" alt="" aria-hidden="true" />
           </div>
-          <span id="teacherVoiceStatus" class="teacher-voice-status" aria-live="polite">Ready</span>
         </div>
         <div class="teacher-caption">Ready to guide you step by step. Voice questions receive spoken answers.</div>
       </aside>
@@ -168,6 +168,6 @@
       </section>
     </section>
   </main>
-  <script src="/classroom/app.js?v=20260909-avatarcontrols1"></script>
+  <script src="/classroom/app.js?v=20260909-avatarclear1"></script>
 </body>
 </html>

@@ -31,7 +31,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260909-avatarcontrols1' in html
+    assert '20260909-avatarclear1' in html
     assert 'id="learnerNickname"' in html
     assert 'id="learnerClass"' in html
     assert "learnerNickname.value=''" in script
@@ -47,7 +47,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert "localStorage.setItem('roboTeacherQaChecklist'" in script
     assert 'const resultCopy=' in script
     assert 'labels.yourAnswer' in script
-    assert '20260909-avatarcontrols1' in html
+    assert '20260909-avatarclear1' in html
     assert 'downloadTeacherDashboardReport' in script
     assert 'id="practiceClass"' in html
     assert 'id="startDiagnostic"' in html
@@ -1077,6 +1077,19 @@ def test_audio_driven_avatar_engine_supports_teacher_and_founder():
 def test_mobile_pause_control_stays_outside_avatar_face():
     styles = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     assert '.teacher-panel.speaking .read-answer,.teacher-panel.paused .read-answer{position:static' in styles
+
+
+def test_voice_status_is_in_toolbar_and_portrait_stays_fixed():
+    html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
+    script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
+    styles = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
+    actions = html.split('<div class="teacher-actions">', 1)[1].split('</div>', 1)[0]
+    portrait = html.split('<div class="teacher-portrait">', 1)[1].split('</div>', 2)[0]
+    assert 'id="teacherVoiceStatus"' in actions
+    assert 'id="teacherVoiceStatus"' not in portrait
+    assert '.teacher-actions .teacher-voice-status{position:static' in styles
+    assert '.avatar-stage{position:relative;transform:none}' in styles
+    assert "rig.style.setProperty('--head-x'" not in script.split('function startAvatarMotion(rig)', 1)[1].split('async function startAudioKeepAlive', 1)[0]
 
 
 def test_media_endpoint_requires_a_valid_session():

@@ -63,7 +63,7 @@ body{background:radial-gradient(circle at 10% 4%,#fff2c9 0,transparent 24%),radi
 
 /* Audio-driven avatar rig: 121 mouth levels plus subtle head and breathing motion. */
 .avatar-rig{--mouth-open:0;--head-x:0px;--head-y:0px;--head-turn:0deg;--breath:1}
-.avatar-stage{position:relative;transform:translate(var(--head-x),var(--head-y)) rotate(var(--head-turn)) scale(var(--breath));transform-origin:50% 62%;will-change:transform}
+.avatar-stage{position:relative;transform:none}
 .avatar-speaking-frame{position:absolute;inset:0;opacity:var(--mouth-open);pointer-events:none}
 .founder-avatar-stage{overflow:hidden;border-radius:34px}
 .founder-avatar-stage .founder-avatar{margin:0}
@@ -80,3 +80,7 @@ body{background:radial-gradient(circle at 10% 4%,#fff2c9 0,transparent 24%),radi
 
 /* Keep voice controls in the toolbar so they never cover the avatar's face. */
 @media(max-width:600px){.teacher-panel.speaking .read-answer,.teacher-panel.paused .read-answer{position:static;right:auto;bottom:auto;z-index:auto;min-width:88px;margin:0;box-shadow:none}.teacher-toolbar{position:relative;z-index:3}.teacher-actions{flex-wrap:nowrap}}
+
+/* Voice state belongs with the controls, never on top of the teacher portrait. */
+.teacher-actions .teacher-voice-status{position:static;left:auto;bottom:auto;display:inline-flex;align-items:center;min-height:36px;white-space:nowrap;padding:6px 9px;flex:none}
+@media(max-width:600px){.teacher-actions .teacher-voice-status{min-height:32px;padding:5px 7px;font-size:9px}.teacher-actions .icon-button{min-width:auto;padding:7px 8px}.teacher-toolbar{gap:6px}.teacher-toolbar>strong{font-size:12px}}
