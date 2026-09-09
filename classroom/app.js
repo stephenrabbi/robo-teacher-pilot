@@ -1,6 +1,8 @@
 const welcome=document.getElementById('welcome');
 const classroom=document.getElementById('classroom');
 const start=document.getElementById('startLearning');
+const founderPanel=document.getElementById('founderPanel');
+const hearFounderButton=document.getElementById('hearFounder');
 const learnerNickname=document.getElementById('learnerNickname');
 const learnerClass=document.getElementById('learnerClass');
 const onboardingError=document.getElementById('onboardingError');
@@ -146,9 +148,17 @@ let recordedChunks=[];
 let teacherSpeechController=null;
 let teacherSpeechRequest=0;
 let teacherAudioContext=null;
+let teacherAudioAnalyser=null;
 const teacherAudioSources=new Set();
+const founderAudioSources=new Set();
 let teacherStreamComplete=false;
+let founderStreamComplete=false;
 let teacherSpeechPaused=false;
+let founderSpeechController=null;
+let founderSpeechRequest=0;
+let avatarMotionFrame=null;
+let activeAvatarRig=null;
+let avatarEnergy=0;
 let languageSwitchRequest=0;
 let teacherAudioKeepAlive=null;
 let understandingCheckId=null;
@@ -269,6 +279,7 @@ start.addEventListener('click',async()=>{
   if(nickname.length<2){onboardingError.textContent='Please enter a nickname with at least 2 letters.';onboardingError.classList.remove('hidden');learnerNickname.focus();return}
   onboardingError.classList.add('hidden');start.disabled=true;start.textContent='Opening classroom…';
   try{
+    stopFounderSpeech();
     await ensureSession();learnerIdentity.textContent=`${nickname.toUpperCase()} · ${learnerClass.value} CLASSROOM`;
     welcome.classList.add('hidden');classroom.classList.remove('hidden');
     addMessage(`Welcome, ${nickname}! I’ll explain each lesson at ${learnerClass.value} level.`,'teacher');question.focus();
@@ -312,6 +323,7 @@ function prepareSpeechText(text){
 
 function setTeacherSpeaking(speaking){
   teacherPanel.classList.toggle('speaking',speaking);
+  if(speaking)startAvatarMotion(teacherPanel);else stopAvatarMotion(teacherPanel);
   if(speaking)teacherPanel.classList.remove('paused');
   teacherVoiceStatus.textContent=speaking?'Speaking…':'Ready';
   readAnswerButton.innerHTML=speaking?'<span>Pause</span>':'<span>Read answer</span>';
@@ -325,6 +337,7 @@ async function pauseTeacherAudio(){
   // the audio context while the learner is pausing it.
   teacherSpeechPaused=true;
   teacherPanel.classList.remove('speaking');teacherPanel.classList.add('paused');teacherVoiceStatus.textContent='Paused';
+  stopAvatarMotion(teacherPanel);
   readAnswerButton.innerHTML='<span>Continue</span>';readAnswerButton.setAttribute('aria-label','Continue reading the answer');setLearningStatus('Audio paused','paused');
   try{await teacherAudioContext.suspend()}
   catch(_error){teacherSpeechPaused=false;setTeacherSpeaking(true)}
@@ -347,6 +360,40 @@ function stopAudioKeepAlive(){
   if(!teacherAudioKeepAlive)return;
   try{teacherAudioKeepAlive.oscillator.stop()}catch(_error){/* Already stopped. */}
   teacherAudioKeepAlive=null;
+}
+
+function ensureAvatarAnalyser(context){
+  if(teacherAudioAnalyser)return teacherAudioAnalyser;
+  teacherAudioAnalyser=context.createAnalyser();teacherAudioAnalyser.fftSize=256;teacherAudioAnalyser.smoothingTimeConstant=.38;teacherAudioAnalyser.connect(context.destination);return teacherAudioAnalyser;
+}
+
+function resetAvatarRig(rig){
+  if(!rig)return;rig.classList.remove('avatar-speaking');
+  rig.style.setProperty('--mouth-open','0');rig.style.setProperty('--head-x','0px');rig.style.setProperty('--head-y','0px');rig.style.setProperty('--head-turn','0deg');rig.style.setProperty('--breath','1');
+}
+
+function stopAvatarMotion(rig=activeAvatarRig){
+  if(rig&&activeAvatarRig&&rig!==activeAvatarRig){resetAvatarRig(rig);return}
+  if(avatarMotionFrame){cancelAnimationFrame(avatarMotionFrame);avatarMotionFrame=null}
+  resetAvatarRig(activeAvatarRig||rig);activeAvatarRig=null;avatarEnergy=0;
+}
+
+function startAvatarMotion(rig){
+  if(!rig||!teacherAudioAnalyser)return;
+  if(activeAvatarRig!==rig)stopAvatarMotion();activeAvatarRig=rig;rig.classList.add('avatar-speaking');
+  const samples=new Uint8Array(teacherAudioAnalyser.fftSize);const started=performance.now();
+  const update=now=>{
+    if(activeAvatarRig!==rig)return;
+    teacherAudioAnalyser.getByteTimeDomainData(samples);let energy=0;
+    for(const sample of samples){const level=(sample-128)/128;energy+=level*level}
+    const rms=Math.sqrt(energy/samples.length);const target=Math.max(0,Math.min(1,(rms-.012)*8.5));
+    avatarEnergy+=(target>avatarEnergy ? .58 : .2)*(target-avatarEnergy);
+    const pulse=.86+.14*Math.sin(now*.041);const mouth=Math.round(Math.max(0,Math.min(1,avatarEnergy*pulse))*120)/120;
+    const elapsed=now-started;const headTurn=Math.sin(elapsed/920)*.38*avatarEnergy;const headY=Math.sin(elapsed/610)*.55*avatarEnergy;const headX=Math.sin(elapsed/1270)*.45*avatarEnergy;const breath=1+Math.sin(elapsed/1450)*.0025;
+    rig.style.setProperty('--mouth-open',mouth.toFixed(3));rig.style.setProperty('--head-x',`${headX.toFixed(2)}px`);rig.style.setProperty('--head-y',`${headY.toFixed(2)}px`);rig.style.setProperty('--head-turn',`${headTurn.toFixed(2)}deg`);rig.style.setProperty('--breath',breath.toFixed(4));
+    avatarMotionFrame=requestAnimationFrame(update);
+  };
+  avatarMotionFrame=requestAnimationFrame(update);
 }
 
 async function startAudioKeepAlive(){
@@ -373,6 +420,7 @@ async function prepareTeacherAudio(){
   if(!AudioContextClass)throw new Error('Web Audio is unavailable');
   if(!teacherAudioContext||teacherAudioContext.state==='closed')teacherAudioContext=new AudioContextClass({sampleRate:24000});
   if(teacherAudioContext.state==='suspended')await teacherAudioContext.resume();
+  ensureAvatarAnalyser(teacherAudioContext);
   return teacherAudioContext;
 }
 
@@ -392,7 +440,7 @@ async function playPcmStream(response,requestId){
     }
     const samples=evenLength/2;const buffer=context.createBuffer(1,samples,24000);const channel=buffer.getChannelData(0);const view=new DataView(joined.buffer,joined.byteOffset,evenLength);
     for(let index=0;index<samples;index++)channel[index]=view.getInt16(index*2,true)/32768;
-    const source=context.createBufferSource();source.buffer=buffer;source.connect(context.destination);teacherAudioSources.add(source);
+    const source=context.createBufferSource();source.buffer=buffer;source.connect(ensureAvatarAnalyser(context));teacherAudioSources.add(source);
     source.addEventListener('ended',()=>{teacherAudioSources.delete(source);finishIfDone()},{once:true});
     const startAt=Math.max(nextStart,context.currentTime+.025);source.start(startAt);nextStart=startAt+buffer.duration;
   }
@@ -432,6 +480,29 @@ readAnswerButton.addEventListener('click',async()=>{
   if(teacherPanel.classList.contains('speaking')){await pauseTeacherAudio();return;}
   try{await prepareTeacherAudio()}catch(_error){return}
   void speakText(canvasAnswer.textContent);
+});
+
+function stopFounderSpeech(){
+  founderSpeechRequest+=1;if(founderSpeechController){founderSpeechController.abort();founderSpeechController=null}
+  founderAudioSources.forEach(source=>{try{source.stop()}catch(_error){/* Already stopped. */}});founderAudioSources.clear();founderStreamComplete=false;stopAvatarMotion(founderPanel);hearFounderButton.disabled=false;hearFounderButton.textContent='Hear Stephen';
+}
+
+async function playFounderPcmStream(response,requestId){
+  const context=await prepareTeacherAudio();const reader=response.body.getReader();let pending=new Uint8Array(0);let nextStart=context.currentTime+.06;let received=false;founderStreamComplete=false;
+  while(requestId===founderSpeechRequest){const {done,value}=await reader.read();if(done)break;const joined=new Uint8Array(pending.length+value.length);joined.set(pending);joined.set(value,pending.length);const evenLength=joined.length-joined.length%2;pending=joined.slice(evenLength);if(!evenLength)continue;
+    if(!received){received=true;hearFounderButton.disabled=false;hearFounderButton.textContent='Stop Stephen';startAvatarMotion(founderPanel)}
+    const samples=evenLength/2;const buffer=context.createBuffer(1,samples,24000);const channel=buffer.getChannelData(0);const view=new DataView(joined.buffer,joined.byteOffset,evenLength);for(let index=0;index<samples;index++)channel[index]=view.getInt16(index*2,true)/32768;
+    const source=context.createBufferSource();source.buffer=buffer;source.connect(ensureAvatarAnalyser(context));founderAudioSources.add(source);source.addEventListener('ended',()=>{founderAudioSources.delete(source);if(requestId===founderSpeechRequest&&founderStreamComplete&&!founderAudioSources.size)stopFounderSpeech()},{once:true});const startAt=Math.max(nextStart,context.currentTime+.025);source.start(startAt);nextStart=startAt+buffer.duration;
+  }
+  if(requestId===founderSpeechRequest&&!received)throw new Error('empty voice stream');
+  founderStreamComplete=true;if(requestId===founderSpeechRequest&&!founderAudioSources.size)stopFounderSpeech();
+}
+
+hearFounderButton.addEventListener('click',async()=>{
+  if(founderAudioSources.size||founderPanel.classList.contains('avatar-speaking')){stopFounderSpeech();return}
+  if(learnerNickname.value.trim().length<2){onboardingError.textContent='Enter your nickname first, then tap Hear Stephen.';onboardingError.classList.remove('hidden');learnerNickname.focus();return}
+  onboardingError.classList.add('hidden');hearFounderButton.disabled=true;hearFounderButton.textContent='Preparing Stephen…';const requestId=++founderSpeechRequest;founderSpeechController=new AbortController();
+  try{await prepareTeacherAudio();const token=await ensureSession();if(requestId!==founderSpeechRequest)return;const intro=`Hello ${learnerNickname.value.trim()}. I am Stephen, the founder of Robo-Teacher. Welcome to your AI classroom. Choose your class, then tap Start Learning Now.`;const response=await fetch('/api/classroom/speech',{method:'POST',headers:{'Content-Type':'application/json','Accept':'audio/L16'},body:JSON.stringify({text:intro,session_token:token,language:'English',voice_gender:'male'}),signal:founderSpeechController.signal});if(!response.ok||!response.body)throw new Error('voice unavailable');await playFounderPcmStream(response,requestId)}catch(error){if(error.name!=='AbortError'&&requestId===founderSpeechRequest){onboardingError.textContent='Stephen’s natural voice is temporarily unavailable. Please try again later.';onboardingError.classList.remove('hidden')}stopFounderSpeech()}
 });
 
 function addMessage(text,role){
