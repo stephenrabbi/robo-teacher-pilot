@@ -64,6 +64,10 @@ const askLessonQuestion=document.getElementById('askLessonQuestion');
 const lessonPauseNotice=document.getElementById('lessonPauseNotice');
 const returnToLesson=document.getElementById('returnToLesson');
 const endLesson=document.getElementById('endLesson');
+const teachingStageMode=document.getElementById('teachingStageMode');
+const showStepVisual=document.getElementById('showStepVisual');
+const watchStepExample=document.getElementById('watchStepExample');
+const checkStepUnderstanding=document.getElementById('checkStepUnderstanding');
 const canvasVoiceAvatar=document.getElementById('canvasVoiceAvatar');
 const canvasVoiceAvatarStatus=canvasVoiceAvatar.querySelector('span');
 const whiteboardButton=document.getElementById('whiteboardButton');
@@ -175,6 +179,7 @@ let showVoiceAnswerAvatar=false;
 let currentLesson=null;
 const lessonHistory=[];
 let lessonInterruption=null;
+const teachingStage={mode:'lesson',bookmark:0};
 let languageSwitchRequest=0;
 let teacherAudioKeepAlive=null;
 let understandingCheckId=null;
@@ -618,7 +623,26 @@ function startLessonDirector(text,index=0){
   const steps=splitLessonSteps(text);
   currentLesson={text,steps,index:Math.max(0,Math.min(index,steps.length-1))};
   lessonDirector.classList.remove('hidden');
+  setTeachingStageMode('lesson');
   renderCurrentLessonStep();
+}
+
+function setTeachingStageMode(mode){
+  const labels={lesson:'Lesson',visual:'Visual',example:'Example',check:'Check'};
+  teachingStage.mode=mode;teachingCanvas.dataset.stageMode=mode;
+  teachingStageMode.textContent=labels[mode]||'Lesson';
+}
+
+function enterTeachingStage(mode){
+  teachingStage.bookmark=currentLesson?.index||0;setTeachingStageMode(mode);setCanvasVoiceAvatar(false);
+  teacherPanel.classList.add('minimized');classroom.classList.add('teacher-min');toggle.textContent='Show';toggle.setAttribute('aria-expanded','false');
+}
+
+function restoreTeachingStage(){
+  setTeachingStageMode('lesson');
+  if(currentLesson){currentLesson.index=Math.min(teachingStage.bookmark,currentLesson.steps.length-1);renderCurrentLessonStep();canvasWork.classList.remove('hidden');canvasEmpty.classList.add('hidden')}
+  else if(canvasAnswer.textContent.trim())canvasWork.classList.remove('hidden');else canvasEmpty.classList.remove('hidden');
+  restoreTeacherPanel();setLearningStatus(`Returned to lesson step ${(currentLesson?.index||0)+1}`);
 }
 
 function renderCurrentLessonStep(){
@@ -647,6 +671,9 @@ function moveLessonStep(direction){
 previousLessonStep.addEventListener('click',()=>moveLessonStep(-1));
 nextLessonStep.addEventListener('click',()=>moveLessonStep(1));
 replayLessonStep.addEventListener('click',()=>{if(currentLesson)void speakText(currentLesson.steps[currentLesson.index])});
+showStepVisual.addEventListener('click',showVisualExplanation);
+watchStepExample.addEventListener('click',openLessonMedia);
+checkStepUnderstanding.addEventListener('click',startUnderstandingCheck);
 function pauseLessonForQuestion(source='text'){
   if(!currentLesson)return;
   if(!lessonInterruption)lessonInterruption={text:currentLesson.text,index:currentLesson.index};
@@ -1163,7 +1190,7 @@ async function startUnderstandingCheck(){
       input.type='radio';input.name='understandingChoice';input.value=String(index);input.required=true;span.textContent=choice;label.append(input,span);understandingChoices.appendChild(label);
     });
     understandingFeedback.className='practice-feedback hidden';understandingFeedback.textContent='';
-    canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');understandingArea.classList.remove('hidden');
+    canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');understandingArea.classList.remove('hidden');enterTeachingStage('check');
     setLearningStatus('Choose the best answer');
   }catch(error){
     addMessage(error.message&&!['understanding','session'].includes(error.message)?error.message:'I could not prepare the question right now. Please try again.','teacher');
@@ -1189,8 +1216,7 @@ async function submitUnderstandingAnswer(event){
 
 function closeUnderstandingCheck(){
   understandingArea.classList.add('hidden');understandingCheckId=null;
-  if(canvasAnswer.textContent.trim())canvasWork.classList.remove('hidden');else canvasEmpty.classList.remove('hidden');
-  setLearningStatus('Answer ready');
+  restoreTeachingStage();
 }
 
 async function showVisualExplanation(){
@@ -1199,7 +1225,7 @@ async function showVisualExplanation(){
   try{
     const token=await ensureSession();const response=await fetch('/api/classroom/visual',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:lesson,session_token:token,language:language.value})});const data=await response.json();
     if(!response.ok)throw new Error(data.detail||'visual');dismissLessonOverlays();renderVisualAid(data);canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');visualArea.classList.remove('hidden');
-    teacherPanel.classList.add('minimized');classroom.classList.add('teacher-min');toggle.textContent='Show';toggle.setAttribute('aria-expanded','false');setLearningStatus('Visual explanation ready','success');
+    enterTeachingStage('visual');setLearningStatus('Visual explanation ready','success');
   }catch(error){addMessage(error.message&&!['visual'].includes(error.message)?error.message:'I could not prepare the visual right now. Please try again.','teacher');setLearningStatus('Visual needs another try','attention');}
   finally{visualButton.disabled=false;visualButton.textContent='Show Visual';}
 }
@@ -1220,12 +1246,12 @@ function stopLessonMedia(){if(mediaReplayTimer){clearInterval(mediaReplayTimer);
 
 function dismissLessonOverlays(){stopLessonMedia();visualArea.classList.add('hidden');understandingArea.classList.add('hidden')}
 
-function closeVisualExplanation(){visualArea.classList.add('hidden');if(canvasAnswer.textContent.trim())canvasWork.classList.remove('hidden');else canvasEmpty.classList.remove('hidden');restoreTeacherPanel();setLearningStatus('Answer ready');}
+function closeVisualExplanation(){visualArea.classList.add('hidden');restoreTeachingStage()}
 
 async function openLessonMedia(){
   const lesson=Array.from(canvasAnswer.querySelectorAll('p')).map(item=>item.innerText.trim()).filter(Boolean).join('\n')||canvasAnswer.innerText.trim();if(!lesson){addMessage('Ask a Maths question first, then I can show an example.','teacher');return;}
   stopTeacherAudio();mediaButton.disabled=true;mediaButton.textContent='Preparing…';setLearningStatus('Preparing a learning example','thinking');
-  try{const token=await ensureSession();const response=await fetch('/api/classroom/media',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:lesson,session_token:token,language:language.value})});const data=await response.json();if(!response.ok)throw new Error(data.detail||'media');dismissLessonOverlays();renderLessonMedia(data);canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');mediaArea.classList.remove('hidden');teacherPanel.classList.add('minimized');classroom.classList.add('teacher-min');toggle.textContent='Show';toggle.setAttribute('aria-expanded','false');setLearningStatus('Learning example ready','success');}
+  try{const token=await ensureSession();const response=await fetch('/api/classroom/media',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:lesson,session_token:token,language:language.value})});const data=await response.json();if(!response.ok)throw new Error(data.detail||'media');dismissLessonOverlays();renderLessonMedia(data);canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');mediaArea.classList.remove('hidden');enterTeachingStage('example');setLearningStatus('Learning example ready','success');}
   catch(error){addMessage(error.message||'I could not prepare that example. Please try again.','teacher');setLearningStatus('Example needs another try','attention');}
   finally{mediaButton.disabled=false;mediaButton.textContent='Watch or Explore';}
 }
@@ -1236,7 +1262,7 @@ function renderLessonMedia(data){
   mediaReplay.classList.remove('hidden');const steps=data.steps.map((text,index)=>{const item=document.createElement('p');item.textContent=`${index+1}. ${text}`;mediaReplay.appendChild(item);return item});let active=0;const show=()=>steps.forEach((item,index)=>item.classList.toggle('active',index===active));show();mediaReplayTimer=setInterval(()=>{active=(active+1)%steps.length;show()},2600);
 }
 
-function closeLessonMedia(){stopLessonMedia();if(canvasAnswer.textContent.trim())canvasWork.classList.remove('hidden');else canvasEmpty.classList.remove('hidden');restoreTeacherPanel();setLearningStatus('Answer ready');}
+function closeLessonMedia(){stopLessonMedia();restoreTeachingStage()}
 
 async function handleImage(file,source='upload'){
   if(!file)return;
