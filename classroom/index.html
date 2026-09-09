@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Robo-Teacher Classroom</title>
-  <link rel="stylesheet" href="/classroom/styles.css?v=20260909-memory1" />
+  <link rel="stylesheet" href="/classroom/styles.css?v=20260909-handsfree1" />
 </head>
 <body>
   <main class="app-shell">
@@ -61,6 +61,7 @@
           <strong>Your AI Teacher</strong>
           <div class="teacher-actions">
             <span id="teacherVoiceStatus" class="teacher-voice-status" aria-live="polite">Ready</span>
+            <button id="handsFreeToggle" class="icon-button hands-free-toggle" type="button" aria-label="Enable hands-free teaching" aria-pressed="false">Hands-free</button>
             <button id="readAnswer" class="icon-button read-answer" type="button" aria-label="Read the current answer aloud" disabled><span>Read answer</span></button>
             <button id="toggleTeacher" class="icon-button" type="button" aria-label="Minimize teacher" aria-expanded="true">Hide</button>
           </div>
@@ -179,6 +180,6 @@
       </section>
     </section>
   </main>
-  <script src="/classroom/app.js?v=20260909-memory1"></script>
+  <script src="/classroom/app.js?v=20260909-handsfree1"></script>
 </body>
 </html>

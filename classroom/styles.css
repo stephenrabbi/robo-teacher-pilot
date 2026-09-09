@@ -96,6 +96,9 @@ body{background:radial-gradient(circle at 10% 4%,#fff2c9 0,transparent 24%),radi
 /* Private, device-local adaptive teaching memory. */
 .teaching-memory-status{padding:5px 9px;border-radius:999px;background:#edf2f8;color:#48617d;font-size:12px;font-weight:800}.teaching-memory-status[data-level="support"]{background:#fff2d2;color:#72500e}.teaching-memory-status[data-level="challenge"]{background:#e7f8ef;color:#087345}@media(max-width:600px){.teaching-memory-status{font-size:11px}}
 
+/* Hands-free command state remains visible beside the existing voice controls. */
+.hands-free-toggle[aria-pressed="true"]{border-color:#22b878;background:#073e31;color:#fff;box-shadow:0 0 0 3px #22b87830}.hands-free-toggle[aria-pressed="true"]::before{content:'●';margin-right:6px;color:#54e8a8}.hands-free-toggle{white-space:nowrap}@media(max-width:600px){.teacher-actions .hands-free-toggle{order:4;flex-basis:100%;width:100%}}
+
 /* Image-aligned head masks move without resizing the original portrait. */
 .avatar-head-motion{position:absolute;inset:0;pointer-events:none;opacity:0;will-change:transform}
 .avatar-speaking .avatar-head-motion{opacity:1;transform:translateY(var(--head-y)) rotate(var(--head-turn))}
