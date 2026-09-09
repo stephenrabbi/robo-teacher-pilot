@@ -33,6 +33,7 @@ from tutor import (
     get_tutor_image_reply,
     get_tutor_reply,
     generate_understanding_check,
+    fallback_visual_aid,
     generate_visual_aid,
     select_lesson_media,
     stream_stable_tutor_speech,
@@ -396,7 +397,7 @@ def classroom_visual(request: ClassroomTranslation):
     student_id = _verify_session(request.session_token);_enforce_rate_limit(student_id, "visual", 20)
     class_level = _classroom_profiles.get(student_id, {}).get("class_level", "JSS2")
     try: visual = generate_visual_aid(request.text, request.language, class_level)
-    except Exception as exc: raise HTTPException(status_code=503, detail="I could not prepare a visual right now") from exc
+    except Exception: visual = fallback_visual_aid(request.text, request.language)
     return visual
 
 

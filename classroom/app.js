@@ -1265,7 +1265,14 @@ async function showVisualExplanation(){
   const lesson=canvasAnswer.textContent.trim();if(!lesson){addMessage('Ask a Maths question first, then I can show a visual explanation.','teacher');return;}
   stopTeacherAudio();visualButton.disabled=true;visualButton.textContent='Preparing…';setLearningStatus('Drawing a lesson visual','thinking');
   try{
-    const token=await ensureSession();const response=await fetch('/api/classroom/visual',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:lesson,session_token:token,language:language.value})});const data=await response.json();
+    const token=await ensureSession();let response;let data;
+    for(let attempt=1;attempt<=3;attempt++){
+      response=await fetch('/api/classroom/visual',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:lesson,session_token:token,language:language.value})});data=await response.json();
+      if(response.ok)break;
+      if(![429,503].includes(response.status)||attempt===3)throw new Error(data.detail||'visual');
+      setLearningStatus(`Visual busy — retrying (${attempt}/2)`,'thinking');
+      await new Promise(resolve=>setTimeout(resolve,attempt*450));
+    }
     if(!response.ok)throw new Error(data.detail||'visual');dismissLessonOverlays();renderVisualAid(data);canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');visualArea.classList.remove('hidden');
     enterTeachingStage('visual');setLearningStatus('Visual explanation ready','success');
   }catch(error){addMessage(error.message&&!['visual'].includes(error.message)?error.message:'I could not prepare the visual right now. Please try again.','teacher');setLearningStatus('Visual needs another try','attention');}

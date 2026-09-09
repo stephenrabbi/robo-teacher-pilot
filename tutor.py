@@ -673,6 +673,26 @@ def generate_visual_aid(text: str, response_language: str, class_level: str = "J
     return {"title":str(data.get("title","Visual explanation"))[:80],"kind":kind,"items":cleaned,"caption":str(data.get("caption",""))[:240]}
 
 
+def fallback_visual_aid(text: str, response_language: str) -> dict:
+    """Build a quota-free visual from the lesson text when model output is unavailable."""
+    labels = {
+        "English": ("Lesson steps", "Follow the explanation one step at a time."),
+        "Yoruba": ("Àwọn ìgbésẹ̀ ẹ̀kọ́", "Tẹ̀lé àlàyé náà ní ìgbésẹ̀ kọ̀ọ̀kan."),
+        "Igbo": ("Usoro nkuzi", "Soro nkọwa ahụ otu nzọụkwụ n’otu oge."),
+        "Hausa": ("Matakan darasi", "Bi bayanin mataki ɗaya bayan ɗaya."),
+    }
+    title, caption = labels.get(response_language, labels["English"])
+    parts = [part.strip(" -:\n\t") for part in re.split(r"\n+|(?=\bStep\s+\d+\b)|(?<=[.!?])\s+", text) if part.strip()]
+    if len(parts) < 2:
+        words = text.strip().split()
+        midpoint = max(1, len(words) // 2)
+        parts = [" ".join(words[:midpoint]), " ".join(words[midpoint:])]
+    items = [{"label": part[:45], "value": index + 1} for index, part in enumerate(parts[:8]) if part]
+    if len(items) < 2:
+        items = [{"label": text.strip()[:45] or title, "value": 1}, {"label": caption[:45], "value": 2}]
+    return {"title": title, "kind": "steps", "items": items, "caption": caption}
+
+
 def select_lesson_media(text: str, response_language: str = "English") -> dict:
     """Select only allowlisted free learning media; never return model URLs."""
     lesson=text.lower()
