@@ -31,7 +31,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260910-voicehelp1' in html
+    assert '20260910-helpfix2' in html
     assert 'id="learnerNickname"' in html
     assert 'id="learnerClass"' in html
     assert "learnerNickname.value=''" in script
@@ -47,7 +47,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert "localStorage.setItem('roboTeacherQaChecklist'" in script
     assert 'const resultCopy=' in script
     assert 'labels.yourAnswer' in script
-    assert '20260910-voicehelp1' in html
+    assert '20260910-helpfix2' in html
     assert 'downloadTeacherDashboardReport' in script
     assert 'id="practiceClass"' in html
     assert 'id="startDiagnostic"' in html
@@ -1375,6 +1375,14 @@ def test_hands_free_help_lists_supported_commands_without_covering_the_lesson():
         assert command in script
     assert 'const helpCommand=' in script
     assert '.hands-free-help{' in styles
+
+
+def test_voice_help_restores_hidden_teacher_and_accepts_help_sound_alikes():
+    script = Path('classroom/app.js').read_text()
+    assert "replace(/^(?:health|held|help me)$/,'help')" in script
+    assert 'if(show)restoreTeacherPanel()' in script
+    assert "handsFreeHelp.scrollIntoView({block:'nearest',behavior:'smooth'})" in script
+    assert 'test(normalizeSpokenIntent(command))' in script
 
 
 def test_media_endpoint_requires_a_valid_session():

@@ -362,7 +362,7 @@ function chooseBestSpeechAlternative(result){
 }
 
 function normalizeSpokenIntent(phrase){
-  return phrase.toLowerCase().replace(/\b(?:square route|squared root)\b/g,'square root').replace(/^(?:pulse|pals|paws|pose|pores)$/,'pause').replace(/^(?:duro|dúró|kwusi|kwụsị|kwụsịtụ|dakata|dakatar)$/,'pause').replace(/^(?:continues|continue you|tesiwaju|tẹ̀síwájú|ga nihu|gaa nihu|ci gaba)$/,'continue').trim();
+  return phrase.toLowerCase().replace(/\b(?:square route|squared root)\b/g,'square root').replace(/^(?:pulse|pals|paws|pose|pores)$/,'pause').replace(/^(?:duro|dúró|kwusi|kwụsị|kwụsịtụ|dakata|dakatar)$/,'pause').replace(/^(?:continues|continue you|tesiwaju|tẹ̀síwájú|ga nihu|gaa nihu|ci gaba)$/,'continue').replace(/^(?:health|held|help me)$/,'help').trim();
 }
 
 function handsFreeWakePattern(){return '(?:teacher|tutor|feature|olukọ|oluko|malam|malami|onye\\s+nkuzi)'}
@@ -458,7 +458,12 @@ function renderHandsFreeHelp(){
   handsFreeHelpList.replaceChildren(...commands.map(command=>{const item=document.createElement('li');item.textContent=command;return item}));
 }
 
-function showHandsFreeHelp(show=true){renderHandsFreeHelp();handsFreeHelp.classList.toggle('hidden',!show);voiceHelpToggle.setAttribute('aria-expanded',String(show));voiceHelpToggle.textContent=show?'Hide commands':'Commands'}
+function showHandsFreeHelp(show=true){
+  renderHandsFreeHelp();
+  if(show)restoreTeacherPanel();
+  handsFreeHelp.classList.toggle('hidden',!show);voiceHelpToggle.setAttribute('aria-expanded',String(show));voiceHelpToggle.textContent=show?'Hide commands':'Commands';
+  if(show)setTimeout(()=>handsFreeHelp.scrollIntoView({block:'nearest',behavior:'smooth'}),80);
+}
 
 function isSafeHandsFreeControl(intent){
   return /^(?:pause|stop|continue|resume|go on|explain (?:that )?again|repeat(?: that)?|say (?:that )?again|show (?:me )?(?:a )?visual|show (?:the )?diagram|explain (?:it |that )?simpler|make (?:it |that )?simpler|simplify (?:it|that)|check my understanding|test me|ask me a question|next|next step|move on|back|previous|previous step|go back|speak slower|slow down|normal speed|speak normally|speak faster|speed up|volume up|turn it up|volume down|turn it down|mute|unmute|help|what can i say|show commands|iranlowo|ìrànlọ́wọ́|nyere m aka|taimako)$/.test(normalizeSpokenIntent(intent));
@@ -481,7 +486,7 @@ function executeHandsFreeIntent(phrase){
   const volumeDownCommand=/^(volume down|turn it down)$/.test(command);
   const muteCommand=/^mute$/.test(command);
   const unmuteCommand=/^unmute$/.test(command);
-  const helpCommand=/^(help|what can i say|show commands|iranlowo|ìrànlọ́wọ́|nyere m aka|taimako)$/.test(command);
+  const helpCommand=/^(help|what can i say|show commands|iranlowo|ìrànlọ́wọ́|nyere m aka|taimako)$/.test(normalizeSpokenIntent(command));
   const stopListeningCommand=/^(stop listening|turn off|goodbye)$/.test(command);
   if(teacherPanel.classList.contains('speaking')&&!pauseCommand&&!continueCommand&&!replayCommand&&!visualCommand&&!simplerCommand&&!understandingCommand&&!nextStepCommand&&!previousStepCommand&&!slowerCommand&&!normalSpeedCommand&&!fasterCommand&&!volumeUpCommand&&!volumeDownCommand&&!muteCommand&&!unmuteCommand&&!helpCommand&&!stopListeningCommand)return;
   if(pauseCommand){
