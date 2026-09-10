@@ -442,11 +442,14 @@ function handleHandsFreePhrase(rawPhrase,confidence=0){
   const normalized=phrase.toLowerCase().replace(/[^a-zà-ž0-9\s()+,.?=\-]/gu,'').trim();
   const wake=normalized.match(/^(?:hey\s+)?(?:robo|robot|robotic)\s*(?:teacher|tutor|feature)\b[\s,.:;-]*(.*)$/);
   const pausedControl=teacherSpeechPaused&&/^(?:continue|continues|continue you|resume|go on|tẹ̀síwájú|gaa nihu|ci gaba)$/.test(normalized);
+  const clarificationReply=Boolean(handsFree.pending);
   let intent='';
   if(wake){
     intent=wake[1].trim().replace(/[,.?!:;]+$/,'').trim();handsFree.armedUntil=now+7000;
   }else if(pausedControl){
     intent=normalized;
+  }else if(clarificationReply){
+    intent=normalized.replace(/[,.?!:;]+$/,'').trim();
   }else if(now<handsFree.armedUntil){
     intent=normalized.replace(/[,.?!:;]+$/,'').trim();
   }else{showHandsFreeHeard(`Heard: “${phrase}” — start with “Robo-Teacher”.`);return}
@@ -454,9 +457,11 @@ function handleHandsFreePhrase(rawPhrase,confidence=0){
   const interpretedIntent=normalizeSpokenIntent(intent);
   if(interpretedIntent!==intent)showHandsFreeHeard(`Heard: “${phrase}” · Interpreted: “${interpretedIntent}”`);
   intent=interpretedIntent;
-  if(/^(confirm|yes)$/.test(intent)&&handsFree.pending){const pending=handsFree.pending;handsFree.pending='';executeHandsFreeIntent(pending);return}
+  if(/^(confirm|yes|yes please|correct)$/.test(intent)&&handsFree.pending){const pending=handsFree.pending;handsFree.pending='';handsFree.armedUntil=0;showHandsFreeHeard(`Confirmed: “${pending}”`);executeHandsFreeIntent(pending);return}
+  if(/^(no|nope|cancel|try again|listen again)$/.test(intent)&&handsFree.pending){handsFree.pending='';handsFree.armedUntil=0;updateHandsFreeStatus('Listening…');showHandsFreeHeard('Okay—please say “Robo-Teacher” and try again.');return}
+  if(handsFree.pending&&intent!==handsFree.pending){handsFree.pending='';showHandsFreeHeard(`Correction heard: “${intent}”`)}
   if(!intent){updateHandsFreeStatus('Command ready…');showHandsFreeHeard('Wake word heard. Say the command within 7 seconds.');return}
-  if(confidence>0&&confidence<.55){handsFree.pending=intent;updateHandsFreeStatus('Say “Robo-Teacher, confirm”');showHandsFreeHeard(`Did you mean “${intent}”? Say “Robo-Teacher, confirm”.`);return}
+  if(confidence>0&&confidence<.55){handsFree.pending=intent;handsFree.armedUntil=now+15000;updateHandsFreeStatus('Please confirm…');showHandsFreeHeard(`Did you mean “${intent}”? Say “Yes”, “No”, “Try again”, or say the correction.`);return}
   handsFree.pending='';handsFree.armedUntil=0;executeHandsFreeIntent(intent);
 }
 

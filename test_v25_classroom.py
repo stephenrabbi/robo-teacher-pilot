@@ -31,7 +31,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260910-followup1' in html
+    assert '20260910-clarify1' in html
     assert 'id="learnerNickname"' in html
     assert 'id="learnerClass"' in html
     assert "learnerNickname.value=''" in script
@@ -47,7 +47,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert "localStorage.setItem('roboTeacherQaChecklist'" in script
     assert 'const resultCopy=' in script
     assert 'labels.yourAnswer' in script
-    assert '20260910-followup1' in html
+    assert '20260910-clarify1' in html
     assert 'downloadTeacherDashboardReport' in script
     assert 'id="practiceClass"' in html
     assert 'id="startDiagnostic"' in html
@@ -1287,6 +1287,16 @@ def test_pause_opens_a_limited_wake_free_follow_up_window():
     assert "updateHandsFreeStatus('Ask or say Continue…')" in script
     assert 'Ask your follow-up within 15 seconds' in script
     assert script.count('openHandsFreeFollowUpWindow();') >= 2
+
+
+def test_unclear_child_speech_accepts_simple_confirmation_or_correction():
+    script = Path('classroom/app.js').read_text()
+    assert 'const clarificationReply=Boolean(handsFree.pending)' in script
+    assert 'yes|yes please|correct' in script
+    assert 'no|nope|cancel|try again|listen again' in script
+    assert 'handsFree.armedUntil=now+15000' in script
+    assert 'Say “Yes”, “No”, “Try again”, or say the correction.' in script
+    assert 'Correction heard: “${intent}”' in script
 
 
 def test_media_endpoint_requires_a_valid_session():
