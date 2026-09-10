@@ -1533,6 +1533,21 @@ def test_saved_lessons_have_smart_revision_scheduling():
     assert '.lesson-recommendation{' in styles
 
 
+def test_daily_learning_plan_combines_recall_practice_and_new_topic():
+    html=Path('classroom/index.html').read_text();script=Path('classroom/app.js').read_text();styles=Path('classroom/styles.css').read_text()
+    for element_id in ('dailyPlanButton','dailyPlanArea','dailyPlanList','closeDailyPlan'):
+        assert f'id="{element_id}"' in html
+    assert 'function dailyNewTopic(progress)' in script
+    assert 'function renderDailyPlan(progress)' in script
+    assert "appendDailyTask(1,'RECALL'" in script
+    assert "appendDailyTask(2,'STRENGTHEN'" in script
+    assert "appendDailyTask(3,'DISCOVER'" in script
+    assert "dailyAction==='revision'" in script
+    assert "dailyAction==='practice'" in script
+    assert 'chatForm.requestSubmit()' in script
+    assert '.daily-plan-task{' in styles
+
+
 def test_media_endpoint_requires_a_valid_session():
     session=client.post('/api/classroom/session').json()
     response=client.post('/api/classroom/media',json={'session_token':session['session_token'],'text':'Explain a fraction.','language':'English'})

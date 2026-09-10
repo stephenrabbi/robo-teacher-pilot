@@ -126,6 +126,12 @@ const changePracticeTopicButton=document.getElementById('changePracticeTopic');
 const exitPracticeResultsButton=document.getElementById('exitPracticeResults');
 const viewProgressFromResults=document.getElementById('viewProgressFromResults');
 const progressButton=document.getElementById('progressButton');
+const dailyPlanButton=document.getElementById('dailyPlanButton');
+const dailyPlanArea=document.getElementById('dailyPlanArea');
+const dailyPlanLoading=document.getElementById('dailyPlanLoading');
+const dailyPlanList=document.getElementById('dailyPlanList');
+const dailyPlanError=document.getElementById('dailyPlanError');
+const closeDailyPlan=document.getElementById('closeDailyPlan');
 const bookmarkLessonButton=document.getElementById('bookmarkLesson');
 const myLessonsButton=document.getElementById('myLessonsButton');
 const myLessonsArea=document.getElementById('myLessonsArea');
@@ -977,6 +983,7 @@ function setLearningStatus(message,state=''){
 
 function setActiveMode(button){
   if(button!==myLessonsButton)myLessonsArea.classList.add('hidden');
+  if(button!==dailyPlanButton)dailyPlanArea.classList.add('hidden');
   document.querySelectorAll('.class-tools [data-mode]').forEach(item=>{
     const active=item===button;item.classList.toggle('active',active);
     if(active)item.setAttribute('aria-current','page');else item.removeAttribute('aria-current');
@@ -996,6 +1003,20 @@ function revisionSchedule(item,now=Date.now()){
 }
 function recommendedLesson(items){return [...items].sort((a,b)=>{const aPlan=revisionSchedule(a),bPlan=revisionSchedule(b);if(aPlan.isDue!==bPlan.isDue)return aPlan.isDue?-1:1;if((Number(a.latestScore)||0)!==(Number(b.latestScore)||0))return (Number(a.latestScore)||0)-(Number(b.latestScore)||0);return aPlan.dueAt-bPlan.dueAt})[0]||null}
 
+function dailyNewTopic(progress){const topics=(progress?.learning_path||[]).flatMap(term=>term.topics.map(item=>({...item,term:term.term})));return topics.find(item=>item.status==='not_started'&&item.topic!==progress?.recommended_topic)||topics.find(item=>item.status==='not_started')||null}
+function appendDailyTask(number,label,title,detail,action,buttonText,complete=false){const card=document.createElement('article');card.className='daily-plan-task';card.dataset.complete=String(complete);const marker=document.createElement('span'),copy=document.createElement('div'),kind=document.createElement('small'),heading=document.createElement('strong'),note=document.createElement('p'),button=document.createElement('button');marker.textContent=complete?'✓':String(number);kind.textContent=label;heading.textContent=title;note.textContent=detail;copy.append(kind,heading,note);button.type='button';button.dataset.dailyAction=action;button.textContent=buttonText;button.classList.toggle('hidden',complete);card.append(marker,copy,button);dailyPlanList.appendChild(card)}
+function renderDailyPlan(progress){
+  dailyPlanList.replaceChildren();const dueLesson=loadSavedLessons().filter(item=>revisionSchedule(item).isDue).sort((a,b)=>revisionSchedule(a).dueAt-revisionSchedule(b).dueAt)[0]||null,newTopic=dailyNewTopic(progress),focus=progress?.recommended_topic||newTopic?.topic||'Start with a diagnostic';
+  appendDailyTask(1,'RECALL',dueLesson?.title||'Revision is up to date',dueLesson?'A short three-question review will strengthen your memory.':'No saved lesson is due today.','revision',dueLesson?'Revise now':'Done',!dueLesson);
+  appendDailyTask(2,'STRENGTHEN',focus,progress?.sessions?`Practise at ${progress.recommended_difficulty||'Auto'} difficulty based on your recent results.`:'Complete a short practice to establish your starting point.','practice','Start practice');
+  appendDailyTask(3,'DISCOVER',newTopic?.topic||'Continue your learning path',newTopic?`${newTopic.term} · Begin the next untouched topic.`:'Ask Robo-Teacher to extend your recommended topic.','lesson','Start lesson');
+  dailyPlanList.dataset.revisionId=dueLesson?.id||'';dailyPlanList.dataset.newTopic=newTopic?.topic||focus;dailyPlanLoading.classList.add('hidden');dailyPlanList.classList.remove('hidden');setLearningStatus("Today's plan is ready",'success');
+}
+async function openDailyPlan(){
+  dismissLessonOverlays();whiteboardArea.classList.add('hidden');practiceArea.classList.add('hidden');progressArea.classList.add('hidden');canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');myLessonsArea.classList.add('hidden');dailyPlanArea.classList.remove('hidden');dailyPlanLoading.classList.remove('hidden');dailyPlanList.classList.add('hidden');dailyPlanError.classList.add('hidden');setActiveMode(dailyPlanButton);setLearningStatus("Preparing today's plan",'thinking');
+  try{currentProgress=currentProgress||await practiceRequest('progress',{class_level:learnerClass.value});renderDailyPlan(currentProgress)}catch(error){dailyPlanLoading.classList.add('hidden');dailyPlanError.textContent='I could not load progress, but your saved lessons are still available.';dailyPlanError.classList.remove('hidden');renderDailyPlan(null)}
+}
+
 function renderMyLessons(){
   const allItems=loadSavedLessons(),recommended=recommendedLesson(allItems);lessonRecommendation.classList.toggle('hidden',!recommended);reviseRecommended.dataset.lessonId=recommended?.id||'';if(recommended){const plan=revisionSchedule(recommended);lessonRecommendationTitle.textContent=recommended.title;lessonRecommendationReason.textContent=plan.isDue?(recommended.revisionAttempts&&Number(recommended.latestScore)<2?'This lesson needs another review.':plan.timing):`${plan.timing} · Your next scheduled lesson.`}
   const query=lessonSearch.value.trim().toLocaleLowerCase(),filter=lessonFilter.value;const items=allItems.filter(item=>(filter!=='favourites'||item.favourite)&&(filter!=='mastered'||item.mastered)&&(filter!=='review'||!item.mastered)&&(filter!=='due'||revisionSchedule(item).isDue)&&(!query||`${item.title} ${item.summary} ${item.language} ${item.classLevel}`.toLocaleLowerCase().includes(query)));myLessonsList.replaceChildren();myLessonsEmpty.textContent=query||filter!=='all'?'No saved lessons match this search or filter.':'Save a useful explanation and it will appear here.';myLessonsEmpty.classList.toggle('hidden',items.length>0);
@@ -1013,6 +1034,8 @@ bookmarkLessonButton.addEventListener('click',()=>{
   const saved={...duplicate,id:duplicate?.id||String(Date.now()),title,summary:lessonSummary(currentLesson.text),answer:currentLesson.text,lessonIndex:currentLesson.index,classLevel:learnerClass.value,language:language.value,favourite:Boolean(duplicate?.favourite),savedAt:Date.now()};storeSavedLessons([saved,...items.filter(item=>item.id!==saved.id)]);setLearningStatus('Lesson saved to My Lessons','success');bookmarkLessonButton.textContent='Saved ✓';setTimeout(()=>{bookmarkLessonButton.textContent='Save Lesson'},1400);
 });
 myLessonsButton.addEventListener('click',openMyLessons);closeMyLessonsButton.addEventListener('click',closeMyLessons);
+dailyPlanButton.addEventListener('click',()=>{void openDailyPlan()});closeDailyPlan.addEventListener('click',()=>{dailyPlanArea.classList.add('hidden');openChat()});
+dailyPlanList.addEventListener('click',event=>{const button=event.target.closest('button[data-daily-action]');if(!button)return;if(button.dataset.dailyAction==='revision'){const item=loadSavedLessons().find(saved=>saved.id===dailyPlanList.dataset.revisionId);if(item){dailyPlanArea.classList.add('hidden');myLessonsArea.classList.remove('hidden');lessonLibrary.classList.add('hidden');revisionPanel.classList.remove('hidden');void startRevision(item)}}else if(button.dataset.dailyAction==='practice'){openRecommendedPractice()}else{const topic=dailyPlanList.dataset.newTopic;openChat();question.value=`Teach me ${topic} step by step at ${learnerClass.value} level.`;chatForm.requestSubmit()}});
 lessonSearch.addEventListener('input',renderMyLessons);lessonFilter.addEventListener('change',renderMyLessons);
 reviseRecommended.addEventListener('click',()=>{const item=loadSavedLessons().find(saved=>saved.id===reviseRecommended.dataset.lessonId);if(item)void startRevision(item)});
 myLessonsList.addEventListener('click',event=>{const button=event.target.closest('button[data-lesson-action]');if(!button)return;const items=loadSavedLessons(),item=items.find(saved=>saved.id===button.dataset.lessonId);if(button.dataset.lessonAction==='delete'){storeSavedLessons(items.filter(saved=>saved.id!==button.dataset.lessonId));renderMyLessons();return}if(button.dataset.lessonAction==='favourite'&&item){item.favourite=!item.favourite;storeSavedLessons(items);renderMyLessons();return}if(button.dataset.lessonAction==='revise'&&item){void startRevision(item);return}if(!item)return;myLessonsArea.classList.add('hidden');language.value=item.language;startLessonDirector(item.answer,item.lessonIndex);canvasStatus.textContent='Saved lesson reopened';canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');setActiveMode(chatButton);setLearningStatus('Saved lesson ready','success');saveClassroomSnapshot();keepTeachingCanvasVisible()});
