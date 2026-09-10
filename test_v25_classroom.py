@@ -31,7 +31,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260910-wakeword1' in html
+    assert '20260910-wakeword2' in html
     assert 'id="learnerNickname"' in html
     assert 'id="learnerClass"' in html
     assert "learnerNickname.value=''" in script
@@ -47,7 +47,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert "localStorage.setItem('roboTeacherQaChecklist'" in script
     assert 'const resultCopy=' in script
     assert 'labels.yourAnswer' in script
-    assert '20260910-wakeword1' in html
+    assert '20260910-wakeword2' in html
     assert 'downloadTeacherDashboardReport' in script
     assert 'id="practiceClass"' in html
     assert 'id="startDiagnostic"' in html
@@ -1230,7 +1230,8 @@ def test_wake_word_mode_ignores_background_and_confirms_uncertain_commands():
     assert 'id="handsFreeHeard"' in html
     assert 'function executeHandsFreeIntent(phrase)' in script
     assert 'function handleHandsFreePhrase(rawPhrase,confidence=0)' in script
-    assert "robo\\s*teacher\\b" in script
+    assert "(?:robo|robot|robotic)\\s*(?:teacher|tutor|feature)" in script
+    assert 'start with “Robo-Teacher”' in script
     assert "confidence>0&&confidence<.55" in script
     assert "handsFree.pending=intent" in script
     for command in ('explain (that )?again', 'show (me )?(a )?visual', 'stop listening'):

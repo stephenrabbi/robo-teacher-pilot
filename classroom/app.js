@@ -376,8 +376,8 @@ function handleHandsFreePhrase(rawPhrase,confidence=0){
   const phrase=rawPhrase.trim();if(!phrase)return;
   const now=Date.now();if(phrase===handsFree.lastPhrase&&now-handsFree.lastAt<1800)return;handsFree.lastPhrase=phrase;handsFree.lastAt=now;
   const normalized=phrase.toLowerCase().replace(/[^a-zà-ž0-9\s()+,.?=\-]/gu,'').trim();
-  const wake=normalized.match(/^(?:hey\s+)?robo\s*teacher\b[\s,.:;-]*(.*)$/);
-  if(!wake)return;
+  const wake=normalized.match(/^(?:hey\s+)?(?:robo|robot|robotic)\s*(?:teacher|tutor|feature)\b[\s,.:;-]*(.*)$/);
+  if(!wake){showHandsFreeHeard(`Heard: “${phrase}” — start with “Robo-Teacher”.`);return}
   const intent=wake[1].trim().replace(/[,.?!:;]+$/,'').trim();showHandsFreeHeard(`Heard: “${phrase}”`);
   if(/^(confirm|yes)$/.test(intent)&&handsFree.pending){const pending=handsFree.pending;handsFree.pending='';executeHandsFreeIntent(pending);return}
   if(!intent){updateHandsFreeStatus('Say your command…');return}
