@@ -336,7 +336,7 @@ function speechAlternativeScore(alternative){
   const confidence=Number(alternative.confidence)||0;
   const wordCount=transcript.split(/\s+/).length;
   let score=confidence*8+Math.min(wordCount,18)*.12;
-  if(/\b(?:robo|robot|robotic)\s*(?:teacher|tutor|feature)\b/.test(transcript))score+=4;
+  if(/\b(?:robo|robot|robotic)\s*(?:teacher|tutor|feature|olukọ|oluko|malam|malami|onye nkuzi)(?=\s|[,.:;-]|$)/u.test(transcript))score+=4;
   if(/\b(?:square root|square route|squared root|fraction|multiply|divide|division|equation|angle|graph|plus|minus|solve|calculate)\b/.test(transcript))score+=3;
   if(/\b(?:pause|pulse|paws|pose|pores|continue|resume|repeat|visual|diagram)\b/.test(transcript))score+=2;
   return score;
@@ -352,8 +352,10 @@ function chooseBestSpeechAlternative(result){
 }
 
 function normalizeSpokenIntent(phrase){
-  return phrase.toLowerCase().replace(/\b(?:square route|squared root)\b/g,'square root').replace(/^(?:pulse|pals|paws|pose|pores)$/,'pause').replace(/^(?:continues|continue you)$/,'continue').trim();
+  return phrase.toLowerCase().replace(/\b(?:square route|squared root)\b/g,'square root').replace(/^(?:pulse|pals|paws|pose|pores)$/,'pause').replace(/^(?:duro|dúró|kwusi|kwụsị|kwụsịtụ|dakata|dakatar)$/,'pause').replace(/^(?:continues|continue you|tesiwaju|tẹ̀síwájú|ga nihu|gaa nihu|ci gaba)$/,'continue').trim();
 }
+
+function handsFreeWakePattern(){return '(?:teacher|tutor|feature|olukọ|oluko|malam|malami|onye\\s+nkuzi)'}
 
 function clearHandsFreePhraseBuffer(){
   clearTimeout(handsFree.phraseTimer);handsFree.phraseTimer=null;handsFree.phraseBuffer='';handsFree.bufferConfidence=0;
@@ -365,14 +367,15 @@ function openHandsFreeFollowUpWindow(){
 
 function handsFreeBargeIn(result){
   const alternatives=Array.from(result).map(item=>(item.transcript||'').trim()).filter(Boolean);
-  const command=alternatives.find(transcript=>/^(?:(?:hey\s+)?(?:robo|robot|robotic)\s*(?:teacher|tutor|feature)[\s,.:;-]*)?(?:please\s+)?(?:pause|pulse|pals|paws|pose|pores)$/i.test(transcript));
+  const wakePattern=handsFreeWakePattern();
+  const command=alternatives.find(transcript=>new RegExp(`^(?:(?:hey\\s+)?(?:robo|robot|robotic)\\s*${wakePattern}[\\s,.:;-]*)?(?:please\\s+)?(?:pause|pulse|pals|paws|pose|pores|duro|dúró|kwusi|kwụsị|kwụsịtụ|dakata|dakatar)$`,'iu').test(transcript));
   if(command&&Date.now()<handsFree.ignorePauseUntil)return true;
   if(!teacherPanel.classList.contains('speaking')||Date.now()-handsFree.bargeInAt<1200)return false;
-  const wake=alternatives.find(transcript=>/(?:^|\s)(?:hey\s+)?(?:robo|robot|robotic)\s*(?:teacher|tutor|feature)\b/i.test(transcript));
+  const wake=alternatives.find(transcript=>new RegExp(`(?:^|\\s)(?:hey\\s+)?(?:robo|robot|robotic)\\s*${wakePattern}(?=\\s|[,.:;-]|$)`,'iu').test(transcript));
   if(!command&&!wake)return false;
   handsFree.bargeInAt=Date.now();clearHandsFreePhraseBuffer();void pauseTeacherAudio();handsFree.armedUntil=Date.now()+7000;
   if(command){
-    const interpreted=normalizeSpokenIntent(command.toLowerCase().replace(/^(?:(?:hey\s+)?(?:robo|robot|robotic)\s*(?:teacher|tutor|feature)[\s,.:;-]*)?(?:please\s+)?/i,''));
+    const interpreted=normalizeSpokenIntent(command.toLowerCase().replace(new RegExp(`^(?:(?:hey\\s+)?(?:robo|robot|robotic)\\s*${wakePattern}[\\s,.:;-]*)?(?:please\\s+)?`,'iu'),''));
     handsFree.pending='';handsFree.ignorePauseUntil=Date.now()+1800;openHandsFreeFollowUpWindow();showHandsFreeHeard(`Heard: “${command}” · Teacher paused. Ask your follow-up within 15 seconds, or say “Continue”.`);return true;
   }
   showHandsFreeHeard(`Heard: “${wake}” — teacher paused so I can hear you.`);updateHandsFreeStatus('Ask your question…');return false;
@@ -413,8 +416,8 @@ function continueHandsFreeTeaching(){
 
 function executeHandsFreeIntent(phrase){
   const command=phrase.toLowerCase().replace(/[^a-zà-ž0-9\s()+,.?=\-]/gu,'').trim();
-  const pauseCommand=/^(pause|stop|dúró|kwụsị|dakatar)$/.test(command);
-  const continueCommand=/^(continue|resume|go on|tẹ̀síwájú|gaa nihu|ci gaba)$/.test(command);
+  const pauseCommand=/^(pause|stop)$/.test(normalizeSpokenIntent(command));
+  const continueCommand=/^(continue|resume|go on)$/.test(normalizeSpokenIntent(command));
   const replayCommand=/^(explain (that )?again|repeat( that)?|say (that )?again)$/.test(command);
   const visualCommand=/^(show (me )?(a )?visual|show (the )?diagram)$/.test(command);
   const stopListeningCommand=/^(stop listening|turn off|goodbye)$/.test(command);
@@ -440,8 +443,8 @@ function handleHandsFreePhrase(rawPhrase,confidence=0){
   const phrase=rawPhrase.trim();if(!phrase)return;
   const now=Date.now();if(phrase===handsFree.lastPhrase&&now-handsFree.lastAt<1800)return;handsFree.lastPhrase=phrase;handsFree.lastAt=now;
   const normalized=phrase.toLowerCase().replace(/[^a-zà-ž0-9\s()+,.?=\-]/gu,'').trim();
-  const wake=normalized.match(/^(?:hey\s+)?(?:robo|robot|robotic)\s*(?:teacher|tutor|feature)\b[\s,.:;-]*(.*)$/);
-  const pausedControl=teacherSpeechPaused&&/^(?:continue|continues|continue you|resume|go on|tẹ̀síwájú|gaa nihu|ci gaba)$/.test(normalized);
+  const wake=normalized.match(new RegExp(`^(?:hey\\s+)?(?:robo|robot|robotic)\\s*${handsFreeWakePattern()}(?=\\s|[,.:;-]|$)[\\s,.:;-]*(.*)$`,'iu'));
+  const pausedControl=teacherSpeechPaused&&/^(?:continue|continues|continue you|resume|go on|tesiwaju|tẹ̀síwájú|ga nihu|gaa nihu|ci gaba)$/.test(normalized);
   const clarificationReply=Boolean(handsFree.pending);
   let intent='';
   if(wake){
