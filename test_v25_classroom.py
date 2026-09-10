@@ -31,7 +31,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260910-revisionfix1' in html
+    assert '20260910-mastery1' in html
     assert 'id="learnerNickname"' in html
     assert 'id="learnerClass"' in html
     assert "learnerNickname.value=''" in script
@@ -47,7 +47,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert "localStorage.setItem('roboTeacherQaChecklist'" in script
     assert 'const resultCopy=' in script
     assert 'labels.yourAnswer' in script
-    assert '20260910-revisionfix1' in html
+    assert '20260910-mastery1' in html
     assert 'downloadTeacherDashboardReport' in script
     assert 'id="practiceClass"' in html
     assert 'id="startDiagnostic"' in html
@@ -1488,6 +1488,22 @@ def test_revision_question_generation_is_bounded_and_can_be_retried():
     assert "error.name==='AbortError'" in script
     assert "revisionNext.textContent='Try again'" in script
     assert 'Your revision score has not been affected.' in script
+
+
+def test_revision_history_tracks_latest_best_attempts_date_and_mastery():
+    script = Path('classroom/app.js').read_text()
+    styles = Path('classroom/styles.css').read_text()
+    assert "lessonFilter.add(new Option('Mastered','mastered'))" in script
+    assert "lessonFilter.add(new Option('Needs review','review'))" in script
+    assert 'function recordRevisionResult()' in script
+    assert 'item.latestScore=currentRevision.score' in script
+    assert 'item.bestScore=Math.max' in script
+    assert 'item.revisionAttempts=' in script
+    assert 'item.lastRevisedAt=Date.now()' in script
+    assert 'item.mastered=item.bestScore>=2' in script
+    assert 'recordRevisionResult();revisionResult.textContent=' in script
+    assert 'Latest ${item.latestScore}/3 · Best ${item.bestScore}/3' in script
+    assert '.lesson-mastery{' in styles
 
 
 def test_media_endpoint_requires_a_valid_session():
