@@ -414,6 +414,16 @@ function continueHandsFreeTeaching(){
   if(currentLesson){renderCurrentLessonStep();const step=currentLesson.steps[currentLesson.index];if(step)void speakText(step,true,true)}
 }
 
+function replayCurrentTeachingAudio(){
+  const text=currentLesson?.steps[currentLesson.index]?.trim()||canvasAnswer.innerText.trim();
+  if(!text){showHandsFreeHeard('There is no explanation to repeat yet.');updateHandsFreeStatus('Listening…');return}
+  setLearningStatus('Repeating this explanation','thinking');void speakText(text,false,true);
+}
+
+function isSafeHandsFreeControl(intent){
+  return /^(?:pause|stop|continue|resume|go on|explain (?:that )?again|repeat(?: that)?|say (?:that )?again|show (?:me )?(?:a )?visual|show (?:the )?diagram|explain (?:it |that )?simpler|make (?:it |that )?simpler|simplify (?:it|that)|check my understanding|test me|ask me a question|next|next step|move on|back|previous|previous step|go back)$/.test(normalizeSpokenIntent(intent));
+}
+
 function executeHandsFreeIntent(phrase){
   const command=phrase.toLowerCase().replace(/[^a-zà-ž0-9\s()+,.?=\-]/gu,'').trim();
   const pauseCommand=/^(pause|stop)$/.test(normalizeSpokenIntent(command));
@@ -434,7 +444,7 @@ function executeHandsFreeIntent(phrase){
     continueHandsFreeTeaching();
     updateHandsFreeStatus('Listening…');return;
   }
-  if(replayCommand){recordLearningSignal('replays');const text=currentLesson?.steps[currentLesson.index]||canvasAnswer.textContent.trim();if(text)void speakText(text,true,true);updateHandsFreeStatus('Listening…');return}
+  if(replayCommand){recordLearningSignal('replays');replayCurrentTeachingAudio();updateHandsFreeStatus('Listening…');return}
   if(visualCommand){void showVisualExplanation();updateHandsFreeStatus('Listening…');return}
   if(simplerCommand){void simplifyCurrentAnswer();updateHandsFreeStatus('Listening…');return}
   if(understandingCommand){void startUnderstandingCheck();updateHandsFreeStatus('Listening…');return}
@@ -472,7 +482,7 @@ function handleHandsFreePhrase(rawPhrase,confidence=0){
   if(/^(no|nope|cancel|try again|listen again)$/.test(intent)&&handsFree.pending){handsFree.pending='';handsFree.armedUntil=0;updateHandsFreeStatus('Listening…');showHandsFreeHeard('Okay—please say “Robo-Teacher” and try again.');return}
   if(handsFree.pending&&intent!==handsFree.pending){handsFree.pending='';showHandsFreeHeard(`Correction heard: “${intent}”`)}
   if(!intent){updateHandsFreeStatus('Command ready…');showHandsFreeHeard('Wake word heard. Say the command within 7 seconds.');return}
-  if(confidence>0&&confidence<.55){handsFree.pending=intent;handsFree.armedUntil=now+15000;updateHandsFreeStatus('Please confirm…');showHandsFreeHeard(`Did you mean “${intent}”? Say “Yes”, “No”, “Try again”, or say the correction.`);return}
+  if(confidence>0&&confidence<.55&&!isSafeHandsFreeControl(intent)){handsFree.pending=intent;handsFree.armedUntil=now+15000;updateHandsFreeStatus('Please confirm…');showHandsFreeHeard(`Did you mean “${intent}”? Say “Yes”, “No”, “Try again”, or say the correction.`);return}
   handsFree.pending='';handsFree.armedUntil=0;executeHandsFreeIntent(intent);
 }
 
