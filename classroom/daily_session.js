@@ -4,6 +4,10 @@
   let dailySessionProgress=null;
   let dailySessionNext=null;
   let continueDailyPlan=null;
+  let dailyCoachCard=null;
+  let dailyCoachTitle=null;
+  let dailyCoachDetail=null;
+  let dailyCoachButton=null;
 
   function dailyDateKey(){
     const now=new Date();
@@ -46,22 +50,99 @@
     dailyPlanButton.setAttribute('aria-label',done===3?"Today's learning plan complete":done?`Continue today's learning plan. ${done} of 3 steps complete`:"Open today's learning plan");
   }
 
+  function ensureDailyCoachCard(){
+    if(dailyCoachCard)return;
+    dailyCoachCard=document.createElement('section');
+    dailyCoachCard.id='dailyCoachCard';
+    dailyCoachCard.className='lesson-recommendation daily-coach-card hidden';
+    dailyCoachCard.setAttribute('aria-live','polite');
+    const copy=document.createElement('div'),label=document.createElement('span');
+    dailyCoachTitle=document.createElement('strong');dailyCoachDetail=document.createElement('small');dailyCoachButton=document.createElement('button');
+    label.textContent='ROBO-TEACHER GUIDANCE';dailyCoachButton.type='button';
+    copy.append(label,dailyCoachTitle,dailyCoachDetail);dailyCoachCard.append(copy,dailyCoachButton);
+    dailyCoachButton.addEventListener('click',()=>{
+      const state=loadDailyState();hideDailyCoach();
+      if(completeCount(state)===3){void openDailyPlan();return}
+      continueTodayPlan();
+    });
+  }
+
+  function hideDailyCoach(){if(dailyCoachCard)dailyCoachCard.classList.add('hidden')}
+
+  function taskTitle(action){
+    return dailyPlanList.querySelector(`button[data-daily-action="${action}"]`)?.closest('.daily-plan-task')?.querySelector('strong')?.textContent?.trim()||'';
+  }
+
+  function coachTarget(action){
+    if(action==='revision'&&!revisionPanel.classList.contains('hidden'))return revisionPanel;
+    if(action==='practice'&&!practiceResults.classList.contains('hidden'))return practiceResults;
+    if(action==='lesson'&&!lessonDirector.classList.contains('hidden'))return lessonDirector;
+    return document.querySelector('.learning-area');
+  }
+
+  function placeDailyCoach(action){
+    ensureDailyCoachCard();
+    const target=coachTarget(action);
+    if(action==='practice'&&target===practiceResults){const actions=practiceResults.querySelector('.result-actions');if(actions)target.insertBefore(dailyCoachCard,actions);else target.appendChild(dailyCoachCard);return}
+    if(action==='revision'&&target===revisionPanel){const actions=revisionPanel.querySelector('.revision-actions');if(actions)target.insertBefore(dailyCoachCard,actions);else target.appendChild(dailyCoachCard);return}
+    if(action==='lesson'&&target===lessonDirector){target.appendChild(dailyCoachCard);return}
+    const header=target?.querySelector?.('.lesson-header');if(header)header.after(dailyCoachCard);else target?.prepend?.(dailyCoachCard);
+  }
+
+  function showDailyCoach(completedAction,state,{returning=false}={}){
+    ensureDailyCoachCard();
+    const done=completeCount(state),next=firstIncomplete(state),nickname=learnerNickname.value.trim();
+    placeDailyCoach(completedAction||next);
+    if(done===3){
+      const recall=dailyPlanList.dataset.revisionId?`revised ${taskTitle('revision')||'a saved lesson'}`:'kept your revision up to date';
+      const strengthen=taskTitle('practice')||'your recommended topic',discover=taskTitle('lesson')||'a new topic';
+      dailyCoachTitle.textContent="Today's learning complete";
+      dailyCoachDetail.textContent=`Excellent work, ${nickname}. You ${recall}, practised ${strengthen}, and learned ${discover}. Your next daily plan will refresh on the next calendar day.`;
+      dailyCoachButton.textContent='View completed plan ✓';
+    }else if(returning){
+      dailyCoachTitle.textContent=`Welcome back, ${nickname}`;
+      dailyCoachDetail.textContent=`You have completed ${done} of 3 steps today. Next: ${taskTitle(next)||'continue your learning plan'}.`;
+      dailyCoachButton.textContent="Continue today's plan →";
+    }else if(completedAction==='revision'){
+      dailyCoachTitle.textContent='Recall complete — well done';
+      dailyCoachDetail.textContent=`Nice work, ${nickname}. Now strengthen ${taskTitle('practice')||'your recommended topic'} with a short personalised practice.`;
+      dailyCoachButton.textContent='Continue to Strengthen →';
+    }else if(completedAction==='practice'){
+      dailyCoachTitle.textContent='Strengthen complete — good work';
+      dailyCoachDetail.textContent=`You have finished today’s practice, ${nickname}. Next, discover ${taskTitle('lesson')||'the next topic in your learning path'} step by step with Robo-Teacher.`;
+      dailyCoachButton.textContent='Continue to Discover →';
+    }else{
+      dailyCoachTitle.textContent='Step complete';
+      dailyCoachDetail.textContent=`Good progress, ${nickname}. Next: ${taskTitle(next)||'continue your learning plan'}.`;
+      dailyCoachButton.textContent="Continue today's plan →";
+    }
+    dailyCoachCard.classList.remove('hidden');
+  }
+
+  function restoreDailyCoach(){
+    if(!dailyLearnerReady()||classroom.classList.contains('hidden')){hideDailyCoach();return}
+    const state=loadDailyState(),done=completeCount(state);
+    if(done>0&&done<3&&!state.activeAction){const last=[...DAILY_ACTIONS].reverse().find(action=>state.completed.includes(action))||'';showDailyCoach(last,state,{returning:true});return}
+    if(done===0)hideDailyCoach();
+  }
+
   function setDailyActiveAction(action){
     if(!DAILY_ACTIONS.includes(action)||!dailyLearnerReady())return;
     const state=loadDailyState();
     if(state.completed.includes(action))return;
-    state.activeAction=action;state.activeStartedAt=Date.now();saveDailyState(state);
+    state.activeAction=action;state.activeStartedAt=Date.now();saveDailyState(state);hideDailyCoach();
   }
 
   function markDailyStep(action){
     if(!DAILY_ACTIONS.includes(action)||!dailyLearnerReady())return;
-    const state=loadDailyState();
-    if(!state.completed.includes(action))state.completed.push(action);
+    const state=loadDailyState(),newlyCompleted=!state.completed.includes(action);
+    if(newlyCompleted)state.completed.push(action);
     if(state.activeAction===action){state.activeAction='';state.activeStartedAt=0}
     saveDailyState(state);
     if(!dailyPlanArea.classList.contains('hidden'))renderDailyPlan(currentProgress);
     const done=completeCount(state);
     setLearningStatus(done===3?"Today's learning plan complete":`Today's plan: ${done} of 3 steps complete`,'success');
+    if(newlyCompleted)showDailyCoach(action,state);
   }
 
   function ensureDailySessionSummary(){
@@ -169,9 +250,9 @@
     return result;
   };
 
-  const classroomObserver=new MutationObserver(()=>{if(!classroom.classList.contains('hidden'))refreshDailyPlanButton()});
+  const classroomObserver=new MutationObserver(()=>{if(!classroom.classList.contains('hidden')){refreshDailyPlanButton();setTimeout(restoreDailyCoach,120)}});
   classroomObserver.observe(classroom,{attributes:true,attributeFilter:['class']});
-  learnerNickname.addEventListener('change',()=>refreshDailyPlanButton());
-  learnerClass.addEventListener('change',()=>refreshDailyPlanButton());
+  learnerNickname.addEventListener('change',()=>{refreshDailyPlanButton();hideDailyCoach()});
+  learnerClass.addEventListener('change',()=>{refreshDailyPlanButton();hideDailyCoach()});
   refreshDailyPlanButton();
 })();
