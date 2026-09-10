@@ -31,7 +31,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260910-recovery1' in html
+    assert '20260910-backgroundfix1' in html
     assert 'id="learnerNickname"' in html
     assert 'id="learnerClass"' in html
     assert "learnerNickname.value=''" in script
@@ -47,7 +47,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert "localStorage.setItem('roboTeacherQaChecklist'" in script
     assert 'const resultCopy=' in script
     assert 'labels.yourAnswer' in script
-    assert '20260910-recovery1' in html
+    assert '20260910-backgroundfix1' in html
     assert 'downloadTeacherDashboardReport' in script
     assert 'id="practiceClass"' in html
     assert 'id="startDiagnostic"' in html
@@ -1394,9 +1394,12 @@ def test_hands_free_recovers_from_browser_network_and_microphone_interruptions()
     assert "document.addEventListener('visibilitychange'" in script
     assert "handsFree.recognition.addEventListener('start'" in script
     assert 'Date.now()-handsFree.startedAt>5000' in script
-    assert "event.error==='not-allowed'||event.error==='service-not-allowed'" in script
+    assert "event.error==='not-allowed'&&!handsFree.hasStarted&&document.visibilityState==='visible'" in script
     assert "event.error==='aborted'&&(!handsFree.enabled||handsFree.processing)" in script
     assert "scheduleHandsFreeRecovery('answer-complete')" in script
+    assert "document.visibilityState==='hidden'" in script
+    assert "updateHandsFreeStatus('Paused in background…')" in script
+    assert 'handsFree.hasStarted=true' in script
 
 
 def test_media_endpoint_requires_a_valid_session():
