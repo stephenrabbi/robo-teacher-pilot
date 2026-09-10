@@ -77,6 +77,7 @@ class ClassroomSpeech(BaseModel):
     session_token: str = Field(min_length=20, max_length=300)
     language: SupportedLanguage = "English"
     voice_gender: Literal["female", "male"] = "female"
+    pace: Literal["slower", "normal", "faster"] = "normal"
 
 
 class PracticeStart(BaseModel):
@@ -331,7 +332,7 @@ def classroom_speech(speech: ClassroomSpeech):
         # Do not send HTTP 200 until Gemini has produced actual audio. This
         # prevents an empty provider stream from making the browser flash
         # "Pause" and then silently stop.
-        audio_stream = iter(stream_tutor_speech(text, speech.language, speech.voice_gender))
+        audio_stream = iter(stream_tutor_speech(text, speech.language, speech.voice_gender, speech.pace))
         first_chunk = next(audio_stream)
         return StreamingResponse(
             chain((first_chunk,), audio_stream),
@@ -343,7 +344,7 @@ def classroom_speech(speech: ClassroomSpeech):
             # Keep Gemini 3.1 streaming as the primary voice, then use the
             # stable Gemini TTS endpoint with the same Aoede/Charon voice if
             # the preview stream returns no audio.
-            fallback_stream = iter(stream_stable_tutor_speech(text, speech.language, speech.voice_gender))
+            fallback_stream = iter(stream_stable_tutor_speech(text, speech.language, speech.voice_gender, speech.pace))
             first_fallback_chunk = next(fallback_stream)
             return StreamingResponse(
                 chain((first_fallback_chunk,), fallback_stream),

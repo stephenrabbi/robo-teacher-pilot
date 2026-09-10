@@ -31,7 +31,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260910-replay2' in html
+    assert '20260910-voicespeed1' in html
     assert 'id="learnerNickname"' in html
     assert 'id="learnerClass"' in html
     assert "learnerNickname.value=''" in script
@@ -47,7 +47,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert "localStorage.setItem('roboTeacherQaChecklist'" in script
     assert 'const resultCopy=' in script
     assert 'labels.yourAnswer' in script
-    assert '20260910-replay2' in html
+    assert '20260910-voicespeed1' in html
     assert 'downloadTeacherDashboardReport' in script
     assert 'id="practiceClass"' in html
     assert 'id="startDiagnostic"' in html
@@ -189,7 +189,7 @@ def test_natural_speech_endpoint_uses_female_avatar_voice():
     assert response.status_code == 200
     assert response.headers['content-type'].startswith('audio/l16')
     assert response.content == b'pcm-audio'
-    assert tts.call_args.args[1:] == ('English', 'female')
+    assert tts.call_args.args[1:] == ('English', 'female', 'normal')
 
 
 def test_empty_stream_uses_stable_gemini_tts_fallback():
@@ -204,7 +204,7 @@ def test_empty_stream_uses_stable_gemini_tts_fallback():
         })
     assert response.status_code == 200
     assert response.content == b'fallback-pcm'
-    fallback.assert_called_once_with('The answer is six.', 'English', 'female')
+    fallback.assert_called_once_with('The answer is six.', 'English', 'female', 'normal')
 
 
 def test_voice_fallback_is_chunked_for_faster_first_audio():
@@ -1331,6 +1331,21 @@ def test_safe_replay_control_bypasses_low_confidence_question_confirmation():
     assert 'confidence<.55&&!isSafeHandsFreeControl(intent)' in script
     assert "setLearningStatus('Repeating this explanation','thinking')" in script
     assert 'void speakText(text,false,true)' in script
+
+
+def test_teacher_voice_speed_uses_natural_tts_pacing_and_responsive_controls():
+    html = Path('classroom/index.html').read_text()
+    script = Path('classroom/app.js').read_text()
+    styles = Path('classroom/styles.css').read_text()
+    assert 'id="teacherSpeed"' in html
+    assert "pace:teacherSpeechPace" in script
+    assert 'function setTeacherSpeechPace(pace,replay=false)' in script
+    for command in ('speak slower', 'normal speed', 'speak faster'):
+        assert command in script
+    assert "localStorage.setItem('roboTeacherSpeechPace'" in script
+    assert '.teacher-speed{' in styles
+    assert '_speech_pace_direction(pace)' in inspect.getsource(tutor.stream_tutor_speech)
+    assert '_speech_pace_direction(pace)' in inspect.getsource(tutor.stream_stable_tutor_speech)
 
 
 def test_media_endpoint_requires_a_valid_session():

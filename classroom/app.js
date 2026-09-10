@@ -18,6 +18,7 @@ const teacherPanel=document.getElementById('teacherPanel');
 const readAnswerButton=document.getElementById('readAnswer');
 const handsFreeToggle=document.getElementById('handsFreeToggle');
 const handsFreeHeard=document.getElementById('handsFreeHeard');
+const teacherSpeed=document.getElementById('teacherSpeed');
 const teacherVoiceStatus=document.getElementById('teacherVoiceStatus');
 const learningStatus=document.getElementById('learningStatus');
 const form=document.getElementById('chatForm');
@@ -175,6 +176,7 @@ const founderAudioSources=new Set();
 let teacherStreamComplete=false;
 let founderStreamComplete=false;
 let teacherSpeechPaused=false;
+let teacherSpeechPace=['slower','normal','faster'].includes(localStorage.getItem('roboTeacherSpeechPace'))?localStorage.getItem('roboTeacherSpeechPace'):'normal';
 let founderSpeechController=null;
 let founderSpeechRequest=0;
 let avatarMotionFrame=null;
@@ -338,7 +340,7 @@ function speechAlternativeScore(alternative){
   let score=confidence*8+Math.min(wordCount,18)*.12;
   if(/\b(?:robo|robot|robotic)\s*(?:teacher|tutor|feature|olukọ|oluko|malam|malami|onye nkuzi)(?=\s|[,.:;-]|$)/u.test(transcript))score+=4;
   if(/\b(?:square root|square route|squared root|fraction|multiply|divide|division|equation|angle|graph|plus|minus|solve|calculate)\b/.test(transcript))score+=3;
-  if(/\b(?:pause|pulse|paws|pose|pores|continue|resume|repeat|simpler|understanding|visual|diagram|next step|previous step)\b/.test(transcript))score+=2;
+  if(/\b(?:pause|pulse|paws|pose|pores|continue|resume|repeat|simpler|understanding|visual|diagram|next step|previous step|speak slower|normal speed|speak faster)\b/.test(transcript))score+=2;
   return score;
 }
 
@@ -420,8 +422,15 @@ function replayCurrentTeachingAudio(){
   setLearningStatus('Repeating this explanation','thinking');void speakText(text,false,true);
 }
 
+function setTeacherSpeechPace(pace,replay=false){
+  if(!['slower','normal','faster'].includes(pace))return;
+  teacherSpeechPace=pace;teacherSpeed.value=pace;localStorage.setItem('roboTeacherSpeechPace',pace);
+  const label={slower:'Slower voice selected',normal:'Normal voice speed selected',faster:'Faster voice selected'}[pace];setLearningStatus(label,'success');showHandsFreeHeard(label);
+  if(replay)replayCurrentTeachingAudio();
+}
+
 function isSafeHandsFreeControl(intent){
-  return /^(?:pause|stop|continue|resume|go on|explain (?:that )?again|repeat(?: that)?|say (?:that )?again|show (?:me )?(?:a )?visual|show (?:the )?diagram|explain (?:it |that )?simpler|make (?:it |that )?simpler|simplify (?:it|that)|check my understanding|test me|ask me a question|next|next step|move on|back|previous|previous step|go back)$/.test(normalizeSpokenIntent(intent));
+  return /^(?:pause|stop|continue|resume|go on|explain (?:that )?again|repeat(?: that)?|say (?:that )?again|show (?:me )?(?:a )?visual|show (?:the )?diagram|explain (?:it |that )?simpler|make (?:it |that )?simpler|simplify (?:it|that)|check my understanding|test me|ask me a question|next|next step|move on|back|previous|previous step|go back|speak slower|slow down|normal speed|speak normally|speak faster|speed up)$/.test(normalizeSpokenIntent(intent));
 }
 
 function executeHandsFreeIntent(phrase){
@@ -434,8 +443,11 @@ function executeHandsFreeIntent(phrase){
   const understandingCommand=/^(check my understanding|test me|ask me a question)$/.test(command);
   const nextStepCommand=/^(next|next step|move on)$/.test(command);
   const previousStepCommand=/^(back|previous|previous step|go back)$/.test(command);
+  const slowerCommand=/^(speak slower|slow down)$/.test(command);
+  const normalSpeedCommand=/^(normal speed|speak normally)$/.test(command);
+  const fasterCommand=/^(speak faster|speed up)$/.test(command);
   const stopListeningCommand=/^(stop listening|turn off|goodbye)$/.test(command);
-  if(teacherPanel.classList.contains('speaking')&&!pauseCommand&&!continueCommand&&!replayCommand&&!visualCommand&&!simplerCommand&&!understandingCommand&&!nextStepCommand&&!previousStepCommand&&!stopListeningCommand)return;
+  if(teacherPanel.classList.contains('speaking')&&!pauseCommand&&!continueCommand&&!replayCommand&&!visualCommand&&!simplerCommand&&!understandingCommand&&!nextStepCommand&&!previousStepCommand&&!slowerCommand&&!normalSpeedCommand&&!fasterCommand&&!stopListeningCommand)return;
   if(pauseCommand){
     if(teacherPanel.classList.contains('speaking'))void pauseTeacherAudio();else if(currentLesson)pauseLessonForQuestion('voice');
     openHandsFreeFollowUpWindow();return;
@@ -450,6 +462,9 @@ function executeHandsFreeIntent(phrase){
   if(understandingCommand){void startUnderstandingCheck();updateHandsFreeStatus('Listening…');return}
   if(nextStepCommand){if(currentLesson)moveLessonStep(1);updateHandsFreeStatus('Listening…');return}
   if(previousStepCommand){if(currentLesson)moveLessonStep(-1);updateHandsFreeStatus('Listening…');return}
+  if(slowerCommand){setTeacherSpeechPace('slower',true);updateHandsFreeStatus('Listening…');return}
+  if(normalSpeedCommand){setTeacherSpeechPace('normal',true);updateHandsFreeStatus('Listening…');return}
+  if(fasterCommand){setTeacherSpeechPace('faster',true);updateHandsFreeStatus('Listening…');return}
   if(stopListeningCommand){
     handsFree.enabled=false;handsFree.processing=false;stopHandsFreeListening();updateHandsFreeStatus();showHandsFreeHeard('Wake-word listening is off.');setLearningStatus('Wake-word teaching off');return;
   }
@@ -748,7 +763,7 @@ async function speakText(text,preserveAudioUnlock=false,displayCanvasAvatar=true
     if(!preserveAudioUnlock||!teacherAudioKeepAlive)await startAudioKeepAlive();
     const token=await ensureSession();
     if(requestId!==teacherSpeechRequest)return;
-    const response=await requestTeacherSpeech({text:prepareSpeechText(text),session_token:token,language:language.value,voice_gender:teacherPanel.dataset.voiceGender==='male'?'male':'female'},teacherSpeechController.signal,requestId);
+    const response=await requestTeacherSpeech({text:prepareSpeechText(text),session_token:token,language:language.value,voice_gender:teacherPanel.dataset.voiceGender==='male'?'male':'female',pace:teacherSpeechPace},teacherSpeechController.signal,requestId);
     if(response.status===401){sessionToken=null;throw new Error('session')}
     if(!response.ok)throw new Error('natural voice unavailable');
     if(!response.body)throw new Error('stream unavailable');
@@ -767,6 +782,8 @@ readAnswerButton.addEventListener('click',async()=>{
   try{await prepareTeacherAudio()}catch(_error){return}
   void speakText(canvasAnswer.textContent);
 });
+teacherSpeed.value=teacherSpeechPace;
+teacherSpeed.addEventListener('change',()=>setTeacherSpeechPace(teacherSpeed.value,teacherPanel.classList.contains('speaking')||teacherSpeechPaused));
 
 function stopFounderSpeech(){
   founderSpeechRequest+=1;if(founderSpeechController){founderSpeechController.abort();founderSpeechController=null}

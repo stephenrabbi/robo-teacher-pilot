@@ -242,7 +242,11 @@ def _prepare_spoken_transcript(text: str, language: str) -> str:
     return " ".join(spoken.split())
 
 
-def stream_tutor_speech(text: str, language: str = "English", voice_gender: str = "female"):
+def _speech_pace_direction(pace: str) -> str:
+    return {"slower": "Speak slowly and clearly, with slightly longer pauses between teaching steps. ", "faster": "Speak briskly but clearly, without skipping words or Maths steps. ", "normal": "Speak at a natural classroom pace. "}.get(pace, "Speak at a natural classroom pace. ")
+
+
+def stream_tutor_speech(text: str, language: str = "English", voice_gender: str = "female", pace: str = "normal"):
     """Yield raw 24 kHz mono PCM as Gemini produces it for low-latency playback."""
     gender = "male" if voice_gender == "male" else "female"
     language_name = TTS_LANGUAGE_NAMES.get(language, "English")
@@ -262,6 +266,7 @@ def stream_tutor_speech(text: str, language: str = "English", voice_gender: str 
         f"Use the same unmistakably adult {gender} teacher voice speaking {language_name}. "
         f"{local_number_direction}"
         f"{delivery_style}"
+        f"{_speech_pace_direction(pace)}"
         "Use punctuation for natural pauses and keep the delivery fluid.\n\n"
         f"TRANSCRIPT:\n{transcript}"
     )
@@ -287,7 +292,7 @@ def stream_tutor_speech(text: str, language: str = "English", voice_gender: str 
     raise RuntimeError("Gemini streaming TTS returned no audio")
 
 
-def stream_stable_tutor_speech(text: str, language: str = "English", voice_gender: str = "female"):
+def stream_stable_tutor_speech(text: str, language: str = "English", voice_gender: str = "female", pace: str = "normal"):
     """Yield short Gemini TTS sections so fallback playback can begin quickly."""
     gender = "male" if voice_gender == "male" else "female"
     language_name = TTS_LANGUAGE_NAMES.get(language, "English")
@@ -309,6 +314,7 @@ def stream_stable_tutor_speech(text: str, language: str = "English", voice_gende
             f"Speak in {language_name}. "
             f"{local_number_direction}"
             f"{delivery_style}"
+            f"{_speech_pace_direction(pace)}"
             "Use the written punctuation for natural pauses, vary emphasis slightly, and avoid a stiff announcer cadence.\n\n"
             f"TRANSCRIPT:\n{chunk}"
         )
@@ -341,9 +347,9 @@ def stream_stable_tutor_speech(text: str, language: str = "English", voice_gende
             raise RuntimeError("Gemini TTS could not generate audio") from last_error
 
 
-def generate_tutor_speech(text: str, language: str = "English", voice_gender: str = "female") -> bytes:
+def generate_tutor_speech(text: str, language: str = "English", voice_gender: str = "female", pace: str = "normal") -> bytes:
     """Generate expressive teacher speech as a WAV file using Gemini TTS."""
-    return _pcm_to_wav(b"".join(stream_stable_tutor_speech(text, language, voice_gender)))
+    return _pcm_to_wav(b"".join(stream_stable_tutor_speech(text, language, voice_gender, pace)))
 
 
 def _safe_arithmetic(expression: str):
