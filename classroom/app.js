@@ -198,7 +198,7 @@ const teachingStage={mode:'lesson',bookmark:0};
 const lessonChoreography={enabled:true,visited:new Set(),timer:null};
 let learnerMemoryId='';
 let adaptiveMemory={replays:0,simplifications:0,questions:0,correct:0,incorrect:0};
-const handsFree={enabled:false,recognition:null,processing:false,restartTimer:null,phraseTimer:null,phraseBuffer:'',bufferConfidence:0,pending:'',lastPhrase:'',lastAt:0,armedUntil:0,bargeInAt:0,ignorePauseUntil:0};
+const handsFree={enabled:false,recognition:null,processing:false,restartTimer:null,restartAttempts:0,lastError:'',startedAt:0,phraseTimer:null,phraseBuffer:'',bufferConfidence:0,pending:'',lastPhrase:'',lastAt:0,armedUntil:0,bargeInAt:0,ignorePauseUntil:0};
 let languageSwitchRequest=0;
 let teacherAudioKeepAlive=null;
 let understandingCheckId=null;
@@ -404,10 +404,23 @@ function queueHandsFreePhrase(rawPhrase,confidence=0){
 function startHandsFreeListening(){
   if(!handsFree.enabled||handsFree.processing||!handsFree.recognition)return;
   clearTimeout(handsFree.restartTimer);handsFree.recognition.lang=handsFreeLanguage();
-  try{handsFree.recognition.start();updateHandsFreeStatus(lessonInterruption?'Ask your question…':'Listening…')}catch(_error){/* Recognition is already active. */}
+  try{handsFree.recognition.start()}catch(error){if(error?.name!=='InvalidStateError')scheduleHandsFreeRecovery('start')}
 }
 
 function stopHandsFreeListening(){clearTimeout(handsFree.restartTimer);try{handsFree.recognition?.stop()}catch(_error){/* Already stopped. */}}
+
+function scheduleHandsFreeRecovery(reason=''){
+  if(!handsFree.enabled||handsFree.processing)return;
+  clearTimeout(handsFree.restartTimer);
+  if(!navigator.onLine){handsFree.lastError='offline';updateHandsFreeStatus('Waiting for network…');showHandsFreeHeard('Hands-free paused because this device is offline. It will reconnect automatically.');return}
+  handsFree.lastError=reason;handsFree.restartAttempts=Math.min(handsFree.restartAttempts+1,6);
+  const delay=Math.min(500*2**(handsFree.restartAttempts-1),8000);
+  updateHandsFreeStatus(`Reconnecting… ${handsFree.restartAttempts}`);
+  handsFree.restartTimer=setTimeout(startHandsFreeListening,delay);
+}
+
+window.addEventListener('online',()=>{if(handsFree.enabled&&!handsFree.processing){handsFree.restartAttempts=0;updateHandsFreeStatus('Reconnecting…');scheduleHandsFreeRecovery('online')}});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&handsFree.enabled&&!handsFree.processing)scheduleHandsFreeRecovery('visible')});
 
 function resumeBookmarkedLessonByVoice(){
   stopTeacherAudio();lessonInterruption=null;lessonDirector.classList.remove('lesson-paused');
@@ -551,15 +564,23 @@ function enableHandsFree(){
   const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!Recognition){addMessage('Hands-free commands are not supported in this browser. You can still use the Voice button.','teacher');return;}
   handsFree.recognition=new Recognition();handsFree.recognition.continuous=true;handsFree.recognition.interimResults=true;handsFree.recognition.maxAlternatives=5;
-  handsFree.recognition.addEventListener('result',event=>{for(let index=event.resultIndex;index<event.results.length;index++){const result=event.results[index];if(handsFreeBargeIn(result))continue;const alternative=chooseBestSpeechAlternative(result),transcript=(alternative?.transcript||'').trim();if(!transcript)continue;if(result.isFinal)queueHandsFreePhrase(transcript,alternative.confidence);else showHandsFreeHeard(`Hearing: “${transcript}…”`)}});
-  handsFree.recognition.addEventListener('end',()=>{if(handsFree.enabled&&!handsFree.processing)handsFree.restartTimer=setTimeout(startHandsFreeListening,350)});
-  handsFree.recognition.addEventListener('error',event=>{if(event.error==='not-allowed'){handsFree.enabled=false;updateHandsFreeStatus();addMessage('Microphone permission is needed for hands-free teaching.','teacher')}});
-  handsFree.enabled=true;handsFree.pending='';handsFree.armedUntil=0;clearHandsFreePhraseBuffer();showHandsFreeHeard('Listening for “Robo-Teacher”…');updateHandsFreeStatus('Listening…');startHandsFreeListening();setLearningStatus('Say “Robo-Teacher” before a command','listening');
+  handsFree.recognition.addEventListener('result',event=>{handsFree.restartAttempts=0;for(let index=event.resultIndex;index<event.results.length;index++){const result=event.results[index];if(handsFreeBargeIn(result))continue;const alternative=chooseBestSpeechAlternative(result),transcript=(alternative?.transcript||'').trim();if(!transcript)continue;if(result.isFinal)queueHandsFreePhrase(transcript,alternative.confidence);else showHandsFreeHeard(`Hearing: “${transcript}…”`)}});
+  handsFree.recognition.addEventListener('start',()=>{handsFree.startedAt=Date.now();handsFree.lastError='';updateHandsFreeStatus(lessonInterruption?'Ask your question…':'Listening…')});
+  handsFree.recognition.addEventListener('end',()=>{if(Date.now()-handsFree.startedAt>5000)handsFree.restartAttempts=0;scheduleHandsFreeRecovery('ended')});
+  handsFree.recognition.addEventListener('error',event=>{
+    handsFree.lastError=event.error;
+    if(event.error==='not-allowed'||event.error==='service-not-allowed'){
+      handsFree.enabled=false;clearTimeout(handsFree.restartTimer);updateHandsFreeStatus();addMessage('Microphone permission is needed for hands-free teaching.','teacher');setLearningStatus('Microphone access blocked','paused');return;
+    }
+    if(event.error==='aborted'&&(!handsFree.enabled||handsFree.processing))return;
+    scheduleHandsFreeRecovery(event.error);
+  });
+  handsFree.enabled=true;handsFree.restartAttempts=0;handsFree.lastError='';handsFree.pending='';handsFree.armedUntil=0;clearHandsFreePhraseBuffer();showHandsFreeHeard('Listening for “Robo-Teacher”…');updateHandsFreeStatus('Connecting…');startHandsFreeListening();setLearningStatus('Say “Robo-Teacher” before a command','listening');
 }
 
 handsFreeToggle.addEventListener('click',()=>{
   if(!handsFree.enabled){enableHandsFree();return}
-  handsFree.enabled=false;handsFree.processing=false;handsFree.pending='';clearHandsFreePhraseBuffer();stopHandsFreeListening();updateHandsFreeStatus();showHandsFreeHeard('');setLearningStatus('Wake-word teaching off');
+  handsFree.enabled=false;handsFree.processing=false;handsFree.restartAttempts=0;handsFree.lastError='';handsFree.pending='';clearHandsFreePhraseBuffer();stopHandsFreeListening();updateHandsFreeStatus();showHandsFreeHeard('');setLearningStatus('Wake-word teaching off');
 });
 
 async function ensureSession(){
@@ -1665,5 +1686,5 @@ form.addEventListener('submit',async(e)=>{
     thinking.textContent='I’ve placed the complete worked solution on the Teaching Canvas.';
   }catch(err){
     thinking.textContent=err.message&&err.message.includes('wait')?err.message:'Sorry, I had a small technical hiccup. Please try your question again in a moment.';
-  }finally{sendButton.disabled=false;sendButton.textContent='Send';setLearningStatus('Answer ready');keepTeachingCanvasVisible();if(handsFree.enabled){handsFree.processing=false;handsFree.restartTimer=setTimeout(startHandsFreeListening,500)}}
+  }finally{sendButton.disabled=false;sendButton.textContent='Send';setLearningStatus('Answer ready');keepTeachingCanvasVisible();if(handsFree.enabled){handsFree.processing=false;handsFree.restartAttempts=0;scheduleHandsFreeRecovery('answer-complete')}}
 });
