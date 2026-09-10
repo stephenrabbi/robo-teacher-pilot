@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
+<title id="title">Robo-Teacher Today Learning Plan illustrated product walkthrough</title>
+<desc id="desc">Illustration of the verified Recall, Strengthen and Discover daily learning flow.</desc>
+<rect width="1200" height="675" fill="#f6f8fb"/>
+<rect x="32" y="28" width="1136" height="619" rx="30" fill="#ffffff" stroke="#d6deea" stroke-width="2"/>
+<rect x="32" y="28" width="230" height="619" rx="30" fill="#10223d"/>
+<rect x="232" y="28" width="30" height="619" fill="#10223d"/>
+<text x="72" y="88" font-family="Arial, sans-serif" font-size="26" font-weight="700" fill="#ffffff" letter-spacing="2">ROBO-TEACHER</text>
+<text x="72" y="116" font-family="Arial, sans-serif" font-size="12" font-weight="700" fill="#d39a28">AI-POWERED LEARNING FOR EVERYONE</text>
+<rect x="58" y="174" width="176" height="54" rx="12" fill="#ffffff"/>
+<text x="93" y="209" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#10223d">Today</text>
+<text x="72" y="278" font-family="Arial, sans-serif" font-size="18" fill="#cbd6e5">Chat</text>
+<text x="72" y="327" font-family="Arial, sans-serif" font-size="18" fill="#cbd6e5">Practice</text>
+<text x="72" y="376" font-family="Arial, sans-serif" font-size="18" fill="#cbd6e5">Progress</text>
+<text x="72" y="425" font-family="Arial, sans-serif" font-size="18" fill="#cbd6e5">My Lessons</text>
+<text x="72" y="555" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#d39a28">Learn today.</text>
+<text x="72" y="582" font-family="Arial, sans-serif" font-size="18" fill="#ffffff">Build tomorrow.</text>
+<text x="302" y="83" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#3977df" letter-spacing="2">ILLUSTRATED PRODUCT WALKTHROUGH</text>
+<text x="302" y="128" font-family="Arial, sans-serif" font-size="42" font-weight="700" fill="#10223d">Today’s Learning Plan</text>
+<text x="302" y="158" font-family="Arial, sans-serif" font-size="19" fill="#5f6f86">A learner-specific daily journey that remembers progress.</text>
+<rect x="302" y="194" width="824" height="105" rx="18" fill="#fff8e8" stroke="#efd79c"/>
+<circle cx="349" cy="247" r="26" fill="#d39a28"/>
+<text x="340" y="256" font-family="Arial, sans-serif" font-size="25" font-weight="700" fill="#ffffff">1</text>
+<text x="396" y="235" font-family="Arial, sans-serif" font-size="25" font-weight="700" fill="#10223d">RECALL</text>
+<text x="396" y="268" font-family="Arial, sans-serif" font-size="18" fill="#5f6f86">Revisit a saved lesson when revision is due.</text>
+<rect x="302" y="318" width="824" height="105" rx="18" fill="#eef8f4" stroke="#b7dfd0"/>
+<circle cx="349" cy="371" r="26" fill="#1f9d6a"/>
+<text x="340" y="380" font-family="Arial, sans-serif" font-size="25" font-weight="700" fill="#ffffff">2</text>
+<text x="396" y="359" font-family="Arial, sans-serif" font-size="25" font-weight="700" fill="#10223d">STRENGTHEN</text>
+<text x="396" y="392" font-family="Arial, sans-serif" font-size="18" fill="#5f6f86">Practise the recommended topic at the learner’s level.</text>
+<rect x="302" y="442" width="824" height="105" rx="18" fill="#eef4ff" stroke="#bfd1f4"/>
+<circle cx="349" cy="495" r="26" fill="#3977df"/>
+<text x="340" y="504" font-family="Arial, sans-serif" font-size="25" font-weight="700" fill="#ffffff">3</text>
+<text x="396" y="483" font-family="Arial, sans-serif" font-size="25" font-weight="700" fill="#10223d">DISCOVER</text>
+<text x="396" y="516" font-family="Arial, sans-serif" font-size="18" fill="#5f6f86">Begin the next topic in the curriculum pathway.</text>
+<rect x="302" y="574" width="520" height="42" rx="21" fill="#e8eef7"/>
+<rect x="302" y="574" width="173" height="42" rx="21" fill="#d39a28"/>
+<text x="842" y="602" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#10223d">Today 1/3 — progress persists</text>
+</svg>
