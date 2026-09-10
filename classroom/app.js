@@ -188,7 +188,7 @@ const teachingStage={mode:'lesson',bookmark:0};
 const lessonChoreography={enabled:true,visited:new Set(),timer:null};
 let learnerMemoryId='';
 let adaptiveMemory={replays:0,simplifications:0,questions:0,correct:0,incorrect:0};
-const handsFree={enabled:false,recognition:null,processing:false,restartTimer:null,phraseTimer:null,phraseBuffer:'',bufferConfidence:0,pending:'',lastPhrase:'',lastAt:0,armedUntil:0};
+const handsFree={enabled:false,recognition:null,processing:false,restartTimer:null,phraseTimer:null,phraseBuffer:'',bufferConfidence:0,pending:'',lastPhrase:'',lastAt:0,armedUntil:0,bargeInAt:0,ignorePauseUntil:0};
 let languageSwitchRequest=0;
 let teacherAudioKeepAlive=null;
 let understandingCheckId=null;
@@ -359,6 +359,21 @@ function clearHandsFreePhraseBuffer(){
   clearTimeout(handsFree.phraseTimer);handsFree.phraseTimer=null;handsFree.phraseBuffer='';handsFree.bufferConfidence=0;
 }
 
+function handsFreeBargeIn(result){
+  const alternatives=Array.from(result).map(item=>(item.transcript||'').trim()).filter(Boolean);
+  const command=alternatives.find(transcript=>/^(?:(?:hey\s+)?(?:robo|robot|robotic)\s*(?:teacher|tutor|feature)[\s,.:;-]*)?(?:please\s+)?(?:pause|pulse|pals|paws|pose|pores)$/i.test(transcript));
+  if(command&&Date.now()<handsFree.ignorePauseUntil)return true;
+  if(!teacherPanel.classList.contains('speaking')||Date.now()-handsFree.bargeInAt<1200)return false;
+  const wake=alternatives.find(transcript=>/(?:^|\s)(?:hey\s+)?(?:robo|robot|robotic)\s*(?:teacher|tutor|feature)\b/i.test(transcript));
+  if(!command&&!wake)return false;
+  handsFree.bargeInAt=Date.now();clearHandsFreePhraseBuffer();void pauseTeacherAudio();handsFree.armedUntil=Date.now()+7000;
+  if(command){
+    const interpreted=normalizeSpokenIntent(command.toLowerCase().replace(/^(?:(?:hey\s+)?(?:robo|robot|robotic)\s*(?:teacher|tutor|feature)[\s,.:;-]*)?(?:please\s+)?/i,''));
+    handsFree.pending='';handsFree.armedUntil=0;handsFree.ignorePauseUntil=Date.now()+1800;showHandsFreeHeard(`Heard: “${command}” · Interpreted: “${interpreted}”`);updateHandsFreeStatus('Paused');return true;
+  }
+  showHandsFreeHeard(`Heard: “${wake}” — teacher paused so I can hear you.`);updateHandsFreeStatus('Ask your question…');return false;
+}
+
 function queueHandsFreePhrase(rawPhrase,confidence=0){
   const phrase=rawPhrase.trim();if(!phrase)return;
   clearTimeout(handsFree.phraseTimer);
@@ -436,7 +451,7 @@ function enableHandsFree(){
   const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!Recognition){addMessage('Hands-free commands are not supported in this browser. You can still use the Voice button.','teacher');return;}
   handsFree.recognition=new Recognition();handsFree.recognition.continuous=true;handsFree.recognition.interimResults=true;handsFree.recognition.maxAlternatives=5;
-  handsFree.recognition.addEventListener('result',event=>{for(let index=event.resultIndex;index<event.results.length;index++){const result=event.results[index],alternative=chooseBestSpeechAlternative(result),transcript=(alternative?.transcript||'').trim();if(!transcript)continue;if(result.isFinal)queueHandsFreePhrase(transcript,alternative.confidence);else showHandsFreeHeard(`Hearing: “${transcript}…”`)}});
+  handsFree.recognition.addEventListener('result',event=>{for(let index=event.resultIndex;index<event.results.length;index++){const result=event.results[index];if(handsFreeBargeIn(result))continue;const alternative=chooseBestSpeechAlternative(result),transcript=(alternative?.transcript||'').trim();if(!transcript)continue;if(result.isFinal)queueHandsFreePhrase(transcript,alternative.confidence);else showHandsFreeHeard(`Hearing: “${transcript}…”`)}});
   handsFree.recognition.addEventListener('end',()=>{if(handsFree.enabled&&!handsFree.processing)handsFree.restartTimer=setTimeout(startHandsFreeListening,350)});
   handsFree.recognition.addEventListener('error',event=>{if(event.error==='not-allowed'){handsFree.enabled=false;updateHandsFreeStatus();addMessage('Microphone permission is needed for hands-free teaching.','teacher')}});
   handsFree.enabled=true;handsFree.pending='';handsFree.armedUntil=0;clearHandsFreePhraseBuffer();showHandsFreeHeard('Listening for “Robo-Teacher”…');updateHandsFreeStatus('Listening…');startHandsFreeListening();setLearningStatus('Say “Robo-Teacher” before a command','listening');
