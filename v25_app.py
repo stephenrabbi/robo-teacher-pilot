@@ -13,6 +13,7 @@ from main import app
 _CLASSROOM_INDEX = Path(__file__).resolve().parent / "classroom" / "index.html"
 _DAILY_SESSION_SCRIPT = '<script src="/classroom/daily_session.js?v=20260910-daily-session2"></script>'
 _DAILY_GUIDANCE_FIX_SCRIPT = '<script src="/classroom/daily_guidance_fix.js?v=20260910-guidance-fix1"></script>'
+_DAILY_RETURN_FIX_SCRIPT = '<script src="/classroom/daily_return_fix.js?v=20260910-return-fix1"></script>'
 
 
 @app.middleware("http")
@@ -25,6 +26,8 @@ async def _load_daily_session_progress(request: Request, call_next):
             scripts.append(_DAILY_SESSION_SCRIPT)
         if "daily_guidance_fix.js" not in html:
             scripts.append(_DAILY_GUIDANCE_FIX_SCRIPT)
+        if "daily_return_fix.js" not in html:
+            scripts.append(_DAILY_RETURN_FIX_SCRIPT)
         if scripts:
             html = html.replace("</body>", "  " + "\n  ".join(scripts) + "\n</body>")
         return HTMLResponse(html)
