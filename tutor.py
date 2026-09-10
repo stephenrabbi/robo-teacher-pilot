@@ -632,6 +632,31 @@ def generate_understanding_check(text: str, response_language: str, class_level:
     return {"question": data["question"].strip(), "choices": [choice.strip() for choice in choices], "correct_index": correct_index, "feedback": data["feedback"].strip()}
 
 
+def fallback_understanding_check(text: str, response_language: str = "English", class_level: str = "JSS2") -> dict:
+    """Build a small lesson-grounded check when the model is temporarily unavailable."""
+    clean = re.sub(r"\s+", " ", text).strip()
+    revision_match = re.search(r"revision question\s+([123])", clean, re.IGNORECASE)
+    revision_number = int(revision_match.group(1)) if revision_match else 1
+    root_match = re.search(r"square root of\s+(\d+(?:\.\d+)?).*?(?:is|equals|=)\s+(\d+(?:\.\d+)?)", clean, re.IGNORECASE)
+    if root_match:
+        radicand, answer = root_match.groups();value = float(answer);shown = str(int(value)) if value.is_integer() else answer
+        distractors = [str(int(value-1) if (value-1).is_integer() else round(value-1,2)), str(int(value+1) if (value+1).is_integer() else round(value+1,2))]
+        if revision_number == 2:
+            question = f"Which multiplication confirms the square root of {radicand}?";choices = [f"{shown} × {shown} = {radicand}",f"{distractors[0]} × {shown} = {radicand}",f"{shown} + {shown} = {radicand}"]
+        else:
+            question = f"According to the lesson, what is the square root of {radicand}?";choices = [distractors[0],shown,distractors[1]]
+        return {"question":question,"choices":choices,"correct_index":0 if revision_number==2 else 1,"feedback":f"{shown} × {shown} = {radicand}, so the square root is {shown}."}
+    equation = re.search(r"(-?\d+(?:\.\d+)?)\s*([+\-×x*÷/])\s*(-?\d+(?:\.\d+)?)\s*=\s*(-?\d+(?:\.\d+)?)", clean)
+    if equation:
+        left,operator_symbol,right,answer=equation.groups();value=float(answer);wrong_one=str(int(value+1) if (value+1).is_integer() else round(value+1,2));wrong_two=str(int(value-1) if (value-1).is_integer() else round(value-1,2))
+        return {"question":f"What is {left} {operator_symbol} {right}?","choices":[wrong_two,answer,wrong_one],"correct_index":1,"feedback":f"The lesson shows that {left} {operator_symbol} {right} = {answer}."}
+    numbers=list(dict.fromkeys(re.findall(r"(?<![A-Za-z])\d+(?:\.\d+)?", clean)))
+    answer=numbers[-1] if numbers else "1";others=[number for number in numbers if number!=answer][-2:]
+    while len(others)<2:
+        value=float(answer);candidate=str(int(value+len(others)+1) if (value+len(others)+1).is_integer() else round(value+len(others)+1,2));others.append(candidate)
+    return {"question":"Which value is stated in the final step of this lesson?","choices":[others[0],answer,others[1]],"correct_index":1,"feedback":f"The final step in the saved lesson states {answer}."}
+
+
 def generate_visual_aid(text: str, response_language: str, class_level: str = "JSS2") -> dict:
     """Describe a safe, lightweight visual that the browser can render."""
     coordinate_matches = re.findall(r"\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)", text)

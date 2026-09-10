@@ -956,6 +956,18 @@ def test_understanding_generator_requires_three_valid_choices():
     assert 'Do not introduce a topic not taught' in prompt
 
 
+def test_understanding_endpoint_falls_back_when_model_is_unavailable():
+    session=client.post('/api/classroom/session').json()
+    lesson='Create revision question 2 of 3. The square root of 49 is 7 because 7 × 7 = 49.'
+    with patch.object(classroom_api, 'generate_understanding_check', side_effect=RuntimeError('quota')):
+        started=client.post('/api/classroom/understanding/start',json={'session_token':session['session_token'],'text':lesson,'language':'English'})
+    assert started.status_code==200
+    body=started.json();assert body['question']=='Which multiplication confirms the square root of 49?'
+    assert body['choices'][0]=='7 × 7 = 49'
+    marked=client.post('/api/classroom/understanding/answer',json={'session_token':session['session_token'],'check_id':body['check_id'],'choice_index':0})
+    assert marked.json()['correct'] is True
+
+
 def test_visual_teaching_mode_minimizes_avatar_and_renders_safe_data():
     html=(PROJECT_ROOT/'classroom'/'index.html').read_text();script=(PROJECT_ROOT/'classroom'/'app.js').read_text()
     assert 'id="visualButton"' in html and 'id="visualArea"' in html

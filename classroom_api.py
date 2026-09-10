@@ -33,6 +33,7 @@ from tutor import (
     get_tutor_image_reply,
     get_tutor_reply,
     generate_understanding_check,
+    fallback_understanding_check,
     fallback_visual_aid,
     generate_visual_aid,
     select_lesson_media,
@@ -386,8 +387,8 @@ def classroom_understanding_start(request: ClassroomTranslation):
     class_level = _classroom_profiles.get(student_id, {}).get("class_level", "JSS2")
     try:
         check = generate_understanding_check(request.text, request.language, class_level)
-    except Exception as exc:
-        raise HTTPException(status_code=503, detail="I could not prepare a check right now") from exc
+    except Exception:
+        check = fallback_understanding_check(request.text, request.language, class_level)
     check_id = secrets.token_hex(16)
     _understanding_checks[check_id] = {**check, "student_id": student_id, "created": time.time()}
     return {"check_id": check_id, "question": check["question"], "choices": check["choices"], "language": request.language}
