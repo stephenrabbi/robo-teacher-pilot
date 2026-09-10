@@ -134,6 +134,19 @@ const myLessonsEmpty=document.getElementById('myLessonsEmpty');
 const closeMyLessonsButton=document.getElementById('closeMyLessons');
 const lessonSearch=document.getElementById('lessonSearch');
 const lessonFilter=document.getElementById('lessonFilter');
+const lessonLibrary=document.getElementById('lessonLibrary');
+const revisionPanel=document.getElementById('revisionPanel');
+const revisionTitle=document.getElementById('revisionTitle');
+const revisionProgress=document.getElementById('revisionProgress');
+const revisionRecap=document.getElementById('revisionRecap');
+const revisionForm=document.getElementById('revisionForm');
+const revisionQuestion=document.getElementById('revisionQuestion');
+const revisionChoices=document.getElementById('revisionChoices');
+const revisionSubmit=document.getElementById('revisionSubmit');
+const revisionFeedback=document.getElementById('revisionFeedback');
+const revisionResult=document.getElementById('revisionResult');
+const revisionNext=document.getElementById('revisionNext');
+const closeRevision=document.getElementById('closeRevision');
 const progressArea=document.getElementById('progressArea');
 const progressLoading=document.getElementById('progressLoading');
 const progressEmpty=document.getElementById('progressEmpty');
@@ -176,6 +189,7 @@ let currentPractice=null;
 let currentPracticeSummary=null;
 let practiceMode='practice';
 let currentProgress=null;
+let currentRevision=null;
 let sessionToken=null;
 let previewUrl=null;
 let mediaRecorder=null;
@@ -971,10 +985,10 @@ function lessonSummary(text){return text.replace(/\*\*/g,'').replace(/\s+/g,' ')
 
 function renderMyLessons(){
   const query=lessonSearch.value.trim().toLocaleLowerCase();const items=loadSavedLessons().filter(item=>(lessonFilter.value!=='favourites'||item.favourite)&&(!query||`${item.title} ${item.summary} ${item.language} ${item.classLevel}`.toLocaleLowerCase().includes(query)));myLessonsList.replaceChildren();myLessonsEmpty.textContent=query||lessonFilter.value==='favourites'?'No saved lessons match this search or filter.':'Save a useful explanation and it will appear here.';myLessonsEmpty.classList.toggle('hidden',items.length>0);
-  items.forEach(item=>{const card=document.createElement('article');card.className='saved-lesson-card';const copy=document.createElement('div'),title=document.createElement('strong'),summary=document.createElement('p'),meta=document.createElement('small'),actions=document.createElement('div'),favourite=document.createElement('button'),open=document.createElement('button'),remove=document.createElement('button');title.textContent=item.title;summary.textContent=item.summary;meta.textContent=`${item.classLevel} · ${item.language} · ${new Date(item.savedAt).toLocaleDateString()}`;favourite.type='button';favourite.dataset.lessonAction='favourite';favourite.dataset.lessonId=item.id;favourite.setAttribute('aria-pressed',String(Boolean(item.favourite)));favourite.textContent=item.favourite?'★ Favourite':'☆ Favourite';open.type='button';open.dataset.lessonAction='open';open.dataset.lessonId=item.id;open.textContent='Open lesson';remove.type='button';remove.dataset.lessonAction='delete';remove.dataset.lessonId=item.id;remove.textContent='Remove';copy.append(title,summary,meta);actions.append(favourite,open,remove);card.append(copy,actions);myLessonsList.appendChild(card)});
+  items.forEach(item=>{const card=document.createElement('article');card.className='saved-lesson-card';const copy=document.createElement('div'),title=document.createElement('strong'),summary=document.createElement('p'),meta=document.createElement('small'),actions=document.createElement('div'),favourite=document.createElement('button'),revise=document.createElement('button'),open=document.createElement('button'),remove=document.createElement('button');title.textContent=item.title;summary.textContent=item.summary;meta.textContent=`${item.classLevel} · ${item.language} · ${new Date(item.savedAt).toLocaleDateString()}`;favourite.type='button';favourite.dataset.lessonAction='favourite';favourite.dataset.lessonId=item.id;favourite.setAttribute('aria-pressed',String(Boolean(item.favourite)));favourite.textContent=item.favourite?'★ Favourite':'☆ Favourite';revise.type='button';revise.dataset.lessonAction='revise';revise.dataset.lessonId=item.id;revise.textContent='Revise';open.type='button';open.dataset.lessonAction='open';open.dataset.lessonId=item.id;open.textContent='Open lesson';remove.type='button';remove.dataset.lessonAction='delete';remove.dataset.lessonId=item.id;remove.textContent='Remove';copy.append(title,summary,meta);actions.append(favourite,revise,open,remove);card.append(copy,actions);myLessonsList.appendChild(card)});
 }
 
-function openMyLessons(){dismissLessonOverlays();whiteboardArea.classList.add('hidden');practiceArea.classList.add('hidden');progressArea.classList.add('hidden');canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');myLessonsArea.classList.remove('hidden');renderMyLessons();setActiveMode(myLessonsButton);setLearningStatus('Saved lessons')}
+function openMyLessons(){dismissLessonOverlays();currentRevision=null;revisionPanel.classList.add('hidden');lessonLibrary.classList.remove('hidden');whiteboardArea.classList.add('hidden');practiceArea.classList.add('hidden');progressArea.classList.add('hidden');canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');myLessonsArea.classList.remove('hidden');renderMyLessons();setActiveMode(myLessonsButton);setLearningStatus('Saved lessons')}
 function closeMyLessons(){myLessonsArea.classList.add('hidden');openChat()}
 
 bookmarkLessonButton.addEventListener('click',()=>{
@@ -984,7 +998,19 @@ bookmarkLessonButton.addEventListener('click',()=>{
 });
 myLessonsButton.addEventListener('click',openMyLessons);closeMyLessonsButton.addEventListener('click',closeMyLessons);
 lessonSearch.addEventListener('input',renderMyLessons);lessonFilter.addEventListener('change',renderMyLessons);
-myLessonsList.addEventListener('click',event=>{const button=event.target.closest('button[data-lesson-action]');if(!button)return;const items=loadSavedLessons(),item=items.find(saved=>saved.id===button.dataset.lessonId);if(button.dataset.lessonAction==='delete'){storeSavedLessons(items.filter(saved=>saved.id!==button.dataset.lessonId));renderMyLessons();return}if(button.dataset.lessonAction==='favourite'&&item){item.favourite=!item.favourite;storeSavedLessons(items);renderMyLessons();return}if(!item)return;myLessonsArea.classList.add('hidden');language.value=item.language;startLessonDirector(item.answer,item.lessonIndex);canvasStatus.textContent='Saved lesson reopened';canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');setActiveMode(chatButton);setLearningStatus('Saved lesson ready','success');saveClassroomSnapshot();keepTeachingCanvasVisible()});
+myLessonsList.addEventListener('click',event=>{const button=event.target.closest('button[data-lesson-action]');if(!button)return;const items=loadSavedLessons(),item=items.find(saved=>saved.id===button.dataset.lessonId);if(button.dataset.lessonAction==='delete'){storeSavedLessons(items.filter(saved=>saved.id!==button.dataset.lessonId));renderMyLessons();return}if(button.dataset.lessonAction==='favourite'&&item){item.favourite=!item.favourite;storeSavedLessons(items);renderMyLessons();return}if(button.dataset.lessonAction==='revise'&&item){void startRevision(item);return}if(!item)return;myLessonsArea.classList.add('hidden');language.value=item.language;startLessonDirector(item.answer,item.lessonIndex);canvasStatus.textContent='Saved lesson reopened';canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');setActiveMode(chatButton);setLearningStatus('Saved lesson ready','success');saveClassroomSnapshot();keepTeachingCanvasVisible()});
+
+async function loadRevisionQuestion(){
+  revisionProgress.textContent=`Question ${currentRevision.number} of 3`;revisionQuestion.textContent='Preparing your question…';revisionChoices.replaceChildren();revisionFeedback.textContent='';revisionSubmit.disabled=true;revisionNext.classList.add('hidden');revisionResult.classList.add('hidden');
+  try{const token=await ensureSession();const response=await fetch('/api/classroom/understanding/start',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({session_token:token,text:`${currentRevision.lesson.answer.slice(0,5200)}\n\nCreate revision question ${currentRevision.number} of 3. Test a different important idea from this lesson.`,language:currentRevision.lesson.language})});const data=await response.json();if(!response.ok)throw new Error(data.detail||'Revision unavailable');currentRevision.checkId=data.check_id;revisionQuestion.textContent=data.question;data.choices.forEach((choice,index)=>{const label=document.createElement('label'),input=document.createElement('input'),span=document.createElement('span');input.type='radio';input.name='revisionChoice';input.value=String(index);span.textContent=choice;label.append(input,span);revisionChoices.appendChild(label)});revisionSubmit.disabled=false;}
+  catch(error){revisionQuestion.textContent=error.message||'I could not prepare this question. Please try again.';revisionNext.textContent='Try again';revisionNext.classList.remove('hidden')}
+}
+
+async function startRevision(item){currentRevision={lesson:item,number:1,score:0,answered:false};lessonLibrary.classList.add('hidden');revisionPanel.classList.remove('hidden');revisionTitle.textContent=item.title;revisionRecap.textContent=item.summary;setLearningStatus('Revision Mode');await loadRevisionQuestion()}
+
+revisionForm.addEventListener('submit',async event=>{event.preventDefault();if(!currentRevision||currentRevision.answered)return;const selected=revisionForm.querySelector('input[name="revisionChoice"]:checked');if(!selected){revisionFeedback.textContent='Choose one answer first.';return}revisionSubmit.disabled=true;try{const token=await ensureSession();const response=await fetch('/api/classroom/understanding/answer',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({session_token:token,check_id:currentRevision.checkId,choice_index:Number(selected.value)})});const data=await response.json();if(!response.ok)throw new Error(data.detail||'Could not check answer');currentRevision.answered=true;if(data.correct)currentRevision.score+=1;revisionFeedback.textContent=`${data.correct?'Correct.':'Not quite.'} ${data.feedback}`;revisionFeedback.dataset.correct=String(data.correct);if(currentRevision.number<3){revisionNext.textContent='Next question →';revisionNext.classList.remove('hidden')}else{revisionResult.textContent=`Revision score: ${currentRevision.score}/3. ${currentRevision.score>=2?'Well done—continue to the next topic.':'Review this saved lesson once more, then try revision again.'}`;revisionResult.classList.remove('hidden')}}catch(error){revisionFeedback.textContent=error.message;revisionSubmit.disabled=false}});
+revisionNext.addEventListener('click',()=>{if(!currentRevision)return;if(!currentRevision.answered){void loadRevisionQuestion();return}currentRevision.number+=1;currentRevision.answered=false;void loadRevisionQuestion()});
+closeRevision.addEventListener('click',()=>{currentRevision=null;revisionPanel.classList.add('hidden');lessonLibrary.classList.remove('hidden');renderMyLessons();setLearningStatus('Saved lessons')});
 
 function openChat(){
   dismissLessonOverlays();

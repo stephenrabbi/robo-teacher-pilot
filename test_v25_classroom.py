@@ -31,7 +31,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260910-lessonsearch1' in html
+    assert '20260910-revision1' in html
     assert 'id="learnerNickname"' in html
     assert 'id="learnerClass"' in html
     assert "learnerNickname.value=''" in script
@@ -47,7 +47,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert "localStorage.setItem('roboTeacherQaChecklist'" in script
     assert 'const resultCopy=' in script
     assert 'labels.yourAnswer' in script
-    assert '20260910-lessonsearch1' in html
+    assert '20260910-revision1' in html
     assert 'downloadTeacherDashboardReport' in script
     assert 'id="practiceClass"' in html
     assert 'id="startDiagnostic"' in html
@@ -1462,6 +1462,22 @@ def test_saved_lessons_support_search_and_favourites_on_all_devices():
     assert "lessonSearch.addEventListener('input',renderMyLessons)" in script
     assert '.lesson-library-tools{' in styles
     assert '@media(max-width:600px){.lesson-library-tools{grid-template-columns:1fr}}' in styles
+
+
+def test_saved_lesson_revision_has_recap_three_checks_score_and_recommendation():
+    html = Path('classroom/index.html').read_text()
+    script = Path('classroom/app.js').read_text()
+    styles = Path('classroom/styles.css').read_text()
+    for element_id in ('revisionPanel', 'revisionRecap', 'revisionQuestion', 'revisionChoices', 'revisionResult'):
+        assert f'id="{element_id}"' in html
+    assert "revise.dataset.lessonAction='revise'" in script
+    assert 'async function startRevision(item)' in script
+    assert "fetch('/api/classroom/understanding/start'" in script
+    assert "fetch('/api/classroom/understanding/answer'" in script
+    assert 'currentRevision.number<3' in script
+    assert 'Revision score: ${currentRevision.score}/3.' in script
+    assert 'Review this saved lesson once more' in script
+    assert '.revision-panel{' in styles
 
 
 def test_media_endpoint_requires_a_valid_session():
