@@ -1,291 +1,416 @@
-# Robo-Teacher V2
+# Robo-Teacher
 
-**A Gemini-powered, adaptive and multimodal Mathematics tutor for African learners, built by Earlyon-Tech Brainery.**
+**Every learner. Their own AI teacher.**
 
-Robo-Teacher is an AI tutoring system designed to extend individualized learning support beyond the classroom. The V2.5 production release covers **JSS1–JSS3 Mathematics** and combines curriculum-focused tutoring with adaptive learner profiles, text tutoring, homework-image support, voice questions, an interactive whiteboard, diagnostic assessment, privacy-conscious analytics and authenticated messaging integrations.
+Robo-Teacher is a **Gemini-powered, adaptive, multilingual and multimodal Mathematics learning system for African learners**, built by **Earlyon-Tech Brainery**.
 
-> **Current status:** Robo-Teacher V2.5 was merged into the production `main` branch through PR #9 after staging user-acceptance testing and successful CI run #165.
+The project began as an AI tutoring pilot delivered through WhatsApp and Telegram and has evolved into a live browser-based AI classroom for **JSS1–JSS3 Mathematics**. Robo-Teacher can currently teach, practise, assess, personalize, track progress, support revision, and guide learners through a daily learning journey using text, voice, images and an interactive whiteboard.
 
-> The separate [V2.5 staging classroom](https://robo-teacher-v25-staging.onrender.com/classroom-app) remains available for testing future changes before production.
+## 🚀 Live Production Demo
 
-## V2.5 Interactive Classroom — Production
+**Open Robo-Teacher:**  
+https://robo-teacher-jfg7.onrender.com/classroom-app
 
-The browser classroom extends the messaging tutor into one learning workspace. Learners can currently:
+**Telegram:**  
+https://t.me/RoboTeacherAfricaBot
 
-- ask typed Mathematics questions and receive step-by-step teaching;
-- submit questions using camera capture or image upload;
-- record voice questions;
-- write problems or show working on an interactive whiteboard with pen, eraser, clear, close and **Ask Teacher** controls;
-- learn in English, Yorùbá, Igbo or Hausa across text, voice, image and whiteboard pathways;
-- enter questions in the selected Nigerian language and receive the explanation and final-answer wording in that language;
-- select JSS1, JSS2 or JSS3 and receive class-level tutoring across text, image, voice and whiteboard;
-- practise class-appropriate Mathematics topic groups at Easy, Medium or Challenge level;
-- choose 5-, 10- or 20-question practice sessions generated with no repeated prompt within a session;
-- receive praise for correct answers and a worked explanation after incorrect answers;
-- review missed questions, scores, percentages and next-step recommendations; and
-- reopen a persistent progress dashboard showing completed sessions, total questions, overall score, topic performance, strongest and focus topics, and recent history.
+**Staging environment:**  
+https://robo-teacher-v25-staging.onrender.com/classroom-app
 
-Browser learners are represented by stable pseudonymous identifiers derived from a device-generated random key. Practice history is stored in a separate **Practice Progress** worksheet; names, phone numbers and email addresses are not required for this feature.
+> **Current production status — 10 September 2026:** Robo-Teacher V2.5 is live on the production `main` branch following staging validation and production smoke testing. The verified V2.5 release was promoted through **PR #18** and squash-merged as commit `411ae06ce2608b315f628acd8136eff24c703f87`.
 
-These capabilities have passed controlled automated staging tests. They are product-development results and are not included in the frozen 56-student pilot evidence below.
+---
 
-## Why Robo-Teacher
+## 60-Second Reviewer Walkthrough
 
-Large classes can limit the amount of individualized explanation, practice and feedback each learner receives. Robo-Teacher is being developed as an always-available AI learning layer that can provide patient, step-by-step support through channels learners already know how to use.
+A reviewer can experience the current product without installing anything:
 
-The long-term product vision is a **multilingual, multimodal AI virtual teacher** that can see, listen, speak, teach, demonstrate, assess and personalize learning across African curricula, subjects and education levels.
+1. Open the **Live Production Demo** above.
+2. Enter a nickname and choose **JSS1, JSS2 or JSS3**.
+3. Tap **Today** to see the learner's personalized daily plan.
+4. Try the three-part learning journey: **Recall → Strengthen → Discover**.
+5. Ask a Mathematics question in **Chat** and view the worked explanation on the Teaching Canvas.
+6. Try **Practice**, **Whiteboard**, **Camera/Image**, **Voice**, or switch among **English, Yorùbá, Igbo and Hausa**.
+7. Open **Progress** to view learning history and recommendations.
+8. Return with the same nickname to see persisted progress and continuation guidance.
 
-## V2 Capabilities
+The live classroom is the clearest representation of the project's present stage.
 
-### Adaptive learner profiles
+---
 
-Robo-Teacher maintains a lightweight learner profile keyed by pseudonymous Pilot ID. The profile can track:
+## The Problem
 
-- topic interaction counts
-- last topic studied
-- recent-question context
-- preferred explanation style
-- difficulty level
-- language preference
+In many public-school classrooms, one teacher may be responsible for a large number of learners with different levels of understanding. This makes sustained one-to-one explanation, practice, feedback and remediation difficult.
 
-Recent-question data is minimized before durable storage, including redaction of common email addresses, Nigerian mobile numbers and Telegram handles.
+Learners who do not understand a concept immediately may have limited opportunities to ask follow-up questions, practise at their own level, receive patient explanations, or revisit earlier concepts outside school hours.
 
-### Step-by-step Mathematics tutoring
+Robo-Teacher is being developed as an **always-available AI learning layer** that complements teachers by giving each learner individualized support through accessible digital channels.
 
-The Gemini-powered tutor is prompted to teach rather than simply provide answers. It supports worked explanations, misconception correction, Socratic guidance and multi-turn follow-up within the documented Mathematics scope.
+---
 
-### Homework-image tutoring
+## What Robo-Teacher Does Today
 
-Students can submit supported homework images through Telegram. Robo-Teacher can use Gemini's multimodal capability to interpret a readable Mathematics problem and explain it step by step.
+### 1. Personalized daily learning journey
 
-Image handling includes download-size limits and defensive processing. If an image is too unclear to interpret reliably, the tutor is designed to request a clearer image rather than inventing the missing content.
+The live V2.5 classroom now includes a **Today** learning system organized around three pedagogical steps:
 
-### Voice-question tutoring
+- **RECALL** — revisit a saved lesson when revision is due;
+- **STRENGTHEN** — practise a recommended topic at an appropriate difficulty;
+- **DISCOVER** — begin the next topic in the learner's curriculum pathway.
 
-Students can send supported voice/audio questions through Telegram and receive a text tutoring response. The voice pathway includes instructions to verify important numbers, signs and operators and to ask the learner to resend or type the question when the audio is ambiguous.
+Daily completion is stored by **learner, class and local date**. A returning learner can resume an unfinished activity, while a completed plan remains completed for that learner for the day.
 
-### Conversation continuity
+The system has been manually validated for:
 
-The tutor maintains lightweight in-memory conversation history so follow-up questions can retain context during a running session. Conversation history is only updated after a successful model response, helping prevent provider failures from corrupting the active history.
+- fresh learner daily-plan generation;
+- completion tracking;
+- Practice → Discover progression;
+- completed-day persistence after refresh/re-entry;
+- returning-learner **Welcome back** guidance;
+- continuation of an activity already in progress;
+- separation of progress between different learner nicknames on the same device; and
+- normal Chat teaching after the daily-learning changes.
 
-### Safe fallback behaviour
+### 2. Step-by-step AI tutoring
 
-The tutor includes bounded retry and fallback handling for model-provider errors and rate limits. Provider failures do not trigger unlimited retries, and user-facing responses avoid exposing internal technical details.
+Learners can type Mathematics questions and receive structured, worked explanations rather than only final answers.
+
+The tutoring layer is designed to support:
+
+- step-by-step reasoning;
+- misconception correction;
+- simplified explanations;
+- follow-up questions;
+- class-level adaptation; and
+- curriculum-aware teaching.
+
+### 3. JSS1–JSS3 curriculum-aware learning
+
+The browser classroom supports **Junior Secondary School 1, 2 and 3 Mathematics**.
+
+Practice and recommendations are class-aware and term-aware. The curriculum mapping is maintained in `curriculum.py`, while the tutoring and pedagogical instructions are coordinated through the classroom and tutor layers.
+
+### 4. Adaptive Practice Mode
+
+Learners can:
+
+- select class and term;
+- practise curriculum topics;
+- choose **Easy, Medium or Challenge** difficulty;
+- use automatic difficulty recommendations based on recent performance;
+- complete 5-, 10- or 20-question sessions;
+- receive immediate praise or corrective feedback;
+- view worked explanations after errors;
+- review missed questions; and
+- receive recommendations for what to practise next.
+
+The system is designed to avoid repeating the same generated prompt within a practice session.
+
+### 5. Diagnostic assessment
+
+Robo-Teacher includes class-and-term diagnostic assessment to help identify an appropriate starting point.
+
+Diagnostic results are stored separately from ordinary Practice results so placement evidence does not distort routine practice averages.
+
+### 6. Multilingual learning
+
+The classroom currently supports:
+
+- **English**
+- **Yorùbá**
+- **Igbo**
+- **Hausa**
+
+The product is being developed toward simple, learner-friendly explanations rather than overly formal language, while retaining official Mathematics terminology where appropriate.
+
+Language support extends across major classroom pathways, including tutoring and Practice Mode.
+
+### 7. Multimodal interaction
+
+Learners can interact through multiple modalities:
+
+- typed questions;
+- camera capture;
+- homework-image upload;
+- voice questions;
+- spoken teacher answers; and
+- an interactive whiteboard.
+
+The whiteboard includes pen, eraser, clear and **Ask Teacher** controls so a learner can show mathematical working rather than only typing a question.
+
+### 8. Teaching Canvas and AI teacher experience
+
+Worked explanations are displayed on a large Teaching Canvas intended to behave more like a teaching surface than a conventional chatbot window.
+
+The current V2.5 experience also includes teacher-voice playback, pause/continue controls, visual teaching pathways and an AI teacher/avatar interface.
+
+The longer-term direction is an AI virtual teacher that can **see, listen, speak, demonstrate, assess and personalize** learning.
+
+### 9. Saved lessons and intelligent revision
+
+Learners can save useful explanations to **My Lessons** and revisit them later.
+
+Saved lessons can be scheduled for revision, and revision performance contributes to whether a lesson should be revisited again or treated as mastered.
+
+This functionality now feeds directly into the **Recall** stage of the Today learning journey.
+
+### 10. Learner progress and weekly guidance
+
+The learner dashboard can surface:
+
+- sessions completed;
+- questions attempted;
+- overall score;
+- topic performance;
+- strongest topic;
+- focus area;
+- recent activity;
+- recommended next step;
+- learning-path status; and
+- weekly progress summaries.
+
+The learning path distinguishes states such as **Mastered**, **Needs practice**, **Recommended next** and **Not started**.
+
+### 11. Teacher View
+
+Robo-Teacher includes a teacher-facing dashboard with privacy-conscious aggregate information such as:
+
+- class activity;
+- learner performance trends;
+- stronger and weaker topics;
+- diagnostic placement summaries;
+- recommended teaching attention; and
+- downloadable CSV reports.
+
+The Teacher View is intended to help the AI support human teachers rather than replace their classroom judgment.
+
+---
+
+## Product Progress: Pilot → V2.5
+
+| Stage | What was demonstrated |
+|---|---|
+| **Initial pilot** | Gemini-powered JSS2 Mathematics tutoring through WhatsApp and Telegram |
+| **Multimodal V2** | Text, homework-image and voice-question tutoring with adaptive learner profiles |
+| **V2.5 classroom** | Browser classroom, Teaching Canvas, whiteboard, Practice Mode and multilingual learning |
+| **Personalization** | Diagnostic assessment, learner progress, learning path, adaptive difficulty and Continue Learning |
+| **Teacher support** | Teacher dashboard, weekly summaries, privacy-safe aggregates and CSV reporting |
+| **Current production** | Daily **Recall → Strengthen → Discover** journey, persistence, revision scheduling, Welcome-back continuation and learner-isolated progress |
+
+---
 
 ## Verified Pilot Evidence
 
-The original evaluation involved students from **Ise Junior High School, Epe** and **Tio College, Ikorodu**.
+The original evaluation involved students from:
+
+- **Ise Junior High School, Epe, Lagos State**
+- **Tio College, Ikorodu, Lagos State**
 
 ### Frozen evaluation snapshot
 
-- **56 students** participated across the two schools.
-- All **56 students completed matched baseline and post-test assessments**.
-- Mean Mathematics assessment performance increased from **12.7% at baseline to 26.5% at post-test** — an observed gain of **13.8 percentage points**.
-- **51 of 56 students (91.1%)** recorded a higher post-test score than baseline.
-- All **56 students completed the feedback survey**.
-- Overall mean student-feedback rating: **4.84/5**.
-- The frozen evaluation snapshot contains **188 successful student interactions**: **119 WhatsApp** and **69 Telegram**.
+| Metric | Result |
+|---|---:|
+| Students | **56** |
+| Schools | **2** |
+| Matched baseline + post-test | **56 / 56** |
+| Baseline mean | **12.7%** |
+| Post-test mean | **26.5%** |
+| Observed gain | **+13.8 percentage points** |
+| Students who improved | **51 / 56 (91.1%)** |
+| Feedback respondents | **56 / 56** |
+| Mean feedback rating | **4.84 / 5** |
+| Successful logged interactions | **188** |
+| WhatsApp interactions | **119** |
+| Telegram interactions | **69** |
 
-These are **descriptive pilot results**. The evaluation did not use a randomized control group, so the pre/post change should be interpreted as **observed improvement during the pilot**, not proof that Robo-Teacher alone caused the improvement.
+The pilot's recurring positive feedback themes included clear step-by-step explanations, simple language, patient/non-judgmental support, availability through familiar channels and help with homework/practice.
 
-The pilot evidence remains separate from later V2 development and controlled staging tests. New development activity is not retroactively added to the frozen evaluation dataset.
+Learners also requested improvements including richer visuals, voice/video, local-language support, more practice, progress tracking, personalization and lower-data/offline access. Several of these requests directly shaped the V2.5 roadmap.
 
-See `evaluation/PILOT_DASHBOARD.md` and `evaluation/PILOT_EVIDENCE_RECORD.md` for the aggregate evidence record. Student-level results and identifiers remain in private records and are not committed to this public repository.
+### Important interpretation boundary
 
-## Current Architecture
+These are **descriptive pre/post pilot results**, not a randomized causal evaluation.
+
+The pilot did not use a randomized control group, so the observed learning improvement should **not** be interpreted as proof that Robo-Teacher alone caused the increase.
+
+The frozen pilot evidence is deliberately kept separate from later V2.5 product-development testing.
+
+See:
+
+- `evaluation/PILOT_DASHBOARD.md`
+- `evaluation/PILOT_EVIDENCE_RECORD.md`
+
+Student-level data and personally identifying records are not committed to this public repository.
+
+---
+
+## Current Technical Architecture
 
 ```text
-Learner
-   |
-   v
-Telegram / WhatsApp migration path
-   |
-   v
-Authenticated FastAPI webhooks (`main.py`)
-   |
-   +--> learner identity / roster (`roster_sheet.py`)
-   |
-   +--> text / image / voice input handling
-   |
-   v
-Tutor orchestrator (`tutor.py`)
-   |
-   +--> adaptive learner profile (`learner_profile.py`)
-   |
-   +--> conversation context
-   |
-   v
-Google Gemini
-   |
-   v
-Pedagogical response / safe fallback
-   |
-   v
-Learner response
-   |
-   v
-Pseudonymized analytics (`sheet_logger.py`) --> Google Sheets
+                           ┌──────────────────────┐
+                           │       Learner        │
+                           └──────────┬───────────┘
+                                      │
+                     ┌────────────────┼────────────────┐
+                     │                │                │
+                     v                v                v
+              Browser Classroom   Telegram       WhatsApp
+                  (V2.5)          channel      migration path
+                     │                │                │
+                     └────────────────┼────────────────┘
+                                      v
+                           ┌──────────────────────┐
+                           │   FastAPI backend    │
+                           │ main.py / classroom │
+                           │      _api.py         │
+                           └──────────┬───────────┘
+                                      │
+                  ┌───────────────────┼───────────────────┐
+                  │                   │                   │
+                  v                   v                   v
+          Tutor orchestration   Practice/Diagnostic   Learner state
+              tutor.py             engine          & recommendations
+                  │                   │                   │
+                  └───────────────────┼───────────────────┘
+                                      v
+                              Google Gemini
+                                      │
+                                      v
+                         Pedagogical AI response
+                                      │
+                  ┌───────────────────┼───────────────────┐
+                  │                   │                   │
+                  v                   v                   v
+          Teaching Canvas      Voice / Visuals     Google Sheets
+                                                pseudonymized logs
+                                                & progress records
 ```
 
-The production architecture separates participant identity data from pseudonymized interaction records.
+### Main technology stack
 
-V2.5 adds a browser classroom (`classroom/` and `classroom_api.py`), generated Practice Mode sessions (`practice.py` and `practice_generator.py`), and pseudonymous progress aggregation backed by Google Sheets (`practice_progress.py`).
+- **Python / FastAPI** — backend and authenticated API/webhook layer
+- **Google Gemini** — tutoring, multimodal understanding and AI generation
+- **HTML / CSS / JavaScript** — responsive V2.5 classroom
+- **Google Sheets** — pseudonymized pilot, progress and evaluation records
+- **Telegram Bot API** — production messaging tutor
+- **Twilio WhatsApp Sandbox** — original pilot channel / migration path
+- **Render** — production and staging deployment
+- **GitHub Actions** — automated test workflow
 
-## Messaging Channels
+---
 
-### Telegram
+## Privacy and Responsible Data Use
 
-Telegram remains a production tutoring channel alongside the V2.5 browser classroom. The Telegram webhook supports authenticated text, image and voice/audio interactions.
+Robo-Teacher uses **pseudonymization**, not a claim of complete anonymity.
 
-### WhatsApp
+The system separates participant identity information from interaction/progress records wherever possible. Browser learners can be represented by stable pseudonymous identifiers derived from a device-generated random key rather than requiring an email address or phone number.
 
-The original pilot used the Twilio WhatsApp Sandbox as well as Telegram. The current production code keeps WhatsApp webhook authentication in place and supports a migration/redirect path rather than silently reactivating unrestricted WhatsApp tutoring.
+Current safeguards include:
 
-This distinction is important: the original pilot evidence includes WhatsApp interactions, while current multimodal delivery uses Telegram and the browser classroom.
+- pseudonymous learner/Pilot IDs;
+- separation of roster information from interaction records;
+- PII minimization for stored recent-question context;
+- Telegram webhook-secret validation;
+- Twilio request-signature validation;
+- bounded media-download handling;
+- provider-error sanitization;
+- deployment secrets supplied through environment variables; and
+- separation of staging and production environments.
 
-## Curriculum Scope
+Never commit `.env`, API keys, bot tokens, service-account JSON, student-level records or other credentials/private data to this repository.
 
-The messaging pilot originally focused on **JSS2 Basic Mathematics**. The V2.5 browser classroom now covers class-appropriate JSS1–JSS3 Mathematics topics, including:
+---
 
-- whole numbers and place value
-- factors, multiples and prime numbers
-- LCM and HCF
-- fractions and decimals
-- approximation and estimation
-- ratio, proportion and rate
-- basic algebraic expressions and simple equations
-- percentages and everyday arithmetic
-- introductory financial Mathematics
-- relevant JSS2 geometry
+## Testing and Release Discipline
 
-The curriculum and pedagogical instructions are maintained in `tutor.py`.
+Robo-Teacher uses a staging-first release workflow.
 
-The V2.5 classroom extends Practice Mode across JSS1–JSS3. Its audited
-class and First/Second/Third Term mapping is maintained in `curriculum.py`, while
-`practice_generator.py` generates class-appropriate marked questions and worked
-explanations. Reference material used for the audit includes the official
-[NERDC JSS1–JSS3 curriculum index](https://www.nerdc.gov.ng/content_manager/jss1-3.html)
-and published Lagos unified scheme transcriptions for
-[JSS1 Mathematics](https://syllabus.ng/jss1-scheme-of-work/math/) and
-[JSS2 Mathematics](https://syllabus.ng/jss2-scheme-of-work/mathematics/).
+The current V2.5 production release was tested on the dedicated staging service before promotion. Validation included:
 
-## Data and Privacy
+- automated Robo-Teacher test workflow success on the release head;
+- fresh learner onboarding;
+- Today plan rendering;
+- Recall/Strengthen/Discover progression;
+- Practice completion and transition to Discover;
+- full daily-plan completion;
+- persistence after refresh/re-entry;
+- returning-learner continuation;
+- in-progress activity resumption;
+- learner isolation on the same device;
+- ordinary Chat tutoring after the new daily-learning logic; and
+- a final smoke test on the live production classroom after deployment.
 
-Robo-Teacher uses **pseudonymization**, not a claim of full anonymity.
+The production service deploys automatically from `main`. Experimental work is validated on staging before production promotion.
 
-The private Student Roster contains the information required to recognize authorized learners. Interaction records use a Pilot ID rather than directly storing a learner's phone number, Telegram username or name.
+---
 
-The interaction log can include:
+## Repository Components
 
-- UTC timestamp
-- school
-- Pilot ID
-- channel
-- session ID
-- learner question
-- truncated tutor response
-- interaction status
-- response latency
+- `main.py` — production FastAPI application, authenticated messaging webhooks and shared classroom route
+- `classroom/` — responsive V2.5 browser classroom
+- `classroom/app.js` — classroom interaction, Practice, progress, learning path, saved lessons and daily-plan integration
+- `classroom/daily_session.js` — learner/day-specific daily-session state and completion tracking
+- `classroom/daily_guidance_fix.js` — resilient Recall/Strengthen/Discover completion guidance
+- `classroom/daily_return_fix.js` — Welcome-back and unfinished-activity continuation
+- `classroom_api.py` — browser session and classroom API endpoints
+- `tutor.py` — Gemini orchestration, pedagogy, multilingual and multimodal tutoring
+- `curriculum.py` — class/term Mathematics curriculum mapping
+- `practice.py` — Practice Mode session and marking logic
+- `practice_generator.py` — varied curriculum-aware practice generation
+- `practice_progress.py` — persistent pseudonymous progress and recommendations
+- `learner_profile.py` — adaptive profile and minimized recent-question memory
+- `roster_sheet.py` — pilot learner recognition/onboarding
+- `sheet_logger.py` — pseudonymized interaction logging
+- `telegram_adapter.py` — Telegram integration
+- `evaluation/` — pilot evaluation instruments and aggregate evidence
+- `.github/workflows/test.yml` — automated CI tests
 
-Because a Pilot ID can be linked back to the separately protected roster, the dataset must be treated as pseudonymized.
+---
 
-Adaptive-memory storage also applies PII-minimization rules to recent-question text before durable storage.
-
-## Security Controls
-
-Current controls include:
-
-- Twilio `X-Twilio-Signature` validation for WhatsApp requests
-- Telegram `X-Telegram-Bot-Api-Secret-Token` validation before processing Telegram updates
-- webhook-secret format validation
-- HTTPS validation for configured Telegram webhook URLs
-- safe handling of malformed Telegram updates
-- streamed Telegram media downloads with accumulated-byte limits
-- sanitized provider/API error logging to reduce credential, URL and payload leakage
-- secrets supplied through deployment environment variables rather than committed files
-- closed-pilot roster behaviour by default
-- separation of production and staging data/configuration
-
-Never commit `.env`, API keys, bot tokens, service-account JSON or other credentials to this repository.
-
-## Automated Testing and CI
-
-The GitHub Actions workflow runs credential-free automated tests using mocks and synthetic data. Current CI coverage includes:
-
-- pilot sanity tests
-- adaptive-memory and learner-profile tests
-- PII-redaction regression tests
-- multimodal/media safety tests
-- voice safety tests
-- resilience, retry and fallback tests
-- conversation-history integrity on provider failure
-- Telegram webhook authentication tests
-- malformed Telegram update handling
-
-The V2.5 release passed staging user-acceptance testing and CI run #165 before promotion to `main`.
-
-Useful local commands include:
-
-```bash
-python test_webhook.py
-python test_v2_profile.py
-python test_v2_multimodal.py
-python test_v2_voice.py
-python test_v2_resilience.py
-python test_v2_webhook_security.py
-```
-
-## Production and Staging
-
-Development and release validation use separate environments:
-
-- `v2-development` was used to isolate V2 development from the original production branch.
-- a separate Render staging service and staging Google Sheet were used for controlled V2 validation.
-- the tested V2 release was promoted to `main` only after automated tests and staging checks passed.
-- Render automatically deploys the production service from `main`.
-
-This workflow reduces the risk of experimental changes directly affecting the live system.
-
-## Getting Started
+## Run Locally
 
 ### Prerequisites
 
 - Python 3
 - Gemini API key
-- Telegram bot token
-- Telegram webhook secret
-- Google Sheet and Google service-account credentials
-- Twilio credentials if operating the WhatsApp integration
-- a Python hosting environment capable of running FastAPI
+- Google Sheet + service-account credentials for persistent progress/logging
+- Telegram credentials if testing Telegram
+- Twilio credentials only if testing the WhatsApp integration
 
 ### Setup
 
-1. Clone the repository.
-2. Copy `.env.example` to `.env`.
-3. Add the required local environment variables. Do not commit the completed `.env` file.
-4. Install dependencies:
-
 ```bash
+git clone https://github.com/stephenrabbi/robo-teacher-pilot.git
+cd robo-teacher-pilot
 pip install -r requirements.txt
+cp .env.example .env
 ```
 
-5. Run the automated tests.
-6. Start locally:
+Add the required local environment variables to `.env`, then start the app:
 
 ```bash
 uvicorn main:app --reload
 ```
 
-For deployment:
+Open:
+
+```text
+http://127.0.0.1:8000/classroom-app
+```
+
+For a Render-style production start:
 
 ```bash
-pip install -r requirements.txt
 uvicorn main:app --host 0.0.0.0 --port $PORT
 ```
 
+---
+
 ## Environment Variables
 
-Use `.env.example` as the configuration template. Relevant variables include:
+Use `.env.example` as the configuration template.
+
+Typical variables include:
 
 ```env
 GEMINI_API_KEY=
@@ -299,111 +424,75 @@ TWILIO_AUTH_TOKEN=
 ALLOW_AUTO_ENROLL=false
 ```
 
-Keep `ALLOW_AUTO_ENROLL=false` for a controlled/closed pilot unless there is a deliberate decision to change the enrollment model.
+Keep `ALLOW_AUTO_ENROLL=false` for controlled pilots unless enrollment is deliberately opened.
 
-## Repository Components
-
-- `main.py` — FastAPI application, authenticated webhooks and channel flow
-- `tutor.py` — Gemini orchestration, curriculum, pedagogy, multimodal prompts and fallback behaviour
-- `roster_sheet.py` — Google Sheets-backed learner recognition/onboarding
-- `learner_profile.py` — adaptive learner profile and PII-minimized recent-question memory
-- `sheet_logger.py` — pseudonymized interaction logging
-- `classroom/` — responsive V2.5 browser classroom interface
-- `classroom_api.py` — signed browser sessions and classroom endpoints
-- `practice.py` — Practice Mode session, marking and review logic
-- `practice_generator.py` — varied questions across topics and difficulty levels
-- `practice_progress.py` — durable pseudonymous learner-progress records and recommendations
-- `v25_app.py` — isolated V2.5 staging entrypoint
-- `telegram_adapter.py` — Telegram messaging integration
-- `whatsapp_adapter.py` — Twilio WhatsApp integration
-- `evaluation/` — pilot instruments, evidence summaries and evaluation documentation
-- `.github/workflows/test.yml` — automated CI test workflow
-
-`roster.json` is only a placeholder/example. Live participant records must not be committed to the public repository.
+---
 
 ## Known Limitations
 
-Robo-Teacher V2 is a production-deployed early-stage system, not a finished autonomous teacher.
+Robo-Teacher is a **live early-stage education technology product**, not a finished autonomous teacher.
 
-- Conversation history is currently in memory and can reset when the service restarts.
-- Adaptive profiles are lightweight and should not be interpreted as a complete learner model.
-- Image interpretation depends on image quality and model capability.
-- Voice understanding can fail when audio is noisy or numbers/operators are ambiguous.
-- Gemini responses can still be imperfect; automated guardrails reduce risk but do not eliminate model error.
-- The pilot evaluation was not a randomized controlled trial.
-- The original post-test mean of 26.5% remains low in absolute terms despite the observed improvement.
-- Financial Mathematics declined in the topic-level pilot analysis and remains an identified improvement area.
-- Current production scope is Junior Secondary Mathematics; it does not yet claim every subject, curriculum or education level.
+Current limitations include:
+
+- Gemini responses can still be incorrect or incomplete;
+- voice quality/availability depends on provider capacity and browser/device support;
+- image tutoring depends on image clarity;
+- conversation context can be limited by service/runtime state;
+- the system currently focuses on Junior Secondary Mathematics rather than all subjects or education levels;
+- internet access is required for the current live experience;
+- the original pilot did not include a randomized control group;
+- the post-test average remained low in absolute terms despite the observed improvement; and
+- Financial Mathematics was a weaker pilot topic and remains an identified improvement area.
+
+Human teachers remain important for safeguarding, curriculum judgment, motivation, classroom relationships and interpreting learner needs beyond what the AI can infer.
+
+---
 
 ## Roadmap
 
-### V2.5 — Interactive AI teacher experience (production)
+### Current — V2.5 production
 
-Released through PR #9 after staging validation and CI run #165:
+- live browser AI classroom
+- JSS1–JSS3 Mathematics
+- English, Yorùbá, Igbo and Hausa
+- text, image, voice and whiteboard learning
+- adaptive Practice Mode
+- diagnostic placement
+- personalized learning path
+- progress dashboard
+- weekly learner guidance
+- Teacher View and CSV reporting
+- saved lessons and scheduled revision
+- daily **Recall → Strengthen → Discover** learning plan
+- learner/day-specific persistence
+- Welcome-back and unfinished-session continuation
 
-- interactive teacher/classroom interface
-- text, image/camera, voice and whiteboard tutoring
-- English, Yorùbá, Igbo and Hausa tutoring
-- curriculum-based Practice Mode with varied questions and worked feedback
-- visible JSS1, JSS2 and JSS3 Practice class selector with class- and term-specific topic lists
-- audited Junior Secondary Mathematics mapping based on the NERDC curriculum index and Lagos State unified scheme transcriptions
-- dedicated Practice generators for topics including binary numbers, bearings, scale drawing, simultaneous equations, trigonometry, construction, mensuration and pie charts
-- multilingual Practice sessions in English, simple conversational Yorùbá, Igbo and Hausa, including translated questions, hints, praise, corrections, worked explanations and session recommendations
-- live Practice language switching that immediately refreshes the current question, hint or worked feedback and keeps every remaining question in the newly selected language
-- pause-and-continue teacher audio playback that resumes the current explanation instead of restarting it
-- browser-unlocked audio playback so spoken answers to voice questions start automatically after processing
-- automatic Practice difficulty selection based on two recent results at the learner's current level, with manual level selection still available
-- weekly learner summaries with strongest topic, focus area, score trend and a specific action for the following week
-- weekly Teacher View summaries with class activity, score change, strongest and weakest topics, a teaching action and CSV export
-- multilingual learner and teacher dashboards in English, simple Yorùbá, Igbo and Hausa, while retaining official curriculum topic names
-- separate 10-question class-and-term diagnostic assessments with mixed topics and a recommended starting topic and difficulty
-- permanent diagnostic placement storage in a separate Google Sheets worksheet, restored into the learner's personalised path without changing Practice averages
-- privacy-safe Teacher View diagnostic aggregates showing completions, assessed learners, average placement score and the most common starting topic
-- teacher-protected staging QA checklist with local Pass/Fail/Needs Improvement tracking, release-blocker status and dated CSV export
-- single-request session translation that preserves the original answer key and mathematical notation for reliable marking
-- session results, missed-question review and learner progress dashboard
-- persistent, pseudonymous Practice Mode history in Google Sheets
-- privacy-safe nickname and JSS1–JSS3 learner onboarding
-- Junior Secondary curriculum scope with class-aware tutoring and Practice topic selection
-- class-filtered recommendations with automatic Easy, Medium and Challenge adjustment
-- term-aware recommendations that strengthen weak topics, increase difficulty after consistent success, and advance to the next curriculum topic after mastery
-- **Continue Learning** routing to the recommended class, term, topic and difficulty
-- visible **My Learning Path** organised by term, with Mastered, Needs practice, Recommended next and Not started topic states
-- one-click practice access from every topic in the learner's path
-- non-destructive mapping of earlier V2.5 JSS2 progress labels into the audited curriculum
-- seven-day learner summaries with comparison against the previous week
-- access-key-protected teacher dashboard showing class aggregates without learner identities
-- Teacher Dashboard V2 with JSS class switching, strongest/weakest topics, six-week trends, teaching recommendations and privacy-safe CSV reports
+### Next development priorities
 
-Post-release work includes production monitoring, broader accessibility testing and continued learner feedback.
+- richer animated visual explanations;
+- more reliable low-latency natural teacher voice;
+- improved mid-explanation language switching;
+- stronger avatar lip-sync and gesture behavior;
+- more subjects and curriculum levels;
+- stronger teacher analytics and intervention tools;
+- lower-bandwidth access patterns;
+- larger controlled school pilots; and
+- more rigorous learning-effectiveness evaluation.
 
-### V2.6 — School and commercialization layer
+---
 
-Planned work includes:
+## Vision
 
-- school administration tools
-- teacher dashboards
-- teacher- and school-level learner progress reporting
-- expanded evaluation and safeguarding controls
-- school-level deployment and pricing workflows
-- additional subjects and grade levels
+Robo-Teacher is not intended to be another question-answer chatbot.
 
-### Longer-term vision
+The long-term goal is to build an **AI teacher infrastructure layer for African education**: a system that can understand where a learner is, teach at that learner's level, switch language when necessary, show concepts visually, listen to questions, provide practice, remember progress, identify learning gaps and help human teachers see where support is needed.
 
-Robo-Teacher is intended to evolve from a messaging-based tutor into an **AI learning layer for African education**: a multilingual, multimodal virtual teacher that can personalize instruction while keeping teachers, schools and responsible evaluation central to deployment.
+**Every learner. Their own AI teacher.**
 
-## Responsible Evidence Policy
-
-This repository distinguishes among:
-
-1. **verified pilot evidence** — results from the documented 56-student evaluation;
-2. **controlled development/staging tests** — used to validate new capabilities but not counted as pilot outcomes; and
-3. **future product plans** — clearly described as roadmap items rather than completed capabilities.
-
-This distinction is intentional. Robo-Teacher's public claims should remain traceable to evidence rather than treating prototypes, mockups or future plans as completed outcomes.
+---
 
 ## About Earlyon-Tech Brainery
 
-Earlyon-Tech Brainery is a Nigerian education-technology initiative focused on expanding access to quality technical and digital education. Robo-Teacher represents the organization's transition from delivering technology-enabled learning primarily through human-led programs toward building scalable AI-powered education infrastructure.
+Earlyon-Tech Brainery is a Nigerian education-technology initiative focused on improving access to practical digital and technology-enabled learning for children, young people and educators.
 
-**Product direction:** *Every learner. Their own AI teacher.*
+Robo-Teacher represents the initiative's move from primarily human-led learning programs toward building scalable AI-powered learning infrastructure that can complement teachers and expand individualized support.
