@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Robo-Teacher Classroom</title>
-  <link rel="stylesheet" href="/classroom/styles.css?v=20260910-voicevolume1" />
+  <link rel="stylesheet" href="/classroom/styles.css?v=20260910-voicehelp1" />
 </head>
 <body>
   <main class="app-shell">
@@ -63,11 +63,13 @@
             <span id="teacherVoiceStatus" class="teacher-voice-status" aria-live="polite">Ready</span>
             <select id="teacherSpeed" class="teacher-speed" aria-label="Teacher speaking speed"><option value="slower">Slower</option><option value="normal" selected>Normal speed</option><option value="faster">Faster</option></select>
             <select id="teacherVolume" class="teacher-volume" aria-label="Teacher volume"><option value="mute">Mute</option><option value="low">Low volume</option><option value="normal" selected>Normal volume</option><option value="high">High volume</option></select>
+            <button id="voiceHelpToggle" class="icon-button voice-help-toggle" type="button" aria-label="Show voice commands" aria-expanded="false">Commands</button>
             <button id="handsFreeToggle" class="icon-button hands-free-toggle" type="button" aria-label="Enable wake-word teaching" aria-pressed="false">Wake-word</button>
             <button id="readAnswer" class="icon-button read-answer" type="button" aria-label="Read the current answer aloud" disabled><span>Read answer</span></button>
             <button id="toggleTeacher" class="icon-button" type="button" aria-label="Minimize teacher" aria-expanded="true">Hide</button>
           </div>
           <p id="handsFreeHeard" class="hands-free-heard hidden" aria-live="polite"></p>
+          <section id="handsFreeHelp" class="hands-free-help hidden" aria-labelledby="handsFreeHelpTitle"><strong id="handsFreeHelpTitle">Voice commands</strong><ul id="handsFreeHelpList"></ul></section>
         </div>
         <div class="teacher-portrait">
           <div class="teacher-avatar-stage avatar-stage">
@@ -183,6 +185,6 @@
       </section>
     </section>
   </main>
-  <script src="/classroom/app.js?v=20260910-voicevolume1"></script>
+  <script src="/classroom/app.js?v=20260910-voicehelp1"></script>
 </body>
 </html>

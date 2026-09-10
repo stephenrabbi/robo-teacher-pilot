@@ -20,6 +20,10 @@ const handsFreeToggle=document.getElementById('handsFreeToggle');
 const handsFreeHeard=document.getElementById('handsFreeHeard');
 const teacherSpeed=document.getElementById('teacherSpeed');
 const teacherVolume=document.getElementById('teacherVolume');
+const voiceHelpToggle=document.getElementById('voiceHelpToggle');
+const handsFreeHelp=document.getElementById('handsFreeHelp');
+const handsFreeHelpTitle=document.getElementById('handsFreeHelpTitle');
+const handsFreeHelpList=document.getElementById('handsFreeHelpList');
 const teacherVoiceStatus=document.getElementById('teacherVoiceStatus');
 const learningStatus=document.getElementById('learningStatus');
 const form=document.getElementById('chatForm');
@@ -344,7 +348,7 @@ function speechAlternativeScore(alternative){
   let score=confidence*8+Math.min(wordCount,18)*.12;
   if(/\b(?:robo|robot|robotic)\s*(?:teacher|tutor|feature|olukọ|oluko|malam|malami|onye nkuzi)(?=\s|[,.:;-]|$)/u.test(transcript))score+=4;
   if(/\b(?:square root|square route|squared root|fraction|multiply|divide|division|equation|angle|graph|plus|minus|solve|calculate)\b/.test(transcript))score+=3;
-  if(/\b(?:pause|pulse|paws|pose|pores|continue|resume|repeat|simpler|understanding|visual|diagram|next step|previous step|speak slower|normal speed|speak faster|volume up|volume down|mute|unmute)\b/.test(transcript))score+=2;
+  if(/\b(?:pause|pulse|paws|pose|pores|continue|resume|repeat|simpler|understanding|visual|diagram|next step|previous step|speak slower|normal speed|speak faster|volume up|volume down|mute|unmute|help|commands)\b/.test(transcript))score+=2;
   return score;
 }
 
@@ -447,8 +451,17 @@ function changeTeacherVolume(direction){
   const levels=['low','normal','high'];let index=levels.indexOf(teacherVolumeLevel);if(index<0)index=direction>0?0:1;setTeacherVolumeLevel(levels[Math.max(0,Math.min(levels.length-1,index+direction))],teacherSpeechPaused&&Date.now()-handsFree.bargeInAt<5000);
 }
 
+function renderHandsFreeHelp(){
+  const local={English:{title:'Voice commands',pause:'Pause',continue:'Continue',wake:'Robo-Teacher'},Yoruba:{title:'Àwọn àṣẹ ohùn',pause:'Dúró',continue:'Tẹ̀síwájú',wake:'Robo olùkọ́'},Igbo:{title:'Iwu olu',pause:'Kwụsị',continue:'Gaa n’ihu',wake:'Robo onye nkuzi'},Hausa:{title:'Umarnin murya',pause:'Dakata',continue:'Ci gaba',wake:'Robo malami'}}[language.value];
+  handsFreeHelpTitle.textContent=local.title;
+  const commands=[`${local.wake}, ${local.pause}`,local.continue,'Explain it simpler','Repeat that','Show a visual','Check my understanding','Next step / Previous step','Speak slower / Speak faster','Volume up / Volume down','Mute / Unmute'];
+  handsFreeHelpList.replaceChildren(...commands.map(command=>{const item=document.createElement('li');item.textContent=command;return item}));
+}
+
+function showHandsFreeHelp(show=true){renderHandsFreeHelp();handsFreeHelp.classList.toggle('hidden',!show);voiceHelpToggle.setAttribute('aria-expanded',String(show));voiceHelpToggle.textContent=show?'Hide commands':'Commands'}
+
 function isSafeHandsFreeControl(intent){
-  return /^(?:pause|stop|continue|resume|go on|explain (?:that )?again|repeat(?: that)?|say (?:that )?again|show (?:me )?(?:a )?visual|show (?:the )?diagram|explain (?:it |that )?simpler|make (?:it |that )?simpler|simplify (?:it|that)|check my understanding|test me|ask me a question|next|next step|move on|back|previous|previous step|go back|speak slower|slow down|normal speed|speak normally|speak faster|speed up|volume up|turn it up|volume down|turn it down|mute|unmute)$/.test(normalizeSpokenIntent(intent));
+  return /^(?:pause|stop|continue|resume|go on|explain (?:that )?again|repeat(?: that)?|say (?:that )?again|show (?:me )?(?:a )?visual|show (?:the )?diagram|explain (?:it |that )?simpler|make (?:it |that )?simpler|simplify (?:it|that)|check my understanding|test me|ask me a question|next|next step|move on|back|previous|previous step|go back|speak slower|slow down|normal speed|speak normally|speak faster|speed up|volume up|turn it up|volume down|turn it down|mute|unmute|help|what can i say|show commands|iranlowo|ìrànlọ́wọ́|nyere m aka|taimako)$/.test(normalizeSpokenIntent(intent));
 }
 
 function executeHandsFreeIntent(phrase){
@@ -468,8 +481,9 @@ function executeHandsFreeIntent(phrase){
   const volumeDownCommand=/^(volume down|turn it down)$/.test(command);
   const muteCommand=/^mute$/.test(command);
   const unmuteCommand=/^unmute$/.test(command);
+  const helpCommand=/^(help|what can i say|show commands|iranlowo|ìrànlọ́wọ́|nyere m aka|taimako)$/.test(command);
   const stopListeningCommand=/^(stop listening|turn off|goodbye)$/.test(command);
-  if(teacherPanel.classList.contains('speaking')&&!pauseCommand&&!continueCommand&&!replayCommand&&!visualCommand&&!simplerCommand&&!understandingCommand&&!nextStepCommand&&!previousStepCommand&&!slowerCommand&&!normalSpeedCommand&&!fasterCommand&&!volumeUpCommand&&!volumeDownCommand&&!muteCommand&&!unmuteCommand&&!stopListeningCommand)return;
+  if(teacherPanel.classList.contains('speaking')&&!pauseCommand&&!continueCommand&&!replayCommand&&!visualCommand&&!simplerCommand&&!understandingCommand&&!nextStepCommand&&!previousStepCommand&&!slowerCommand&&!normalSpeedCommand&&!fasterCommand&&!volumeUpCommand&&!volumeDownCommand&&!muteCommand&&!unmuteCommand&&!helpCommand&&!stopListeningCommand)return;
   if(pauseCommand){
     if(teacherPanel.classList.contains('speaking'))void pauseTeacherAudio();else if(currentLesson)pauseLessonForQuestion('voice');
     openHandsFreeFollowUpWindow();return;
@@ -491,6 +505,7 @@ function executeHandsFreeIntent(phrase){
   if(volumeDownCommand){changeTeacherVolume(-1);updateHandsFreeStatus('Listening…');return}
   if(muteCommand){setTeacherVolumeLevel('mute',teacherSpeechPaused&&Date.now()-handsFree.bargeInAt<5000);updateHandsFreeStatus('Listening…');return}
   if(unmuteCommand){setTeacherVolumeLevel(lastAudibleTeacherVolume,teacherSpeechPaused&&Date.now()-handsFree.bargeInAt<5000);updateHandsFreeStatus('Listening…');return}
+  if(helpCommand){showHandsFreeHelp(true);updateHandsFreeStatus('Commands shown');return}
   if(stopListeningCommand){
     handsFree.enabled=false;handsFree.processing=false;stopHandsFreeListening();updateHandsFreeStatus();showHandsFreeHeard('Wake-word listening is off.');setLearningStatus('Wake-word teaching off');return;
   }
@@ -812,6 +827,7 @@ teacherSpeed.value=teacherSpeechPace;
 teacherSpeed.addEventListener('change',()=>setTeacherSpeechPace(teacherSpeed.value,teacherPanel.classList.contains('speaking')||teacherSpeechPaused));
 teacherVolume.value=teacherVolumeLevel;
 teacherVolume.addEventListener('change',()=>setTeacherVolumeLevel(teacherVolume.value));
+voiceHelpToggle.addEventListener('click',()=>showHandsFreeHelp(handsFreeHelp.classList.contains('hidden')));
 
 function stopFounderSpeech(){
   founderSpeechRequest+=1;if(founderSpeechController){founderSpeechController.abort();founderSpeechController=null}
@@ -1036,6 +1052,7 @@ whiteboard.addEventListener('pointerup',stopDrawing);
 whiteboard.addEventListener('pointercancel',stopDrawing);
 backToWhiteboard.addEventListener('click',openWhiteboard);
 language.addEventListener('change',async()=>{
+  if(!handsFreeHelp.classList.contains('hidden'))renderHandsFreeHelp();
   const wasReading=teacherPanel.classList.contains('speaking')||teacherSpeechPaused;
   const answerToTranslate=canvasAnswer.textContent.trim();
   stopTeacherAudio();
