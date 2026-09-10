@@ -31,7 +31,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260910-revision1' in html
+    assert '20260910-revisionfix1' in html
     assert 'id="learnerNickname"' in html
     assert 'id="learnerClass"' in html
     assert "learnerNickname.value=''" in script
@@ -47,7 +47,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert "localStorage.setItem('roboTeacherQaChecklist'" in script
     assert 'const resultCopy=' in script
     assert 'labels.yourAnswer' in script
-    assert '20260910-revision1' in html
+    assert '20260910-revisionfix1' in html
     assert 'downloadTeacherDashboardReport' in script
     assert 'id="practiceClass"' in html
     assert 'id="startDiagnostic"' in html
@@ -1478,6 +1478,16 @@ def test_saved_lesson_revision_has_recap_three_checks_score_and_recommendation()
     assert 'Revision score: ${currentRevision.score}/3.' in script
     assert 'Review this saved lesson once more' in script
     assert '.revision-panel{' in styles
+
+
+def test_revision_question_generation_is_bounded_and_can_be_retried():
+    script = Path('classroom/app.js').read_text()
+    assert 'currentRevision.lesson.answer.slice(0,1400)' in script
+    assert 'setTimeout(()=>controller.abort(),20000)' in script
+    assert 'signal:controller.signal' in script
+    assert "error.name==='AbortError'" in script
+    assert "revisionNext.textContent='Try again'" in script
+    assert 'Your revision score has not been affected.' in script
 
 
 def test_media_endpoint_requires_a_valid_session():
