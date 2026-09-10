@@ -31,17 +31,18 @@
   }
 
   let shownFor='';
-  function advance(action){
-    if(!action)return;
+  function advance(){
     todayButton.click();
     let attempts=0;
     const timer=setInterval(()=>{
       attempts+=1;
-      const direct=dailyPlanList.querySelector(`button[data-daily-action="${action}"]`);
-      const resume=document.getElementById('continueDailyPlan');
-      if(direct&&!direct.classList.contains('hidden')){clearInterval(timer);direct.click();return}
-      if(resume&&!resume.disabled){clearInterval(timer);resume.click();return}
-      if(attempts>=24)clearInterval(timer);
+      const continueButton=document.getElementById('continueDailyPlan');
+      if(continueButton&&!continueButton.disabled&&!document.getElementById('dailyPlanArea')?.classList.contains('hidden')){
+        clearInterval(timer);
+        continueButton.click();
+        return;
+      }
+      if(attempts>=30)clearInterval(timer);
     },150);
   }
 
@@ -80,7 +81,7 @@
     title.textContent=`Welcome back, ${nickname.value.trim()}`;
     detail.textContent=`You have completed ${done} of 3 steps today. Next: ${taskTitle(next)||'continue your learning plan'}.`;
     button.textContent="Continue today's plan →";
-    button.addEventListener('click',()=>advance(next));
+    button.addEventListener('click',advance);
 
     const area=document.querySelector('.learning-area');
     const header=area?.querySelector('.lesson-header');
