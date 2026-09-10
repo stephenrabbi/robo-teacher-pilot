@@ -31,7 +31,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260910-backgroundfix1' in html
+    assert '20260910-chatrecovery1' in html
     assert 'id="learnerNickname"' in html
     assert 'id="learnerClass"' in html
     assert "learnerNickname.value=''" in script
@@ -47,7 +47,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert "localStorage.setItem('roboTeacherQaChecklist'" in script
     assert 'const resultCopy=' in script
     assert 'labels.yourAnswer' in script
-    assert '20260910-backgroundfix1' in html
+    assert '20260910-chatrecovery1' in html
     assert 'downloadTeacherDashboardReport' in script
     assert 'id="practiceClass"' in html
     assert 'id="startDiagnostic"' in html
@@ -1400,6 +1400,20 @@ def test_hands_free_recovers_from_browser_network_and_microphone_interruptions()
     assert "document.visibilityState==='hidden'" in script
     assert "updateHandsFreeStatus('Paused in background…')" in script
     assert 'handsFree.hasStarted=true' in script
+
+
+def test_chat_connection_loss_preserves_and_retries_question_and_lesson_step():
+    script = Path('classroom/app.js').read_text()
+    assert "sessionStorage.getItem('roboTeacherPendingChat')" in script
+    assert "sessionStorage.setItem('roboTeacherPendingChat'" in script
+    assert 'function isConnectionFailure(error)' in script
+    assert 'function retryPendingChat()' in script
+    assert "window.addEventListener('online',()=>setTimeout(retryPendingChat,600))" in script
+    assert 'step:currentLesson.steps[currentLesson.index]' in script
+    assert 'Connection lost. Your question and lesson position are saved.' in script
+    assert 'Connection restored — continuing your question' in script
+    assert 'if(!recovery)addMessage' in script
+    assert 'navigator.onLine&&!recovery)setTimeout(retryPendingChat,1000)' in script
 
 
 def test_media_endpoint_requires_a_valid_session():

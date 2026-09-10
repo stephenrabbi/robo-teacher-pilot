@@ -194,6 +194,7 @@ let showVoiceAnswerAvatar=false;
 let currentLesson=null;
 const lessonHistory=[];
 let lessonInterruption=null;
+let pendingChatRecovery=null;
 const teachingStage={mode:'lesson',bookmark:0};
 const lessonChoreography={enabled:true,visited:new Set(),timer:null};
 let learnerMemoryId='';
@@ -218,6 +219,27 @@ const qaChecks={
   'Devices':['Android Chrome works','Desktop Chrome or Edge works','iPhone or Safari checked when available','No clipped controls or horizontal scrolling']
 };
 const savedLanguage=localStorage.getItem('roboTeacherLanguage');
+
+try{pendingChatRecovery=JSON.parse(sessionStorage.getItem('roboTeacherPendingChat')||'null')}catch(_error){sessionStorage.removeItem('roboTeacherPendingChat')}
+
+function isConnectionFailure(error){
+  return !navigator.onLine||error instanceof TypeError||/failed to fetch|networkerror|load failed/i.test(error?.message||'');
+}
+
+function savePendingChatRecovery(job){
+  pendingChatRecovery={text:job.text,interruptedLesson:job.interruptedLesson,language:job.language};
+  sessionStorage.setItem('roboTeacherPendingChat',JSON.stringify(pendingChatRecovery));
+}
+
+function clearPendingChatRecovery(){pendingChatRecovery=null;sessionStorage.removeItem('roboTeacherPendingChat')}
+
+function retryPendingChat(){
+  if(!pendingChatRecovery||!navigator.onLine||sendButton.disabled||classroom.classList.contains('hidden'))return;
+  question.value=pendingChatRecovery.text;setLearningStatus('Connection restored — continuing your question','thinking');
+  form.requestSubmit();
+}
+
+window.addEventListener('online',()=>setTimeout(retryPendingChat,600));
 if(['English','Yoruba','Igbo','Hausa'].includes(savedLanguage))language.value=savedLanguage;
 const dashboardCopy={
   English:{sessions:'Sessions',questions:'Questions',overall:'Overall score',strongest:'Strongest topic',next:'Recommended next step',continue:'Continue Learning →',week:'This week',weekStrongest:'Strongest this week',attention:'Needs attention',learners:'Learners',average:'Average',weakest:'Weakest topic',score:'Score',trend:'Trend',noData:'Not enough data',noCompare:'No previous-week comparison',noChange:'No score change',sixWeek:'Six-week performance trend',topicPerformance:'Topic performance'},
@@ -613,6 +635,7 @@ start.addEventListener('click',async()=>{
     await ensureSession();learnerIdentity.textContent=`${nickname.toUpperCase()} · ${learnerClass.value} CLASSROOM`;
     welcome.classList.add('hidden');classroom.classList.remove('hidden');
     addMessage(`Welcome, ${nickname}! I’ll explain each lesson at ${learnerClass.value} level.`,'teacher');question.focus();
+    if(pendingChatRecovery)setTimeout(retryPendingChat,300);
   }catch(_){onboardingError.textContent='I could not start the classroom connection. Please try again.';onboardingError.classList.remove('hidden')}
   finally{start.disabled=false;start.textContent='Start Learning Now →'}
 });
@@ -1668,14 +1691,16 @@ async function handleImage(file,source='upload'){
 
 form.addEventListener('submit',async(e)=>{
   e.preventDefault();const text=question.value.trim();if(!text||sendButton.disabled)return;
-  const interruptedLesson=lessonInterruption||(currentLesson?{text:currentLesson.text,index:currentLesson.index}:null);
-  const lessonQuestion=interruptedLesson?`The learner paused this lesson step: "${currentLesson.steps[currentLesson.index]}"\n\nTheir question is: ${text}`:text;
+  const recovery=pendingChatRecovery?.text===text?pendingChatRecovery:null;
+  const interruptedLesson=recovery?.interruptedLesson||lessonInterruption||(currentLesson?{text:currentLesson.text,index:currentLesson.index,step:currentLesson.steps[currentLesson.index]}:null);
+  const interruptedStep=interruptedLesson?.step||currentLesson?.steps?.[interruptedLesson?.index]||interruptedLesson?.text||'';
+  const lessonQuestion=interruptedLesson?`The learner paused this lesson step: "${interruptedStep}"\n\nTheir question is: ${text}`:text;
   const requestText=`${adaptivePromptContext()}\n\n${lessonQuestion}`;
-  addMessage(text,'student');question.value='';sendButton.disabled=true;sendButton.textContent='Thinking…';setLearningStatus('Working through your question','thinking');
-  const thinking=addMessage('Let me work through that with you…','teacher');
+  if(!recovery)addMessage(text,'student');question.value='';sendButton.disabled=true;sendButton.textContent='Thinking…';setLearningStatus(recovery?'Connection restored — continuing your question':'Working through your question','thinking');
+  const thinking=addMessage(recovery?'Your connection is back. I’m continuing from where we stopped…':'Let me work through that with you…','teacher');
   try{
     const token=await ensureSession();
-    const response=await fetch('/api/classroom/chat',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({message:requestText,session_token:token,language:language.value})});
+    const response=await fetch('/api/classroom/chat',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({message:requestText,session_token:token,language:recovery?.language||language.value})});
     const data=await response.json();
     if(response.status===401){sessionToken=null;throw new Error('session');}
     if(!response.ok)throw new Error(data.detail||'request');
@@ -1684,8 +1709,10 @@ form.addEventListener('submit',async(e)=>{
     backToWhiteboard.classList.add('hidden');
     showCanvasAnswer(data.reply,'Worked solution');
     if(handsFree.enabled)void speakText(data.reply,true,true);
-    thinking.textContent='I’ve placed the complete worked solution on the Teaching Canvas.';
+    thinking.textContent='I’ve placed the complete worked solution on the Teaching Canvas.';clearPendingChatRecovery();
   }catch(err){
-    thinking.textContent=err.message&&err.message.includes('wait')?err.message:'Sorry, I had a small technical hiccup. Please try your question again in a moment.';
-  }finally{sendButton.disabled=false;sendButton.textContent='Send';setLearningStatus('Answer ready');keepTeachingCanvasVisible();if(handsFree.enabled){handsFree.processing=false;handsFree.restartAttempts=0;scheduleHandsFreeRecovery('answer-complete')}}
+    if(isConnectionFailure(err)){
+      savePendingChatRecovery({text,interruptedLesson,language:recovery?.language||language.value});thinking.textContent='Connection lost. Your question and lesson position are saved. I’ll continue automatically when the internet returns.';setLearningStatus('Waiting for internet — lesson saved','paused');
+    }else{clearPendingChatRecovery();thinking.textContent=err.message&&err.message.includes('wait')?err.message:'Sorry, I had a small technical hiccup. Please try your question again in a moment.';}
+  }finally{sendButton.disabled=false;sendButton.textContent='Send';if(!pendingChatRecovery)setLearningStatus('Answer ready');else if(navigator.onLine&&!recovery)setTimeout(retryPendingChat,1000);keepTeachingCanvasVisible();if(handsFree.enabled){handsFree.processing=false;handsFree.restartAttempts=0;scheduleHandsFreeRecovery('answer-complete')}}
 });
