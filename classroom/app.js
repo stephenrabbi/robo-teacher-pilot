@@ -359,6 +359,10 @@ function clearHandsFreePhraseBuffer(){
   clearTimeout(handsFree.phraseTimer);handsFree.phraseTimer=null;handsFree.phraseBuffer='';handsFree.bufferConfidence=0;
 }
 
+function openHandsFreeFollowUpWindow(){
+  handsFree.armedUntil=Date.now()+15000;updateHandsFreeStatus('Ask or say Continue…');setLearningStatus('Teacher paused — ask a follow-up or say Continue','paused');
+}
+
 function handsFreeBargeIn(result){
   const alternatives=Array.from(result).map(item=>(item.transcript||'').trim()).filter(Boolean);
   const command=alternatives.find(transcript=>/^(?:(?:hey\s+)?(?:robo|robot|robotic)\s*(?:teacher|tutor|feature)[\s,.:;-]*)?(?:please\s+)?(?:pause|pulse|pals|paws|pose|pores)$/i.test(transcript));
@@ -369,7 +373,7 @@ function handsFreeBargeIn(result){
   handsFree.bargeInAt=Date.now();clearHandsFreePhraseBuffer();void pauseTeacherAudio();handsFree.armedUntil=Date.now()+7000;
   if(command){
     const interpreted=normalizeSpokenIntent(command.toLowerCase().replace(/^(?:(?:hey\s+)?(?:robo|robot|robotic)\s*(?:teacher|tutor|feature)[\s,.:;-]*)?(?:please\s+)?/i,''));
-    handsFree.pending='';handsFree.armedUntil=0;handsFree.ignorePauseUntil=Date.now()+1800;showHandsFreeHeard(`Heard: “${command}” · Interpreted: “${interpreted}”`);updateHandsFreeStatus('Paused');return true;
+    handsFree.pending='';handsFree.ignorePauseUntil=Date.now()+1800;openHandsFreeFollowUpWindow();showHandsFreeHeard(`Heard: “${command}” · Teacher paused. Ask your follow-up within 15 seconds, or say “Continue”.`);return true;
   }
   showHandsFreeHeard(`Heard: “${wake}” — teacher paused so I can hear you.`);updateHandsFreeStatus('Ask your question…');return false;
 }
@@ -417,7 +421,7 @@ function executeHandsFreeIntent(phrase){
   if(teacherPanel.classList.contains('speaking')&&!pauseCommand&&!continueCommand&&!replayCommand&&!visualCommand&&!stopListeningCommand)return;
   if(pauseCommand){
     if(teacherPanel.classList.contains('speaking'))void pauseTeacherAudio();else if(currentLesson)pauseLessonForQuestion('voice');
-    updateHandsFreeStatus('Say “Robo-Teacher”…');return;
+    openHandsFreeFollowUpWindow();return;
   }
   if(continueCommand){
     continueHandsFreeTeaching();
