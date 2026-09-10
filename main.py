@@ -3,7 +3,7 @@ import datetime
 import logging
 import os
 from fastapi import FastAPI, Request, BackgroundTasks, HTTPException
-from fastapi.responses import Response, FileResponse
+from fastapi.responses import Response, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from twilio.request_validator import RequestValidator
 from twilio.twiml.messaging_response import MessagingResponse
@@ -22,6 +22,11 @@ app.include_router(classroom_router)
 if os.path.isdir("classroom"):
     app.mount("/classroom", StaticFiles(directory="classroom"), name="classroom-static")
 WHATSAPP_MIGRATION_MESSAGE = "Robo-Teacher WhatsApp Pilot Update\n\nOur WhatsApp pilot has now ended while we improve Robo-Teacher.\n\nPlease continue learning with Robo-Teacher FREE on Telegram:\nhttps://t.me/RoboTeacherAfricaBot\n\nOpen the link, tap Start, and continue asking your Maths questions there.\n\nThank you for being part of the Robo-Teacher journey.\nEvery learner. Their own AI teacher."
+CLASSROOM_ENHANCEMENT_SCRIPTS = (
+    ("daily_session.js", '<script src="/classroom/daily_session.js?v=20260910-daily-session2"></script>'),
+    ("daily_guidance_fix.js", '<script src="/classroom/daily_guidance_fix.js?v=20260910-guidance-fix1"></script>'),
+    ("daily_return_fix.js", '<script src="/classroom/daily_return_fix.js?v=20260910-return-fix3"></script>'),
+)
 
 @app.on_event("startup")
 async def _sync_telegram_webhook_on_startup():
@@ -49,7 +54,12 @@ def health_check(): return {"status":"Robo-Teacher pilot bot is running"}
 
 @app.get("/classroom-app")
 def classroom_app():
-    return FileResponse("classroom/index.html")
+    with open("classroom/index.html", "r", encoding="utf-8") as classroom_file:
+        html = classroom_file.read()
+    scripts = [tag for filename, tag in CLASSROOM_ENHANCEMENT_SCRIPTS if filename not in html]
+    if scripts:
+        html = html.replace("</body>", "  " + "\n  ".join(scripts) + "\n</body>")
+    return HTMLResponse(html)
 
 def _get_or_onboard(channel, identifier, message):
     student = lookup_student(channel, identifier)

@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Robo-Teacher Classroom</title>
-  <link rel="stylesheet" href="/classroom/styles.css?v=20260907-fullcanvas1" />
+  <link rel="stylesheet" href="/classroom/styles.css?v=20260910-mastery1" />
 </head>
 <body>
   <main class="app-shell">
@@ -17,8 +17,13 @@
     </header>
 
     <section id="welcome" class="screen welcome-screen">
-      <div class="founder-panel">
-        <img class="founder-avatar" src="/classroom/assets/herbert-stephen-founder.jpg" alt="Herbert Stephen, founder of Robo-Teacher" />
+      <div id="founderPanel" class="founder-panel avatar-rig">
+        <div class="founder-avatar-stage avatar-stage">
+          <img class="founder-avatar" src="/classroom/assets/herbert-stephen-founder.jpg" alt="Herbert Stephen, founder of Robo-Teacher" />
+          <img class="founder-avatar avatar-speaking-frame" src="/classroom/assets/herbert-stephen-founder-speaking.jpg" alt="" aria-hidden="true" />
+          <img class="founder-avatar avatar-head-motion founder-head-motion" src="/classroom/assets/herbert-stephen-founder.jpg" alt="" aria-hidden="true" />
+          <img class="founder-avatar avatar-head-motion avatar-head-speaking founder-head-motion" src="/classroom/assets/herbert-stephen-founder-speaking.jpg" alt="" aria-hidden="true" />
+        </div>
         <span class="status">Online and ready</span>
       </div>
       <div class="welcome-copy">
@@ -26,7 +31,7 @@
         <h1>Welcome to <span>Robo-Teacher</span></h1>
         <div class="speech-card">
           <h2>Hello there!</h2>
-          <p>I’m Stephen, the founder of Robo-Teacher. I’ll help you get started, then introduce you to your AI teacher.</p>
+          <p>I’m Herbert, the founder of Robo-Teacher. I’ll help you get started, then introduce you to your AI teacher.</p>
           <p>Ask questions, show your work, speak naturally and learn step by step.</p>
           <div class="learner-onboarding">
             <label for="learnerNickname">What should your teacher call you?</label>
@@ -40,7 +45,7 @@
             <p id="onboardingError" class="onboarding-error hidden" role="alert"></p>
           </div>
         </div>
-        <div class="welcome-actions"><button id="startLearning" class="primary">Start Learning Now →</button><button id="showTeacherLogin" class="teacher-entry" type="button">Teacher access</button></div>
+        <div class="welcome-actions"><button id="startLearning" class="primary">Start Learning Now →</button><button id="resumeLearning" class="resume-learning hidden" type="button">Continue previous lesson →</button><button id="hearFounder" class="founder-voice" type="button">Hear Herbert</button><button id="showTeacherLogin" class="teacher-entry" type="button">Teacher access</button></div>
         <div id="teacherLogin" class="teacher-login hidden">
           <label for="teacherAccessKey">Private teacher access key</label>
           <div><input id="teacherAccessKey" type="password" autocomplete="current-password" placeholder="Enter private key" /><button id="openTeacherDashboard" type="button">Open Dashboard →</button></div>
@@ -51,17 +56,28 @@
     </section>
 
     <section id="classroom" class="screen classroom-screen hidden">
-      <aside id="teacherPanel" class="teacher-panel" data-voice-gender="female">
+      <aside id="teacherPanel" class="teacher-panel avatar-rig" data-voice-gender="female">
         <div class="teacher-toolbar">
           <strong>Your AI Teacher</strong>
           <div class="teacher-actions">
+            <span id="teacherVoiceStatus" class="teacher-voice-status" aria-live="polite">Ready</span>
+            <select id="teacherSpeed" class="teacher-speed" aria-label="Teacher speaking speed"><option value="slower">Slower</option><option value="normal" selected>Normal speed</option><option value="faster">Faster</option></select>
+            <select id="teacherVolume" class="teacher-volume" aria-label="Teacher volume"><option value="mute">Mute</option><option value="low">Low volume</option><option value="normal" selected>Normal volume</option><option value="high">High volume</option></select>
+            <button id="voiceHelpToggle" class="icon-button voice-help-toggle" type="button" aria-label="Show voice commands" aria-expanded="false">Commands</button>
+            <button id="handsFreeToggle" class="icon-button hands-free-toggle" type="button" aria-label="Enable wake-word teaching" aria-pressed="false">Wake-word</button>
             <button id="readAnswer" class="icon-button read-answer" type="button" aria-label="Read the current answer aloud" disabled><span>Read answer</span></button>
             <button id="toggleTeacher" class="icon-button" type="button" aria-label="Minimize teacher" aria-expanded="true">Hide</button>
           </div>
+          <p id="handsFreeHeard" class="hands-free-heard hidden" aria-live="polite"></p>
+          <section id="handsFreeHelp" class="hands-free-help hidden" aria-labelledby="handsFreeHelpTitle"><strong id="handsFreeHelpTitle">Voice commands</strong><ul id="handsFreeHelpList"></ul></section>
         </div>
         <div class="teacher-portrait">
-          <img class="teacher-avatar" src="/classroom/assets/ai-maths-teacher.jpg" alt="Robo-Teacher AI Mathematics teacher" />
-          <span id="teacherVoiceStatus" class="teacher-voice-status" aria-live="polite">Ready</span>
+          <div class="teacher-avatar-stage avatar-stage">
+            <img class="teacher-avatar" src="/classroom/assets/ai-teacher-face.jpg" alt="Robo-Teacher AI Mathematics teacher" />
+            <img class="teacher-avatar avatar-speaking-frame" src="/classroom/assets/ai-teacher-face-speaking.jpg" alt="" aria-hidden="true" />
+            <img class="teacher-avatar avatar-head-motion teacher-head-motion" src="/classroom/assets/ai-teacher-face.jpg" alt="" aria-hidden="true" />
+            <img class="teacher-avatar avatar-head-motion avatar-head-speaking teacher-head-motion" src="/classroom/assets/ai-teacher-face-speaking.jpg" alt="" aria-hidden="true" />
+          </div>
         </div>
         <div class="teacher-caption">Ready to guide you step by step. Voice questions receive spoken answers.</div>
       </aside>
@@ -75,8 +91,24 @@
           <div id="canvasEmpty" class="canvas-empty"><strong>Teaching Canvas</strong><p>Upload or photograph a Maths problem. Your image and Robo-Teacher’s guidance will appear here.</p></div>
           <div id="canvasWork" class="canvas-work hidden">
             <img id="problemPreview" alt="Learner's Maths problem" />
-            <div><div class="canvas-result-toolbar"><span id="canvasStatus" class="canvas-status">Image ready</span><button id="backToWhiteboard" type="button" class="back-to-board hidden">← Back to Whiteboard</button></div><div id="canvasAnswer" class="canvas-answer"></div></div>
+            <div><div class="canvas-result-toolbar"><span id="canvasStatus" class="canvas-status">Image ready</span><span id="teachingStageMode" class="teaching-stage-mode">Lesson</span><span id="teachingMemoryStatus" class="teaching-memory-status">Learning your pace</span><button id="autoTeachToggle" type="button" class="auto-teach-toggle" aria-pressed="true">Auto Teach: On</button><button id="backToWhiteboard" type="button" class="back-to-board hidden">← Back to Whiteboard</button></div><div id="canvasAnswer" class="canvas-answer"></div><nav id="lessonDirector" class="lesson-director hidden" aria-label="Lesson steps"><div class="lesson-progress"><strong id="lessonStepLabel">Step 1 of 1</strong><div id="lessonStepTrack" class="lesson-step-track" aria-hidden="true"></div></div><p id="lessonChoreographyHint" class="lesson-choreography-hint" aria-live="polite"></p><p id="lessonPauseNotice" class="lesson-pause-notice hidden" aria-live="polite"></p><div class="lesson-stage-actions" aria-label="Teaching options for this step"><button id="showStepVisual" type="button">Show step visual</button><button id="watchStepExample" type="button">Watch step example</button><button id="checkStepUnderstanding" type="button">Check this step</button></div><div class="lesson-controls"><button id="previousLessonStep" type="button">← Previous</button><button id="nextLessonStep" type="button" class="lesson-primary">Next →</button><button id="replayLessonStep" type="button">Replay step</button><button id="askLessonQuestion" type="button" class="lesson-question">Ask about this step</button><button id="returnToLesson" type="button" class="hidden">Return to previous lesson</button><button id="endLesson" type="button">End lesson</button></div></nav></div>
           </div>
+          <aside id="canvasVoiceAvatar" class="canvas-voice-avatar avatar-rig hidden" aria-label="AI teacher speaking">
+            <div class="canvas-avatar-stage avatar-stage">
+              <img src="/classroom/assets/ai-teacher-face.jpg" alt="Your AI teacher" />
+              <img class="avatar-speaking-frame" src="/classroom/assets/ai-teacher-face-speaking.jpg" alt="" aria-hidden="true" />
+            </div>
+            <span>Speaking</span>
+          </aside>
+          <section id="understandingArea" class="understanding-area hidden" aria-labelledby="understandingQuestion">
+            <span class="practice-kicker">CHECK MY UNDERSTANDING</span>
+            <h3 id="understandingQuestion"></h3>
+            <form id="understandingForm"><div id="understandingChoices" class="understanding-choices"></div><button type="submit" class="practice-primary">Check my answer</button></form>
+            <p id="understandingFeedback" class="practice-feedback hidden" aria-live="polite"></p>
+            <button id="closeUnderstanding" type="button">Return to lesson</button>
+          </section>
+          <section id="visualArea" class="visual-area hidden" aria-labelledby="visualTitle"><span class="practice-kicker">VISUAL TEACHING MODE</span><h3 id="visualTitle"></h3><div id="visualGraphic" class="visual-graphic"></div><p id="visualCaption"></p><button id="closeVisual" type="button">Return to explanation</button></section>
+          <section id="mediaArea" class="media-area hidden" aria-labelledby="mediaTitle"><button id="closeMedia" class="exit-media" type="button" aria-label="Exit simulation and return to the lesson">← Exit simulation</button><span class="practice-kicker">WATCH AND EXPLORE</span><h3 id="mediaTitle"></h3><iframe id="mediaFrame" class="hidden" title="Interactive Maths example" loading="lazy"></iframe><div id="mediaReplay" class="media-replay hidden"></div><p id="mediaSource"></p></section>
           <div id="whiteboardArea" class="whiteboard-area hidden">
             <div class="whiteboard-toolbar" aria-label="Whiteboard drawing tools">
               <button id="penTool" type="button" class="active">Pen</button>
@@ -120,6 +152,8 @@
               <div class="practice-actions result-actions"><button id="practiceAgain" type="button" class="practice-primary">Practise Again</button><button id="viewProgressFromResults" type="button">View Progress</button><button id="changePracticeTopic" type="button">Change Topic</button><button id="exitPracticeResults" type="button">Exit Practice</button></div>
             </div>
           </section>
+          <section id="dailyPlanArea" class="progress-area daily-plan-area hidden" aria-labelledby="dailyPlanTitle"><div class="progress-heading"><div><p class="practice-kicker">TODAY'S LEARNING PLAN</p><h3 id="dailyPlanTitle">Three focused steps</h3></div><button id="closeDailyPlan" type="button">Close</button></div><p class="daily-plan-intro">Revise what may be fading, strengthen one topic, then learn something new.</p><div id="dailyPlanLoading" class="progress-empty">Preparing today’s plan…</div><div id="dailyPlanList" class="daily-plan-list hidden"></div><p id="dailyPlanError" class="progress-empty error hidden"></p></section>
+          <section id="myLessonsArea" class="progress-area my-lessons-area hidden" aria-labelledby="myLessonsTitle"><div class="progress-heading"><div><p class="practice-kicker">SAVED FOR LATER</p><h3 id="myLessonsTitle">My Lessons</h3></div><button id="closeMyLessons" type="button">Close</button></div><div id="lessonLibrary"><section id="lessonRecommendation" class="lesson-recommendation hidden" aria-live="polite"><div><span>REVISE NEXT</span><strong id="lessonRecommendationTitle"></strong><small id="lessonRecommendationReason"></small></div><button id="reviseRecommended" type="button">Start revision →</button></section><div class="lesson-library-tools"><input id="lessonSearch" type="search" placeholder="Search saved lessons" aria-label="Search saved lessons" /><select id="lessonFilter" aria-label="Filter saved lessons"><option value="all">All lessons</option><option value="favourites">Favourites</option></select></div><p id="myLessonsEmpty" class="progress-empty">Save a useful explanation and it will appear here.</p><div id="myLessonsList" class="my-lessons-list"></div></div><section id="revisionPanel" class="revision-panel hidden" aria-labelledby="revisionTitle"><div class="revision-heading"><div><p class="practice-kicker">REVISION MODE</p><h3 id="revisionTitle">Lesson review</h3></div><strong id="revisionProgress">Question 1 of 3</strong></div><div class="revision-recap"><strong>Quick recap</strong><p id="revisionRecap"></p></div><form id="revisionForm"><fieldset><legend id="revisionQuestion">Preparing your question…</legend><div id="revisionChoices" class="revision-choices"></div></fieldset><button id="revisionSubmit" type="submit">Check answer</button></form><p id="revisionFeedback" class="revision-feedback" aria-live="polite"></p><div id="revisionResult" class="revision-result hidden"></div><div class="revision-actions"><button id="revisionNext" type="button" class="hidden">Next question →</button><button id="closeRevision" type="button">Exit revision</button></div></section></section>
           <section id="progressArea" class="progress-area hidden" aria-labelledby="progressTitle">
             <div class="progress-heading"><div><p class="practice-kicker">MY PROGRESS</p><h3 id="progressTitle">Learning dashboard</h3></div><button id="closeProgress" type="button">Close</button></div>
             <div id="progressLoading" class="progress-empty">Loading your progress…</div>
@@ -148,11 +182,12 @@
           <button type="submit" class="send">Send</button>
         </form>
         <nav class="class-tools" aria-label="Classroom tools">
-          <button id="chatButton" type="button" data-mode="chat" class="active" aria-current="page">Chat</button><button id="practiceButton" type="button" data-mode="practice">Practice</button><button id="progressButton" type="button" data-mode="progress">Progress</button><button id="teacherDashboardButton" type="button" data-mode="teacher">Teacher</button><button id="cameraButton" type="button">Camera</button><button id="navMicButton" type="button">Voice</button><button id="whiteboardButton" type="button" data-mode="whiteboard">Whiteboard</button><button id="languageButton" type="button">Language</button>
+          <button id="dailyPlanButton" type="button" data-mode="today">Today</button><button id="bookmarkLesson" type="button">Save Lesson</button><button id="myLessonsButton" type="button" data-mode="lessons">My Lessons</button>
+          <button id="chatButton" type="button" data-mode="chat" class="active" aria-current="page">Chat</button><button id="practiceButton" type="button" data-mode="practice">Practice</button><button id="progressButton" type="button" data-mode="progress">Progress</button><button id="teacherDashboardButton" type="button" data-mode="teacher">Teacher</button><button id="cameraButton" type="button">Camera</button><button id="simplifyButton" type="button">Explain Simpler</button><button id="visualButton" type="button">Show Visual</button><button id="mediaButton" type="button">Watch or Explore</button><button id="understandingButton" type="button">Check Understanding</button><button id="whiteboardButton" type="button" data-mode="whiteboard">Whiteboard</button><button id="languageButton" type="button">Language</button>
         </nav>
       </section>
     </section>
   </main>
-  <script src="/classroom/app.js?v=20260907-fullcanvas1"></script>
+  <script src="/classroom/app.js?v=20260910-daily-plan1"></script>
 </body>
 </html>

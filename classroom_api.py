@@ -12,6 +12,7 @@ import os
 import secrets
 import time
 from collections import defaultdict, deque
+from itertools import chain
 from typing import Literal
 
 from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, Request, UploadFile
@@ -31,7 +32,15 @@ from tutor import (
     get_tutor_audio_reply,
     get_tutor_image_reply,
     get_tutor_reply,
+    generate_understanding_check,
+    fallback_understanding_check,
+    fallback_visual_aid,
+    generate_visual_aid,
+    select_lesson_media,
+    stream_stable_tutor_speech,
     stream_tutor_speech,
+    simplify_tutor_text,
+    translate_tutor_text,
 )
 
 router = APIRouter(prefix="/api/classroom", tags=["classroom"])
@@ -41,6 +50,7 @@ _RATE_MAX_REQUESTS = 12
 _SESSION_KEY = os.getenv("CLASSROOM_SESSION_SECRET", "").encode() or secrets.token_bytes(32)
 _request_times: dict[str, deque] = defaultdict(deque)
 _classroom_profiles: dict[str, dict[str, str]] = {}
+_understanding_checks: dict[str, dict] = {}
 SupportedLanguage = Literal["English", "Yoruba", "Igbo", "Hausa"]
 
 
@@ -68,6 +78,7 @@ class ClassroomSpeech(BaseModel):
     session_token: str = Field(min_length=20, max_length=300)
     language: SupportedLanguage = "English"
     voice_gender: Literal["female", "male"] = "female"
+    pace: Literal["slower", "normal", "faster"] = "normal"
 
 
 class PracticeStart(BaseModel):
@@ -90,6 +101,18 @@ class PracticeNext(BaseModel):
 
 class PracticeLanguage(PracticeNext):
     language: SupportedLanguage = "English"
+
+
+class ClassroomTranslation(BaseModel):
+    session_token: str = Field(min_length=20, max_length=300)
+    text: str = Field(min_length=1, max_length=6000)
+    language: SupportedLanguage
+
+
+class UnderstandingAnswer(BaseModel):
+    session_token: str = Field(min_length=20, max_length=300)
+    check_id: str = Field(min_length=16, max_length=64, pattern=r"^[a-f0-9]+$")
+    choice_index: Literal[0, 1, 2]
 
 
 class DiagnosticStart(BaseModel):
@@ -304,12 +327,96 @@ def classroom_speech(speech: ClassroomSpeech):
     # question. Keep it out of the question bucket so repeated voice lessons
     # do not disable both the answer and its automatic narration.
     _enforce_rate_limit(student_id, "speech", 30)
-    audio_stream = stream_tutor_speech(speech.text.strip(), speech.language, speech.voice_gender)
-    return StreamingResponse(
-        audio_stream,
-        media_type="audio/l16;rate=24000;channels=1",
-        headers={"Cache-Control": "no-store", "X-Audio-Sample-Rate": "24000"},
-    )
+    text = speech.text.strip()
+    headers = {"Cache-Control": "no-store", "X-Audio-Sample-Rate": "24000"}
+    try:
+        # Do not send HTTP 200 until Gemini has produced actual audio. This
+        # prevents an empty provider stream from making the browser flash
+        # "Pause" and then silently stop.
+        audio_stream = iter(stream_tutor_speech(text, speech.language, speech.voice_gender, speech.pace))
+        first_chunk = next(audio_stream)
+        return StreamingResponse(
+            chain((first_chunk,), audio_stream),
+            media_type="audio/l16;rate=24000;channels=1",
+            headers=headers,
+        )
+    except Exception:
+        try:
+            # Keep Gemini 3.1 streaming as the primary voice, then use the
+            # stable Gemini TTS endpoint with the same Aoede/Charon voice if
+            # the preview stream returns no audio.
+            fallback_stream = iter(stream_stable_tutor_speech(text, speech.language, speech.voice_gender, speech.pace))
+            first_fallback_chunk = next(fallback_stream)
+            return StreamingResponse(
+                chain((first_fallback_chunk,), fallback_stream),
+                media_type="audio/l16;rate=24000;channels=1",
+                headers=headers,
+            )
+        except Exception as exc:
+            raise HTTPException(status_code=503, detail="The natural teacher voice is temporarily unavailable") from exc
+
+
+@router.post("/translate")
+def classroom_translate(request: ClassroomTranslation):
+    student_id = _verify_session(request.session_token)
+    _enforce_rate_limit(student_id, "translation", 30)
+    class_level = _classroom_profiles.get(student_id, {}).get("class_level", "JSS2")
+    try:
+        translated = translate_tutor_text(request.text, request.language, class_level)
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="I could not switch this explanation right now") from exc
+    return {"translation": translated, "language": request.language}
+
+
+@router.post("/simplify")
+def classroom_simplify(request: ClassroomTranslation):
+    student_id = _verify_session(request.session_token)
+    _enforce_rate_limit(student_id, "simplify", 20)
+    class_level = _classroom_profiles.get(student_id, {}).get("class_level", "JSS2")
+    try:
+        explanation = simplify_tutor_text(request.text, request.language, class_level)
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="I could not simplify this explanation right now") from exc
+    return {"explanation": explanation, "language": request.language}
+
+
+@router.post("/understanding/start")
+def classroom_understanding_start(request: ClassroomTranslation):
+    student_id = _verify_session(request.session_token)
+    _enforce_rate_limit(student_id, "understanding", 20)
+    class_level = _classroom_profiles.get(student_id, {}).get("class_level", "JSS2")
+    try:
+        check = generate_understanding_check(request.text, request.language, class_level)
+    except Exception:
+        check = fallback_understanding_check(request.text, request.language, class_level)
+    check_id = secrets.token_hex(16)
+    _understanding_checks[check_id] = {**check, "student_id": student_id, "created": time.time()}
+    return {"check_id": check_id, "question": check["question"], "choices": check["choices"], "language": request.language}
+
+
+@router.post("/visual")
+def classroom_visual(request: ClassroomTranslation):
+    student_id = _verify_session(request.session_token);_enforce_rate_limit(student_id, "visual", 20)
+    class_level = _classroom_profiles.get(student_id, {}).get("class_level", "JSS2")
+    try: visual = generate_visual_aid(request.text, request.language, class_level)
+    except Exception: visual = fallback_visual_aid(request.text, request.language)
+    return visual
+
+
+@router.post("/media")
+def classroom_media(request: ClassroomTranslation):
+    _verify_session(request.session_token)
+    return select_lesson_media(request.text, request.language)
+
+
+@router.post("/understanding/answer")
+def classroom_understanding_answer(request: UnderstandingAnswer):
+    student_id = _verify_session(request.session_token)
+    check = _understanding_checks.get(request.check_id)
+    if not check or check["student_id"] != student_id or time.time() - check["created"] > _SESSION_TTL_SECONDS:
+        raise HTTPException(status_code=404, detail="This check has expired. Please start another one")
+    correct = request.choice_index == check["correct_index"]
+    return {"correct": correct, "correct_index": check["correct_index"], "feedback": check["feedback"]}
 
 
 @router.post("/image")

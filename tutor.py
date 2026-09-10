@@ -7,6 +7,7 @@ preserving deterministic arithmetic and explicit escalation guardrails.
 import ast
 import base64
 import io
+import json
 import logging
 import operator
 import os
@@ -226,35 +227,26 @@ def _localized_spoken_number(match: re.Match, number_words: dict[int, str], deci
     return _localized_integer_word(raw, number_words)
 
 
-def _normalize_spoken_brand_names(text: str) -> str:
-    """Remove brand-name hyphens without changing genuine subtraction signs."""
-    spoken = re.sub(r"\bRobo\s*[-‐‑‒–—]\s*Teacher\b", "Robo Teacher", text, flags=re.IGNORECASE)
-    return re.sub(
-        r"\bEarlyon\s*[-‐‑‒–—]\s*Tech\s+Brainery\b",
-        "Earlyon Tech Brainery",
-        spoken,
-        flags=re.IGNORECASE,
-    )
-
-
 def _prepare_spoken_transcript(text: str, language: str) -> str:
     """Localize numbers and Maths operators before the TTS model sees them."""
-    # A hyphen joins the words in these proper names; it is not a Maths sign.
-    # Normalize only known brands so expressions such as "8 - 3" stay intact.
-    spoken = _normalize_spoken_brand_names(text)
     settings = SPOKEN_MATH.get(language)
     if not settings:
-        return spoken
+        return text
     number_words, decimal_word, replacements = settings
     # Replace operators first so hyphens inside generated words such as
     # "Márùn-ún" are not mistaken for subtraction signs.
+    spoken = text
     for symbol, wording in replacements:
         spoken = spoken.replace(symbol, f" {wording} ")
     spoken = re.sub(r"\b\d[\d,]*(?:\.\d+)?\b", lambda match: _localized_spoken_number(match, number_words, decimal_word), spoken)
     return " ".join(spoken.split())
 
 
-def stream_tutor_speech(text: str, language: str = "English", voice_gender: str = "female"):
+def _speech_pace_direction(pace: str) -> str:
+    return {"slower": "Speak slowly and clearly, with slightly longer pauses between teaching steps. ", "faster": "Speak briskly but clearly, without skipping words or Maths steps. ", "normal": "Speak at a natural classroom pace. "}.get(pace, "Speak at a natural classroom pace. ")
+
+
+def stream_tutor_speech(text: str, language: str = "English", voice_gender: str = "female", pace: str = "normal"):
     """Yield raw 24 kHz mono PCM as Gemini produces it for low-latency playback."""
     gender = "male" if voice_gender == "male" else "female"
     language_name = TTS_LANGUAGE_NAMES.get(language, "English")
@@ -274,11 +266,13 @@ def stream_tutor_speech(text: str, language: str = "English", voice_gender: str 
         f"Use the same unmistakably adult {gender} teacher voice speaking {language_name}. "
         f"{local_number_direction}"
         f"{delivery_style}"
-        "Say Robo Teacher and Earlyon Tech Brainery as natural proper names. Never pronounce a brand-name hyphen as minus. "
+        f"{_speech_pace_direction(pace)}"
         "Use punctuation for natural pauses and keep the delivery fluid.\n\n"
         f"TRANSCRIPT:\n{transcript}"
     )
-    stream = _get_client().interactions.create(
+    client = _get_client()
+    emitted_audio = False
+    stream = client.interactions.create(
         model=GEMINI_STREAMING_TTS_MODEL,
         input=prompt,
         response_format={"type": "audio"},
@@ -291,43 +285,71 @@ def stream_tutor_speech(text: str, language: str = "English", voice_gender: str 
             continue
         encoded = getattr(delta, "data", None)
         if encoded:
+            emitted_audio = True
             yield base64.b64decode(encoded) if isinstance(encoded, str) else bytes(encoded)
+    if emitted_audio:
+        return
+    raise RuntimeError("Gemini streaming TTS returned no audio")
 
 
-def generate_tutor_speech(text: str, language: str = "English", voice_gender: str = "female") -> bytes:
-    """Generate expressive teacher speech as a WAV file using Gemini TTS."""
+def stream_stable_tutor_speech(text: str, language: str = "English", voice_gender: str = "female", pace: str = "normal"):
+    """Yield short Gemini TTS sections so fallback playback can begin quickly."""
     gender = "male" if voice_gender == "male" else "female"
     language_name = TTS_LANGUAGE_NAMES.get(language, "English")
     client = _get_client()
-    pcm_chunks = []
-    for chunk in _speech_chunks(text):
+    spoken_text = _spoken_excerpt(_prepare_spoken_transcript(text, language))
+    local_number_direction = (
+        f"When speaking {language_name}, pronounce every number and Maths operation only in {language_name}, never in English. "
+        if language in SPOKEN_MATH else ""
+    )
+    delivery_style = (
+        "Use simple modern Lagos classroom Yorùbá. Speak like a friendly young teacher, not a formal broadcaster. "
+        "Avoid deep vocabulary, proverbs and old-fashioned expressions. "
+        if language == "Yoruba" else
+        "Sound warm, patient and conversational, with a gentle Nigerian classroom tone and a friendly vocal smile. "
+    )
+    for chunk in _speech_chunks(spoken_text, max_chars=220):
         prompt = (
-            "Synthesize speech for the transcript below. Do not read these directions aloud. "
-            f"Use the same unmistakably adult {gender} teacher voice speaking {language_name}. "
-            "Sound warm, patient and conversational, with a gentle Nigerian classroom tone and a friendly vocal smile. "
+            "Read only the transcript below aloud. Do not read these directions. "
+            f"Speak in {language_name}. "
+            f"{local_number_direction}"
+            f"{delivery_style}"
+            f"{_speech_pace_direction(pace)}"
             "Use the written punctuation for natural pauses, vary emphasis slightly, and avoid a stiff announcer cadence.\n\n"
             f"TRANSCRIPT:\n{chunk}"
         )
         last_error = None
-        for _attempt in range(2):
+        for _attempt in range(1):
             try:
-                interaction = client.interactions.create(
+                response = client.models.generate_content(
                     model=GEMINI_TTS_MODEL,
-                    input=prompt,
-                    response_format={"type": "audio"},
-                    generation_config={"speech_config": [{"voice": TTS_VOICES[gender]}]},
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        response_modalities=["AUDIO"],
+                        speech_config=types.SpeechConfig(
+                            voice_config=types.VoiceConfig(
+                                prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                                    voice_name=TTS_VOICES[gender]
+                                )
+                            )
+                        ),
+                    ),
                 )
-                encoded = interaction.output_audio.data
+                encoded = response.candidates[0].content.parts[0].inline_data.data
                 pcm = base64.b64decode(encoded) if isinstance(encoded, str) else bytes(encoded)
                 if not pcm:
                     raise ValueError("Gemini TTS returned empty audio")
-                pcm_chunks.append(pcm)
+                yield pcm
                 break
             except Exception as exc:
                 last_error = exc
         else:
             raise RuntimeError("Gemini TTS could not generate audio") from last_error
-    return _pcm_to_wav(b"".join(pcm_chunks))
+
+
+def generate_tutor_speech(text: str, language: str = "English", voice_gender: str = "female", pace: str = "normal") -> bytes:
+    """Generate expressive teacher speech as a WAV file using Gemini TTS."""
+    return _pcm_to_wav(b"".join(stream_stable_tutor_speech(text, language, voice_gender, pace)))
 
 
 def _safe_arithmetic(expression: str):
@@ -424,36 +446,57 @@ def _class_instruction(class_level: str) -> str:
 
 def _language_instruction(response_language: str, class_level: str = "JSS2") -> str:
     language_details = {
-        "Yoruba": ("Yorùbá", "Yorùbá"),
-        "Igbo": ("Igbo", "Igbo"),
-        "Hausa": ("Hausa", "Hausa"),
+        "Yoruba": {
+            "name": "Yorùbá",
+            "style": (
+                "Use simple, modern conversational Yorùbá commonly understood by young people in Lagos, including learners who did not grow up in their ancestral town. "
+                "Use short, direct sentences and familiar everyday words. Avoid deep, literary, ceremonial or old-fashioned Yorùbá, proverbs, idioms and rare traditional expressions. "
+                "Use familiar classroom forms such as jẹ́ ká, a máa, nítorí náà and ìdáhùn instead of unusually formal alternatives."
+            ),
+            "numbers": "Use familiar conversational Yorùbá counting forms such as ọ̀kan, méjì, mẹ́ta, márùn-ún and mẹ́fà.",
+        },
+        "Igbo": {
+            "name": "Igbo",
+            "style": (
+                "Use simple, modern everyday Igbo that young Nigerian learners can understand even if they did not grow up in an Igbo-speaking hometown. "
+                "Prefer widely understood classroom words and short, direct sentences. Avoid deep dialect words, literary or ceremonial Igbo, proverbs, idioms and rare traditional expressions."
+            ),
+            "numbers": "Say numbers in clear everyday Igbo, for example otu, abụọ, atọ, anọ, ise and isii.",
+        },
+        "Hausa": {
+            "name": "Hausa",
+            "style": (
+                "Use simple, modern everyday Hausa that young Nigerian learners can understand even if Hausa is not the main language spoken in their home. "
+                "Prefer common school and conversational words with short, direct sentences. Avoid deep regional vocabulary, literary or ceremonial Hausa, proverbs, idioms and uncommon traditional expressions."
+            ),
+            "numbers": "Say numbers in clear everyday Hausa, for example ɗaya, biyu, uku, huɗu, biyar and shida.",
+        },
     }
     if response_language in language_details:
-        language_name, number_word_language = language_details[response_language]
-        simplicity = (
-            f"Use simple, modern conversational Yorùbá commonly understood by {class_level} learners in Lagos. "
-            "Use short direct sentences. Avoid deep or literary Yorùbá, proverbs, idioms and uncommon traditional terms. "
-            "You may naturally code-switch only familiar school Maths words such as plus, minus, times, divide, fraction, decimal and percent. "
-            "Never say the numbers in English; use familiar conversational Yorùbá counting forms such as ọ̀kan, méjì, mẹ́ta, márùn-ún and mẹ́fà. "
-            if response_language == "Yoruba" else ""
-        )
+        details = language_details[response_language]
+        language_name = details["name"]
         return (
             f"The learner may ask the Maths question in {language_name} or English. Understand both languages, "
-            f"but reply entirely in clear, natural {language_name} suitable for a Nigerian {class_level} learner. "
-            f"{simplicity}"
+            f"but reply in at least 90 percent {language_name}, suitable for a Nigerian {class_level} learner. "
+            f"{details['style']} "
+            "Translate the teaching itself: headings, encouragement, instructions, step labels, transitions, explanations and the final-answer label must all be in the selected language. "
+            "Do not write English scaffolding such as 'Step', 'First', 'Next', 'Because', 'Therefore', 'The answer is', 'Calculate', 'Multiply', 'Divide' or 'Equals'. "
+            "English is permitted only for a standard Maths term that would become unclear in translation, such as plus, minus, times, divide, fraction, decimal or percent, and for internationally used symbols, formula letters, units and proper names. "
+            "Even when one English Maths term is necessary, keep the surrounding sentence in the selected language. Never write a complete explanatory sentence in English. "
             "Write as a warm human teacher would speak: use complete sentences, natural punctuation, and short paragraphs. "
             "Use commas and full stops to create clear pauses when the answer is read aloud. "
-            f"Use {number_word_language} number words whenever referring to values in explanatory sentences. "
+            f"{details['numbers']} Never say explanatory numbers in English. "
             "Numerals may remain in written equations, but write the final-answer value "
-            f"as a {number_word_language} number word."
+            f"as a {language_name} number word. Before returning the answer, silently check every sentence and replace any unnecessary English with simple {language_name}."
         )
     return (
         "Detect whether the learner's current Maths question is in English, Yorùbá, Igbo, or Hausa. "
-        "Reply entirely in the language used in the question. When replying in Yorùbá, Igbo, or Hausa, "
+        "Reply in at least 90 percent of the language used in the question. When replying in Yorùbá, Igbo, or Hausa, "
         "write as a warm human teacher would speak, using complete sentences, natural punctuation, and short paragraphs. "
         "Use commas and full stops to create clear pauses when the answer is read aloud. "
-        "keep mathematical symbols and numerals in the working, but write the final-answer value as a "
-        f"number word in that language. Use language suitable for a Nigerian {class_level} learner."
+        "Keep mathematical symbols and numerals in the working, but write the final-answer value as a number word in that language. "
+        "Translate headings, step labels, instructions, explanations and encouragement. English may appear only in an unavoidable standard Maths term, formula, symbol, unit or proper name. "
+        f"Use simple modern language suitable for a Nigerian {class_level} learner, never deep dialect, literary language, proverbs or archaic expressions."
     )
 
 
@@ -486,6 +529,216 @@ def get_tutor_reply(student_id: str, message: str, response_language: str = "Eng
 
     _conversations[student_id] = new_history[-_MAX_TURNS * 2:]
     return _clean_model_reply(text), time.time() - start
+
+
+def translate_tutor_text(text: str, response_language: str, class_level: str = "JSS2") -> str:
+    """Translate an existing worked answer without changing its Maths."""
+    if not text.strip():
+        raise ValueError("Text cannot be empty")
+    client = _get_client()
+    target_instruction = (
+        f"Reply entirely in simple, modern English suitable for a Nigerian {class_level} learner."
+        if response_language == "English"
+        else _language_instruction(response_language, class_level)
+    )
+    prompt = (
+        f"{_class_instruction(class_level)}\n{target_instruction}\n\n"
+        f"Translate the existing Maths explanation below into {response_language}. "
+        "Preserve every equation, numeral, mathematical symbol, formula, unit, answer and step order exactly. "
+        "Do not solve the problem again, add new teaching, shorten it, or change its mathematical meaning. "
+        "Return only the translated explanation.\n\n"
+        f"EXISTING EXPLANATION:\n{text.strip()}"
+    )
+    response = client.models.generate_content(
+        model=GEMINI_MODEL,
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            system_instruction=SYSTEM_PROMPT,
+            max_output_tokens=900,
+            thinking_config=types.ThinkingConfig(thinking_budget=0),
+        ),
+    )
+    return _clean_model_reply(_extract_text(response))
+
+
+def simplify_tutor_text(text: str, response_language: str, class_level: str = "JSS2") -> str:
+    """Rewrite a worked answer more simply without changing its Maths."""
+    if not text.strip():
+        raise ValueError("Text cannot be empty")
+    language_instruction = (
+        f"Use simple, modern English suitable for a Nigerian {class_level} learner."
+        if response_language == "English"
+        else _language_instruction(response_language, class_level)
+    )
+    prompt = (
+        f"{_class_instruction(class_level)}\n{language_instruction}\n\n"
+        "Rewrite the existing Maths explanation below so a learner who did not understand it the first time can follow it. "
+        "Use shorter sentences, easier words, clearly numbered steps, and one familiar everyday example. "
+        "Preserve every equation, value, operation, unit and final answer exactly. Do not change the Maths or introduce a different solution. "
+        "Return only the simpler explanation.\n\n"
+        f"EXISTING EXPLANATION:\n{text.strip()}"
+    )
+    response = _get_client().models.generate_content(
+        model=GEMINI_MODEL,
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            system_instruction=SYSTEM_PROMPT,
+            max_output_tokens=700,
+            thinking_config=types.ThinkingConfig(thinking_budget=0),
+        ),
+    )
+    return _clean_model_reply(_extract_text(response))
+
+
+def generate_understanding_check(text: str, response_language: str, class_level: str = "JSS2") -> dict:
+    """Create one three-option check based only on the visible lesson."""
+    if not text.strip():
+        raise ValueError("Text cannot be empty")
+    language_instruction = (
+        f"Use simple, modern English suitable for a Nigerian {class_level} learner."
+        if response_language == "English"
+        else _language_instruction(response_language, class_level)
+    )
+    prompt = (
+        f"{_class_instruction(class_level)}\n{language_instruction}\n\n"
+        "Create exactly one short multiple-choice question that checks whether the learner understood the Maths explanation below. "
+        "Use three plausible answer choices and exactly one correct choice. Do not introduce a topic not taught in the explanation. "
+        "Return valid JSON only with keys question, choices, correct_index and feedback. choices must contain exactly three strings; "
+        "correct_index must be 0, 1 or 2; feedback must briefly explain the correct method without merely repeating the choice.\n\n"
+        f"LESSON:\n{text.strip()}"
+    )
+    response = _get_client().models.generate_content(
+        model=GEMINI_MODEL,
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            system_instruction=SYSTEM_PROMPT,
+            max_output_tokens=450,
+            thinking_config=types.ThinkingConfig(thinking_budget=0),
+            response_mime_type="application/json",
+        ),
+    )
+    raw = _extract_text(response).strip()
+    if raw.startswith("```"):
+        raw = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw, flags=re.IGNORECASE)
+    data = json.loads(raw)
+    choices = data.get("choices")
+    correct_index = data.get("correct_index")
+    if not isinstance(data.get("question"), str) or not isinstance(choices, list) or len(choices) != 3:
+        raise ValueError("Invalid understanding check")
+    if not all(isinstance(choice, str) and choice.strip() for choice in choices) or correct_index not in (0, 1, 2):
+        raise ValueError("Invalid understanding check")
+    if not isinstance(data.get("feedback"), str) or not data["feedback"].strip():
+        raise ValueError("Invalid understanding check")
+    return {"question": data["question"].strip(), "choices": [choice.strip() for choice in choices], "correct_index": correct_index, "feedback": data["feedback"].strip()}
+
+
+def fallback_understanding_check(text: str, response_language: str = "English", class_level: str = "JSS2") -> dict:
+    """Build a small lesson-grounded check when the model is temporarily unavailable."""
+    clean = re.sub(r"\s+", " ", text).strip()
+    revision_match = re.search(r"revision question\s+([123])", clean, re.IGNORECASE)
+    revision_number = int(revision_match.group(1)) if revision_match else 1
+    root_match = re.search(r"square root of\s+(\d+(?:\.\d+)?).*?(?:is|equals|=)\s+(\d+(?:\.\d+)?)", clean, re.IGNORECASE)
+    if root_match:
+        radicand, answer = root_match.groups();value = float(answer);shown = str(int(value)) if value.is_integer() else answer
+        distractors = [str(int(value-1) if (value-1).is_integer() else round(value-1,2)), str(int(value+1) if (value+1).is_integer() else round(value+1,2))]
+        if revision_number == 2:
+            question = f"Which multiplication confirms the square root of {radicand}?";choices = [f"{shown} × {shown} = {radicand}",f"{distractors[0]} × {shown} = {radicand}",f"{shown} + {shown} = {radicand}"]
+        else:
+            question = f"According to the lesson, what is the square root of {radicand}?";choices = [distractors[0],shown,distractors[1]]
+        return {"question":question,"choices":choices,"correct_index":0 if revision_number==2 else 1,"feedback":f"{shown} × {shown} = {radicand}, so the square root is {shown}."}
+    equation = re.search(r"(-?\d+(?:\.\d+)?)\s*([+\-×x*÷/])\s*(-?\d+(?:\.\d+)?)\s*=\s*(-?\d+(?:\.\d+)?)", clean)
+    if equation:
+        left,operator_symbol,right,answer=equation.groups();value=float(answer);wrong_one=str(int(value+1) if (value+1).is_integer() else round(value+1,2));wrong_two=str(int(value-1) if (value-1).is_integer() else round(value-1,2))
+        return {"question":f"What is {left} {operator_symbol} {right}?","choices":[wrong_two,answer,wrong_one],"correct_index":1,"feedback":f"The lesson shows that {left} {operator_symbol} {right} = {answer}."}
+    numbers=list(dict.fromkeys(re.findall(r"(?<![A-Za-z])\d+(?:\.\d+)?", clean)))
+    answer=numbers[-1] if numbers else "1";others=[number for number in numbers if number!=answer][-2:]
+    while len(others)<2:
+        value=float(answer);candidate=str(int(value+len(others)+1) if (value+len(others)+1).is_integer() else round(value+len(others)+1,2));others.append(candidate)
+    return {"question":"Which value is stated in the final step of this lesson?","choices":[others[0],answer,others[1]],"correct_index":1,"feedback":f"The final step in the saved lesson states {answer}."}
+
+
+def generate_visual_aid(text: str, response_language: str, class_level: str = "JSS2") -> dict:
+    """Describe a safe, lightweight visual that the browser can render."""
+    coordinate_matches = re.findall(r"\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)", text)
+    if len(coordinate_matches) >= 2:
+        labels = {"English": ("Coordinate plot", "Points taken directly from the lesson."), "Yoruba": ("Àwòrán kọ́ọ̀dínéètì", "Àwọn ojúami láti inú ẹ̀kọ́ náà."), "Igbo": ("Eserese koordineti", "Isi ihe ndị sitere n’ihe ọmụmụ ahụ."), "Hausa": ("Jadawalin daidaitawa", "Maki daga darasin kai tsaye.")}
+        title, caption = labels.get(response_language, labels["English"])
+        points = [{"label": f"{x},{y}", "value": index + 1} for index, (x, y) in enumerate(coordinate_matches[:8])]
+        return {"title": title, "kind": "coordinate", "items": points, "caption": caption}
+    language_instruction = f"Use simple {response_language} suitable for {class_level}." if response_language != "English" else f"Use simple English suitable for {class_level}."
+    prompt = (
+        f"{_class_instruction(class_level)}\n{language_instruction}\n\n"
+        "Create one visual aid for the Maths lesson below. Return valid JSON only with keys title, kind, items and caption. "
+        "kind must be steps, bars, number_line, square_grid, fraction, balance, or coordinate. items must contain 2 to 8 objects, each with short label and numeric value. "
+        "Use square_grid for square numbers or square roots: the first value is the total unit cells and must be a perfect square no greater than 100. "
+        "Use fraction with the first value as numerator and second as denominator. Use balance with left and right values. "
+        "Use coordinate with each item's label formatted exactly as x,y and value as its point order. "
+        "For steps, value is the step number. For bars, values show relative quantities. For number_line, values are ordered positions. "
+        "Use only values and ideas already present in the lesson; never change the Maths. Keep labels under 45 characters.\n\n"
+        f"LESSON:\n{text.strip()}"
+    )
+    response = _get_client().models.generate_content(model=GEMINI_MODEL, contents=prompt, config=types.GenerateContentConfig(system_instruction=SYSTEM_PROMPT, max_output_tokens=450, thinking_config=types.ThinkingConfig(thinking_budget=0), response_mime_type="application/json"))
+    raw = _extract_text(response).strip();data = json.loads(re.sub(r"^```(?:json)?\s*|\s*```$", "", raw, flags=re.IGNORECASE))
+    aliases={"fraction_bar":"fraction","fraction_model":"fraction","balance_scale":"balance","equation_balance":"balance","coordinate_plane":"coordinate","graph":"coordinate","grid":"square_grid"}
+    kind=aliases.get(str(data.get("kind","")).lower(),str(data.get("kind","")).lower());items=data.get("items")
+    if kind not in {"steps","bars","number_line","square_grid","fraction","balance","coordinate"} or not isinstance(items,list) or not 1<=len(items)<=8: raise ValueError("Invalid visual aid")
+    cleaned=[]
+    for item in items:
+        if not isinstance(item,dict): raise ValueError("Invalid visual item")
+        label=str(item.get("label",item.get("name",""))).strip()[:45];value=item.get("value",item.get("position",item.get("amount")))
+        if isinstance(value,str):
+            try: value=float(value)
+            except ValueError:
+                if kind!="balance": raise ValueError("Invalid visual value")
+                value=value.strip()[:30]
+        if not label or not isinstance(value,(int,float,str)): raise ValueError("Invalid visual item")
+        cleaned.append({"label":label,"value":value})
+    if kind=="number_line": cleaned.sort(key=lambda item:item["value"])
+    if kind=="square_grid":
+        total=int(cleaned[0]["value"]);side=int(total**0.5)
+        if total<1 or total>100 or side*side!=total: raise ValueError("Invalid square grid")
+    if kind=="fraction":
+        if len(cleaned)<2: raise ValueError("Invalid fraction")
+        numerator,denominator=int(cleaned[0]["value"]),int(cleaned[1]["value"])
+        if denominator<1 or denominator>24 or numerator<0 or numerator>denominator: raise ValueError("Invalid fraction")
+    return {"title":str(data.get("title","Visual explanation"))[:80],"kind":kind,"items":cleaned,"caption":str(data.get("caption",""))[:240]}
+
+
+def fallback_visual_aid(text: str, response_language: str) -> dict:
+    """Build a quota-free visual from the lesson text when model output is unavailable."""
+    labels = {
+        "English": ("Lesson steps", "Follow the explanation one step at a time."),
+        "Yoruba": ("Àwọn ìgbésẹ̀ ẹ̀kọ́", "Tẹ̀lé àlàyé náà ní ìgbésẹ̀ kọ̀ọ̀kan."),
+        "Igbo": ("Usoro nkuzi", "Soro nkọwa ahụ otu nzọụkwụ n’otu oge."),
+        "Hausa": ("Matakan darasi", "Bi bayanin mataki ɗaya bayan ɗaya."),
+    }
+    title, caption = labels.get(response_language, labels["English"])
+    parts = [part.strip(" -:\n\t") for part in re.split(r"\n+|(?=\bStep\s+\d+\b)|(?<=[.!?])\s+", text) if part.strip()]
+    if len(parts) < 2:
+        words = text.strip().split()
+        midpoint = max(1, len(words) // 2)
+        parts = [" ".join(words[:midpoint]), " ".join(words[midpoint:])]
+    items = [{"label": part[:45], "value": index + 1} for index, part in enumerate(parts[:8]) if part]
+    if len(items) < 2:
+        items = [{"label": text.strip()[:45] or title, "value": 1}, {"label": caption[:45], "value": 2}]
+    return {"title": title, "kind": "steps", "items": items, "caption": caption}
+
+
+def select_lesson_media(text: str, response_language: str = "English") -> dict:
+    """Select only allowlisted free learning media; never return model URLs."""
+    lesson=text.lower()
+    catalog=[
+        (("fraction","numerator","denominator"),"Fractions Intro","https://phet.colorado.edu/sims/html/fractions-intro/latest/fractions-intro_all.html"),
+        (("equation","equal","balance","solve x"),"Equality Explorer","https://phet.colorado.edu/sims/html/equality-explorer-basics/latest/equality-explorer-basics_all.html"),
+        (("coordinate","plot","graph","gradient","slope"),"Graphing Lines","https://phet.colorado.edu/sims/html/graphing-lines/latest/graphing-lines_all.html"),
+        (("area","rectangle","multiply","factor"),"Area Model Algebra","https://phet.colorado.edu/sims/html/area-model-algebra/latest/area-model-algebra_all.html"),
+    ]
+    for keywords,title,url in catalog:
+        if any(keyword in lesson for keyword in keywords): return {"kind":"simulation","title":title,"url":url,"source":"PhET Interactive Simulations"}
+    replay_text=re.sub(r"(?i)(?<!^)(?=step\s*\d+\s*[:.])","\n",text)
+    replay_text=re.sub(r"(?i)(?<!^)(?=final\s+(?:answer|estimation)\s*[:.])","\n",replay_text)
+    steps=[part.strip() for part in re.split(r"(?:\n+|(?<=[.!?])\s+)",replay_text) if part.strip()][:6]
+    return {"kind":"replay","title":"Worked example replay","steps":steps or [text.strip()[:240]],"source":"Robo-Teacher"}
 
 
 def _media_reply(student_id: str, media_bytes: bytes, mime_type: str, prompt: str, profile_message: str, max_tokens: int = 700) -> tuple[str, float]:

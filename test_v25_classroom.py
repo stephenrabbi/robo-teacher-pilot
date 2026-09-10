@@ -1,7 +1,9 @@
 """Controlled tests for the V2.5 browser classroom API; no live services used."""
 import base64
+import inspect
+from datetime import datetime, timezone
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from fastapi.testclient import TestClient
 
 from v25_app import app
@@ -9,6 +11,7 @@ import classroom_api
 import practice
 import practice_progress
 import diagnostic_progress
+import tutor
 from practice_generator import generate_question
 from tutor import GEMINI_STREAMING_TTS_MODEL, GEMINI_TTS_MODEL, TTS_VOICES, _language_instruction, _pcm_to_wav, _prepare_spoken_transcript, _speech_chunks, _spoken_excerpt, get_tutor_reply
 
@@ -28,7 +31,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260907-fullcanvas1' in html
+    assert '20260910-mastery1' in html
     assert 'id="learnerNickname"' in html
     assert 'id="learnerClass"' in html
     assert "learnerNickname.value=''" in script
@@ -44,7 +47,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert "localStorage.setItem('roboTeacherQaChecklist'" in script
     assert 'const resultCopy=' in script
     assert 'labels.yourAnswer' in script
-    assert '20260907-fullcanvas1' in html
+    assert '20260910-mastery1' in html
     assert 'downloadTeacherDashboardReport' in script
     assert 'id="practiceClass"' in html
     assert 'id="startDiagnostic"' in html
@@ -92,8 +95,8 @@ def test_ui_refinement_exposes_clear_modes_and_activity_status():
     assert '.class-tools button.active' in css
     assert '.composer{position:sticky;bottom:92px' in css
     assert 'linear-gradient(135deg,#eaf7ff' in css
-    assert 'void speakText(data.reply)' in script
-    assert 'stopTeacherAudio();\n    await ensureSession();' in script
+    assert 'void speakText(data.reply,true)' in script
+    assert 'await startAudioKeepAlive();\n    await ensureSession();' in script
     assert 'data-voice-gender="female"' in html
     assert 'prepareSpeechText(text)' in script
     assert "fetch('/api/classroom/speech'" in script
@@ -103,12 +106,22 @@ def test_ui_refinement_exposes_clear_modes_and_activity_status():
     assert 'teacherAudioContext.suspend()' in script
     assert 'teacherAudioContext.resume()' in script
     assert "teacherSpeechPaused){await resumeTeacherAudio()" in script
-    assert '!teacherSpeechPaused&&requestId===teacherSpeechRequest' in script
+    assert 'async function playPcmStream(response,requestId)' in script
+    assert "const reader=response.body.getReader()" in script
+    assert "teacherPanel.classList.add('paused')" in script
+    assert "teacherPanel.classList.remove('paused')" in script
+    assert '.teacher-panel.speaking .read-answer,.teacher-panel.paused .read-answer{position:fixed' in css
+    assert '.read-answer span{display:none}' not in css
     assert 'teacherSpeechPaused=true;\n  teacherPanel.classList.remove' in script
-    assert 'await prepareTeacherAudio();\n    await ensureSession();' in script
+    assert 'await startAudioKeepAlive();\n    await ensureSession();' in script
+    assert 'function stopTeacherAudio(preserveAudioUnlock=false)' in script
+    assert "showCanvasAnswer(data.reply,'Whiteboard solution ready',true)" in script
+    assert "showCanvasAnswer(data.reply,'Voice question explained',true)" in script
+    assert 'async function startAudioKeepAlive()' in script
+    assert 'if(teacherAudioContext.state!==\'running\')' in script
     assert "teacherAudioContext.state==='closed'" in script
     assert 'teacherAudioContext.close()' not in script
-    assert "error.name==='AbortError'" in script
+    assert "'Accept':'audio/L16'" in script
     assert 'const dashboardCopy=' in script
     assert 'function learnerRecommendation(data)' in script
     assert 'function teacherAction(data)' in script
@@ -176,7 +189,37 @@ def test_natural_speech_endpoint_uses_female_avatar_voice():
     assert response.status_code == 200
     assert response.headers['content-type'].startswith('audio/l16')
     assert response.content == b'pcm-audio'
-    assert tts.call_args.args[1:] == ('English', 'female')
+    assert tts.call_args.args[1:] == ('English', 'female', 'normal')
+
+
+def test_empty_stream_uses_stable_gemini_tts_fallback():
+    session = client.post('/api/classroom/session').json()
+    with patch.object(classroom_api, 'stream_tutor_speech', return_value=iter(())), \
+         patch.object(classroom_api, 'stream_stable_tutor_speech', return_value=iter([b'fallback-', b'pcm'])) as fallback:
+        response = client.post('/api/classroom/speech', json={
+            'text': 'The answer is six.',
+            'session_token': session['session_token'],
+            'language': 'English',
+            'voice_gender': 'female',
+        })
+    assert response.status_code == 200
+    assert response.content == b'fallback-pcm'
+    fallback.assert_called_once_with('The answer is six.', 'English', 'female', 'normal')
+
+
+def test_voice_fallback_is_chunked_for_faster_first_audio():
+    source = inspect.getsource(tutor.stream_stable_tutor_speech)
+    assert "_speech_chunks(spoken_text, max_chars=220)" in source
+    primary_source = inspect.getsource(tutor.stream_tutor_speech)
+    assert "retry_prompt" not in primary_source
+
+
+def test_pause_is_enabled_only_after_real_audio_arrives():
+    script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
+    assert "teacherVoiceStatus.textContent='Preparing teacher voice…'" in script
+    assert "readAnswerButton.disabled=true" in script
+    assert "if(!receivedAudio){" in script
+    assert "readAnswerButton.disabled=false;\n      setTeacherSpeaking(true)" in script
 
 
 def test_speech_playback_does_not_consume_the_tutor_question_limit():
@@ -323,11 +366,12 @@ def test_diagnostic_placement_is_separate_and_privacy_safe():
 def test_teacher_dashboard_returns_aggregates_without_identities():
     practice_progress._reset_for_tests()
     diagnostic_progress._memory.clear()
-    diagnostic_progress._memory.append({'timestamp':'2026-09-05T09:00:00+00:00','session_id':'class-diagnostic','learner_id':'WEB-private','class_level':'JSS2','term':'First Term','score':6,'attempted':10,'percentage':60,'recommended_topic':'Standard Form','recommended_difficulty':'Medium','topic_results':[]})
+    current_timestamp = datetime.now(timezone.utc).isoformat()
+    diagnostic_progress._memory.append({'timestamp':current_timestamp,'session_id':'class-diagnostic','learner_id':'WEB-private','class_level':'JSS2','term':'First Term','score':6,'attempted':10,'percentage':60,'recommended_topic':'Standard Form','recommended_difficulty':'Medium','topic_results':[]})
     practice_progress._memory_records.append({
         'learner_id': 'WEB-private', 'class_level': 'JSS2', 'session_id': 'aggregate-1',
         'topic': 'Simple Equations', 'difficulty': 'Easy', 'score': 4, 'attempted': 5,
-        'percentage': 80, 'timestamp': '2026-09-05T10:00:00+00:00',
+            'percentage': 80, 'timestamp': current_timestamp,
     })
     dashboard = practice_progress.build_teacher_dashboard('JSS2')
     assert dashboard['learners'] == 1
@@ -575,22 +619,82 @@ def test_language_instructions_accept_typed_and_spoken_yoruba():
     automatic = _language_instruction("English")
     selected = _language_instruction("Yoruba")
     assert "current Maths question is in English, Yorùbá, Igbo, or Hausa" in automatic
-    assert "Reply entirely in the language used" in automatic
+    assert "Reply in at least 90 percent of the language used" in automatic
     assert "write the final-answer value as a number word" in automatic
     assert "may ask the Maths question in Yorùbá or English" in selected
-    assert "reply entirely in clear, natural Yorùbá" in selected
+    assert "reply in at least 90 percent Yorùbá" in selected
     assert "natural punctuation" in selected
     assert "clear pauses when the answer is read aloud" in selected
     assert "simple, modern conversational Yorùbá" in selected
-    assert "Avoid deep or literary Yorùbá" in selected
-    assert "Never say the numbers in English" in selected
+    assert "Avoid deep, literary, ceremonial or old-fashioned Yorùbá" in selected
+    assert "Never say explanatory numbers in English" in selected
 
 
 def test_igbo_and_hausa_language_instructions_cover_text_and_voice():
     for language in ("Igbo", "Hausa"):
         instruction = _language_instruction(language)
+        assert "at least 90 percent" in instruction
+        assert "Never write a complete explanatory sentence in English" in instruction
+        assert "deep" in instruction
+        assert "silently check every sentence" in instruction
         assert f"ask the Maths question in {language} or English" in instruction
-        assert f"reply entirely in clear, natural {language}" in instruction
+        assert f"reply in at least 90 percent {language}" in instruction
+
+
+def test_native_language_prompts_limit_english_to_unavoidable_maths_terms():
+    for language in ("Yoruba", "Igbo", "Hausa"):
+        instruction = _language_instruction(language, "JSS1")
+        assert "Translate the teaching itself" in instruction
+        assert "English is permitted only for a standard Maths term" in instruction
+        assert "formula letters, units and proper names" in instruction
+    assert "did not grow up in their ancestral town" in _language_instruction("Yoruba")
+    assert "did not grow up in an Igbo-speaking hometown" in _language_instruction("Igbo")
+    assert "Hausa is not the main language spoken in their home" in _language_instruction("Hausa")
+
+
+def test_active_voice_language_change_translates_and_restarts_stream():
+    script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
+    assert "const wasReading=teacherPanel.classList.contains('speaking')||teacherSpeechPaused" in script
+    assert "fetch('/api/classroom/translate'" in script
+    assert "renderLesson(canvasAnswer,data.translation)" in script
+    assert "void speakText(data.translation,true)" in script
+
+
+def test_language_change_always_translates_visible_answer_and_only_resumes_active_voice():
+    script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
+    assert "if(answerToTranslate){" in script
+    assert "if(wasReading)void speakText(data.translation,true)" in script
+    assert "!receivedAudio)throw new Error('empty voice stream')" in script
+
+
+def test_translate_endpoint_preserves_selected_language_and_class():
+    session = client.post('/api/classroom/session', json={
+        'learner_key': 'f' * 48, 'nickname': 'Ada', 'class_level': 'JSS3',
+    }).json()
+    with patch.object(classroom_api, 'translate_tutor_text', return_value='Ka anyị gaa n’ihu.') as translator:
+        response = client.post('/api/classroom/translate', json={
+            'session_token': session['session_token'],
+            'text': 'Let us continue.', 'language': 'Igbo',
+        })
+    assert response.status_code == 200
+    assert response.json() == {'translation': 'Ka anyị gaa n’ihu.', 'language': 'Igbo'}
+    assert translator.call_args.args == ('Let us continue.', 'Igbo', 'JSS3')
+
+
+def test_translation_function_explicitly_targets_english():
+    import tutor
+    fake_response = type('Response', (), {'text': 'The answer is six.', 'candidates': []})()
+    fake_models = type('Models', (), {'generate_content': lambda self, **kwargs: fake_response})()
+    fake_client = type('Client', (), {'models': fake_models})()
+    with patch.object(tutor, '_get_client', return_value=fake_client):
+        assert tutor.translate_tutor_text('Ìdáhùn ni mẹ́fà.', 'English') == 'The answer is six.'
+
+
+def test_practice_translation_prompt_requires_mostly_native_language():
+    from practice_translation import LANGUAGE_STYLE
+    assert "modern conversational Yorùbá" in LANGUAGE_STYLE["Yoruba"]
+    assert "modern everyday Igbo" in LANGUAGE_STYLE["Igbo"]
+    assert "modern everyday Hausa" in LANGUAGE_STYLE["Hausa"]
 
 
 def test_session_and_chat_use_pseudonymous_identity():
@@ -778,6 +882,678 @@ def test_active_practice_switches_question_feedback_and_remaining_language():
         })
         assert switched_back.json()['question'] == 'English question 2'
         assert translate.call_count == 2
+
+
+def test_explain_simpler_replaces_duplicate_voice_control():
+    html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
+    script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
+    assert 'id="simplifyButton"' in html
+    assert '>Explain Simpler</button>' in html
+    assert 'id="navMicButton"' not in html
+    assert "fetch('/api/classroom/simplify'" in script
+    assert "showCanvasAnswer(data.explanation,'Simpler explanation',true)" in script
+    assert 'void speakText(data.explanation,true)' in script
+
+
+def test_simplify_endpoint_preserves_language_and_class():
+    session = client.post('/api/classroom/session', json={
+        'learner_key': 'e' * 48, 'nickname': 'Bola', 'class_level': 'JSS1',
+    }).json()
+    with patch.object(classroom_api, 'simplify_tutor_text', return_value='Jẹ́ ká lo àpẹẹrẹ tó rọrùn.') as simplifier:
+        response = client.post('/api/classroom/simplify', json={
+            'session_token': session['session_token'],
+            'text': 'Existing worked answer', 'language': 'Yoruba',
+        })
+    assert response.status_code == 200
+    assert response.json() == {'explanation': 'Jẹ́ ká lo àpẹẹrẹ tó rọrùn.', 'language': 'Yoruba'}
+    assert simplifier.call_args.args == ('Existing worked answer', 'Yoruba', 'JSS1')
+
+
+def test_simplify_prompt_preserves_maths_and_adds_one_example():
+    fake_response = type('Response', (), {'text': 'Simpler answer.', 'candidates': []})()
+    generate_content = Mock(return_value=fake_response)
+    fake_client = type('Client', (), {'models': type('Models', (), {'generate_content': generate_content})()})()
+    with patch.object(tutor, '_get_client', return_value=fake_client):
+        assert tutor.simplify_tutor_text('2 + 2 = 4', 'English', 'JSS2') == 'Simpler answer.'
+    prompt = generate_content.call_args.kwargs['contents']
+    assert 'one familiar everyday example' in prompt
+    assert 'Preserve every equation, value, operation, unit and final answer exactly' in prompt
+
+
+def test_check_my_understanding_ui_is_tied_to_current_lesson():
+    html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
+    script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
+    assert 'id="understandingButton"' in html
+    assert 'id="understandingArea"' in html
+    assert "fetch('/api/classroom/understanding/start'" in script
+    assert "fetch('/api/classroom/understanding/answer'" in script
+    assert "choice_index:Number(selected.value)" in script
+
+
+def test_understanding_check_is_private_to_the_learner_and_marks_locally():
+    first = client.post('/api/classroom/session').json()
+    second = client.post('/api/classroom/session').json()
+    generated = {'question': 'What is 2 + 2?', 'choices': ['3', '4', '5'], 'correct_index': 1, 'feedback': 'Add the two values to get 4.'}
+    with patch.object(classroom_api, 'generate_understanding_check', return_value=generated):
+        started = client.post('/api/classroom/understanding/start', json={'session_token': first['session_token'], 'text': 'Two plus two equals four.', 'language': 'English'})
+    assert started.status_code == 200
+    body = started.json();assert 'correct_index' not in body
+    marked = client.post('/api/classroom/understanding/answer', json={'session_token': first['session_token'], 'check_id': body['check_id'], 'choice_index': 1})
+    assert marked.json() == {'correct': True, 'correct_index': 1, 'feedback': generated['feedback']}
+    blocked = client.post('/api/classroom/understanding/answer', json={'session_token': second['session_token'], 'check_id': body['check_id'], 'choice_index': 1})
+    assert blocked.status_code == 404
+
+
+def test_understanding_generator_requires_three_valid_choices():
+    payload = {'question': 'What comes next?', 'choices': ['2', '3', '4'], 'correct_index': 2, 'feedback': 'Count forward once.'}
+    fake_response = type('Response', (), {'text': __import__('json').dumps(payload), 'candidates': []})()
+    generate_content = Mock(return_value=fake_response)
+    fake_client = type('Client', (), {'models': type('Models', (), {'generate_content': generate_content})()})()
+    with patch.object(tutor, '_get_client', return_value=fake_client):
+        assert tutor.generate_understanding_check('The sequence is 2, 3, 4.', 'English')['correct_index'] == 2
+    prompt = generate_content.call_args.kwargs['contents']
+    assert 'exactly one short multiple-choice question' in prompt
+    assert 'Do not introduce a topic not taught' in prompt
+
+
+def test_understanding_endpoint_falls_back_when_model_is_unavailable():
+    session=client.post('/api/classroom/session').json()
+    lesson='Create revision question 2 of 3. The square root of 49 is 7 because 7 × 7 = 49.'
+    with patch.object(classroom_api, 'generate_understanding_check', side_effect=RuntimeError('quota')):
+        started=client.post('/api/classroom/understanding/start',json={'session_token':session['session_token'],'text':lesson,'language':'English'})
+    assert started.status_code==200
+    body=started.json();assert body['question']=='Which multiplication confirms the square root of 49?'
+    assert body['choices'][0]=='7 × 7 = 49'
+    marked=client.post('/api/classroom/understanding/answer',json={'session_token':session['session_token'],'check_id':body['check_id'],'choice_index':0})
+    assert marked.json()['correct'] is True
+
+
+def test_visual_teaching_mode_minimizes_avatar_and_renders_safe_data():
+    html=(PROJECT_ROOT/'classroom'/'index.html').read_text();script=(PROJECT_ROOT/'classroom'/'app.js').read_text()
+    assert 'id="visualButton"' in html and 'id="visualArea"' in html
+    assert "fetch('/api/classroom/visual'" in script
+    assert "teacherPanel.classList.add('minimized')" in script
+    assert 'visualTitle.textContent=data.title' in script
+    assert 'innerHTML=data' not in script
+
+
+def test_visual_endpoint_uses_selected_language_and_class():
+    session=client.post('/api/classroom/session',json={'learner_key':'d'*48,'nickname':'Tola','class_level':'JSS3'}).json()
+    visual={'title':'Number line','kind':'number_line','items':[{'label':'Start','value':2},{'label':'End','value':5}],'caption':'Move three places.'}
+    with patch.object(classroom_api,'generate_visual_aid',return_value=visual) as generator:
+        response=client.post('/api/classroom/visual',json={'session_token':session['session_token'],'text':'Move from 2 to 5.','language':'Yoruba'})
+    assert response.status_code==200 and response.json()==visual
+    assert generator.call_args.args==('Move from 2 to 5.','Yoruba','JSS3')
+
+
+def test_topic_specific_visual_renderers_are_safe_and_mobile_ready():
+    script=(PROJECT_ROOT/'classroom'/'app.js').read_text();css=(PROJECT_ROOT/'classroom'/'styles.css').read_text()
+    for kind in ('square_grid','fraction','balance','coordinate'):
+        assert f"data.kind==='{kind}'" in script
+    assert "cell.setAttribute('aria-hidden','true')" in script
+    assert '.square-grid' in css and '.fraction-model' in css and '.balance-model' in css and '.coordinate-model' in css
+
+
+def test_visual_generator_accepts_a_true_square_grid():
+    payload={'title':'Square root of 49','kind':'square_grid','items':[{'label':'49 cells','value':49},{'label':'7 by 7','value':7}],'caption':'Seven rows of seven.'}
+    fake_response=type('Response',(),{'text':__import__('json').dumps(payload),'candidates':[]})();generate_content=Mock(return_value=fake_response);fake_client=type('Client',(),{'models':type('Models',(),{'generate_content':generate_content})()})()
+    with patch.object(tutor,'_get_client',return_value=fake_client): result=tutor.generate_visual_aid('The square root of 49 is 7.','English','JSS2')
+    assert result['kind']=='square_grid' and result['items'][0]['value']==49
+
+
+def test_visual_generator_normalizes_common_model_variations():
+    payload={'title':'Equation balance','kind':'balance_scale','items':[{'name':'Left','value':'x + 4'},{'name':'Right','value':'9'}],'caption':'Keep both sides equal.'}
+    fake_response=type('Response',(),{'text':__import__('json').dumps(payload),'candidates':[]})();generate_content=Mock(return_value=fake_response);fake_client=type('Client',(),{'models':type('Models',(),{'generate_content':generate_content})()})()
+    with patch.object(tutor,'_get_client',return_value=fake_client): result=tutor.generate_visual_aid('Solve x + 4 = 9.','English','JSS2')
+    assert result['kind']=='balance' and result['items'][0]['value']=='x + 4' and result['items'][1]['value']==9.0
+
+
+def test_coordinate_renderer_accepts_parenthesized_points():
+    script=(PROJECT_ROOT/'classroom'/'app.js').read_text()
+    assert "\\(?\\s*(-?\\d+" in script and "\\)?\\s*$/" in script
+
+
+def test_coordinate_visual_is_deterministic_and_uses_no_model_request():
+    with patch.object(tutor,'_get_client') as client_factory:
+        result=tutor.generate_visual_aid('Plot the points (1,2), (2,4), and (3,6).','English','JSS2')
+    assert result['kind']=='coordinate'
+    assert [item['label'] for item in result['items']]==['1,2','2,4','3,6']
+    client_factory.assert_not_called()
+
+
+def test_watch_example_uses_only_allowlisted_phet_or_local_replay():
+    fraction=tutor.select_lesson_media('The numerator and denominator form a fraction.','English')
+    assert fraction['kind']=='simulation' and fraction['url'].startswith('https://phet.colorado.edu/sims/html/')
+    replay=tutor.select_lesson_media('The square root of 49 is 7.','English')
+    assert replay['kind']=='replay' and replay['source']=='Robo-Teacher' and replay['steps']
+
+
+def test_watch_example_ui_minimizes_avatar_and_stops_embedded_media():
+    html=(PROJECT_ROOT/'classroom'/'index.html').read_text();script=(PROJECT_ROOT/'classroom'/'app.js').read_text()
+    assert 'id="mediaButton"' in html and 'id="mediaFrame"' in html
+    assert "fetch('/api/classroom/media'" in script
+    assert "mediaFrame.removeAttribute('src')" in script
+    assert "teacherPanel.classList.add('minimized')" in script
+
+
+def test_mobile_simulation_always_exposes_an_escape_control():
+    html=(PROJECT_ROOT/'classroom'/'index.html').read_text();css=(PROJECT_ROOT/'classroom'/'styles.css').read_text()
+    assert 'class="exit-media"' in html
+    assert '← Exit simulation' in html
+    assert 'allowfullscreen' not in html
+    assert '.media-area>.exit-media{position:fixed' in css
+    assert 'height:55vh' in css and 'overscroll-behavior:contain' in css
+
+
+def test_mobile_toolbar_is_one_scrollable_row_and_replay_keeps_paragraphs():
+    html=(PROJECT_ROOT/'classroom'/'index.html').read_text();script=(PROJECT_ROOT/'classroom'/'app.js').read_text();css=(PROJECT_ROOT/'classroom'/'styles.css').read_text()
+    assert '>Watch or Explore</button>' in html
+    assert "map(item=>item.innerText.trim()).filter(Boolean).join('\\n')" in script
+    assert 'flex-wrap:nowrap!important' in css and 'overflow-x:auto!important' in css
+    assert "data.kind==='simulation'?'← Exit simulation':'← Exit example'" in script
+
+
+def test_switching_modes_unloads_media_before_showing_new_content():
+    script=(PROJECT_ROOT/'classroom'/'app.js').read_text()
+    assert 'function dismissLessonOverlays(){stopLessonMedia()' in script
+    assert "mediaFrame.removeAttribute('src')" in script
+    assert 'dismissLessonOverlays();restoreTeacherPanel();' in script
+    assert "dismissLessonOverlays();renderVisualAid(data)" in script
+    assert "stopTeacherAudio(preserveAudioUnlock);\n  dismissLessonOverlays();restoreTeacherPanel();" in script
+
+
+def test_teacher_portrait_animates_only_during_active_speech():
+    html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
+    styles = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
+    assert 'ai-teacher-face.jpg' in html
+    assert 'ai-teacher-face-speaking.jpg' in html
+    assert 'avatar-speaking-frame' in html
+    assert '.teacher-panel.paused .avatar-speaking-frame' in styles
+    assert '.teacher-panel.speaking .teacher-avatar:not(.avatar-head-motion){animation:none;transform:none}' in styles
+    assert '@media(prefers-reduced-motion:reduce)' in styles
+
+
+def test_audio_driven_avatar_engine_supports_teacher_and_founder():
+    html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
+    script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
+    styles = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
+    assert 'id="founderPanel"' in html
+    assert 'id="hearFounder"' in html
+    assert 'herbert-stephen-founder-speaking.jpg' in html
+    assert 'function startAvatarMotion(rig)' in script
+    assert 'Math.round(Math.max(0,Math.min(1,avatarEnergy*pulse))*120)/120' in script
+    assert "voice_gender:'male'" in script
+    assert '.avatar-speaking-frame{position:absolute;inset:0;opacity:var(--mouth-open)' in styles
+
+
+def test_mobile_pause_control_stays_outside_avatar_face():
+    styles = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
+    assert '.teacher-panel.speaking .read-answer,.teacher-panel.paused .read-answer{position:static' in styles
+
+
+def test_voice_status_is_in_toolbar_and_portrait_stays_fixed():
+    html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
+    script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
+    styles = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
+    actions = html.split('<div class="teacher-actions">', 1)[1].split('</div>', 1)[0]
+    portrait = html.split('<div class="teacher-portrait">', 1)[1].split('</div>', 2)[0]
+    assert 'id="teacherVoiceStatus"' in actions
+    assert 'id="teacherVoiceStatus"' not in portrait
+    assert '.teacher-actions .teacher-voice-status{position:static' in styles
+    assert '.avatar-stage{position:relative;transform:none}' in styles
+
+
+def test_head_only_rig_and_voice_question_canvas_avatar():
+    html = Path('classroom/index.html').read_text()
+    script = Path('classroom/app.js').read_text()
+    styles = Path('classroom/styles.css').read_text()
+    assert 'founder-head-motion' in html
+    assert 'teacher-head-motion' in html
+    assert 'id="canvasVoiceAvatar"' in html
+    assert 'void speakText(data.reply,true,true)' in script
+    assert 'displayCanvasAvatar=true' in script
+    assert "canvasWork.classList.toggle('voice-avatar-visible',visible)" in script
+    assert '.canvas-work.voice-avatar-visible{padding-right:140px' in styles
+    assert '.avatar-head-motion{' in styles
+
+
+def test_interactive_lesson_director_supports_steps_and_interruption_recovery():
+    html = Path('classroom/index.html').read_text()
+    script = Path('classroom/app.js').read_text()
+    styles = Path('classroom/styles.css').read_text()
+    for control in ('lessonDirector', 'previousLessonStep', 'nextLessonStep', 'replayLessonStep', 'returnToLesson', 'endLesson'):
+        assert f'id="{control}"' in html
+    assert 'function splitLessonSteps(text)' in script
+    assert 'function renderCurrentLessonStep()' in script
+    assert 'lessonHistory.push(interruptedLesson)' in script
+    assert "void speakText(currentLesson.steps[currentLesson.index])" in script
+    assert '.lesson-director{' in styles
+
+
+def test_lesson_interruption_engine_handles_text_and_voice_detours():
+    html = Path('classroom/index.html').read_text()
+    script = Path('classroom/app.js').read_text()
+    styles = Path('classroom/styles.css').read_text()
+    assert 'id="askLessonQuestion"' in html
+    assert 'id="lessonPauseNotice"' in html
+    assert "function pauseLessonForQuestion(source='text')" in script
+    assert "if(currentLesson)pauseLessonForQuestion('voice')" in script
+    assert 'The learner paused this lesson step:' in script
+    assert '.lesson-pause-notice{' in styles
+
+
+def test_smart_teaching_stage_coordinates_step_media_and_restores_bookmark():
+    html = Path('classroom/index.html').read_text()
+    script = Path('classroom/app.js').read_text()
+    styles = Path('classroom/styles.css').read_text()
+    for control in ('teachingStageMode', 'showStepVisual', 'watchStepExample', 'checkStepUnderstanding'):
+        assert f'id="{control}"' in html
+    assert 'function enterTeachingStage(mode)' in script
+    assert 'function restoreTeachingStage()' in script
+    assert "enterTeachingStage('visual')" in script
+    assert "enterTeachingStage('example')" in script
+    assert "enterTeachingStage('check')" in script
+    assert '.lesson-stage-actions{' in styles
+    assert "rig.style.setProperty('--head-x'" not in script.split('function startAvatarMotion(rig)', 1)[1].split('async function startAudioKeepAlive', 1)[0]
+
+
+def test_automatic_lesson_choreography_recommends_and_opens_each_mode_once():
+    html = Path('classroom/index.html').read_text()
+    script = Path('classroom/app.js').read_text()
+    styles = Path('classroom/styles.css').read_text()
+    assert 'id="autoTeachToggle"' in html
+    assert 'id="lessonChoreographyHint"' in html
+    assert 'function chooseTeachingMode(step,index,total)' in script
+    assert 'function scheduleLessonChoreography()' in script
+    assert 'lessonChoreography.visited.has(key)' in script
+    assert "choice.mode==='visual'" in script
+    assert '.auto-teach-toggle[aria-pressed="true"]' in styles
+    assert '.lesson-stage-actions button.recommended' in styles
+
+
+def test_visual_failure_uses_quota_free_fallback_and_client_retries_transient_errors():
+    session = client.post('/api/classroom/session').json()
+    with patch.object(classroom_api, 'generate_visual_aid', side_effect=RuntimeError('quota')):
+        response = client.post('/api/classroom/visual', json={'session_token': session['session_token'], 'text': 'Step 1: Add two. Step 2: Check the answer.', 'language': 'English'})
+    assert response.status_code == 200
+    assert response.json()['kind'] == 'steps'
+    assert len(response.json()['items']) >= 2
+    script = Path('classroom/app.js').read_text()
+    assert 'for(let attempt=1;attempt<=3;attempt++)' in script
+    assert "[429,503].includes(response.status)" in script
+
+
+def test_adaptive_teaching_memory_records_signals_and_changes_support_level():
+    html = Path('classroom/index.html').read_text()
+    script = Path('classroom/app.js').read_text()
+    styles = Path('classroom/styles.css').read_text()
+    assert 'id="teachingMemoryStatus"' in html
+    assert 'function recordLearningSignal(signal)' in script
+    assert 'function adaptiveSupportLevel()' in script
+    assert 'function adaptivePromptContext()' in script
+    for signal in ('replays', 'simplifications', 'questions', 'correct', 'incorrect'):
+        assert signal in script
+    assert "localStorage.setItem(`roboTeacherMemory:${learnerMemoryId}`" in script
+    assert "adaptiveSupportLevel()==='support'" in script
+    assert '.teaching-memory-status[data-level="support"]' in styles
+
+
+def test_hands_free_teaching_pauses_questions_and_resumes_bookmarked_step():
+    html = Path('classroom/index.html').read_text()
+    script = Path('classroom/app.js').read_text()
+    styles = Path('classroom/styles.css').read_text()
+    assert 'id="handsFreeToggle"' in html
+    assert 'window.SpeechRecognition||window.webkitSpeechRecognition' in script
+    assert 'function handleHandsFreePhrase(rawPhrase)' in script
+    assert "pauseLessonForQuestion('voice')" in script
+    assert 'form.requestSubmit()' in script
+    assert 'function resumeBookmarkedLessonByVoice()' in script
+    assert 'const lesson=lessonHistory.pop()' in script
+    assert 'void speakText(step,true,true)' in script
+    assert "if(handsFree.enabled)void speakText(data.reply,true,true)" in script
+    assert '.hands-free-toggle[aria-pressed="true"]' in styles
+
+
+def test_mobile_answer_closes_keyboard_keeps_canvas_visible_and_wraps_voice_controls():
+    script = Path('classroom/app.js').read_text()
+    styles = Path('classroom/styles.css').read_text()
+    assert 'function keepTeachingCanvasVisible()' in script
+    assert "if(document.activeElement===question)question.blur()" in script
+    assert "teachingCanvas.scrollIntoView({block:'start',behavior:'smooth'})" in script
+    assert "window.matchMedia('(min-width: 701px)').matches&&!handsFree.enabled" not in script
+    assert 'flex-wrap:wrap!important' in styles
+    assert '.teacher-actions .hands-free-toggle{flex:1 1 100%' in styles
+
+
+def test_cross_device_controls_wrap_and_all_answers_keep_canvas_visible():
+    script = Path('classroom/app.js').read_text()
+    styles = Path('classroom/styles.css').read_text()
+    assert "if(!window.matchMedia('(max-width: 700px)').matches)return" not in script
+    assert "setLearningStatus('Answer ready');keepTeachingCanvasVisible()" in script
+    assert '.teacher-toolbar>strong{flex:1 1 100%}' in styles
+    assert '.composer>*{min-width:0}' in styles
+    assert '@media(min-width:601px) and (max-width:1100px)' in styles
+
+
+def test_wake_word_mode_ignores_background_and_confirms_uncertain_commands():
+    html = Path('classroom/index.html').read_text()
+    script = Path('classroom/app.js').read_text()
+    styles = Path('classroom/styles.css').read_text()
+    assert 'id="handsFreeHeard"' in html
+    assert 'function executeHandsFreeIntent(phrase)' in script
+    assert 'function handleHandsFreePhrase(rawPhrase,confidence=0)' in script
+    assert "(?:robo|robot|robotic)\\s*(?:teacher|tutor|feature)" in script
+    assert 'start with “Robo-Teacher”' in script
+    assert "confidence>0&&confidence<.55" in script
+    assert "handsFree.pending=intent" in script
+    for command in ('explain (that )?again', 'show (me )?(a )?visual', 'stop listening'):
+        assert command in script
+    assert '.hands-free-heard{' in styles
+
+
+def test_wake_word_and_command_can_arrive_as_separate_speech_results():
+    script = Path('classroom/app.js').read_text()
+    assert 'armedUntil:0' in script
+    assert 'handsFree.armedUntil=now+7000' in script
+    assert 'else if(now<handsFree.armedUntil)' in script
+    assert 'handsFree.recognition.interimResults=true' in script
+    assert 'for(let index=event.resultIndex;index<event.results.length;index++)' in script
+    assert 'Wake word heard. Say the command within 7 seconds.' in script
+
+
+def test_child_speech_selects_richer_alternatives_and_handles_command_sound_alikes():
+    script = Path('classroom/app.js').read_text()
+    assert 'handsFree.recognition.maxAlternatives=5' in script
+    assert 'function chooseBestSpeechAlternative(result)' in script
+    assert 'square root|square route|squared root|fraction|multiply|divide' in script
+    assert 'function queueHandsFreePhrase(rawPhrase,confidence=0)' in script
+    assert '},800)' in script
+    assert "replace(/^(?:pulse|pals|paws|pose|pores)$/,'pause')" in script
+    assert '· Interpreted: “${interpretedIntent}”' in script
+
+
+def test_hands_free_pause_can_interrupt_teacher_playback_without_echo_submission():
+    script = Path('classroom/app.js').read_text()
+    assert 'function handsFreeBargeIn(result)' in script
+    assert "teacherPanel.classList.contains('speaking')" in script
+    assert 'void pauseTeacherAudio()' in script
+    assert "updateHandsFreeStatus('Paused')" in script
+    assert 'teacher paused so I can hear you.' in script
+    assert 'if(handsFreeBargeIn(result))continue' in script
+
+
+def test_hands_free_continue_resumes_audio_or_the_bookmarked_lesson_context():
+    script = Path('classroom/app.js').read_text()
+    assert 'function continueHandsFreeTeaching()' in script
+    assert 'if(lessonHistory.length||lessonInterruption){resumeBookmarkedLessonByVoice();return}' in script
+    assert 'if(teacherSpeechPaused){void resumeTeacherAudio();return}' in script
+    assert "if(teacherPanel.classList.contains('speaking'))void pauseTeacherAudio()" in script
+    assert 'const pausedControl=teacherSpeechPaused&&' in script
+    assert 'continueHandsFreeTeaching();' in script
+
+
+def test_pause_opens_a_limited_wake_free_follow_up_window():
+    script = Path('classroom/app.js').read_text()
+    assert 'function openHandsFreeFollowUpWindow()' in script
+    assert 'handsFree.armedUntil=Date.now()+15000' in script
+    assert "updateHandsFreeStatus('Ask or say Continue…')" in script
+    assert 'Ask your follow-up within 15 seconds' in script
+    assert script.count('openHandsFreeFollowUpWindow();') >= 2
+
+
+def test_unclear_child_speech_accepts_simple_confirmation_or_correction():
+    script = Path('classroom/app.js').read_text()
+    assert 'const clarificationReply=Boolean(handsFree.pending)' in script
+    assert 'yes|yes please|correct' in script
+    assert 'no|nope|cancel|try again|listen again' in script
+    assert 'handsFree.armedUntil=now+15000' in script
+    assert 'Say “Yes”, “No”, “Try again”, or say the correction.' in script
+    assert 'Correction heard: “${intent}”' in script
+
+
+def test_hands_free_local_language_commands_work_during_teacher_playback():
+    script = Path('classroom/app.js').read_text()
+    assert 'function handsFreeWakePattern()' in script
+    for phrase in ('olukọ', 'oluko', 'malami', 'onye\\s+nkuzi'):
+        assert phrase in script
+    for phrase in ('duro', 'dúró', 'kwusi', 'kwụsị', 'dakata', 'dakatar'):
+        assert phrase in script
+    for phrase in ('tesiwaju', 'tẹ̀síwájú', 'ga nihu', 'gaa nihu', 'ci gaba'):
+        assert phrase in script
+    assert "new RegExp(`^(?:(?:hey\\\\s+)?" in script
+
+
+def test_hands_free_can_control_existing_pedagogical_tools():
+    script = Path('classroom/app.js').read_text()
+    assert 'const simplerCommand=' in script
+    assert 'const understandingCommand=' in script
+    assert 'const nextStepCommand=' in script
+    assert 'const previousStepCommand=' in script
+    assert 'void simplifyCurrentAnswer()' in script
+    assert 'void startUnderstandingCheck()' in script
+    assert 'moveLessonStep(1)' in script
+    assert 'moveLessonStep(-1)' in script
+    assert 'function replayCurrentTeachingAudio()' in script
+
+
+def test_safe_replay_control_bypasses_low_confidence_question_confirmation():
+    script = Path('classroom/app.js').read_text()
+    assert 'function isSafeHandsFreeControl(intent)' in script
+    assert 'repeat(?: that)?' in script
+    assert 'confidence<.55&&!isSafeHandsFreeControl(intent)' in script
+    assert "setLearningStatus('Repeating this explanation','thinking')" in script
+    assert 'void speakText(text,false,true)' in script
+
+
+def test_teacher_voice_speed_uses_natural_tts_pacing_and_responsive_controls():
+    html = Path('classroom/index.html').read_text()
+    script = Path('classroom/app.js').read_text()
+    styles = Path('classroom/styles.css').read_text()
+    assert 'id="teacherSpeed"' in html
+    assert "pace:teacherSpeechPace" in script
+    assert 'function setTeacherSpeechPace(pace,replay=false)' in script
+    for command in ('speak slower', 'normal speed', 'speak faster'):
+        assert command in script
+    assert "localStorage.setItem('roboTeacherSpeechPace'" in script
+    assert '.teacher-speed{' in styles
+    assert '_speech_pace_direction(pace)' in inspect.getsource(tutor.stream_tutor_speech)
+    assert '_speech_pace_direction(pace)' in inspect.getsource(tutor.stream_stable_tutor_speech)
+
+
+def test_teacher_volume_changes_the_live_audio_graph_and_supports_voice_commands():
+    html = Path('classroom/index.html').read_text()
+    script = Path('classroom/app.js').read_text()
+    styles = Path('classroom/styles.css').read_text()
+    assert 'id="teacherVolume"' in html
+    assert 'function setTeacherVolumeLevel(level,resumeAfter=false)' in script
+    assert 'teacherAudioAnalyser.connect(teacherAudioGain)' in script
+    assert 'teacherAudioGain.connect(context.destination)' in script
+    assert 'gain.setTargetAtTime' in script
+    for command in ('volume up', 'volume down', 'mute', 'unmute'):
+        assert command in script
+    assert "localStorage.setItem('roboTeacherVolume'" in script
+    assert '.teacher-speed,.teacher-volume{' in styles
+
+
+def test_hands_free_help_lists_supported_commands_without_covering_the_lesson():
+    html = Path('classroom/index.html').read_text()
+    script = Path('classroom/app.js').read_text()
+    styles = Path('classroom/styles.css').read_text()
+    assert 'id="voiceHelpToggle"' in html
+    assert 'id="handsFreeHelp"' in html
+    assert 'function renderHandsFreeHelp()' in script
+    assert 'function showHandsFreeHelp(show=true)' in script
+    for command in ('Robo olùkọ́', 'Robo onye nkuzi', 'Robo malami', 'Explain it simpler'):
+        assert command in script
+    assert 'const helpCommand=' in script
+    assert '.hands-free-help{' in styles
+
+
+def test_voice_help_restores_hidden_teacher_and_accepts_help_sound_alikes():
+    script = Path('classroom/app.js').read_text()
+    assert "replace(/^(?:health|held|help me)$/,'help')" in script
+    assert 'if(show)restoreTeacherPanel()' in script
+    assert "handsFreeHelp.scrollIntoView({block:'nearest',behavior:'smooth'})" in script
+    assert 'test(normalizeSpokenIntent(command))' in script
+
+
+def test_hands_free_recovers_from_browser_network_and_microphone_interruptions():
+    script = Path('classroom/app.js').read_text()
+    assert 'function scheduleHandsFreeRecovery' in script
+    assert "updateHandsFreeStatus(`Reconnecting… ${handsFree.restartAttempts}`)" in script
+    assert 'Math.min(500*2**(handsFree.restartAttempts-1),8000)' in script
+    assert "window.addEventListener('online'" in script
+    assert "document.addEventListener('visibilitychange'" in script
+    assert "handsFree.recognition.addEventListener('start'" in script
+    assert 'Date.now()-handsFree.startedAt>5000' in script
+    assert "event.error==='not-allowed'&&!handsFree.hasStarted&&document.visibilityState==='visible'" in script
+    assert "event.error==='aborted'&&(!handsFree.enabled||handsFree.processing)" in script
+    assert "scheduleHandsFreeRecovery('answer-complete')" in script
+    assert "document.visibilityState==='hidden'" in script
+    assert "updateHandsFreeStatus('Paused in background…')" in script
+    assert 'handsFree.hasStarted=true' in script
+
+
+def test_chat_connection_loss_preserves_and_retries_question_and_lesson_step():
+    script = Path('classroom/app.js').read_text()
+    assert "sessionStorage.getItem('roboTeacherPendingChat')" in script
+    assert "sessionStorage.setItem('roboTeacherPendingChat'" in script
+    assert 'function isConnectionFailure(error)' in script
+    assert 'function retryPendingChat()' in script
+    assert "window.addEventListener('online',()=>setTimeout(retryPendingChat,600))" in script
+    assert 'step:currentLesson.steps[currentLesson.index]' in script
+    assert 'Connection lost. Your question and lesson position are saved.' in script
+    assert 'Connection restored — continuing your question' in script
+    assert 'if(!recovery)addMessage' in script
+    assert 'navigator.onLine&&!recovery)setTimeout(retryPendingChat,1000)' in script
+
+
+def test_accidental_refresh_can_restore_the_previous_classroom_session():
+    html = Path('classroom/index.html').read_text()
+    script = Path('classroom/app.js').read_text()
+    styles = Path('classroom/styles.css').read_text()
+    assert 'id="resumeLearning"' in html
+    assert "localStorage.getItem('roboTeacherClassroomSnapshot')" in script
+    assert "localStorage.setItem('roboTeacherClassroomSnapshot'" in script
+    assert '7*24*60*60*1000' in script
+    assert 'function saveClassroomSnapshot()' in script
+    assert "window.addEventListener('pagehide',saveClassroomSnapshot)" in script
+    assert 'startLessonDirector(snapshot.answer,snapshot.lessonIndex||0)' in script
+    assert 'lessonChoreography.enabled=false;startLessonDirector' in script
+    assert "practiceRequest('progress',{class_level:snapshot.classLevel})" in script
+    assert "setLearningStatus('Previous lesson restored','success')" in script
+    assert 'clearClassroomSnapshot();learnerNickname.value' in script
+    assert '.resume-learning{' in styles
+
+
+def test_learner_can_bookmark_summarise_reopen_and_remove_saved_lessons():
+    html = Path('classroom/index.html').read_text()
+    script = Path('classroom/app.js').read_text()
+    styles = Path('classroom/styles.css').read_text()
+    for element_id in ('bookmarkLesson', 'myLessonsButton', 'myLessonsArea', 'myLessonsList'):
+        assert f'id="{element_id}"' in html
+    assert 'function lessonLibraryKey()' in script
+    assert 'function lessonSummary(text)' in script
+    assert "localStorage.setItem(`roboTeacherLessons:${lessonLibraryKey()}`" in script
+    assert 'JSON.stringify(items.slice(0,20))' in script
+    assert "open.dataset.lessonAction='open'" in script
+    assert "remove.dataset.lessonAction='delete'" in script
+    assert "canvasStatus.textContent='Saved lesson reopened'" in script
+    assert '.saved-lesson-card{' in styles
+
+
+def test_saved_lessons_support_search_and_favourites_on_all_devices():
+    html = Path('classroom/index.html').read_text()
+    script = Path('classroom/app.js').read_text()
+    styles = Path('classroom/styles.css').read_text()
+    assert 'id="lessonSearch" type="search"' in html
+    assert 'id="lessonFilter"' in html
+    assert "lessonFilter.value!=='favourites'||item.favourite" in script
+    assert "favourite.dataset.lessonAction='favourite'" in script
+    assert "item.favourite=!item.favourite" in script
+    assert "lessonSearch.addEventListener('input',renderMyLessons)" in script
+    assert '.lesson-library-tools{' in styles
+    assert '@media(max-width:600px){.lesson-library-tools{grid-template-columns:1fr}}' in styles
+
+
+def test_saved_lesson_revision_has_recap_three_checks_score_and_recommendation():
+    html = Path('classroom/index.html').read_text()
+    script = Path('classroom/app.js').read_text()
+    styles = Path('classroom/styles.css').read_text()
+    for element_id in ('revisionPanel', 'revisionRecap', 'revisionQuestion', 'revisionChoices', 'revisionResult'):
+        assert f'id="{element_id}"' in html
+    assert "revise.dataset.lessonAction='revise'" in script
+    assert 'async function startRevision(item)' in script
+    assert "fetch('/api/classroom/understanding/start'" in script
+    assert "fetch('/api/classroom/understanding/answer'" in script
+    assert 'currentRevision.number<3' in script
+    assert 'Revision score: ${currentRevision.score}/3.' in script
+    assert 'Review this saved lesson once more' in script
+    assert '.revision-panel{' in styles
+
+
+def test_revision_question_generation_is_bounded_and_can_be_retried():
+    script = Path('classroom/app.js').read_text()
+    assert 'currentRevision.lesson.answer.slice(0,1400)' in script
+    assert 'setTimeout(()=>controller.abort(),20000)' in script
+    assert 'signal:controller.signal' in script
+    assert "error.name==='AbortError'" in script
+    assert "revisionNext.textContent='Try again'" in script
+    assert 'Your revision score has not been affected.' in script
+
+
+def test_revision_history_tracks_latest_best_attempts_date_and_mastery():
+    script = Path('classroom/app.js').read_text()
+    styles = Path('classroom/styles.css').read_text()
+    assert "lessonFilter.add(new Option('Mastered','mastered'))" in script
+    assert "lessonFilter.add(new Option('Needs review','review'))" in script
+    assert 'function recordRevisionResult()' in script
+    assert 'item.latestScore=currentRevision.score' in script
+    assert 'item.bestScore=Math.max' in script
+    assert 'item.revisionAttempts=' in script
+    assert 'item.lastRevisedAt=Date.now()' in script
+    assert 'item.mastered=item.bestScore>=2' in script
+    assert 'recordRevisionResult();revisionResult.textContent=' in script
+    assert 'Latest ${item.latestScore}/3 · Best ${item.bestScore}/3' in script
+    assert '.lesson-mastery{' in styles
+
+
+def test_saved_lessons_have_smart_revision_scheduling():
+    html = Path('classroom/index.html').read_text()
+    script = Path('classroom/app.js').read_text()
+    styles = Path('classroom/styles.css').read_text()
+    assert 'id="lessonRecommendation"' in html
+    assert 'id="reviseRecommended"' in html
+    assert "lessonFilter.add(new Option('Due now','due'))" in script
+    assert 'function revisionSchedule(item,now=Date.now())' in script
+    assert 'latest<2?1:attempts>=3?30:attempts===2?14:7' in script
+    assert 'function recommendedLesson(items)' in script
+    assert "filter!=='due'||revisionSchedule(item).isDue" in script
+    assert "reviseRecommended.addEventListener('click'" in script
+    assert '.lesson-recommendation{' in styles
+
+
+def test_daily_learning_plan_combines_recall_practice_and_new_topic():
+    html=Path('classroom/index.html').read_text();script=Path('classroom/app.js').read_text();styles=Path('classroom/styles.css').read_text()
+    for element_id in ('dailyPlanButton','dailyPlanArea','dailyPlanList','closeDailyPlan'):
+        assert f'id="{element_id}"' in html
+    assert 'function dailyNewTopic(progress)' in script
+    assert 'function renderDailyPlan(progress)' in script
+    assert "appendDailyTask(1,'RECALL'" in script
+    assert "appendDailyTask(2,'STRENGTHEN'" in script
+    assert "appendDailyTask(3,'DISCOVER'" in script
+    assert "dailyAction==='revision'" in script
+    assert "dailyAction==='practice'" in script
+    assert 'chatForm.requestSubmit()' in script
+    assert '.daily-plan-task{' in styles
+
+
+def test_media_endpoint_requires_a_valid_session():
+    session=client.post('/api/classroom/session').json()
+    response=client.post('/api/classroom/media',json={'session_token':session['session_token'],'text':'Explain a fraction.','language':'English'})
+    assert response.status_code==200 and response.json()['source']=='PhET Interactive Simulations'
+    rejected=client.post('/api/classroom/media',json={'session_token':'x'*32,'text':'Explain a fraction.','language':'English'})
+    assert rejected.status_code==401
 
 
 if __name__ == '__main__':
