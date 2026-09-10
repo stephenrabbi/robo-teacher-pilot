@@ -31,7 +31,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260910-sessionresume1' in html
+    assert '20260910-mylessons1' in html
     assert 'id="learnerNickname"' in html
     assert 'id="learnerClass"' in html
     assert "learnerNickname.value=''" in script
@@ -47,7 +47,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert "localStorage.setItem('roboTeacherQaChecklist'" in script
     assert 'const resultCopy=' in script
     assert 'labels.yourAnswer' in script
-    assert '20260910-sessionresume1' in html
+    assert '20260910-mylessons1' in html
     assert 'downloadTeacherDashboardReport' in script
     assert 'id="practiceClass"' in html
     assert 'id="startDiagnostic"' in html
@@ -1432,6 +1432,22 @@ def test_accidental_refresh_can_restore_the_previous_classroom_session():
     assert "setLearningStatus('Previous lesson restored','success')" in script
     assert 'clearClassroomSnapshot();learnerNickname.value' in script
     assert '.resume-learning{' in styles
+
+
+def test_learner_can_bookmark_summarise_reopen_and_remove_saved_lessons():
+    html = Path('classroom/index.html').read_text()
+    script = Path('classroom/app.js').read_text()
+    styles = Path('classroom/styles.css').read_text()
+    for element_id in ('bookmarkLesson', 'myLessonsButton', 'myLessonsArea', 'myLessonsList'):
+        assert f'id="{element_id}"' in html
+    assert 'function lessonLibraryKey()' in script
+    assert 'function lessonSummary(text)' in script
+    assert "localStorage.setItem(`roboTeacherLessons:${lessonLibraryKey()}`" in script
+    assert 'JSON.stringify(items.slice(0,20))' in script
+    assert "open.dataset.lessonAction='open'" in script
+    assert "remove.dataset.lessonAction='delete'" in script
+    assert "canvasStatus.textContent='Saved lesson reopened'" in script
+    assert '.saved-lesson-card{' in styles
 
 
 def test_media_endpoint_requires_a_valid_session():

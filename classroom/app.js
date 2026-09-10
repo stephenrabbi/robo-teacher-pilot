@@ -126,6 +126,12 @@ const changePracticeTopicButton=document.getElementById('changePracticeTopic');
 const exitPracticeResultsButton=document.getElementById('exitPracticeResults');
 const viewProgressFromResults=document.getElementById('viewProgressFromResults');
 const progressButton=document.getElementById('progressButton');
+const bookmarkLessonButton=document.getElementById('bookmarkLesson');
+const myLessonsButton=document.getElementById('myLessonsButton');
+const myLessonsArea=document.getElementById('myLessonsArea');
+const myLessonsList=document.getElementById('myLessonsList');
+const myLessonsEmpty=document.getElementById('myLessonsEmpty');
+const closeMyLessonsButton=document.getElementById('closeMyLessons');
 const progressArea=document.getElementById('progressArea');
 const progressLoading=document.getElementById('progressLoading');
 const progressEmpty=document.getElementById('progressEmpty');
@@ -949,11 +955,33 @@ function setLearningStatus(message,state=''){
 }
 
 function setActiveMode(button){
+  if(button!==myLessonsButton)myLessonsArea.classList.add('hidden');
   document.querySelectorAll('.class-tools [data-mode]').forEach(item=>{
     const active=item===button;item.classList.toggle('active',active);
     if(active)item.setAttribute('aria-current','page');else item.removeAttribute('aria-current');
   });
 }
+
+function lessonLibraryKey(){return `${learnerClass.value}:${learnerNickname.value.trim().toLocaleLowerCase()}`}
+function loadSavedLessons(){try{return JSON.parse(localStorage.getItem(`roboTeacherLessons:${lessonLibraryKey()}`)||'[]')}catch(_error){return []}}
+function storeSavedLessons(items){localStorage.setItem(`roboTeacherLessons:${lessonLibraryKey()}`,JSON.stringify(items.slice(0,20)))}
+function lessonSummary(text){return text.replace(/\*\*/g,'').replace(/\s+/g,' ').trim().slice(0,180)}
+
+function renderMyLessons(){
+  const items=loadSavedLessons();myLessonsList.replaceChildren();myLessonsEmpty.classList.toggle('hidden',items.length>0);
+  items.forEach(item=>{const card=document.createElement('article');card.className='saved-lesson-card';const copy=document.createElement('div'),title=document.createElement('strong'),summary=document.createElement('p'),meta=document.createElement('small'),actions=document.createElement('div'),open=document.createElement('button'),remove=document.createElement('button');title.textContent=item.title;summary.textContent=item.summary;meta.textContent=`${item.classLevel} · ${item.language} · ${new Date(item.savedAt).toLocaleDateString()}`;open.type='button';open.dataset.lessonAction='open';open.dataset.lessonId=item.id;open.textContent='Open lesson';remove.type='button';remove.dataset.lessonAction='delete';remove.dataset.lessonId=item.id;remove.textContent='Remove';copy.append(title,summary,meta);actions.append(open,remove);card.append(copy,actions);myLessonsList.appendChild(card)});
+}
+
+function openMyLessons(){dismissLessonOverlays();whiteboardArea.classList.add('hidden');practiceArea.classList.add('hidden');progressArea.classList.add('hidden');canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');myLessonsArea.classList.remove('hidden');renderMyLessons();setActiveMode(myLessonsButton);setLearningStatus('Saved lessons')}
+function closeMyLessons(){myLessonsArea.classList.add('hidden');openChat()}
+
+bookmarkLessonButton.addEventListener('click',()=>{
+  if(!currentLesson?.text){setLearningStatus('Ask a question before saving a lesson','attention');return}
+  const title=lessonSummary(currentLesson.text).split(/[.!?]/)[0].slice(0,70)||'Saved Maths lesson';const items=loadSavedLessons();const duplicate=items.find(item=>item.answer===currentLesson.text);
+  const saved={id:duplicate?.id||String(Date.now()),title,summary:lessonSummary(currentLesson.text),answer:currentLesson.text,lessonIndex:currentLesson.index,classLevel:learnerClass.value,language:language.value,savedAt:Date.now()};storeSavedLessons([saved,...items.filter(item=>item.id!==saved.id)]);setLearningStatus('Lesson saved to My Lessons','success');bookmarkLessonButton.textContent='Saved ✓';setTimeout(()=>{bookmarkLessonButton.textContent='Save Lesson'},1400);
+});
+myLessonsButton.addEventListener('click',openMyLessons);closeMyLessonsButton.addEventListener('click',closeMyLessons);
+myLessonsList.addEventListener('click',event=>{const button=event.target.closest('button[data-lesson-action]');if(!button)return;const items=loadSavedLessons(),item=items.find(saved=>saved.id===button.dataset.lessonId);if(button.dataset.lessonAction==='delete'){storeSavedLessons(items.filter(saved=>saved.id!==button.dataset.lessonId));renderMyLessons();return}if(!item)return;myLessonsArea.classList.add('hidden');language.value=item.language;startLessonDirector(item.answer,item.lessonIndex);canvasStatus.textContent='Saved lesson reopened';canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');setActiveMode(chatButton);setLearningStatus('Saved lesson ready','success');saveClassroomSnapshot();keepTeachingCanvasVisible()});
 
 function openChat(){
   dismissLessonOverlays();

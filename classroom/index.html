@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Robo-Teacher Classroom</title>
-  <link rel="stylesheet" href="/classroom/styles.css?v=20260910-sessionresume1" />
+  <link rel="stylesheet" href="/classroom/styles.css?v=20260910-mylessons1" />
 </head>
 <body>
   <main class="app-shell">
@@ -152,6 +152,7 @@
               <div class="practice-actions result-actions"><button id="practiceAgain" type="button" class="practice-primary">Practise Again</button><button id="viewProgressFromResults" type="button">View Progress</button><button id="changePracticeTopic" type="button">Change Topic</button><button id="exitPracticeResults" type="button">Exit Practice</button></div>
             </div>
           </section>
+          <section id="myLessonsArea" class="progress-area my-lessons-area hidden" aria-labelledby="myLessonsTitle"><div class="progress-heading"><div><p class="practice-kicker">SAVED FOR LATER</p><h3 id="myLessonsTitle">My Lessons</h3></div><button id="closeMyLessons" type="button">Close</button></div><p id="myLessonsEmpty" class="progress-empty">Save a useful explanation and it will appear here.</p><div id="myLessonsList" class="my-lessons-list"></div></section>
           <section id="progressArea" class="progress-area hidden" aria-labelledby="progressTitle">
             <div class="progress-heading"><div><p class="practice-kicker">MY PROGRESS</p><h3 id="progressTitle">Learning dashboard</h3></div><button id="closeProgress" type="button">Close</button></div>
             <div id="progressLoading" class="progress-empty">Loading your progress…</div>
@@ -180,11 +181,12 @@
           <button type="submit" class="send">Send</button>
         </form>
         <nav class="class-tools" aria-label="Classroom tools">
+          <button id="bookmarkLesson" type="button">Save Lesson</button><button id="myLessonsButton" type="button" data-mode="lessons">My Lessons</button>
           <button id="chatButton" type="button" data-mode="chat" class="active" aria-current="page">Chat</button><button id="practiceButton" type="button" data-mode="practice">Practice</button><button id="progressButton" type="button" data-mode="progress">Progress</button><button id="teacherDashboardButton" type="button" data-mode="teacher">Teacher</button><button id="cameraButton" type="button">Camera</button><button id="simplifyButton" type="button">Explain Simpler</button><button id="visualButton" type="button">Show Visual</button><button id="mediaButton" type="button">Watch or Explore</button><button id="understandingButton" type="button">Check Understanding</button><button id="whiteboardButton" type="button" data-mode="whiteboard">Whiteboard</button><button id="languageButton" type="button">Language</button>
         </nav>
       </section>
     </section>
   </main>
-  <script src="/classroom/app.js?v=20260910-sessionresume1"></script>
+  <script src="/classroom/app.js?v=20260910-mylessons1"></script>
 </body>
 </html>
