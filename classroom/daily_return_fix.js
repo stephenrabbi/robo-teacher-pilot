@@ -49,7 +49,7 @@
   function showReturning(){
     if(classroom.classList.contains('hidden')||!ready())return false;
     const state=readState(),done=state.completed.length;
-    if(done<=0||done>=3||state.activeAction)return false;
+    if(done<=0||done>=3)return false;
     const key=stateKey();
     if(shownFor===key)return true;
 
@@ -70,7 +70,8 @@
       card.append(copy,button);
     }
 
-    const next=nextAction(state);
+    const active=state.activeAction&&!state.completed.includes(state.activeAction)?state.activeAction:'';
+    const next=active||nextAction(state);
     const title=card.querySelector('strong');
     const detail=card.querySelector('small');
     let button=card.querySelector('button');
@@ -79,7 +80,9 @@
     button=cleanButton;
 
     title.textContent=`Welcome back, ${nickname.value.trim()}`;
-    detail.textContent=`You have completed ${done} of 3 steps today. Next: ${taskTitle(next)||'continue your learning plan'}.`;
+    detail.textContent=active
+      ? `You have completed ${done} of 3 steps today. Continue: ${taskTitle(next)||'your unfinished learning activity'}.`
+      : `You have completed ${done} of 3 steps today. Next: ${taskTitle(next)||'continue your learning plan'}.`;
     button.textContent="Continue today's plan →";
     button.addEventListener('click',advance);
 
