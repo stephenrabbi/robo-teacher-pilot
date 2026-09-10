@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
+<title id="title">Robo-Teacher multilingual and multimodal illustrated product walkthrough</title>
+<desc id="desc">Illustration of English, Yoruba, Igbo and Hausa support alongside text, voice, image and whiteboard input.</desc>
+<rect width="1200" height="675" fill="#f6f8fb"/>
+<rect x="32" y="28" width="1136" height="619" rx="30" fill="#ffffff" stroke="#d6deea" stroke-width="2"/>
+<rect x="32" y="28" width="230" height="619" rx="30" fill="#10223d"/>
+<rect x="232" y="28" width="30" height="619" fill="#10223d"/>
+<text x="72" y="88" font-family="Arial, sans-serif" font-size="26" font-weight="700" fill="#ffffff" letter-spacing="2">ROBO-TEACHER</text>
+<text x="72" y="116" font-family="Arial, sans-serif" font-size="12" font-weight="700" fill="#d39a28">AI-POWERED LEARNING FOR EVERYONE</text>
+<rect x="58" y="174" width="176" height="54" rx="12" fill="#ffffff"/>
+<text x="78" y="209" font-family="Arial, sans-serif" font-size="19" font-weight="700" fill="#10223d">Language</text>
+<text x="72" y="278" font-family="Arial, sans-serif" font-size="18" fill="#cbd6e5">Chat</text>
+<text x="72" y="327" font-family="Arial, sans-serif" font-size="18" fill="#cbd6e5">Camera</text>
+<text x="72" y="376" font-family="Arial, sans-serif" font-size="18" fill="#cbd6e5">Voice</text>
+<text x="72" y="425" font-family="Arial, sans-serif" font-size="18" fill="#cbd6e5">Whiteboard</text>
+<text x="72" y="555" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#d39a28">Ask your way.</text>
+<text x="72" y="582" font-family="Arial, sans-serif" font-size="18" fill="#ffffff">Learn your way.</text>
+<text x="302" y="83" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#3977df" letter-spacing="2">ILLUSTRATED PRODUCT WALKTHROUGH</text>
+<text x="302" y="128" font-family="Arial, sans-serif" font-size="42" font-weight="700" fill="#10223d">Multilingual &amp; Multimodal Learning</text>
+<text x="302" y="158" font-family="Arial, sans-serif" font-size="19" fill="#5f6f86">Four supported classroom languages and multiple ways to ask for help.</text>
+<rect x="302" y="194" width="824" height="70" rx="18" fill="#f9fbfd" stroke="#d6deea"/>
+<text x="330" y="224" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#5f6f86">CHOOSE LEARNING LANGUAGE</text>
+<rect x="330" y="235" width="160" height="38" rx="19" fill="#10223d"/><text x="374" y="260" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#ffffff">English</text>
+<rect x="506" y="235" width="160" height="38" rx="19" fill="#d39a28"/><text x="555" y="260" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#ffffff">Yorùbá</text>
+<rect x="682" y="235" width="160" height="38" rx="19" fill="#eef4ff" stroke="#bfd1f4"/><text x="742" y="260" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#10223d">Igbo</text>
+<rect x="858" y="235" width="160" height="38" rx="19" fill="#eef8f4" stroke="#b7dfd0"/><text x="914" y="260" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#10223d">Hausa</text>
+<rect x="302" y="292" width="520" height="270" rx="20" fill="#fff8e8" stroke="#efd79c"/>
+<text x="334" y="334" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#a66f11">EXAMPLE • YORÙBÁ</text>
+<text x="334" y="380" font-family="Arial, sans-serif" font-size="26" font-weight="700" fill="#10223d">Kí ni 1/2 + 1/4 dọ́gba sí?</text>
+<text x="334" y="426" font-family="Arial, sans-serif" font-size="18" fill="#44546b">A kọ́kọ́ ṣe denominator wọn dọ́gba.</text>
+<text x="334" y="459" font-family="Arial, sans-serif" font-size="18" fill="#44546b">1/2 = 2/4, nítorí náà 2/4 + 1/4 = 3/4.</text>
+<rect x="334" y="492" width="456" height="48" rx="14" fill="#ffffff"/>
+<text x="354" y="523" font-family="Arial, sans-serif" font-size="19" font-weight="700" fill="#1b6d4c">Ìdáhùn: 3/4</text>
+<rect x="842" y="292" width="284" height="270" rx="20" fill="#f7f9fc" stroke="#d6deea"/>
+<text x="870" y="332" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#10223d">Ask in different ways</text>
+<rect x="870" y="354" width="228" height="42" rx="12" fill="#eef4ff"/><text x="890" y="381" font-family="Arial, sans-serif" font-size="17" fill="#10223d">Text question</text>
+<rect x="870" y="407" width="228" height="42" rx="12" fill="#eef8f4"/><text x="890" y="434" font-family="Arial, sans-serif" font-size="17" fill="#10223d">Voice question</text>
+<rect x="870" y="460" width="228" height="42" rx="12" fill="#fff8e8"/><text x="890" y="487" font-family="Arial, sans-serif" font-size="17" fill="#10223d">Camera / image</text>
+<rect x="870" y="513" width="228" height="42" rx="12" fill="#f4efff"/><text x="890" y="540" font-family="Arial, sans-serif" font-size="17" fill="#10223d">Whiteboard</text>
+<text x="302" y="608" font-family="Arial, sans-serif" font-size="16" fill="#5f6f86">Language support is intentionally limited to English, Yorùbá, Igbo and Hausa in the current V2.5 classroom.</text>
+</svg>
