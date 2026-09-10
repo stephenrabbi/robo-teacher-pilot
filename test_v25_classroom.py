@@ -31,7 +31,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260909-responsive1' in html
+    assert '20260910-wakeword1' in html
     assert 'id="learnerNickname"' in html
     assert 'id="learnerClass"' in html
     assert "learnerNickname.value=''" in script
@@ -47,7 +47,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert "localStorage.setItem('roboTeacherQaChecklist'" in script
     assert 'const resultCopy=' in script
     assert 'labels.yourAnswer' in script
-    assert '20260909-responsive1' in html
+    assert '20260910-wakeword1' in html
     assert 'downloadTeacherDashboardReport' in script
     assert 'id="practiceClass"' in html
     assert 'id="startDiagnostic"' in html
@@ -1221,6 +1221,21 @@ def test_cross_device_controls_wrap_and_all_answers_keep_canvas_visible():
     assert '.teacher-toolbar>strong{flex:1 1 100%}' in styles
     assert '.composer>*{min-width:0}' in styles
     assert '@media(min-width:601px) and (max-width:1100px)' in styles
+
+
+def test_wake_word_mode_ignores_background_and_confirms_uncertain_commands():
+    html = Path('classroom/index.html').read_text()
+    script = Path('classroom/app.js').read_text()
+    styles = Path('classroom/styles.css').read_text()
+    assert 'id="handsFreeHeard"' in html
+    assert 'function executeHandsFreeIntent(phrase)' in script
+    assert 'function handleHandsFreePhrase(rawPhrase,confidence=0)' in script
+    assert "robo\\s*teacher\\b" in script
+    assert "confidence>0&&confidence<.55" in script
+    assert "handsFree.pending=intent" in script
+    for command in ('explain (that )?again', 'show (me )?(a )?visual', 'stop listening'):
+        assert command in script
+    assert '.hands-free-heard{' in styles
 
 
 def test_media_endpoint_requires_a_valid_session():

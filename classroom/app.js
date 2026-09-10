@@ -17,6 +17,7 @@ const toggle=document.getElementById('toggleTeacher');
 const teacherPanel=document.getElementById('teacherPanel');
 const readAnswerButton=document.getElementById('readAnswer');
 const handsFreeToggle=document.getElementById('handsFreeToggle');
+const handsFreeHeard=document.getElementById('handsFreeHeard');
 const teacherVoiceStatus=document.getElementById('teacherVoiceStatus');
 const learningStatus=document.getElementById('learningStatus');
 const form=document.getElementById('chatForm');
@@ -187,7 +188,7 @@ const teachingStage={mode:'lesson',bookmark:0};
 const lessonChoreography={enabled:true,visited:new Set(),timer:null};
 let learnerMemoryId='';
 let adaptiveMemory={replays:0,simplifications:0,questions:0,correct:0,incorrect:0};
-const handsFree={enabled:false,recognition:null,processing:false,restartTimer:null};
+const handsFree={enabled:false,recognition:null,processing:false,restartTimer:null,pending:'',lastPhrase:'',lastAt:0};
 let languageSwitchRequest=0;
 let teacherAudioKeepAlive=null;
 let understandingCheckId=null;
@@ -322,10 +323,12 @@ function adaptivePromptContext(){
 function handsFreeLanguage(){return {English:'en-NG',Yoruba:'yo-NG',Igbo:'ig-NG',Hausa:'ha-NG'}[language.value]||'en-NG'}
 
 function updateHandsFreeStatus(message){
-  handsFreeToggle.textContent=handsFree.enabled?(message||'Listening…'):'Hands-free';
+  handsFreeToggle.textContent=handsFree.enabled?(message||'Listening…'):'Wake-word';
   handsFreeToggle.setAttribute('aria-pressed',String(handsFree.enabled));
   handsFreeToggle.setAttribute('aria-label',handsFree.enabled?'Disable hands-free teaching':'Enable hands-free teaching');
 }
+
+function showHandsFreeHeard(message){handsFreeHeard.textContent=message;handsFreeHeard.classList.toggle('hidden',!message)}
 
 function startHandsFreeListening(){
   if(!handsFree.enabled||handsFree.processing||!handsFree.recognition)return;
@@ -344,37 +347,57 @@ function resumeBookmarkedLessonByVoice(){
   if(step)void speakText(step,true,true);else void resumeTeacherAudio();
 }
 
-function handleHandsFreePhrase(rawPhrase){
-  const phrase=rawPhrase.trim();const command=phrase.toLowerCase().replace(/[^a-zà-ž\s]/gu,'').trim();
-  if(!phrase)return;
+function executeHandsFreeIntent(phrase){
+  const command=phrase.toLowerCase().replace(/[^a-zà-ž0-9\s()+,.?=\-]/gu,'').trim();
   const pauseCommand=/^(pause|stop|dúró|kwụsị|dakatar)$/.test(command);
   const continueCommand=/^(continue|resume|go on|tẹ̀síwájú|gaa nihu|ci gaba)$/.test(command);
-  if(teacherPanel.classList.contains('speaking')&&!pauseCommand&&!continueCommand)return;
+  const replayCommand=/^(explain (that )?again|repeat( that)?|say (that )?again)$/.test(command);
+  const visualCommand=/^(show (me )?(a )?visual|show (the )?diagram)$/.test(command);
+  const stopListeningCommand=/^(stop listening|turn off|goodbye)$/.test(command);
+  if(teacherPanel.classList.contains('speaking')&&!pauseCommand&&!continueCommand&&!replayCommand&&!visualCommand&&!stopListeningCommand)return;
   if(pauseCommand){
     if(currentLesson)pauseLessonForQuestion('voice');else void pauseTeacherAudio();
-    updateHandsFreeStatus('Ask your question…');return;
+    updateHandsFreeStatus('Say “Robo-Teacher”…');return;
   }
   if(continueCommand){
     resumeBookmarkedLessonByVoice();
     updateHandsFreeStatus('Listening…');return;
   }
+  if(replayCommand){if(currentLesson){recordLearningSignal('replays');void speakText(currentLesson.steps[currentLesson.index],true,true)}updateHandsFreeStatus('Listening…');return}
+  if(visualCommand){void showVisualExplanation();updateHandsFreeStatus('Listening…');return}
+  if(stopListeningCommand){
+    handsFree.enabled=false;handsFree.processing=false;stopHandsFreeListening();updateHandsFreeStatus();showHandsFreeHeard('Wake-word listening is off.');setLearningStatus('Wake-word teaching off');return;
+  }
   if(currentLesson&&!lessonInterruption)pauseLessonForQuestion('voice');
   handsFree.processing=true;stopHandsFreeListening();question.value=phrase;form.requestSubmit();
+}
+
+function handleHandsFreePhrase(rawPhrase,confidence=0){
+  const phrase=rawPhrase.trim();if(!phrase)return;
+  const now=Date.now();if(phrase===handsFree.lastPhrase&&now-handsFree.lastAt<1800)return;handsFree.lastPhrase=phrase;handsFree.lastAt=now;
+  const normalized=phrase.toLowerCase().replace(/[^a-zà-ž0-9\s()+,.?=\-]/gu,'').trim();
+  const wake=normalized.match(/^(?:hey\s+)?robo\s*teacher\b[\s,.:;-]*(.*)$/);
+  if(!wake)return;
+  const intent=wake[1].trim().replace(/[,.?!:;]+$/,'').trim();showHandsFreeHeard(`Heard: “${phrase}”`);
+  if(/^(confirm|yes)$/.test(intent)&&handsFree.pending){const pending=handsFree.pending;handsFree.pending='';executeHandsFreeIntent(pending);return}
+  if(!intent){updateHandsFreeStatus('Say your command…');return}
+  if(confidence>0&&confidence<.55){handsFree.pending=intent;updateHandsFreeStatus('Say “Robo-Teacher, confirm”');showHandsFreeHeard(`Did you mean “${intent}”? Say “Robo-Teacher, confirm”.`);return}
+  handsFree.pending='';executeHandsFreeIntent(intent);
 }
 
 function enableHandsFree(){
   const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!Recognition){addMessage('Hands-free commands are not supported in this browser. You can still use the Voice button.','teacher');return;}
   handsFree.recognition=new Recognition();handsFree.recognition.continuous=true;handsFree.recognition.interimResults=false;handsFree.recognition.maxAlternatives=1;
-  handsFree.recognition.addEventListener('result',event=>{const result=event.results[event.results.length-1];if(result.isFinal)handleHandsFreePhrase(result[0].transcript)});
+  handsFree.recognition.addEventListener('result',event=>{const result=event.results[event.results.length-1];if(result.isFinal)handleHandsFreePhrase(result[0].transcript,result[0].confidence)});
   handsFree.recognition.addEventListener('end',()=>{if(handsFree.enabled&&!handsFree.processing)handsFree.restartTimer=setTimeout(startHandsFreeListening,350)});
   handsFree.recognition.addEventListener('error',event=>{if(event.error==='not-allowed'){handsFree.enabled=false;updateHandsFreeStatus();addMessage('Microphone permission is needed for hands-free teaching.','teacher')}});
-  handsFree.enabled=true;updateHandsFreeStatus('Listening…');startHandsFreeListening();setLearningStatus('Hands-free teaching is listening','listening');
+  handsFree.enabled=true;handsFree.pending='';showHandsFreeHeard('Listening for “Robo-Teacher”…');updateHandsFreeStatus('Listening…');startHandsFreeListening();setLearningStatus('Say “Robo-Teacher” before a command','listening');
 }
 
 handsFreeToggle.addEventListener('click',()=>{
   if(!handsFree.enabled){enableHandsFree();return}
-  handsFree.enabled=false;handsFree.processing=false;stopHandsFreeListening();updateHandsFreeStatus();setLearningStatus('Hands-free teaching off');
+  handsFree.enabled=false;handsFree.processing=false;handsFree.pending='';stopHandsFreeListening();updateHandsFreeStatus();showHandsFreeHeard('');setLearningStatus('Wake-word teaching off');
 });
 
 async function ensureSession(){
