@@ -11,7 +11,7 @@ from fastapi.responses import HTMLResponse
 from main import app
 
 _CLASSROOM_INDEX = Path(__file__).resolve().parent / "classroom" / "index.html"
-_DAILY_SESSION_SCRIPT = '<script src="/classroom/daily_session.js?v=20260910-daily-session1"></script>'
+_DAILY_SESSION_SCRIPT = '<script src="/classroom/daily_session.js?v=20260910-daily-session2"></script>'
 
 
 @app.middleware("http")
