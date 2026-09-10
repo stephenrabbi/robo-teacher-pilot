@@ -401,6 +401,12 @@ function resumeBookmarkedLessonByVoice(){
   if(step)void speakText(step,true,true);else void resumeTeacherAudio();
 }
 
+function continueHandsFreeTeaching(){
+  if(lessonHistory.length||lessonInterruption){resumeBookmarkedLessonByVoice();return}
+  if(teacherSpeechPaused){void resumeTeacherAudio();return}
+  if(currentLesson){renderCurrentLessonStep();const step=currentLesson.steps[currentLesson.index];if(step)void speakText(step,true,true)}
+}
+
 function executeHandsFreeIntent(phrase){
   const command=phrase.toLowerCase().replace(/[^a-zà-ž0-9\s()+,.?=\-]/gu,'').trim();
   const pauseCommand=/^(pause|stop|dúró|kwụsị|dakatar)$/.test(command);
@@ -410,11 +416,11 @@ function executeHandsFreeIntent(phrase){
   const stopListeningCommand=/^(stop listening|turn off|goodbye)$/.test(command);
   if(teacherPanel.classList.contains('speaking')&&!pauseCommand&&!continueCommand&&!replayCommand&&!visualCommand&&!stopListeningCommand)return;
   if(pauseCommand){
-    if(currentLesson)pauseLessonForQuestion('voice');else void pauseTeacherAudio();
+    if(teacherPanel.classList.contains('speaking'))void pauseTeacherAudio();else if(currentLesson)pauseLessonForQuestion('voice');
     updateHandsFreeStatus('Say “Robo-Teacher”…');return;
   }
   if(continueCommand){
-    resumeBookmarkedLessonByVoice();
+    continueHandsFreeTeaching();
     updateHandsFreeStatus('Listening…');return;
   }
   if(replayCommand){if(currentLesson){recordLearningSignal('replays');void speakText(currentLesson.steps[currentLesson.index],true,true)}updateHandsFreeStatus('Listening…');return}
@@ -431,9 +437,12 @@ function handleHandsFreePhrase(rawPhrase,confidence=0){
   const now=Date.now();if(phrase===handsFree.lastPhrase&&now-handsFree.lastAt<1800)return;handsFree.lastPhrase=phrase;handsFree.lastAt=now;
   const normalized=phrase.toLowerCase().replace(/[^a-zà-ž0-9\s()+,.?=\-]/gu,'').trim();
   const wake=normalized.match(/^(?:hey\s+)?(?:robo|robot|robotic)\s*(?:teacher|tutor|feature)\b[\s,.:;-]*(.*)$/);
+  const pausedControl=teacherSpeechPaused&&/^(?:continue|continues|continue you|resume|go on|tẹ̀síwájú|gaa nihu|ci gaba)$/.test(normalized);
   let intent='';
   if(wake){
     intent=wake[1].trim().replace(/[,.?!:;]+$/,'').trim();handsFree.armedUntil=now+7000;
+  }else if(pausedControl){
+    intent=normalized;
   }else if(now<handsFree.armedUntil){
     intent=normalized.replace(/[,.?!:;]+$/,'').trim();
   }else{showHandsFreeHeard(`Heard: “${phrase}” — start with “Robo-Teacher”.`);return}
