@@ -1506,6 +1506,21 @@ def test_revision_history_tracks_latest_best_attempts_date_and_mastery():
     assert '.lesson-mastery{' in styles
 
 
+def test_saved_lessons_have_smart_revision_scheduling():
+    html = Path('classroom/index.html').read_text()
+    script = Path('classroom/app.js').read_text()
+    styles = Path('classroom/styles.css').read_text()
+    assert 'id="lessonRecommendation"' in html
+    assert 'id="reviseRecommended"' in html
+    assert "lessonFilter.add(new Option('Due now','due'))" in script
+    assert 'function revisionSchedule(item,now=Date.now())' in script
+    assert 'latest<2?1:attempts>=3?30:attempts===2?14:7' in script
+    assert 'function recommendedLesson(items)' in script
+    assert "filter!=='due'||revisionSchedule(item).isDue" in script
+    assert "reviseRecommended.addEventListener('click'" in script
+    assert '.lesson-recommendation{' in styles
+
+
 def test_media_endpoint_requires_a_valid_session():
     session=client.post('/api/classroom/session').json()
     response=client.post('/api/classroom/media',json={'session_token':session['session_token'],'text':'Explain a fraction.','language':'English'})
