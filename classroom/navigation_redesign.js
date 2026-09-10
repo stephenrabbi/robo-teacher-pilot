@@ -6,8 +6,15 @@
   const primaryButtons = primaryIds.map(id => document.getElementById(id)).filter(Boolean);
   if (primaryButtons.length !== primaryIds.length) return;
 
+  const teacherButton = document.getElementById('teacherDashboardButton');
+  if (teacherButton) {
+    teacherButton.hidden = true;
+    teacherButton.setAttribute('aria-hidden', 'true');
+    teacherButton.tabIndex = -1;
+  }
+
   const secondaryButtons = Array.from(nav.querySelectorAll(':scope > button'))
-    .filter(button => !primaryIds.includes(button.id));
+    .filter(button => !primaryIds.includes(button.id) && button.id !== 'teacherDashboardButton');
 
   const more = document.createElement('details');
   more.className = 'class-tools-more';
@@ -30,6 +37,9 @@
       overflow: visible !important;
       padding: 0;
       align-items: stretch;
+    }
+    .class-tools.nav-redesigned > #teacherDashboardButton {
+      display: none !important;
     }
     .class-tools.nav-redesigned > button,
     .class-tools.nav-redesigned > .class-tools-more > summary {
