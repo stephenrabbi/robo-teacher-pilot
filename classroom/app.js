@@ -338,7 +338,7 @@ function speechAlternativeScore(alternative){
   let score=confidence*8+Math.min(wordCount,18)*.12;
   if(/\b(?:robo|robot|robotic)\s*(?:teacher|tutor|feature|olukọ|oluko|malam|malami|onye nkuzi)(?=\s|[,.:;-]|$)/u.test(transcript))score+=4;
   if(/\b(?:square root|square route|squared root|fraction|multiply|divide|division|equation|angle|graph|plus|minus|solve|calculate)\b/.test(transcript))score+=3;
-  if(/\b(?:pause|pulse|paws|pose|pores|continue|resume|repeat|visual|diagram)\b/.test(transcript))score+=2;
+  if(/\b(?:pause|pulse|paws|pose|pores|continue|resume|repeat|simpler|understanding|visual|diagram|next step|previous step)\b/.test(transcript))score+=2;
   return score;
 }
 
@@ -420,8 +420,12 @@ function executeHandsFreeIntent(phrase){
   const continueCommand=/^(continue|resume|go on)$/.test(normalizeSpokenIntent(command));
   const replayCommand=/^(explain (that )?again|repeat( that)?|say (that )?again)$/.test(command);
   const visualCommand=/^(show (me )?(a )?visual|show (the )?diagram)$/.test(command);
+  const simplerCommand=/^(explain (it |that )?simpler|make (it |that )?simpler|simplify (it|that)|i do not understand|i dont understand)$/.test(command);
+  const understandingCommand=/^(check my understanding|test me|ask me a question)$/.test(command);
+  const nextStepCommand=/^(next|next step|move on)$/.test(command);
+  const previousStepCommand=/^(back|previous|previous step|go back)$/.test(command);
   const stopListeningCommand=/^(stop listening|turn off|goodbye)$/.test(command);
-  if(teacherPanel.classList.contains('speaking')&&!pauseCommand&&!continueCommand&&!replayCommand&&!visualCommand&&!stopListeningCommand)return;
+  if(teacherPanel.classList.contains('speaking')&&!pauseCommand&&!continueCommand&&!replayCommand&&!visualCommand&&!simplerCommand&&!understandingCommand&&!nextStepCommand&&!previousStepCommand&&!stopListeningCommand)return;
   if(pauseCommand){
     if(teacherPanel.classList.contains('speaking'))void pauseTeacherAudio();else if(currentLesson)pauseLessonForQuestion('voice');
     openHandsFreeFollowUpWindow();return;
@@ -430,8 +434,12 @@ function executeHandsFreeIntent(phrase){
     continueHandsFreeTeaching();
     updateHandsFreeStatus('Listening…');return;
   }
-  if(replayCommand){if(currentLesson){recordLearningSignal('replays');void speakText(currentLesson.steps[currentLesson.index],true,true)}updateHandsFreeStatus('Listening…');return}
+  if(replayCommand){recordLearningSignal('replays');const text=currentLesson?.steps[currentLesson.index]||canvasAnswer.textContent.trim();if(text)void speakText(text,true,true);updateHandsFreeStatus('Listening…');return}
   if(visualCommand){void showVisualExplanation();updateHandsFreeStatus('Listening…');return}
+  if(simplerCommand){void simplifyCurrentAnswer();updateHandsFreeStatus('Listening…');return}
+  if(understandingCommand){void startUnderstandingCheck();updateHandsFreeStatus('Listening…');return}
+  if(nextStepCommand){if(currentLesson)moveLessonStep(1);updateHandsFreeStatus('Listening…');return}
+  if(previousStepCommand){if(currentLesson)moveLessonStep(-1);updateHandsFreeStatus('Listening…');return}
   if(stopListeningCommand){
     handsFree.enabled=false;handsFree.processing=false;stopHandsFreeListening();updateHandsFreeStatus();showHandsFreeHeard('Wake-word listening is off.');setLearningStatus('Wake-word teaching off');return;
   }
