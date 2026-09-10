@@ -31,7 +31,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260910-wakeword2' in html
+    assert '20260910-wakeword3' in html
     assert 'id="learnerNickname"' in html
     assert 'id="learnerClass"' in html
     assert "learnerNickname.value=''" in script
@@ -47,7 +47,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert "localStorage.setItem('roboTeacherQaChecklist'" in script
     assert 'const resultCopy=' in script
     assert 'labels.yourAnswer' in script
-    assert '20260910-wakeword2' in html
+    assert '20260910-wakeword3' in html
     assert 'downloadTeacherDashboardReport' in script
     assert 'id="practiceClass"' in html
     assert 'id="startDiagnostic"' in html
@@ -1237,6 +1237,16 @@ def test_wake_word_mode_ignores_background_and_confirms_uncertain_commands():
     for command in ('explain (that )?again', 'show (me )?(a )?visual', 'stop listening'):
         assert command in script
     assert '.hands-free-heard{' in styles
+
+
+def test_wake_word_and_command_can_arrive_as_separate_speech_results():
+    script = Path('classroom/app.js').read_text()
+    assert 'armedUntil:0' in script
+    assert 'handsFree.armedUntil=now+7000' in script
+    assert 'else if(now<handsFree.armedUntil)' in script
+    assert 'handsFree.recognition.interimResults=true' in script
+    assert 'for(let index=event.resultIndex;index<event.results.length;index++)' in script
+    assert 'Wake word heard. Say the command within 7 seconds.' in script
 
 
 def test_media_endpoint_requires_a_valid_session():

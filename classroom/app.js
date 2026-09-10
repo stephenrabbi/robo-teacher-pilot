@@ -188,7 +188,7 @@ const teachingStage={mode:'lesson',bookmark:0};
 const lessonChoreography={enabled:true,visited:new Set(),timer:null};
 let learnerMemoryId='';
 let adaptiveMemory={replays:0,simplifications:0,questions:0,correct:0,incorrect:0};
-const handsFree={enabled:false,recognition:null,processing:false,restartTimer:null,pending:'',lastPhrase:'',lastAt:0};
+const handsFree={enabled:false,recognition:null,processing:false,restartTimer:null,pending:'',lastPhrase:'',lastAt:0,armedUntil:0};
 let languageSwitchRequest=0;
 let teacherAudioKeepAlive=null;
 let understandingCheckId=null;
@@ -377,22 +377,27 @@ function handleHandsFreePhrase(rawPhrase,confidence=0){
   const now=Date.now();if(phrase===handsFree.lastPhrase&&now-handsFree.lastAt<1800)return;handsFree.lastPhrase=phrase;handsFree.lastAt=now;
   const normalized=phrase.toLowerCase().replace(/[^a-zà-ž0-9\s()+,.?=\-]/gu,'').trim();
   const wake=normalized.match(/^(?:hey\s+)?(?:robo|robot|robotic)\s*(?:teacher|tutor|feature)\b[\s,.:;-]*(.*)$/);
-  if(!wake){showHandsFreeHeard(`Heard: “${phrase}” — start with “Robo-Teacher”.`);return}
-  const intent=wake[1].trim().replace(/[,.?!:;]+$/,'').trim();showHandsFreeHeard(`Heard: “${phrase}”`);
+  let intent='';
+  if(wake){
+    intent=wake[1].trim().replace(/[,.?!:;]+$/,'').trim();handsFree.armedUntil=now+7000;
+  }else if(now<handsFree.armedUntil){
+    intent=normalized.replace(/[,.?!:;]+$/,'').trim();
+  }else{showHandsFreeHeard(`Heard: “${phrase}” — start with “Robo-Teacher”.`);return}
+  showHandsFreeHeard(`Heard: “${phrase}”`);
   if(/^(confirm|yes)$/.test(intent)&&handsFree.pending){const pending=handsFree.pending;handsFree.pending='';executeHandsFreeIntent(pending);return}
-  if(!intent){updateHandsFreeStatus('Say your command…');return}
+  if(!intent){updateHandsFreeStatus('Command ready…');showHandsFreeHeard('Wake word heard. Say the command within 7 seconds.');return}
   if(confidence>0&&confidence<.55){handsFree.pending=intent;updateHandsFreeStatus('Say “Robo-Teacher, confirm”');showHandsFreeHeard(`Did you mean “${intent}”? Say “Robo-Teacher, confirm”.`);return}
-  handsFree.pending='';executeHandsFreeIntent(intent);
+  handsFree.pending='';handsFree.armedUntil=0;executeHandsFreeIntent(intent);
 }
 
 function enableHandsFree(){
   const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!Recognition){addMessage('Hands-free commands are not supported in this browser. You can still use the Voice button.','teacher');return;}
-  handsFree.recognition=new Recognition();handsFree.recognition.continuous=true;handsFree.recognition.interimResults=false;handsFree.recognition.maxAlternatives=1;
-  handsFree.recognition.addEventListener('result',event=>{const result=event.results[event.results.length-1];if(result.isFinal)handleHandsFreePhrase(result[0].transcript,result[0].confidence)});
+  handsFree.recognition=new Recognition();handsFree.recognition.continuous=true;handsFree.recognition.interimResults=true;handsFree.recognition.maxAlternatives=1;
+  handsFree.recognition.addEventListener('result',event=>{for(let index=event.resultIndex;index<event.results.length;index++){const result=event.results[index],transcript=result[0].transcript.trim();if(!transcript)continue;if(result.isFinal)handleHandsFreePhrase(transcript,result[0].confidence);else showHandsFreeHeard(`Hearing: “${transcript}…”`)}});
   handsFree.recognition.addEventListener('end',()=>{if(handsFree.enabled&&!handsFree.processing)handsFree.restartTimer=setTimeout(startHandsFreeListening,350)});
   handsFree.recognition.addEventListener('error',event=>{if(event.error==='not-allowed'){handsFree.enabled=false;updateHandsFreeStatus();addMessage('Microphone permission is needed for hands-free teaching.','teacher')}});
-  handsFree.enabled=true;handsFree.pending='';showHandsFreeHeard('Listening for “Robo-Teacher”…');updateHandsFreeStatus('Listening…');startHandsFreeListening();setLearningStatus('Say “Robo-Teacher” before a command','listening');
+  handsFree.enabled=true;handsFree.pending='';handsFree.armedUntil=0;showHandsFreeHeard('Listening for “Robo-Teacher”…');updateHandsFreeStatus('Listening…');startHandsFreeListening();setLearningStatus('Say “Robo-Teacher” before a command','listening');
 }
 
 handsFreeToggle.addEventListener('click',()=>{
