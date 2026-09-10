@@ -115,3 +115,11 @@
   nickname.addEventListener('input',()=>{shownFor=''});
   learnerClass.addEventListener('change',()=>{shownFor=''});
 })();
+
+(() => {
+  if(document.getElementById('roboTeacherNavigationRedesignScript'))return;
+  const script=document.createElement('script');
+  script.id='roboTeacherNavigationRedesignScript';
+  script.src='/classroom/navigation_redesign.js?v=20260910-nav-p0-1';
+  document.body.appendChild(script);
+})();
