@@ -163,3 +163,11 @@
   script.src='/classroom/practice_layout.js?v=20260911-practice-p1-1';
   document.body.appendChild(script);
 })();
+
+(() => {
+  if(document.getElementById('roboTeacherCanvasHierarchyScript'))return;
+  const script=document.createElement('script');
+  script.id='roboTeacherCanvasHierarchyScript';
+  script.src='/classroom/canvas_hierarchy.js?v=20260911-canvas-p1-1';
+  document.body.appendChild(script);
+})();
