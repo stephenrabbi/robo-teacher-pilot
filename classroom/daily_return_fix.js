@@ -211,3 +211,11 @@
   script.src='/classroom/data_saver.js?v=20260911-data-saver-p2-1';
   document.body.appendChild(script);
 })();
+
+(() => {
+  if(document.getElementById('roboTeacherFriendlyErrorsScript'))return;
+  const script=document.createElement('script');
+  script.id='roboTeacherFriendlyErrorsScript';
+  script.src='/classroom/friendly_errors.js?v=20260911-errors-p2-1';
+  document.body.appendChild(script);
+})();
