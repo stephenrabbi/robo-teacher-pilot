@@ -147,3 +147,11 @@
   script.src='/classroom/accessibility_tuning.js?v=20260911-a11y-p0-1';
   document.body.appendChild(script);
 })();
+
+(() => {
+  if(document.getElementById('roboTeacherLearnerHomeScript'))return;
+  const script=document.createElement('script');
+  script.id='roboTeacherLearnerHomeScript';
+  script.src='/classroom/learner_home.js?v=20260911-home-p1-1';
+  document.body.appendChild(script);
+})();
