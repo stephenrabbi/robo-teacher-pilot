@@ -155,3 +155,11 @@
   script.src='/classroom/learner_home.js?v=20260911-home-p1-1';
   document.body.appendChild(script);
 })();
+
+(() => {
+  if(document.getElementById('roboTeacherPracticeLayoutScript'))return;
+  const script=document.createElement('script');
+  script.id='roboTeacherPracticeLayoutScript';
+  script.src='/classroom/practice_layout.js?v=20260911-practice-p1-1';
+  document.body.appendChild(script);
+})();
