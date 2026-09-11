@@ -139,3 +139,11 @@
   script.src='/classroom/state_feedback.js?v=20260911-state-p0-1';
   document.body.appendChild(script);
 })();
+
+(() => {
+  if(document.getElementById('roboTeacherAccessibilityTuningScript'))return;
+  const script=document.createElement('script');
+  script.id='roboTeacherAccessibilityTuningScript';
+  script.src='/classroom/accessibility_tuning.js?v=20260911-a11y-p0-1';
+  document.body.appendChild(script);
+})();
