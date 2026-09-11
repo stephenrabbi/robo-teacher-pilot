@@ -18,13 +18,21 @@
   let resumeTimer = 0;
   let retryTimer = 0;
 
-  function voiceIsActiveOrPreparing() {
+  function voiceIntentIsActive() {
     const status = teacherVoiceStatusEl.textContent || '';
     const button = readAnswerEl.textContent || '';
     return teacherPanelEl.classList.contains('speaking') ||
       teacherPanelEl.classList.contains('paused') ||
       /preparing|teaching|speaking/i.test(status) ||
       /preparing|pause|continue/i.test(button);
+  }
+
+  function narrationActuallyRestarted() {
+    const button = readAnswerEl.textContent || '';
+    if (teacherPanelEl.classList.contains('speaking') || teacherPanelEl.classList.contains('paused')) return true;
+    // A genuine new speakText() call disables Read Answer while it prepares.
+    // A stale status label from the stopped stream must not count as a restart.
+    return readAnswerEl.disabled && /preparing/i.test(button);
   }
 
   function clearResumeTimers() {
@@ -49,7 +57,7 @@
 
   function forceNarrationResume() {
     if (!resumeNarration || switching) return;
-    if (voiceIsActiveOrPreparing()) {
+    if (narrationActuallyRestarted()) {
       restartedNarrationSeen = true;
       return;
     }
@@ -57,9 +65,6 @@
     const text = narrationText();
     if (!text) return;
 
-    // app.js normally restarts narration itself after translation. This is a
-    // defensive fallback for browsers where that async restart is lost after
-    // the language-change event has completed.
     try {
       if (typeof teacherSpeechPaused !== 'undefined') teacherSpeechPaused = false;
       if (typeof speakText === 'function') {
@@ -70,8 +75,6 @@
     } catch (_error) {
       readAnswerEl.click();
     }
-
-    restartedNarrationSeen = true;
   }
 
   function scheduleNarrationResume() {
@@ -79,11 +82,11 @@
     resumeTimer = setTimeout(() => {
       resumeTimer = 0;
       forceNarrationResume();
-    }, 350);
+    }, 250);
     retryTimer = setTimeout(() => {
       retryTimer = 0;
-      if (resumeNarration && !voiceIsActiveOrPreparing()) forceNarrationResume();
-    }, 1800);
+      if (resumeNarration && !narrationActuallyRestarted()) forceNarrationResume();
+    }, 1500);
   }
 
   function unlockLanguageSelect() {
@@ -98,7 +101,7 @@
 
   function syncNarrationIntent() {
     if (!resumeNarration || switching) return;
-    if (voiceIsActiveOrPreparing()) {
+    if (narrationActuallyRestarted()) {
       restartedNarrationSeen = true;
       return;
     }
@@ -109,12 +112,10 @@
     }
   }
 
-  // Capture before app.js handles the change so we preserve the fact that the
-  // learner was already listening before app.js stops the old language stream.
   document.addEventListener('change', event => {
     if (event.target !== languageSelect) return;
 
-    const keepReading = resumeNarration || voiceIsActiveOrPreparing();
+    const keepReading = resumeNarration || voiceIntentIsActive();
     resumeNarration = keepReading;
     restartedNarrationSeen = false;
     clearResumeTimers();
@@ -165,4 +166,5 @@
   }
   switchObserver.observe(teacherPanelEl, { attributes: true, attributeFilter: ['class'] });
   switchObserver.observe(teacherVoiceStatusEl, { childList: true, characterData: true, subtree: true });
+  switchObserver.observe(readAnswerEl, { attributes: true, attributeFilter: ['disabled'], childList: true, characterData: true, subtree: true });
 })();
