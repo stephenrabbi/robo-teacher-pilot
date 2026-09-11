@@ -10,9 +10,11 @@
     if (notice) return notice;
     notice = document.createElement('div');
     notice.id = 'dataSaverNotice';
-    notice.className = 'data-saver-notice hidden';
+    notice.className = 'data-saver-notice';
+    notice.hidden = true;
     notice.setAttribute('role', 'status');
     notice.setAttribute('aria-live', 'polite');
+    notice.setAttribute('aria-atomic', 'true');
     document.body.appendChild(notice);
     return notice;
   }
@@ -22,8 +24,13 @@
     const notice = ensureNotice();
     notice.textContent = message;
     notice.classList.remove('hidden');
+    notice.hidden = false;
+    notice.dataset.visible = 'true';
     clearTimeout(noticeTimer);
-    noticeTimer = setTimeout(() => notice.classList.add('hidden'), 4500);
+    noticeTimer = setTimeout(() => {
+      notice.dataset.visible = 'false';
+      notice.hidden = true;
+    }, 5000);
   }
 
   function updateButton(button) {
@@ -95,12 +102,13 @@
       box-shadow: inset 0 -3px 0 #d39a27;
     }
     .data-saver-notice {
-      position: fixed;
-      left: 50%;
-      bottom: 82px;
-      z-index: 80;
-      transform: translateX(-50%);
-      width: min(520px, calc(100vw - 28px));
+      position: fixed !important;
+      left: 50% !important;
+      bottom: calc(86px + env(safe-area-inset-bottom, 0px)) !important;
+      z-index: 10000 !important;
+      transform: translateX(-50%) !important;
+      width: min(520px, calc(100vw - 28px)) !important;
+      display: block;
       padding: 12px 15px;
       border: 1px solid #9eb9da;
       border-radius: 12px;
@@ -111,10 +119,16 @@
       line-height: 1.4;
       text-align: center;
       box-shadow: 0 12px 30px #081a3330;
+      pointer-events: none;
     }
-    .data-saver-notice.hidden { display: none !important; }
+    .data-saver-notice[hidden],
+    .data-saver-notice[data-visible='false'] {
+      display: none !important;
+    }
     @media (max-width: 600px) {
-      .data-saver-notice { bottom: 76px; }
+      .data-saver-notice {
+        bottom: calc(82px + env(safe-area-inset-bottom, 0px)) !important;
+      }
     }
   `;
   document.head.appendChild(style);
