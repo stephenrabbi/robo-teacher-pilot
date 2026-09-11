@@ -46,35 +46,51 @@
   };
 
   function words() { return copy[language.value] || copy.English; }
+  function setText(element, value) {
+    if (element && element.textContent !== value) element.textContent = value;
+  }
+  function setAttr(element, name, value) {
+    if (element && element.getAttribute(name) !== value) element.setAttribute(name, value);
+  }
 
   function apply() {
     const t = words();
     const home = document.getElementById('learnerHomeButton');
-    if (home) { home.textContent = t.home; home.setAttribute('aria-label', t.homeAria); }
+    if (home) {
+      setText(home, t.home);
+      setAttr(home, 'aria-label', t.homeAria);
+    }
 
     const more = document.querySelector('.class-tools-more > summary');
-    if (more) { more.textContent = t.more; more.setAttribute('aria-label', t.moreAria); }
+    if (more) {
+      setText(more, t.more);
+      setAttr(more, 'aria-label', t.moreAria);
+    }
 
     const support = document.querySelector('.contextual-lesson-actions-label');
-    if (support) support.textContent = t.support;
+    setText(support, t.support);
 
     const add = document.querySelector('.input-tools-more > summary');
-    if (add) { add.setAttribute('aria-label', t.addTools); add.setAttribute('title', t.addTools); }
+    if (add) {
+      setAttr(add, 'aria-label', t.addTools);
+      setAttr(add, 'title', t.addTools);
+    }
 
     const onboarding = document.getElementById('onboardingPrimaryHint');
-    if (onboarding) onboarding.textContent = t.onboarding;
+    setText(onboarding, t.onboarding);
 
     const saver = document.getElementById('dataSaverButton');
     if (saver) {
       const enabled = saver.getAttribute('aria-pressed') === 'true';
-      saver.textContent = `${t.dataSaver}: ${enabled ? t.on : t.off}`;
-      saver.setAttribute('aria-label', `${t.dataSaver}: ${enabled ? t.on : t.off}`);
+      const label = `${t.dataSaver}: ${enabled ? t.on : t.off}`;
+      setText(saver, label);
+      setAttr(saver, 'aria-label', label);
     }
 
     const pill = document.getElementById('learningStatePill');
     if (pill) {
       const state = pill.dataset.state || 'ready';
-      pill.textContent = t.states[state] || t.states.ready;
+      setText(pill, t.states[state] || t.states.ready);
     }
 
     const notice = document.getElementById('dataSaverNotice');
@@ -84,13 +100,22 @@
       if (/Data Saver is on\. Visuals and media/i.test(text) || /Data Saver ti tan\. Àwòrán/i.test(text) || /Data Saver agbanyela\. Onyonyo/i.test(text) || /Data Saver yana kunne\. Hotuna/i.test(text)) next = t.saverOn;
       else if (/Data Saver is off/i.test(text) || /Data Saver ti pa/i.test(text) || /Data Saver agbanyụrụ/i.test(text) || /Data Saver a kashe yake/i.test(text)) next = t.saverOff;
       else if (/Data Saver is on\. Tap/i.test(text) || /Tẹ lẹ́ẹ̀kan síi/i.test(text) || /Pịa ọzọ/i.test(text) || /Danna kuma/i.test(text)) next = t.saverLoad;
-      if (next !== text) notice.textContent = next;
+      setText(notice, next);
     }
   }
 
-  language.addEventListener('change', () => requestAnimationFrame(apply));
+  let applyFrame = null;
+  function queueApply() {
+    if (applyFrame !== null) return;
+    applyFrame = requestAnimationFrame(() => {
+      applyFrame = null;
+      apply();
+    });
+  }
 
-  const observer = new MutationObserver(() => requestAnimationFrame(apply));
+  language.addEventListener('change', queueApply);
+
+  const observer = new MutationObserver(queueApply);
   observer.observe(document.body, {childList:true, subtree:true, attributes:true, attributeFilter:['data-state','aria-pressed']});
 
   const style = document.createElement('style');
