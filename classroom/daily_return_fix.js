@@ -128,7 +128,7 @@
   if(document.getElementById('roboTeacherCompactAvatarScript'))return;
   const script=document.createElement('script');
   script.id='roboTeacherCompactAvatarScript';
-  script.src='/classroom/avatar_layout.js?v=20260911-avatar-p0-1';
+  script.src='/classroom/avatar_layout.js?v=20260911-avatar-p0-2';
   document.body.appendChild(script);
 })();
 
