@@ -179,3 +179,11 @@
   script.src='/classroom/progress_layout.js?v=20260911-progress-p1-1';
   document.body.appendChild(script);
 })();
+
+(() => {
+  if(document.getElementById('roboTeacherWelcomeLayoutScript'))return;
+  const script=document.createElement('script');
+  script.id='roboTeacherWelcomeLayoutScript';
+  script.src='/classroom/welcome_layout.js?v=20260911-welcome-p1-1';
+  document.body.appendChild(script);
+})();
