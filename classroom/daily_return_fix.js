@@ -235,3 +235,11 @@
   script.src='/classroom/design_tokens.js?v=20260911-design-p2-1';
   document.body.appendChild(script);
 })();
+
+(() => {
+  if(document.getElementById('roboTeacherLanguageSwitchStabilityScript'))return;
+  const script=document.createElement('script');
+  script.id='roboTeacherLanguageSwitchStabilityScript';
+  script.src='/classroom/language_switch_stability.js?v=20260911-language-switch-1';
+  document.body.appendChild(script);
+})();
