@@ -219,3 +219,11 @@
   script.src='/classroom/friendly_errors.js?v=20260911-errors-p2-1';
   document.body.appendChild(script);
 })();
+
+(() => {
+  if(document.getElementById('roboTeacherUiLocalizationScript'))return;
+  const script=document.createElement('script');
+  script.id='roboTeacherUiLocalizationScript';
+  script.src='/classroom/ui_localization.js?v=20260911-ui-l10n-p2-1';
+  document.body.appendChild(script);
+})();
