@@ -123,3 +123,11 @@
   script.src='/classroom/navigation_redesign.js?v=20260911-nav-p0-4';
   document.body.appendChild(script);
 })();
+
+(() => {
+  if(document.getElementById('roboTeacherCompactAvatarScript'))return;
+  const script=document.createElement('script');
+  script.id='roboTeacherCompactAvatarScript';
+  script.src='/classroom/avatar_layout.js?v=20260911-avatar-p0-1';
+  document.body.appendChild(script);
+})();
