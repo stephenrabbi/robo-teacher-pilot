@@ -61,5 +61,25 @@ def classroom_app_ui_half_a():
     return HTMLResponse(html)
 
 
+@app.get("/classroom-app-ui-half-b")
+def classroom_app_ui_half_b():
+    """Load core daily scripts plus the second half of the redesign enhancements."""
+    html = _inject_scripts(
+        _raw_classroom_html(),
+        (
+            "daily_session.js",
+            "daily_guidance_fix.js",
+            "welcome_layout.js",
+            "practice_feedback.js",
+            "home_navigation.js",
+            "data_saver.js",
+            "friendly_errors.js",
+            "ui_localization.js",
+            "design_tokens.js",
+        ),
+    )
+    return HTMLResponse(html)
+
+
 # Keep every normal staging route identical to production.
 app.mount("/", shared_app)
