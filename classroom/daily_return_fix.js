@@ -131,3 +131,11 @@
   script.src='/classroom/avatar_layout.js?v=20260911-avatar-p0-1';
   document.body.appendChild(script);
 })();
+
+(() => {
+  if(document.getElementById('roboTeacherStateFeedbackScript'))return;
+  const script=document.createElement('script');
+  script.id='roboTeacherStateFeedbackScript';
+  script.src='/classroom/state_feedback.js?v=20260911-state-p0-1';
+  document.body.appendChild(script);
+})();
