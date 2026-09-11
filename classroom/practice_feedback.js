@@ -1,4 +1,7 @@
 (() => {
+  if (window.__roboTeacherPracticeFeedbackEnhancement) return;
+  window.__roboTeacherPracticeFeedbackEnhancement = true;
+
   const feedback = document.getElementById('practiceFeedback');
   const nextButton = document.getElementById('nextPractice');
   const language = document.getElementById('language');
@@ -31,10 +34,20 @@
     }
   };
 
-  let decorating = false;
+  let decorateFrame = 0;
 
   function selectedCopy() {
     return copy[language?.value] || copy.English;
+  }
+
+  function setClass(element, className, enabled) {
+    if (element.classList.contains(className) !== enabled) {
+      element.classList.toggle(className, enabled);
+    }
+  }
+
+  function setText(element, text) {
+    if (element.textContent !== text) element.textContent = text;
   }
 
   function ensureNextHint() {
@@ -50,15 +63,15 @@
   }
 
   function decorate() {
-    if (decorating) return;
+    decorateFrame = 0;
     const isAnswerFeedback = feedback.classList.contains('correct') || feedback.classList.contains('incorrect');
     const raw = feedback.dataset.feedbackRaw || feedback.textContent.trim();
     const hint = ensureNextHint();
 
     if (!isAnswerFeedback || !raw) {
-      delete feedback.dataset.feedbackRaw;
-      hint.classList.add('hidden');
-      nextButton.classList.remove('practice-next-primary');
+      if (feedback.dataset.feedbackRaw) delete feedback.dataset.feedbackRaw;
+      setClass(hint, 'hidden', true);
+      setClass(nextButton, 'practice-next-primary', false);
       return;
     }
 
@@ -69,7 +82,6 @@
       const explanation = parts.join('\n\n');
       const words = selectedCopy();
 
-      decorating = true;
       feedback.textContent = '';
 
       const summary = document.createElement('strong');
@@ -86,77 +98,93 @@
         detail.textContent = explanation;
         feedback.append(label, detail);
       }
-      decorating = false;
     }
 
     const words = selectedCopy();
     const completed = /view results/i.test(nextButton.textContent || '');
-    hint.textContent = completed
+    const hintText = completed
       ? words.results
       : (feedback.classList.contains('correct') ? words.correct : words.incorrect);
-    hint.classList.remove('hidden');
-    nextButton.classList.add('practice-next-primary');
+
+    setText(hint, hintText);
+    setClass(hint, 'hidden', false);
+    setClass(nextButton, 'practice-next-primary', true);
   }
 
-  const style = document.createElement('style');
-  style.id = 'robo-teacher-practice-feedback-style';
-  style.textContent = `
-    .practice-feedback.correct,
-    .practice-feedback.incorrect {
-      display: grid;
-      gap: 8px;
-      padding: 16px 17px;
-      border-radius: 14px;
-    }
-    .practice-feedback-summary {
-      display: block;
-      font-size: 17px;
-      line-height: 1.35;
-    }
-    .practice-feedback-label {
-      display: block;
-      margin-top: 2px;
-      font-size: 11px;
-      font-weight: 850;
-      letter-spacing: .7px;
-      opacity: .8;
-    }
-    .practice-feedback-detail {
-      display: block;
-      white-space: pre-line;
-      line-height: 1.55;
-    }
-    .practice-feedback-next {
-      margin: 8px 0 0;
-      color: #34445c;
-      font-size: 13px;
-      font-weight: 700;
-      line-height: 1.45;
-    }
-    #nextPractice.practice-next-primary:not(.hidden) {
-      background: #075d45;
-      border-color: #075d45;
-      color: #fff;
-      box-shadow: 0 4px 12px #075d4526;
-    }
-    #nextPractice.practice-next-primary:not(.hidden):focus-visible {
-      outline: 3px solid #67a6ff;
-      outline-offset: 2px;
-    }
-  `;
-  document.head.appendChild(style);
+  function scheduleDecorate() {
+    if (decorateFrame) return;
+    decorateFrame = requestAnimationFrame(decorate);
+  }
 
-  new MutationObserver(decorate).observe(feedback, {
+  if (!document.getElementById('robo-teacher-practice-feedback-style')) {
+    const style = document.createElement('style');
+    style.id = 'robo-teacher-practice-feedback-style';
+    style.textContent = `
+      .practice-feedback.correct,
+      .practice-feedback.incorrect {
+        display: grid;
+        gap: 8px;
+        padding: 16px 17px;
+        border-radius: 14px;
+      }
+      .practice-feedback-summary {
+        display: block;
+        font-size: 17px;
+        line-height: 1.35;
+      }
+      .practice-feedback-label {
+        display: block;
+        margin-top: 2px;
+        font-size: 11px;
+        font-weight: 850;
+        letter-spacing: .7px;
+        opacity: .8;
+      }
+      .practice-feedback-detail {
+        display: block;
+        white-space: pre-line;
+        line-height: 1.55;
+      }
+      .practice-feedback-next {
+        margin: 8px 0 0;
+        color: #34445c;
+        font-size: 13px;
+        font-weight: 700;
+        line-height: 1.45;
+      }
+      #nextPractice.practice-next-primary:not(.hidden) {
+        background: #075d45;
+        border-color: #075d45;
+        color: #fff;
+        box-shadow: 0 4px 12px #075d4526;
+      }
+      #nextPractice.practice-next-primary:not(.hidden):focus-visible {
+        outline: 3px solid #67a6ff;
+        outline-offset: 2px;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  new MutationObserver(scheduleDecorate).observe(feedback, {
     childList: true,
     characterData: true,
     subtree: true,
     attributes: true,
     attributeFilter: ['class']
   });
-  new MutationObserver(decorate).observe(nextButton, {childList: true, characterData: true, subtree: true, attributes: true, attributeFilter: ['class']});
+
+  // Only text changes matter here. Observing the button's class would react to
+  // this enhancement's own class updates and can create an endless mutation loop.
+  new MutationObserver(scheduleDecorate).observe(nextButton, {
+    childList: true,
+    characterData: true,
+    subtree: true
+  });
+
   language?.addEventListener('change', () => {
-    delete feedback.dataset.feedbackRaw;
-    requestAnimationFrame(decorate);
+    if (feedback.dataset.feedbackRaw) delete feedback.dataset.feedbackRaw;
+    scheduleDecorate();
   });
 
   decorate();
