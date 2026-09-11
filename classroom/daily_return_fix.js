@@ -171,3 +171,11 @@
   script.src='/classroom/canvas_hierarchy.js?v=20260911-canvas-p1-1';
   document.body.appendChild(script);
 })();
+
+(() => {
+  if(document.getElementById('roboTeacherProgressLayoutScript'))return;
+  const script=document.createElement('script');
+  script.id='roboTeacherProgressLayoutScript';
+  script.src='/classroom/progress_layout.js?v=20260911-progress-p1-1';
+  document.body.appendChild(script);
+})();
