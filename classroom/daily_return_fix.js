@@ -115,3 +115,123 @@
   nickname.addEventListener('input',()=>{shownFor=''});
   learnerClass.addEventListener('change',()=>{shownFor=''});
 })();
+
+(() => {
+  if(document.getElementById('roboTeacherNavigationRedesignScript'))return;
+  const script=document.createElement('script');
+  script.id='roboTeacherNavigationRedesignScript';
+  script.src='/classroom/navigation_redesign.js?v=20260911-nav-p0-4';
+  document.body.appendChild(script);
+})();
+
+(() => {
+  if(document.getElementById('roboTeacherCompactAvatarScript'))return;
+  const script=document.createElement('script');
+  script.id='roboTeacherCompactAvatarScript';
+  script.src='/classroom/avatar_layout.js?v=20260911-avatar-p0-1';
+  document.body.appendChild(script);
+})();
+
+(() => {
+  if(document.getElementById('roboTeacherStateFeedbackScript'))return;
+  const script=document.createElement('script');
+  script.id='roboTeacherStateFeedbackScript';
+  script.src='/classroom/state_feedback.js?v=20260911-state-p0-1';
+  document.body.appendChild(script);
+})();
+
+(() => {
+  if(document.getElementById('roboTeacherAccessibilityTuningScript'))return;
+  const script=document.createElement('script');
+  script.id='roboTeacherAccessibilityTuningScript';
+  script.src='/classroom/accessibility_tuning.js?v=20260911-a11y-p0-1';
+  document.body.appendChild(script);
+})();
+
+(() => {
+  if(document.getElementById('roboTeacherLearnerHomeScript'))return;
+  const script=document.createElement('script');
+  script.id='roboTeacherLearnerHomeScript';
+  script.src='/classroom/learner_home.js?v=20260911-home-p1-1';
+  document.body.appendChild(script);
+})();
+
+(() => {
+  if(document.getElementById('roboTeacherPracticeLayoutScript'))return;
+  const script=document.createElement('script');
+  script.id='roboTeacherPracticeLayoutScript';
+  script.src='/classroom/practice_layout.js?v=20260911-practice-p1-1';
+  document.body.appendChild(script);
+})();
+
+(() => {
+  if(document.getElementById('roboTeacherCanvasHierarchyScript'))return;
+  const script=document.createElement('script');
+  script.id='roboTeacherCanvasHierarchyScript';
+  script.src='/classroom/canvas_hierarchy.js?v=20260911-canvas-p1-1';
+  document.body.appendChild(script);
+})();
+
+(() => {
+  if(document.getElementById('roboTeacherProgressLayoutScript'))return;
+  const script=document.createElement('script');
+  script.id='roboTeacherProgressLayoutScript';
+  script.src='/classroom/progress_layout.js?v=20260911-progress-p1-1';
+  document.body.appendChild(script);
+})();
+
+(() => {
+  if(document.getElementById('roboTeacherWelcomeLayoutScript'))return;
+  const script=document.createElement('script');
+  script.id='roboTeacherWelcomeLayoutScript';
+  script.src='/classroom/welcome_layout.js?v=20260911-welcome-p1-1';
+  document.body.appendChild(script);
+})();
+
+(() => {
+  if(document.getElementById('roboTeacherPracticeFeedbackScript'))return;
+  const script=document.createElement('script');
+  script.id='roboTeacherPracticeFeedbackScript';
+  script.src='/classroom/practice_feedback.js?v=20260911-feedback-p1-1';
+  document.body.appendChild(script);
+})();
+
+(() => {
+  if(document.getElementById('roboTeacherHomeNavigationScript'))return;
+  const script=document.createElement('script');
+  script.id='roboTeacherHomeNavigationScript';
+  script.src='/classroom/home_navigation.js?v=20260911-home-nav-p1-1';
+  document.body.appendChild(script);
+})();
+
+(() => {
+  if(document.getElementById('roboTeacherDataSaverScript'))return;
+  const script=document.createElement('script');
+  script.id='roboTeacherDataSaverScript';
+  script.src='/classroom/data_saver.js?v=20260911-data-saver-p2-1';
+  document.body.appendChild(script);
+})();
+
+(() => {
+  if(document.getElementById('roboTeacherFriendlyErrorsScript'))return;
+  const script=document.createElement('script');
+  script.id='roboTeacherFriendlyErrorsScript';
+  script.src='/classroom/friendly_errors.js?v=20260911-errors-p2-1';
+  document.body.appendChild(script);
+})();
+
+(() => {
+  if(document.getElementById('roboTeacherUiLocalizationScript'))return;
+  const script=document.createElement('script');
+  script.id='roboTeacherUiLocalizationScript';
+  script.src='/classroom/ui_localization.js?v=20260911-ui-l10n-p2-1';
+  document.body.appendChild(script);
+})();
+
+(() => {
+  if(document.getElementById('roboTeacherDesignTokensScript'))return;
+  const script=document.createElement('script');
+  script.id='roboTeacherDesignTokensScript';
+  script.src='/classroom/design_tokens.js?v=20260911-design-p2-1';
+  document.body.appendChild(script);
+})();
