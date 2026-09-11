@@ -18,7 +18,20 @@
   let unlockTimer = 0;
   let resumeTimer = 0;
   let retryTimer = 0;
-  let questionLockedBySwitch = false;
+
+  const nativeQuestionFocus = questionEl && typeof questionEl.focus === 'function'
+    ? questionEl.focus.bind(questionEl)
+    : null;
+
+  // app.js intentionally focuses the chat box after every language change.
+  // Suppress only that automatic focus while the translation switch is active;
+  // normal learner taps/focus work immediately after the switch completes.
+  if (questionEl && nativeQuestionFocus) {
+    questionEl.focus = function focusQuestion(options) {
+      if (switching) return;
+      return nativeQuestionFocus(options);
+    };
+  }
 
   function voiceIntentIsActive() {
     const status = teacherVoiceStatusEl.textContent || '';
@@ -89,23 +102,10 @@
     }, 1500);
   }
 
-  function lockQuestionFocus() {
-    if (!questionEl || questionEl.disabled) return;
-    questionEl.disabled = true;
-    questionLockedBySwitch = true;
-  }
-
-  function unlockQuestionFocus() {
-    if (!questionEl || !questionLockedBySwitch) return;
-    questionLockedBySwitch = false;
-    questionEl.disabled = false;
-  }
-
   function unlockLanguageSelect() {
     switching = false;
     languageSelect.disabled = false;
     languageSelect.removeAttribute('aria-busy');
-    unlockQuestionFocus();
     if (unlockTimer) {
       clearTimeout(unlockTimer);
       unlockTimer = 0;
@@ -133,6 +133,9 @@
     restartedNarrationSeen = false;
     clearResumeTimers();
 
+    // Dismiss any keyboard/input focus left from an earlier learner action.
+    if (questionEl && document.activeElement === questionEl) questionEl.blur();
+
     if (keepReading && !teacherPanelEl.classList.contains('speaking')) {
       try {
         if (typeof teacherSpeechPaused !== 'undefined') teacherSpeechPaused = true;
@@ -142,7 +145,6 @@
     }
 
     switching = true;
-    lockQuestionFocus();
     languageSelect.disabled = true;
     languageSelect.setAttribute('aria-busy', 'true');
     if (unlockTimer) clearTimeout(unlockTimer);
