@@ -4,22 +4,6 @@
   const style = document.createElement('style');
   style.id = 'robo-teacher-compact-avatar-layout';
   style.textContent = `
-    @media (min-width: 901px) {
-      .classroom-screen:not(.teacher-min) {
-        grid-template-columns: minmax(280px, 310px) minmax(0, 1fr) !important;
-      }
-      .teacher-panel:not(.minimized) {
-        padding: 15px;
-      }
-      .teacher-panel:not(.minimized) .teacher-avatar {
-        height: 390px !important;
-      }
-      .teacher-panel:not(.minimized) .teacher-caption {
-        font-size: 13px;
-        line-height: 1.45;
-      }
-    }
-
     @media (max-width: 900px) {
       .classroom-screen,
       .classroom-screen.teacher-min {
