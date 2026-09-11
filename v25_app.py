@@ -19,6 +19,11 @@ def _raw_classroom_html():
         return classroom_file.read()
 
 
+def _inject_scripts(html, scripts):
+    tags = [f'<script src="/classroom/{script}?v=freeze-diag-1"></script>' for script in scripts]
+    return html.replace("</body>", "  " + "\n  ".join(tags) + "\n</body>")
+
+
 @app.get("/classroom-app-base")
 def classroom_app_base():
     """Serve raw classroom HTML without dynamically injected enhancements."""
@@ -28,12 +33,31 @@ def classroom_app_base():
 @app.get("/classroom-app-core-diagnostic")
 def classroom_app_core_diagnostic():
     """Load only the two pre-redesign daily-learning enhancement scripts."""
-    html = _raw_classroom_html()
-    scripts = (
-        '<script src="/classroom/daily_session.js?v=diag-core-1"></script>',
-        '<script src="/classroom/daily_guidance_fix.js?v=diag-core-1"></script>',
+    html = _inject_scripts(
+        _raw_classroom_html(),
+        ("daily_session.js", "daily_guidance_fix.js"),
     )
-    html = html.replace("</body>", "  " + "\n  ".join(scripts) + "\n</body>")
+    return HTMLResponse(html)
+
+
+@app.get("/classroom-app-ui-half-a")
+def classroom_app_ui_half_a():
+    """Load core daily scripts plus the first half of the redesign enhancements."""
+    html = _inject_scripts(
+        _raw_classroom_html(),
+        (
+            "daily_session.js",
+            "daily_guidance_fix.js",
+            "navigation_redesign.js",
+            "avatar_layout.js",
+            "state_feedback.js",
+            "accessibility_tuning.js",
+            "learner_home.js",
+            "practice_layout.js",
+            "canvas_hierarchy.js",
+            "progress_layout.js",
+        ),
+    )
     return HTMLResponse(html)
 
 
