@@ -15,11 +15,14 @@
 
   const contextualIds = ['simplifyButton', 'visualButton', 'mediaButton', 'understandingButton'];
   const contextualButtons = contextualIds.map(id => document.getElementById(id)).filter(Boolean);
+  const inputToolIds = ['uploadButton', 'cameraButton', 'whiteboardButton'];
+  const inputToolButtons = inputToolIds.map(id => document.getElementById(id)).filter(Boolean);
 
   const secondaryButtons = Array.from(nav.querySelectorAll(':scope > button'))
     .filter(button => !primaryIds.includes(button.id) &&
       button.id !== 'teacherDashboardButton' &&
-      !contextualIds.includes(button.id));
+      !contextualIds.includes(button.id) &&
+      !inputToolIds.includes(button.id));
 
   const more = document.createElement('details');
   more.className = 'class-tools-more';
@@ -52,6 +55,31 @@
     const anchor = document.getElementById('canvasVoiceAvatar');
     if (anchor) teachingCanvas.insertBefore(lessonActions, anchor);
     else teachingCanvas.appendChild(lessonActions);
+  }
+
+  const composer = document.getElementById('chatForm');
+  const question = document.getElementById('question');
+  let inputTools = null;
+  if (composer && question && inputToolButtons.length === inputToolIds.length) {
+    inputTools = document.createElement('details');
+    inputTools.className = 'input-tools-more';
+
+    const inputSummary = document.createElement('summary');
+    inputSummary.textContent = '+';
+    inputSummary.setAttribute('aria-label', 'Add image or use whiteboard');
+    inputSummary.setAttribute('title', 'Add image or use whiteboard');
+
+    const inputMenu = document.createElement('div');
+    inputMenu.className = 'input-tools-menu';
+    inputMenu.setAttribute('aria-label', 'Question input tools');
+
+    inputToolButtons.forEach(button => inputMenu.appendChild(button));
+    inputTools.append(inputSummary, inputMenu);
+    composer.insertBefore(inputTools, question);
+
+    inputToolButtons.forEach(button => {
+      button.addEventListener('click', () => requestAnimationFrame(() => { inputTools.open = false; }));
+    });
   }
 
   const style = document.createElement('style');
@@ -97,7 +125,8 @@
       position: relative;
       min-width: 0;
     }
-    .class-tools-more > summary::-webkit-details-marker { display: none; }
+    .class-tools-more > summary::-webkit-details-marker,
+    .input-tools-more > summary::-webkit-details-marker { display: none; }
     .class-tools-more > summary::after {
       content: ' ···';
       letter-spacing: 1px;
@@ -120,7 +149,8 @@
       background: #081a33;
       box-shadow: 0 18px 46px #0008;
     }
-    .class-tools-more:not([open]) .class-tools-more-menu { display: none; }
+    .class-tools-more:not([open]) .class-tools-more-menu,
+    .input-tools-more:not([open]) .input-tools-menu { display: none; }
     .class-tools-more-menu button {
       width: 100%;
       min-height: 46px;
@@ -171,6 +201,65 @@
       background: #eaf3ff;
       color: #0757c9;
     }
+    .input-tools-more {
+      position: relative;
+      min-width: 44px;
+      align-self: stretch;
+    }
+    .input-tools-more > summary {
+      width: 44px;
+      height: 100%;
+      min-height: 44px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #102744;
+      color: #fff;
+      font-size: 26px;
+      font-weight: 500;
+      line-height: 1;
+      cursor: pointer;
+      list-style: none;
+      user-select: none;
+    }
+    .input-tools-more[open] > summary,
+    .input-tools-more > summary:hover,
+    .input-tools-more > summary:focus-visible {
+      background: #17355e;
+      border-color: #67a6ff;
+    }
+    .input-tools-menu {
+      position: absolute;
+      left: 0;
+      bottom: calc(100% + 10px);
+      z-index: 35;
+      width: 190px;
+      display: grid;
+      gap: 7px;
+      padding: 9px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #081a33;
+      box-shadow: 0 16px 40px #0008;
+    }
+    .input-tools-menu button {
+      width: 100%;
+      min-height: 44px;
+      margin: 0;
+      text-align: left;
+      color: #e3eaf5;
+      background: #102744;
+      border: 1px solid #29466c;
+      border-radius: 10px;
+      padding: 9px 11px;
+      white-space: normal;
+    }
+    .input-tools-menu button:hover,
+    .input-tools-menu button:focus-visible {
+      background: #17355e;
+      color: #fff;
+    }
     @media (max-width: 600px) {
       .class-tools.nav-redesigned { gap: 5px; }
       .class-tools.nav-redesigned > button,
@@ -201,9 +290,22 @@
         padding: 8px 9px;
         font-size: 13px;
       }
+      .input-tools-menu {
+        position: fixed;
+        left: 10px;
+        right: 10px;
+        bottom: 138px;
+        width: auto;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+      .input-tools-menu button {
+        text-align: center;
+        font-size: 13px;
+      }
     }
     @media (max-width: 420px) {
       .class-tools-more-menu { grid-template-columns: 1fr; }
+      .input-tools-menu { grid-template-columns: 1fr; }
     }
   `;
   document.head.appendChild(style);
@@ -240,11 +342,16 @@
 
   document.addEventListener('click', event => {
     if (more.open && !more.contains(event.target)) more.open = false;
+    if (inputTools?.open && !inputTools.contains(event.target)) inputTools.open = false;
   });
   document.addEventListener('keydown', event => {
     if (event.key === 'Escape' && more.open) {
       more.open = false;
       summary.focus();
+    }
+    if (event.key === 'Escape' && inputTools?.open) {
+      inputTools.open = false;
+      inputTools.querySelector('summary')?.focus();
     }
   });
 
