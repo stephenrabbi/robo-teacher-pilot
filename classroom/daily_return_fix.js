@@ -208,7 +208,7 @@
   if(document.getElementById('roboTeacherDataSaverScript'))return;
   const script=document.createElement('script');
   script.id='roboTeacherDataSaverScript';
-  script.src='/classroom/data_saver.js?v=20260911-data-saver-p2-1';
+  script.src='/classroom/data_saver.js?v=20260911-data-saver-p2-2';
   document.body.appendChild(script);
 })();
 
