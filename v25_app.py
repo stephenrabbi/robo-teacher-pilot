@@ -113,5 +113,19 @@ def classroom_app_ui_b1a():
     return HTMLResponse(html)
 
 
+@app.get("/classroom-app-ui-practice-feedback-only")
+def classroom_app_ui_practice_feedback_only():
+    """Load core daily scripts plus practice feedback only."""
+    html = _inject_scripts(
+        _raw_classroom_html(),
+        (
+            "daily_session.js",
+            "daily_guidance_fix.js",
+            "practice_feedback.js",
+        ),
+    )
+    return HTMLResponse(html)
+
+
 # Keep every normal staging route identical to production.
 app.mount("/", shared_app)
