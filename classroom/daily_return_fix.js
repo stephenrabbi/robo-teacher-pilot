@@ -240,6 +240,6 @@
   if(document.getElementById('roboTeacherLanguageSwitchStabilityScript'))return;
   const script=document.createElement('script');
   script.id='roboTeacherLanguageSwitchStabilityScript';
-  script.src='/classroom/language_switch_stability.js?v=20260911-language-switch-3';
+  script.src='/classroom/language_switch_stability.js?v=20260911-language-switch-4';
   document.body.appendChild(script);
 })();
