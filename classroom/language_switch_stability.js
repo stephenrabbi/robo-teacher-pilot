@@ -9,6 +9,7 @@
   const canvasStatusEl = document.getElementById('canvasStatus');
   const canvasAnswerEl = document.getElementById('canvasAnswer');
   const learningStatusEl = document.getElementById('learningStatus');
+  const questionEl = document.getElementById('question');
   if (!languageSelect || !teacherPanelEl || !teacherVoiceStatusEl || !readAnswerEl || !canvasStatusEl || !canvasAnswerEl) return;
 
   let switching = false;
@@ -17,6 +18,7 @@
   let unlockTimer = 0;
   let resumeTimer = 0;
   let retryTimer = 0;
+  let questionLockedBySwitch = false;
 
   function voiceIntentIsActive() {
     const status = teacherVoiceStatusEl.textContent || '';
@@ -30,8 +32,6 @@
   function narrationActuallyRestarted() {
     const button = readAnswerEl.textContent || '';
     if (teacherPanelEl.classList.contains('speaking') || teacherPanelEl.classList.contains('paused')) return true;
-    // A genuine new speakText() call disables Read Answer while it prepares.
-    // A stale status label from the stopped stream must not count as a restart.
     return readAnswerEl.disabled && /preparing/i.test(button);
   }
 
@@ -89,10 +89,23 @@
     }, 1500);
   }
 
+  function lockQuestionFocus() {
+    if (!questionEl || questionEl.disabled) return;
+    questionEl.disabled = true;
+    questionLockedBySwitch = true;
+  }
+
+  function unlockQuestionFocus() {
+    if (!questionEl || !questionLockedBySwitch) return;
+    questionLockedBySwitch = false;
+    questionEl.disabled = false;
+  }
+
   function unlockLanguageSelect() {
     switching = false;
     languageSelect.disabled = false;
     languageSelect.removeAttribute('aria-busy');
+    unlockQuestionFocus();
     if (unlockTimer) {
       clearTimeout(unlockTimer);
       unlockTimer = 0;
@@ -129,6 +142,7 @@
     }
 
     switching = true;
+    lockQuestionFocus();
     languageSelect.disabled = true;
     languageSelect.setAttribute('aria-busy', 'true');
     if (unlockTimer) clearTimeout(unlockTimer);
