@@ -13,8 +13,13 @@
     teacherButton.tabIndex = -1;
   }
 
+  const contextualIds = ['simplifyButton', 'visualButton', 'mediaButton', 'understandingButton'];
+  const contextualButtons = contextualIds.map(id => document.getElementById(id)).filter(Boolean);
+
   const secondaryButtons = Array.from(nav.querySelectorAll(':scope > button'))
-    .filter(button => !primaryIds.includes(button.id) && button.id !== 'teacherDashboardButton');
+    .filter(button => !primaryIds.includes(button.id) &&
+      button.id !== 'teacherDashboardButton' &&
+      !contextualIds.includes(button.id));
 
   const more = document.createElement('details');
   more.className = 'class-tools-more';
@@ -26,6 +31,28 @@
   const menu = document.createElement('div');
   menu.className = 'class-tools-more-menu';
   menu.setAttribute('aria-label', 'More classroom tools');
+
+  const teachingCanvas = document.getElementById('canvas');
+  const canvasWork = document.getElementById('canvasWork');
+  const canvasAnswer = document.getElementById('canvasAnswer');
+  const lessonDirector = document.getElementById('lessonDirector');
+
+  let lessonActions = null;
+  if (teachingCanvas && contextualButtons.length) {
+    lessonActions = document.createElement('nav');
+    lessonActions.className = 'contextual-lesson-actions hidden';
+    lessonActions.setAttribute('aria-label', 'Lesson support actions');
+
+    const label = document.createElement('span');
+    label.className = 'contextual-lesson-actions-label';
+    label.textContent = 'Need another way to learn this?';
+    lessonActions.appendChild(label);
+    contextualButtons.forEach(button => lessonActions.appendChild(button));
+
+    const anchor = document.getElementById('canvasVoiceAvatar');
+    if (anchor) teachingCanvas.insertBefore(lessonActions, anchor);
+    else teachingCanvas.appendChild(lessonActions);
+  }
 
   const style = document.createElement('style');
   style.id = 'robo-teacher-navigation-redesign';
@@ -111,6 +138,39 @@
       background: #17355e;
       color: #fff;
     }
+    .contextual-lesson-actions {
+      width: 100%;
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px solid #d6e1ef;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .contextual-lesson-actions-label {
+      width: 100%;
+      color: #46566d;
+      font-size: 13px;
+      font-weight: 800;
+      margin-bottom: 2px;
+    }
+    .contextual-lesson-actions button {
+      min-height: 42px;
+      border: 1px solid #b8c4d6;
+      background: #eef4fb;
+      color: #10203a;
+      border-radius: 10px;
+      padding: 9px 12px;
+      font-weight: 750;
+      cursor: pointer;
+    }
+    .contextual-lesson-actions button:hover,
+    .contextual-lesson-actions button:focus-visible {
+      border-color: #1677ff;
+      background: #eaf3ff;
+      color: #0757c9;
+    }
     @media (max-width: 600px) {
       .class-tools.nav-redesigned { gap: 5px; }
       .class-tools.nav-redesigned > button,
@@ -129,6 +189,18 @@
         grid-template-columns: 1fr 1fr;
         border-radius: 18px;
       }
+      .contextual-lesson-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 7px;
+      }
+      .contextual-lesson-actions-label { grid-column: 1 / -1; }
+      .contextual-lesson-actions button {
+        width: 100%;
+        min-height: 44px;
+        padding: 8px 9px;
+        font-size: 13px;
+      }
     }
     @media (max-width: 420px) {
       .class-tools-more-menu { grid-template-columns: 1fr; }
@@ -144,6 +216,14 @@
   nav.classList.add('nav-redesigned');
   nav.dataset.uxNavReady = 'true';
 
+  function syncLessonActions() {
+    if (!lessonActions || !canvasWork) return;
+    const hasAnswer = Boolean(canvasAnswer?.textContent?.trim());
+    const hasLesson = Boolean(lessonDirector && !lessonDirector.classList.contains('hidden'));
+    const hasActiveCanvas = !canvasWork.classList.contains('hidden');
+    lessonActions.classList.toggle('hidden', !(hasActiveCanvas && (hasAnswer || hasLesson)));
+  }
+
   function syncMoreActive() {
     more.classList.toggle('has-active', secondaryButtons.some(button => button.classList.contains('active')));
   }
@@ -153,6 +233,10 @@
     button.addEventListener('click', () => requestAnimationFrame(() => { more.open = false; }));
   });
   primaryButtons.forEach(button => button.addEventListener('click', () => { more.open = false; }));
+
+  if (canvasWork) new MutationObserver(syncLessonActions).observe(canvasWork, { attributes: true, attributeFilter: ['class'] });
+  if (canvasAnswer) new MutationObserver(syncLessonActions).observe(canvasAnswer, { childList: true, subtree: true, characterData: true });
+  if (lessonDirector) new MutationObserver(syncLessonActions).observe(lessonDirector, { attributes: true, attributeFilter: ['class'] });
 
   document.addEventListener('click', event => {
     if (more.open && !more.contains(event.target)) more.open = false;
@@ -165,4 +249,5 @@
   });
 
   syncMoreActive();
+  syncLessonActions();
 })();
