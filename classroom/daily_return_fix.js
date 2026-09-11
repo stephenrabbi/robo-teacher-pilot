@@ -120,6 +120,6 @@
   if(document.getElementById('roboTeacherNavigationRedesignScript'))return;
   const script=document.createElement('script');
   script.id='roboTeacherNavigationRedesignScript';
-  script.src='/classroom/navigation_redesign.js?v=20260911-nav-p0-2';
+  script.src='/classroom/navigation_redesign.js?v=20260911-nav-p0-3';
   document.body.appendChild(script);
 })();
