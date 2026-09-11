@@ -227,3 +227,11 @@
   script.src='/classroom/ui_localization.js?v=20260911-ui-l10n-p2-1';
   document.body.appendChild(script);
 })();
+
+(() => {
+  if(document.getElementById('roboTeacherDesignTokensScript'))return;
+  const script=document.createElement('script');
+  script.id='roboTeacherDesignTokensScript';
+  script.src='/classroom/design_tokens.js?v=20260911-design-p2-1';
+  document.body.appendChild(script);
+})();
