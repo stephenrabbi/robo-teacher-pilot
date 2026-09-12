@@ -62,6 +62,7 @@ class ClassroomQuestion(BaseModel):
 
 class ClassroomSessionRequest(BaseModel):
     learner_key: str | None = Field(default=None, min_length=32, max_length=64, pattern=r"^[a-f0-9]+$")
+    learner_code: str = Field(default="", max_length=24, pattern=r"^(?:[A-Za-z0-9][A-Za-z0-9-]{3,23})?$")
     nickname: str = Field(default="Learner", min_length=2, max_length=30, pattern=r"^[^<>\r\n]+$")
     class_level: Literal["JSS1", "JSS2", "JSS3"] = "JSS2"
 
@@ -135,11 +136,14 @@ def _sign(payload: str) -> str:
     return hmac.new(_SESSION_KEY, payload.encode(), hashlib.sha256).hexdigest()
 
 
-def _new_session(learner_key: str | None = None) -> tuple[str, str]:
-    student_id = (
-        f"WEB-{hashlib.sha256(learner_key.encode()).hexdigest()[:16]}"
-        if learner_key else f"WEB-{secrets.token_hex(8)}"
-    )
+def _new_session(learner_key: str | None = None, learner_code: str = "") -> tuple[str, str]:
+    learner_code = learner_code.strip().upper()
+    if learner_code:
+        student_id = f"WEB-{hmac.new(_SESSION_KEY, learner_code.encode(), hashlib.sha256).hexdigest()[:16]}"
+    elif learner_key:
+        student_id = f"WEB-{hashlib.sha256(learner_key.encode()).hexdigest()[:16]}"
+    else:
+        student_id = f"WEB-{secrets.token_hex(8)}"
     issued = str(int(time.time()))
     payload = f"{student_id}.{issued}"
     return student_id, f"{payload}.{_sign(payload)}"
@@ -174,10 +178,12 @@ def _enforce_rate_limit(student_id: str, scope: str = "tutor", max_requests: int
 
 @router.post("/session")
 def create_classroom_session(request: ClassroomSessionRequest | None = None):
-    student_id, token = _new_session(request.learner_key if request else None)
+    learner_code = request.learner_code.strip().upper() if request else ""
+    student_id, token = _new_session(request.learner_key if request else None, learner_code)
     profile = {
         "nickname": request.nickname if request else "Learner",
         "class_level": request.class_level if request else "JSS2",
+        "learner_code": learner_code,
     }
     _classroom_profiles[student_id] = profile
     return {
@@ -223,6 +229,7 @@ def classroom_practice_answer(submission: PracticeAnswer, background_tasks: Back
     try:
         result = answer_practice(student_id, submission.answer)
         if result["completed"]:
+            result["summary"]["learner_code"] = _classroom_profiles.get(student_id, {}).get("learner_code", "")
             background_tasks.add_task(save_result, student_id, result["summary"])
             result["progress_saving"] = True
         return result
