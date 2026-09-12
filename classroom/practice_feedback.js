@@ -65,7 +65,15 @@
   function decorate() {
     decorateFrame = 0;
     const isAnswerFeedback = feedback.classList.contains('correct') || feedback.classList.contains('incorrect');
-    const raw = feedback.dataset.feedbackRaw || feedback.textContent.trim();
+    const hasDecoratedSummary = feedback.querySelector('.practice-feedback-summary') !== null;
+    // When app.js replaces the feedback after a language switch, the old
+    // data-feedback-raw value can still exist for one animation frame. If the
+    // decorated children have disappeared, trust the newly rendered DOM text
+    // and replace the stale cached value instead of repainting the old language.
+    const liveText = feedback.textContent.trim();
+    const raw = hasDecoratedSummary
+      ? (feedback.dataset.feedbackRaw || liveText)
+      : liveText;
     const hint = ensureNextHint();
 
     if (!isAnswerFeedback || !raw) {
@@ -75,7 +83,7 @@
       return;
     }
 
-    if (!feedback.dataset.feedbackRaw || feedback.querySelector('.practice-feedback-summary') === null) {
+    if (!hasDecoratedSummary) {
       feedback.dataset.feedbackRaw = raw;
       const parts = raw.split(/\n\s*\n/).map(part => part.trim()).filter(Boolean);
       const message = parts.shift() || raw;
