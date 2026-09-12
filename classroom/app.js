@@ -5,6 +5,8 @@ const resumeLearningButton=document.getElementById('resumeLearning');
 const founderPanel=document.getElementById('founderPanel');
 const hearFounderButton=document.getElementById('hearFounder');
 const learnerNickname=document.getElementById('learnerNickname');
+const learnerCode=document.getElementById('learnerCode');
+const generateLearnerCode=document.getElementById('generateLearnerCode');
 const learnerClass=document.getElementById('learnerClass');
 const onboardingError=document.getElementById('onboardingError');
 const learnerIdentity=document.getElementById('learnerIdentity');
@@ -270,7 +272,7 @@ function refreshResumeLearning(){savedClassroomSnapshot=loadClassroomSnapshot();
 function saveClassroomSnapshot(){
   const nickname=learnerNickname.value.trim(),answer=currentLesson?.text||canvasAnswer.innerText.trim();
   if(nickname.length<2||!answer)return;
-  savedClassroomSnapshot={nickname,classLevel:learnerClass.value,language:language.value,answer,lessonIndex:currentLesson?.index||0,canvasStatus:canvasStatus.textContent,savedAt:Date.now()};
+  savedClassroomSnapshot={nickname,learnerCode:learnerCode.value.trim().toUpperCase(),classLevel:learnerClass.value,language:language.value,answer,lessonIndex:currentLesson?.index||0,canvasStatus:canvasStatus.textContent,savedAt:Date.now()};
   localStorage.setItem('roboTeacherClassroomSnapshot',JSON.stringify(savedClassroomSnapshot));refreshResumeLearning();
 }
 
@@ -664,7 +666,8 @@ handsFreeToggle.addEventListener('click',()=>{
 
 async function ensureSession(){
   if(sessionToken)return sessionToken;
-  const profileId=`${learnerClass.value}:${learnerNickname.value.trim().toLocaleLowerCase()}`;
+  const code=learnerCode.value.trim().toUpperCase();
+  const profileId=`${learnerClass.value}:${code}`;
   if(learnerMemoryId!==profileId)loadAdaptiveMemory(profileId);
   let profiles={};
   try{profiles=JSON.parse(localStorage.getItem('roboTeacherProfiles')||'{}')}catch(_){profiles={}}
@@ -675,7 +678,7 @@ async function ensureSession(){
   }
   profiles[profileId]=learnerKey;localStorage.setItem('roboTeacherProfiles',JSON.stringify(profiles));
   localStorage.removeItem('roboTeacherLearnerKey');
-  const response=await fetch('/api/classroom/session',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({learner_key:learnerKey,nickname:learnerNickname.value.trim(),class_level:learnerClass.value})});
+  const response=await fetch('/api/classroom/session',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({learner_key:learnerKey,learner_code:code,nickname:learnerNickname.value.trim(),class_level:learnerClass.value})});
   if(!response.ok)throw new Error('session');
   const data=await response.json();
   sessionToken=data.session_token;
@@ -685,10 +688,13 @@ async function ensureSession(){
 start.addEventListener('click',async()=>{
   const nickname=learnerNickname.value.trim();
   if(nickname.length<2){onboardingError.textContent='Please enter a nickname with at least 2 letters.';onboardingError.classList.remove('hidden');learnerNickname.focus();return}
+  const code=learnerCode.value.trim().toUpperCase();
+  if(!/^[A-Z0-9][A-Z0-9-]{3,23}$/.test(code)){onboardingError.textContent='Enter the learner code from your teacher, or tap Generate my code.';onboardingError.classList.remove('hidden');learnerCode.focus();return}
+  learnerCode.value=code;
   onboardingError.classList.add('hidden');start.disabled=true;start.textContent='Opening classroom…';
   try{
     stopFounderSpeech();
-    await ensureSession();learnerIdentity.textContent=`${nickname.toUpperCase()} · ${learnerClass.value} CLASSROOM`;
+    await ensureSession();learnerIdentity.textContent=`${nickname.toUpperCase()} · ${code} · ${learnerClass.value} CLASSROOM`;
     welcome.classList.add('hidden');classroom.classList.remove('hidden');
     addMessage(`Welcome, ${nickname}! I’ll explain each lesson at ${learnerClass.value} level.`,'teacher');question.focus();
     if(pendingChatRecovery)setTimeout(retryPendingChat,300);
@@ -696,12 +702,18 @@ start.addEventListener('click',async()=>{
   finally{start.disabled=false;start.textContent='Start Learning Now →'}
 });
 
+generateLearnerCode.addEventListener('click',()=>{
+  const bytes=crypto.getRandomValues(new Uint8Array(3));
+  learnerCode.value=`IND-${Array.from(bytes,byte=>byte.toString(16).padStart(2,'0')).join('').toUpperCase()}`;
+  onboardingError.classList.add('hidden');learnerCode.focus();
+});
+
 resumeLearningButton.addEventListener('click',async()=>{
   const snapshot=loadClassroomSnapshot();if(!snapshot){refreshResumeLearning();return}
   resumeLearningButton.disabled=true;resumeLearningButton.textContent='Restoring lesson…';
   try{
-    learnerNickname.value=snapshot.nickname;learnerClass.value=snapshot.classLevel;practiceClass.value=snapshot.classLevel;language.value=snapshot.language||'English';localStorage.setItem('roboTeacherLanguage',language.value);updatePracticeTopics();
-    await ensureSession();learnerIdentity.textContent=`${snapshot.nickname.toUpperCase()} · ${snapshot.classLevel} CLASSROOM`;welcome.classList.add('hidden');classroom.classList.remove('hidden');
+    learnerNickname.value=snapshot.nickname;learnerCode.value=snapshot.learnerCode||'';learnerClass.value=snapshot.classLevel;practiceClass.value=snapshot.classLevel;language.value=snapshot.language||'English';localStorage.setItem('roboTeacherLanguage',language.value);updatePracticeTopics();
+    if(!learnerCode.value){refreshResumeLearning();return}await ensureSession();learnerIdentity.textContent=`${snapshot.nickname.toUpperCase()} · ${learnerCode.value} · ${snapshot.classLevel} CLASSROOM`;welcome.classList.add('hidden');classroom.classList.remove('hidden');
     dismissLessonOverlays();canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');canvasStatus.textContent=snapshot.canvasStatus||'Previous lesson restored';const autoTeachWasEnabled=lessonChoreography.enabled;lessonChoreography.enabled=false;startLessonDirector(snapshot.answer,snapshot.lessonIndex||0);lessonChoreography.enabled=autoTeachWasEnabled;readAnswerButton.disabled=false;setActiveMode(chatButton);setLearningStatus('Previous lesson restored','success');
     void practiceRequest('progress',{class_level:snapshot.classLevel}).then(data=>{currentProgress=data}).catch(()=>{});
     if(pendingChatRecovery)setTimeout(retryPendingChat,300);keepTeachingCanvasVisible();
@@ -722,7 +734,7 @@ openTeacherDashboardButton.addEventListener('click',async()=>{
 teacherAccessKey.addEventListener('keydown',event=>{if(event.key==='Enter')openTeacherDashboardButton.click()});
 
 changeLearnerButton.addEventListener('click',()=>{
-  stopTeacherAudio();handsFree.enabled=false;handsFree.processing=false;stopHandsFreeListening();updateHandsFreeStatus();sessionToken=null;currentProgress=null;clearClassroomSnapshot();learnerNickname.value='';learnerClass.value='JSS2';practiceClass.value='JSS2';updatePracticeTopics();classroom.classList.add('hidden');welcome.classList.remove('hidden');teacherLogin.classList.add('hidden');onboardingError.classList.add('hidden');learnerNickname.focus();
+  stopTeacherAudio();handsFree.enabled=false;handsFree.processing=false;stopHandsFreeListening();updateHandsFreeStatus();sessionToken=null;currentProgress=null;clearClassroomSnapshot();learnerNickname.value='';learnerCode.value='';learnerClass.value='JSS2';practiceClass.value='JSS2';updatePracticeTopics();classroom.classList.add('hidden');welcome.classList.remove('hidden');teacherLogin.classList.add('hidden');onboardingError.classList.add('hidden');learnerNickname.focus();
 });
 
 toggle.addEventListener('click',()=>{
@@ -990,7 +1002,7 @@ function setActiveMode(button){
   });
 }
 
-function lessonLibraryKey(){return `${learnerClass.value}:${learnerNickname.value.trim().toLocaleLowerCase()}`}
+function lessonLibraryKey(){return `${learnerClass.value}:${learnerCode.value.trim().toUpperCase()}`}
 function loadSavedLessons(){try{return JSON.parse(localStorage.getItem(`roboTeacherLessons:${lessonLibraryKey()}`)||'[]')}catch(_error){return []}}
 function storeSavedLessons(items){localStorage.setItem(`roboTeacherLessons:${lessonLibraryKey()}`,JSON.stringify(items.slice(0,20)))}
 function lessonSummary(text){return text.replace(/\*\*/g,'').replace(/\s+/g,' ').trim().slice(0,180)}
@@ -1474,8 +1486,9 @@ function renderTeacherDashboard(data){
   [[dcopy('sessions'),week.sessions],[dcopy('questions'),week.questions],[dcopy('score'),week.percentage===null?'—':`${week.percentage}%`],[dcopy('trend'),change],[dcopy('strongest'),week.strongest_topic||dcopy('noData')],[dcopy('attention'),week.weakest_topic||dcopy('noData')]].forEach(([label,value])=>{const card=document.createElement('article');const name=document.createElement('span');name.textContent=label;const detail=document.createElement('strong');detail.textContent=value;card.append(name,detail);weeklyStats.appendChild(card)});const weeklyAction=document.createElement('p');weeklyAction.textContent=teacherAction(data);weekly.append(weeklyTitle,weeklyStats,weeklyAction);
   const trend=document.createElement('section');trend.className='teacher-trend';const trendTitle=document.createElement('h4');trendTitle.textContent=dcopy('sixWeek');const bars=document.createElement('div');bars.className='teacher-trend-bars';
   data.weekly_trend.forEach(item=>{const column=document.createElement('div');const value=document.createElement('strong');value.textContent=item.percentage===null?'—':`${item.percentage}%`;const bar=document.createElement('i');bar.style.height=`${Math.max(item.percentage||0,4)}%`;bar.title=`${item.sessions} sessions · ${item.questions} questions`;const label=document.createElement('span');label.textContent=new Date(`${item.week_start}T00:00:00`).toLocaleDateString(undefined,{day:'numeric',month:'short'});column.append(value,bar,label);bars.appendChild(column)});trend.append(trendTitle,bars);
-  const note=document.createElement('p');note.className='teacher-privacy-note';note.textContent=`${data.class_level} aggregate only. No learner names or identifiers are displayed.`;
-  const topics=document.createElement('section');topics.className='topic-progress';const topicTitle=document.createElement('h4');topicTitle.textContent=dcopy('topicPerformance');topics.appendChild(topicTitle);data.topics.forEach(item=>{const row=document.createElement('article');row.textContent=`${item.topic}: ${item.percentage}% · ${item.questions} ${dcopy('questions').toLowerCase()}`;topics.appendChild(row)});teacherDashboardContent.append(stats,diagnosticPanel,weekly,insight,recommendation,trend,note,topics);
+  const learners=document.createElement('section');learners.className='teacher-learner-table';const learnersTitle=document.createElement('h4');learnersTitle.textContent='Learners needing attention';const table=document.createElement('table');const header=document.createElement('thead');header.innerHTML='<tr><th>Learner code</th><th>Sessions</th><th>Questions</th><th>Score</th><th>Support topic</th></tr>';const body=document.createElement('tbody');(data.learner_rows||[]).forEach(item=>{const row=document.createElement('tr');[item.learner_code,item.sessions,item.questions,`${item.percentage}%`,item.support_topic||dcopy('noData')].forEach(value=>{const cell=document.createElement('td');cell.textContent=value;row.appendChild(cell)});body.appendChild(row)});table.append(header,body);learners.append(learnersTitle,table);
+  const note=document.createElement('p');note.className='teacher-privacy-note';note.textContent='Learner codes are shown instead of names. Keep the code-to-name roster privately at school.';
+  const topics=document.createElement('section');topics.className='topic-progress';const topicTitle=document.createElement('h4');topicTitle.textContent=dcopy('topicPerformance');topics.appendChild(topicTitle);data.topics.forEach(item=>{const row=document.createElement('article');row.textContent=`${item.topic}: ${item.percentage}% · ${item.questions} ${dcopy('questions').toLowerCase()}`;topics.appendChild(row)});teacherDashboardContent.append(stats,diagnosticPanel,weekly,insight,recommendation,trend,learners,note,topics);
 }
 
 async function refreshTeacherDashboard(){
