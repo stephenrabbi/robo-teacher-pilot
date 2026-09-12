@@ -11,6 +11,7 @@ import classroom_api
 import practice
 import practice_progress
 import diagnostic_progress
+import learner_codes
 import tutor
 from practice_generator import generate_question
 from tutor import GEMINI_STREAMING_TTS_MODEL, GEMINI_TTS_MODEL, TTS_VOICES, _language_instruction, _pcm_to_wav, _prepare_spoken_transcript, _speech_chunks, _spoken_excerpt, get_tutor_reply
@@ -1599,10 +1600,38 @@ def test_teacher_can_manage_private_learner_code_rosters():
     assert 'function nextLearnerCode(prefix,rows)' in script
     assert "localStorage.setItem(learnerRosterKey()" in script
     assert 'function replaceLearnerCode(code)' in script
-    assert "old.active=false" in script and "replaces:code" in script
+    assert "teacherCodesRequest('replace',{learner_code:code})" in script
+    assert 'item.replaces&&names.get(item.replaces)' in script
     assert "link.download=`robo-teacher-${teacherClass.value.toLowerCase()}-private-roster.csv`" in script
     assert "printLearnerCodes.addEventListener('click',()=>window.print())" in script
     assert '.learner-code-generator{' in styles and '@media print{' in styles
+
+
+def test_central_registry_generates_sequential_codes_and_retires_old_code():
+    learner_codes._reset_for_tests();events=[]
+    with patch('learner_codes._read_events', side_effect=lambda: (list(events), True)), patch('learner_codes._append', side_effect=events.append):
+        assert [item['code'] for item in learner_codes.generate_codes('ISE', 'JSS2', 2)] == ['ISE-JSS2-001', 'ISE-JSS2-002']
+        replacement=learner_codes.replace_code('ISE-JSS2-001', 'JSS2')
+        assert replacement['code'] == 'ISE-JSS2-003'
+        assert learner_codes.validate_code('ISE-JSS2-001', 'JSS2') is False
+        assert learner_codes.validate_code('ISE-JSS2-003', 'JSS2') is True
+        assert learner_codes.validate_code('IND-ABC123', 'JSS2') is True
+
+
+def test_retired_central_code_is_rejected_at_student_login():
+    with patch('classroom_api.validate_code', return_value=False):
+        response=client.post('/api/classroom/session',json={'learner_code':'ISE-JSS2-001','nickname':'Tobi','class_level':'JSS2'})
+    assert response.status_code == 403
+    assert 'replacement code' in response.json()['detail']
+
+
+def test_teacher_code_endpoint_requires_private_key_and_returns_no_names():
+    key='teacher-key-for-tests'
+    with patch.dict('os.environ', {'TEACHER_DASHBOARD_KEY':key}), patch('classroom_api.generate_codes'), patch('classroom_api.list_codes', return_value=([{'code':'ISE-JSS2-001','class_level':'JSS2','status':'Active','replaces':'','timestamp':'now'}], True)):
+        denied=client.post('/api/classroom/teacher/codes',json={'access_key':'wrong-key-is-long-enough','class_level':'JSS2'})
+        allowed=client.post('/api/classroom/teacher/codes',json={'access_key':key,'class_level':'JSS2','action':'generate','prefix':'ISE','count':1})
+    assert denied.status_code == 403 and allowed.status_code == 200
+    assert all('name' not in item for item in allowed.json()['codes'])
 
 
 if __name__ == '__main__':
