@@ -21,6 +21,7 @@ from pydantic import BaseModel, Field
 from curriculum import ALL_TOPICS, CLASS_TOPICS, CURRICULUM
 from diagnostic import answer_diagnostic, change_diagnostic_language, next_diagnostic, start_diagnostic
 from diagnostic_progress import save_diagnostic_result
+from learner_codes import generate_codes, list_codes, replace_code, validate_code
 from practice import answer_practice, change_practice_language, next_question, start_practice
 from practice_progress import build_dashboard, build_teacher_dashboard, recommend_difficulty_for_topic, save_result
 
@@ -132,8 +133,23 @@ class TeacherDashboardRequest(BaseModel):
     class_level: Literal["JSS1", "JSS2", "JSS3"] = "JSS2"
 
 
+class TeacherCodesRequest(TeacherDashboardRequest):
+    action: Literal["list", "generate", "replace"] = "list"
+    prefix: str = Field(default="ISE", min_length=2, max_length=8, pattern=r"^[A-Za-z0-9][A-Za-z0-9-]*$")
+    count: int = Field(default=10, ge=1, le=100)
+    learner_code: str = Field(default="", max_length=24, pattern=r"^(?:[A-Za-z0-9][A-Za-z0-9-]{3,23})?$")
+
+
 def _sign(payload: str) -> str:
     return hmac.new(_SESSION_KEY, payload.encode(), hashlib.sha256).hexdigest()
+
+
+def _verify_teacher(request: TeacherDashboardRequest) -> None:
+    configured = os.getenv("TEACHER_DASHBOARD_KEY", "")
+    if len(configured) < 16:
+        raise HTTPException(status_code=503, detail="Teacher dashboard access is not configured")
+    if not hmac.compare_digest(request.access_key, configured):
+        raise HTTPException(status_code=403, detail="Incorrect teacher access key")
 
 
 def _new_session(learner_key: str | None = None, learner_code: str = "") -> tuple[str, str]:
@@ -179,6 +195,8 @@ def _enforce_rate_limit(student_id: str, scope: str = "tutor", max_requests: int
 @router.post("/session")
 def create_classroom_session(request: ClassroomSessionRequest | None = None):
     learner_code = request.learner_code.strip().upper() if request else ""
+    if request and learner_code and not validate_code(learner_code, request.class_level):
+        raise HTTPException(status_code=403, detail="This learner code has been retired. Ask your teacher for the replacement code.")
     student_id, token = _new_session(request.learner_key if request else None, learner_code)
     profile = {
         "nickname": request.nickname if request else "Learner",
@@ -303,12 +321,24 @@ def classroom_diagnostic_language(request: PracticeLanguage):
 
 @router.post("/teacher/dashboard")
 def classroom_teacher_dashboard(request: TeacherDashboardRequest):
-    configured = os.getenv("TEACHER_DASHBOARD_KEY", "")
-    if len(configured) < 16:
-        raise HTTPException(status_code=503, detail="Teacher dashboard access is not configured")
-    if not hmac.compare_digest(request.access_key, configured):
-        raise HTTPException(status_code=403, detail="Incorrect teacher access key")
+    _verify_teacher(request)
     return build_teacher_dashboard(request.class_level)
+
+
+@router.post("/teacher/codes")
+def classroom_teacher_codes(request: TeacherCodesRequest):
+    _verify_teacher(request)
+    try:
+        if request.action == "generate":
+            generate_codes(request.prefix, request.class_level, request.count)
+        elif request.action == "replace":
+            if not request.learner_code:
+                raise ValueError("Choose an active learner code to replace")
+            replace_code(request.learner_code, request.class_level)
+        codes, synced = list_codes(request.class_level)
+        return {"class_level": request.class_level, "codes": codes, "storage_synced": synced}
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @router.post("/chat")
