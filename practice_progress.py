@@ -52,7 +52,7 @@ def _normalise_curriculum_records(records: list[dict], class_level: str) -> list
 
 _HEADER = [
     "Timestamp (UTC)", "Session ID", "Learner ID", "Topic", "Difficulty",
-    "Score", "Questions", "Percentage", "Class Level",
+    "Score", "Questions", "Percentage", "Class Level", "Learner Code",
 ]
 _client = None
 _worksheet = None
@@ -75,11 +75,13 @@ def _get_worksheet():
         try:
             _worksheet = spreadsheet.worksheet("Practice Progress")
             headings = _worksheet.row_values(1)
-            if "Class Level" not in headings:
+            for column_index, heading in enumerate(_HEADER, start=1):
+                if heading in headings:
+                    continue
                 current_columns = getattr(_worksheet, "col_count", len(headings))
-                if current_columns < len(_HEADER):
-                    _worksheet.add_cols(len(_HEADER) - current_columns)
-                _worksheet.update_cell(1, len(_HEADER), "Class Level")
+                if current_columns < column_index:
+                    _worksheet.add_cols(column_index - current_columns)
+                _worksheet.update_cell(1, column_index, heading)
         except gspread.WorksheetNotFound:
             _worksheet = spreadsheet.add_worksheet(
                 title="Practice Progress", rows=2000, cols=len(_HEADER)
@@ -100,6 +102,7 @@ def save_result(learner_id: str, summary: dict) -> bool:
         "attempted": int(summary["attempted"]),
         "percentage": int(summary["percentage"]),
         "class_level": summary.get("class_level", "JSS2"),
+        "learner_code": str(summary.get("learner_code", "")).strip().upper(),
     }
     with _lock:
         if not any(item["session_id"] == record["session_id"] for item in _memory_records):
@@ -111,7 +114,7 @@ def save_result(learner_id: str, summary: dict) -> bool:
         _get_worksheet().append_row([
             record["timestamp"], record["session_id"], learner_id, record["topic"],
             record["difficulty"], record["score"], record["attempted"], record["percentage"],
-            record["class_level"],
+            record["class_level"], record["learner_code"],
         ])
         _unsynced_ids.discard(record["session_id"])
         return True
@@ -138,6 +141,7 @@ def _sheet_records(learner_id: str) -> list[dict]:
                 "attempted": int(row["Questions"]),
                 "percentage": int(row["Percentage"]),
                 "class_level": str(row.get("Class Level", "JSS2") or "JSS2"),
+                "learner_code": str(row.get("Learner Code", "")).strip().upper(),
             })
         except (KeyError, TypeError, ValueError):
             continue
@@ -179,6 +183,7 @@ def get_all_records() -> tuple[list[dict], bool]:
                         "score": int(row["Score"]), "attempted": int(row["Questions"]),
                         "percentage": int(row["Percentage"]),
                         "class_level": str(row.get("Class Level", "JSS2") or "JSS2"),
+                        "learner_code": str(row.get("Learner Code", "")).strip().upper(),
                     })
                 except (KeyError, TypeError, ValueError):
                     continue
@@ -213,6 +218,23 @@ def build_teacher_dashboard(class_level: str = "JSS2") -> dict:
     weekly = _teacher_weekly_trend(records)
     weekly_summary = _teacher_weekly_summary(records, weekly)
     recommendation = _teacher_recommendation(weakest, attempted)
+    learner_rows = []
+    for learner_id in sorted(learners):
+        items = [item for item in records if item["learner_id"] == learner_id]
+        questions = sum(item["attempted"] for item in items)
+        topic_results = []
+        for topic in sorted({item["topic"] for item in items}):
+            topic_items = [item for item in items if item["topic"] == topic]
+            topic_questions = sum(item["attempted"] for item in topic_items)
+            topic_results.append((round(sum(item["score"] for item in topic_items) / topic_questions * 100), topic))
+        support_topic = min(topic_results)[1] if topic_results else None
+        learner_rows.append({
+            "learner_code": next((item.get("learner_code") for item in reversed(items) if item.get("learner_code")), "Unassigned"),
+            "sessions": len(items), "questions": questions,
+            "percentage": round(sum(item["score"] for item in items) / questions * 100) if questions else 0,
+            "support_topic": support_topic,
+        })
+    learner_rows.sort(key=lambda item: (item["percentage"], item["learner_code"]))
     return {
         "class_level": class_level, "learners": len(learners), "sessions": len(records),
         "questions": attempted, "average_percentage": round(correct / attempted * 100) if attempted else 0,
@@ -221,6 +243,7 @@ def build_teacher_dashboard(class_level: str = "JSS2") -> dict:
         "weakest_topic": weakest["topic"] if weakest else None,
         "recommendation": recommendation, "weekly_trend": weekly, "weekly_summary": weekly_summary, "topics": topics,
         "storage_synced": synced, "diagnostic_summary": diagnostic_class_summary(class_level),
+        "learner_rows": learner_rows,
     }
 
 
