@@ -189,14 +189,6 @@
 })();
 
 (() => {
-  if(document.getElementById('roboTeacherPracticeFeedbackScript'))return;
-  const script=document.createElement('script');
-  script.id='roboTeacherPracticeFeedbackScript';
-  script.src='/classroom/practice_feedback.js?v=20260911-feedback-p1-2';
-  document.body.appendChild(script);
-})();
-
-(() => {
   if(document.getElementById('roboTeacherHomeNavigationScript'))return;
   const script=document.createElement('script');
   script.id='roboTeacherHomeNavigationScript';
