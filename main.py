@@ -25,7 +25,10 @@ WHATSAPP_MIGRATION_MESSAGE = "Robo-Teacher WhatsApp Pilot Update\n\nOur WhatsApp
 CLASSROOM_ENHANCEMENT_SCRIPTS = (
     ("daily_session.js", '<script src="/classroom/daily_session.js?v=20260910-daily-session2"></script>'),
     ("daily_guidance_fix.js", '<script src="/classroom/daily_guidance_fix.js?v=20260910-guidance-fix1"></script>'),
-    ("daily_return_fix.js", '<script src="/classroom/daily_return_fix.js?v=20260910-return-fix3"></script>'),
+    ("language_switch_guard_v7.js", '<script src="/classroom/language_switch_guard_v7.js?v=20260912-language-switch-guard-v7"></script>'),
+    ("practice_feedback.js", '<script src="/classroom/practice_feedback.js?v=20260912-feedback-p1-4"></script>'),
+    ("daily_return_fix.js", '<script src="/classroom/daily_return_fix.js?v=20260912-return-fix7"></script>'),
+    ("practice_voice_feedback.js", '<script src="/classroom/practice_voice_feedback.js?v=20260912-practice-voice-feedback1"></script>'),
 )
 
 @app.on_event("startup")
