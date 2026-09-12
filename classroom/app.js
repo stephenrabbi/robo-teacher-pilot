@@ -5,6 +5,8 @@ const resumeLearningButton=document.getElementById('resumeLearning');
 const founderPanel=document.getElementById('founderPanel');
 const hearFounderButton=document.getElementById('hearFounder');
 const learnerNickname=document.getElementById('learnerNickname');
+const learnerCode=document.getElementById('learnerCode');
+const generateLearnerCode=document.getElementById('generateLearnerCode');
 const learnerClass=document.getElementById('learnerClass');
 const onboardingError=document.getElementById('onboardingError');
 const learnerIdentity=document.getElementById('learnerIdentity');
@@ -187,6 +189,16 @@ const teacherDashboardContent=document.getElementById('teacherDashboardContent')
 const closeTeacherDashboard=document.getElementById('closeTeacherDashboard');
 const teacherClass=document.getElementById('teacherClass');
 const downloadTeacherReport=document.getElementById('downloadTeacherReport');
+const manageLearnerCodes=document.getElementById('manageLearnerCodes');
+const learnerCodeManager=document.getElementById('learnerCodeManager');
+const learnerCodeGenerator=document.getElementById('learnerCodeGenerator');
+const learnerCodePrefix=document.getElementById('learnerCodePrefix');
+const learnerCodeCount=document.getElementById('learnerCodeCount');
+const learnerCodeManagerStatus=document.getElementById('learnerCodeManagerStatus');
+const learnerCodeRoster=document.getElementById('learnerCodeRoster');
+const printLearnerCodes=document.getElementById('printLearnerCodes');
+const downloadLearnerCodes=document.getElementById('downloadLearnerCodes');
+const closeLearnerCodes=document.getElementById('closeLearnerCodes');
 const openQaChecklist=document.getElementById('openQaChecklist');
 const qaChecklist=document.getElementById('qaChecklist');
 const qaChecklistItems=document.getElementById('qaChecklistItems');
@@ -270,7 +282,7 @@ function refreshResumeLearning(){savedClassroomSnapshot=loadClassroomSnapshot();
 function saveClassroomSnapshot(){
   const nickname=learnerNickname.value.trim(),answer=currentLesson?.text||canvasAnswer.innerText.trim();
   if(nickname.length<2||!answer)return;
-  savedClassroomSnapshot={nickname,classLevel:learnerClass.value,language:language.value,answer,lessonIndex:currentLesson?.index||0,canvasStatus:canvasStatus.textContent,savedAt:Date.now()};
+  savedClassroomSnapshot={nickname,learnerCode:learnerCode.value.trim().toUpperCase(),classLevel:learnerClass.value,language:language.value,answer,lessonIndex:currentLesson?.index||0,canvasStatus:canvasStatus.textContent,savedAt:Date.now()};
   localStorage.setItem('roboTeacherClassroomSnapshot',JSON.stringify(savedClassroomSnapshot));refreshResumeLearning();
 }
 
@@ -664,7 +676,8 @@ handsFreeToggle.addEventListener('click',()=>{
 
 async function ensureSession(){
   if(sessionToken)return sessionToken;
-  const profileId=`${learnerClass.value}:${learnerNickname.value.trim().toLocaleLowerCase()}`;
+  const code=learnerCode.value.trim().toUpperCase();
+  const profileId=`${learnerClass.value}:${code}`;
   if(learnerMemoryId!==profileId)loadAdaptiveMemory(profileId);
   let profiles={};
   try{profiles=JSON.parse(localStorage.getItem('roboTeacherProfiles')||'{}')}catch(_){profiles={}}
@@ -675,7 +688,7 @@ async function ensureSession(){
   }
   profiles[profileId]=learnerKey;localStorage.setItem('roboTeacherProfiles',JSON.stringify(profiles));
   localStorage.removeItem('roboTeacherLearnerKey');
-  const response=await fetch('/api/classroom/session',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({learner_key:learnerKey,nickname:learnerNickname.value.trim(),class_level:learnerClass.value})});
+  const response=await fetch('/api/classroom/session',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({learner_key:learnerKey,learner_code:code,nickname:learnerNickname.value.trim(),class_level:learnerClass.value})});
   if(!response.ok)throw new Error('session');
   const data=await response.json();
   sessionToken=data.session_token;
@@ -685,10 +698,13 @@ async function ensureSession(){
 start.addEventListener('click',async()=>{
   const nickname=learnerNickname.value.trim();
   if(nickname.length<2){onboardingError.textContent='Please enter a nickname with at least 2 letters.';onboardingError.classList.remove('hidden');learnerNickname.focus();return}
+  const code=learnerCode.value.trim().toUpperCase();
+  if(!/^[A-Z0-9][A-Z0-9-]{3,23}$/.test(code)){onboardingError.textContent='Enter the learner code from your teacher, or tap Generate my code.';onboardingError.classList.remove('hidden');learnerCode.focus();return}
+  learnerCode.value=code;
   onboardingError.classList.add('hidden');start.disabled=true;start.textContent='Opening classroom…';
   try{
     stopFounderSpeech();
-    await ensureSession();learnerIdentity.textContent=`${nickname.toUpperCase()} · ${learnerClass.value} CLASSROOM`;
+    await ensureSession();learnerIdentity.textContent=`${nickname.toUpperCase()} · ${code} · ${learnerClass.value} CLASSROOM`;
     welcome.classList.add('hidden');classroom.classList.remove('hidden');
     addMessage(`Welcome, ${nickname}! I’ll explain each lesson at ${learnerClass.value} level.`,'teacher');question.focus();
     if(pendingChatRecovery)setTimeout(retryPendingChat,300);
@@ -696,12 +712,18 @@ start.addEventListener('click',async()=>{
   finally{start.disabled=false;start.textContent='Start Learning Now →'}
 });
 
+generateLearnerCode.addEventListener('click',()=>{
+  const bytes=crypto.getRandomValues(new Uint8Array(3));
+  learnerCode.value=`IND-${Array.from(bytes,byte=>byte.toString(16).padStart(2,'0')).join('').toUpperCase()}`;
+  onboardingError.classList.add('hidden');learnerCode.focus();
+});
+
 resumeLearningButton.addEventListener('click',async()=>{
   const snapshot=loadClassroomSnapshot();if(!snapshot){refreshResumeLearning();return}
   resumeLearningButton.disabled=true;resumeLearningButton.textContent='Restoring lesson…';
   try{
-    learnerNickname.value=snapshot.nickname;learnerClass.value=snapshot.classLevel;practiceClass.value=snapshot.classLevel;language.value=snapshot.language||'English';localStorage.setItem('roboTeacherLanguage',language.value);updatePracticeTopics();
-    await ensureSession();learnerIdentity.textContent=`${snapshot.nickname.toUpperCase()} · ${snapshot.classLevel} CLASSROOM`;welcome.classList.add('hidden');classroom.classList.remove('hidden');
+    learnerNickname.value=snapshot.nickname;learnerCode.value=snapshot.learnerCode||'';learnerClass.value=snapshot.classLevel;practiceClass.value=snapshot.classLevel;language.value=snapshot.language||'English';localStorage.setItem('roboTeacherLanguage',language.value);updatePracticeTopics();
+    if(!learnerCode.value){refreshResumeLearning();return}await ensureSession();learnerIdentity.textContent=`${snapshot.nickname.toUpperCase()} · ${learnerCode.value} · ${snapshot.classLevel} CLASSROOM`;welcome.classList.add('hidden');classroom.classList.remove('hidden');
     dismissLessonOverlays();canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');canvasStatus.textContent=snapshot.canvasStatus||'Previous lesson restored';const autoTeachWasEnabled=lessonChoreography.enabled;lessonChoreography.enabled=false;startLessonDirector(snapshot.answer,snapshot.lessonIndex||0);lessonChoreography.enabled=autoTeachWasEnabled;readAnswerButton.disabled=false;setActiveMode(chatButton);setLearningStatus('Previous lesson restored','success');
     void practiceRequest('progress',{class_level:snapshot.classLevel}).then(data=>{currentProgress=data}).catch(()=>{});
     if(pendingChatRecovery)setTimeout(retryPendingChat,300);keepTeachingCanvasVisible();
@@ -722,7 +744,7 @@ openTeacherDashboardButton.addEventListener('click',async()=>{
 teacherAccessKey.addEventListener('keydown',event=>{if(event.key==='Enter')openTeacherDashboardButton.click()});
 
 changeLearnerButton.addEventListener('click',()=>{
-  stopTeacherAudio();handsFree.enabled=false;handsFree.processing=false;stopHandsFreeListening();updateHandsFreeStatus();sessionToken=null;currentProgress=null;clearClassroomSnapshot();learnerNickname.value='';learnerClass.value='JSS2';practiceClass.value='JSS2';updatePracticeTopics();classroom.classList.add('hidden');welcome.classList.remove('hidden');teacherLogin.classList.add('hidden');onboardingError.classList.add('hidden');learnerNickname.focus();
+  stopTeacherAudio();handsFree.enabled=false;handsFree.processing=false;stopHandsFreeListening();updateHandsFreeStatus();sessionToken=null;currentProgress=null;clearClassroomSnapshot();learnerNickname.value='';learnerCode.value='';learnerClass.value='JSS2';practiceClass.value='JSS2';updatePracticeTopics();classroom.classList.add('hidden');welcome.classList.remove('hidden');teacherLogin.classList.add('hidden');onboardingError.classList.add('hidden');learnerNickname.focus();
 });
 
 toggle.addEventListener('click',()=>{
@@ -990,7 +1012,7 @@ function setActiveMode(button){
   });
 }
 
-function lessonLibraryKey(){return `${learnerClass.value}:${learnerNickname.value.trim().toLocaleLowerCase()}`}
+function lessonLibraryKey(){return `${learnerClass.value}:${learnerCode.value.trim().toUpperCase()}`}
 function loadSavedLessons(){try{return JSON.parse(localStorage.getItem(`roboTeacherLessons:${lessonLibraryKey()}`)||'[]')}catch(_error){return []}}
 function storeSavedLessons(items){localStorage.setItem(`roboTeacherLessons:${lessonLibraryKey()}`,JSON.stringify(items.slice(0,20)))}
 function lessonSummary(text){return text.replace(/\*\*/g,'').replace(/\s+/g,' ').trim().slice(0,180)}
@@ -1462,6 +1484,11 @@ function showTeacherDashboard(data){
   currentTeacherDashboard=data;whiteboardArea.classList.add('hidden');practiceArea.classList.add('hidden');progressArea.classList.add('hidden');canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');teacherDashboard.classList.remove('hidden');renderTeacherDashboard(data);setLearningStatus('Teacher View ready')
 }
 
+function filteredTeacherLearners(data,query='',status='all',sort='attention'){
+  const normalized=query.trim().toUpperCase();const rows=(data.learner_rows||[]).filter(item=>(!normalized||item.learner_code.includes(normalized))&&(status==='all'||item.status.toLowerCase()===status));
+  return rows.sort((left,right)=>sort==='code'?left.learner_code.localeCompare(right.learner_code):sort==='sessions'?right.sessions-left.sessions||left.learner_code.localeCompare(right.learner_code):(left.percentage===null)-(right.percentage===null)||(left.percentage??101)-(right.percentage??101)||left.learner_code.localeCompare(right.learner_code))
+}
+
 function renderTeacherDashboard(data){
   teacherDashboardContent.replaceChildren();const stats=document.createElement('div');stats.className='progress-stats';
   [[dcopy('learners'),data.learners],[dcopy('sessions'),data.sessions],[dcopy('questions'),data.questions],[dcopy('average'),`${data.average_percentage}%`]].forEach(([label,value])=>{const card=document.createElement('article');const name=document.createElement('span');name.textContent=label;const score=document.createElement('strong');score.textContent=value;card.append(name,score);stats.appendChild(card)});
@@ -1474,8 +1501,9 @@ function renderTeacherDashboard(data){
   [[dcopy('sessions'),week.sessions],[dcopy('questions'),week.questions],[dcopy('score'),week.percentage===null?'—':`${week.percentage}%`],[dcopy('trend'),change],[dcopy('strongest'),week.strongest_topic||dcopy('noData')],[dcopy('attention'),week.weakest_topic||dcopy('noData')]].forEach(([label,value])=>{const card=document.createElement('article');const name=document.createElement('span');name.textContent=label;const detail=document.createElement('strong');detail.textContent=value;card.append(name,detail);weeklyStats.appendChild(card)});const weeklyAction=document.createElement('p');weeklyAction.textContent=teacherAction(data);weekly.append(weeklyTitle,weeklyStats,weeklyAction);
   const trend=document.createElement('section');trend.className='teacher-trend';const trendTitle=document.createElement('h4');trendTitle.textContent=dcopy('sixWeek');const bars=document.createElement('div');bars.className='teacher-trend-bars';
   data.weekly_trend.forEach(item=>{const column=document.createElement('div');const value=document.createElement('strong');value.textContent=item.percentage===null?'—':`${item.percentage}%`;const bar=document.createElement('i');bar.style.height=`${Math.max(item.percentage||0,4)}%`;bar.title=`${item.sessions} sessions · ${item.questions} questions`;const label=document.createElement('span');label.textContent=new Date(`${item.week_start}T00:00:00`).toLocaleDateString(undefined,{day:'numeric',month:'short'});column.append(value,bar,label);bars.appendChild(column)});trend.append(trendTitle,bars);
-  const note=document.createElement('p');note.className='teacher-privacy-note';note.textContent=`${data.class_level} aggregate only. No learner names or identifiers are displayed.`;
-  const topics=document.createElement('section');topics.className='topic-progress';const topicTitle=document.createElement('h4');topicTitle.textContent=dcopy('topicPerformance');topics.appendChild(topicTitle);data.topics.forEach(item=>{const row=document.createElement('article');row.textContent=`${item.topic}: ${item.percentage}% · ${item.questions} ${dcopy('questions').toLowerCase()}`;topics.appendChild(row)});teacherDashboardContent.append(stats,diagnosticPanel,weekly,insight,recommendation,trend,note,topics);
+  const learners=document.createElement('section');learners.className='teacher-learner-table';const learnersHeading=document.createElement('div');learnersHeading.className='teacher-learner-heading';const learnersTitle=document.createElement('h4');learnersTitle.textContent='Learner progress';const learnersCount=document.createElement('span');learnersHeading.append(learnersTitle,learnersCount);const tools=document.createElement('div');tools.className='teacher-learner-tools';const search=document.createElement('input');search.type='search';search.placeholder='Search learner code';search.setAttribute('aria-label','Search learner code');const statusFilter=document.createElement('select');statusFilter.setAttribute('aria-label','Filter learner-code status');[['all','All codes'],['active','Active'],['retired','Retired']].forEach(([value,label])=>statusFilter.add(new Option(label,value)));const sort=document.createElement('select');sort.setAttribute('aria-label','Sort learner progress');[['attention','Needs attention'],['code','Learner code'],['sessions','Most sessions']].forEach(([value,label])=>sort.add(new Option(label,value)));tools.append(search,statusFilter,sort);const table=document.createElement('table');const header=document.createElement('thead');header.innerHTML='<tr><th>Learner code</th><th>Status</th><th>Sessions</th><th>Questions</th><th>Score</th><th>Support topic</th></tr>';const body=document.createElement('tbody');table.append(header,body);const empty=document.createElement('p');empty.className='progress-empty hidden';empty.textContent='No learner codes match these filters.';const drawLearners=()=>{body.replaceChildren();const rows=filteredTeacherLearners(data,search.value,statusFilter.value,sort.value);learnersCount.textContent=`${rows.length} of ${(data.learner_rows||[]).length}`;empty.classList.toggle('hidden',rows.length>0);rows.forEach(item=>{const row=document.createElement('tr');if(item.status==='Retired')row.className='retired';[item.learner_code,item.status,item.sessions,item.questions,item.percentage===null?'Not started':`${item.percentage}%`,item.support_topic||dcopy('noData')].forEach(value=>{const cell=document.createElement('td');cell.textContent=value;row.appendChild(cell)});body.appendChild(row)})};search.addEventListener('input',drawLearners);statusFilter.addEventListener('change',drawLearners);sort.addEventListener('change',drawLearners);learners.append(learnersHeading,tools,table,empty);drawLearners();
+  const note=document.createElement('p');note.className='teacher-privacy-note';note.textContent='Learner codes are shown instead of names. Keep the code-to-name roster privately at school.';
+  const topics=document.createElement('section');topics.className='topic-progress';const topicTitle=document.createElement('h4');topicTitle.textContent=dcopy('topicPerformance');topics.appendChild(topicTitle);data.topics.forEach(item=>{const row=document.createElement('article');row.textContent=`${item.topic}: ${item.percentage}% · ${item.questions} ${dcopy('questions').toLowerCase()}`;topics.appendChild(row)});teacherDashboardContent.append(stats,diagnosticPanel,weekly,insight,recommendation,trend,learners,note,topics);
 }
 
 async function refreshTeacherDashboard(){
@@ -1484,9 +1512,31 @@ async function refreshTeacherDashboard(){
 }
 
 function downloadTeacherDashboardReport(){
-  if(!currentTeacherDashboard)return;const data=currentTeacherDashboard;const week=data.weekly_summary;const diagnostic=data.diagnostic_summary;const rows=[['Robo-Teacher Privacy-Safe Class Report'],['Class',data.class_level],['Generated',new Date().toISOString()],[],['Diagnostic placement'],['Completed tests',diagnostic.completed],['Learners assessed',diagnostic.learners],['Average',`${diagnostic.average_percentage}%`],['Most common starting topic',diagnostic.common_focus_topic||'Not enough data'],[],['Learners',data.learners],['Sessions',data.sessions],['Questions',data.questions],['Average',`${data.average_percentage}%`],['Strongest topic',data.strongest_topic||'Not enough data'],['Weakest topic',data.weakest_topic||'Not enough data'],['Recommendation',data.recommendation],[],['This week'],['Week starting',week.week_start],['Sessions',week.sessions],['Questions',week.questions],['Score',week.percentage===null?'':`${week.percentage}%`],['Change in percentage points',week.change_points??''],['Strongest topic',week.strongest_topic||'Not enough data'],['Weakest topic',week.weakest_topic||'Not enough data'],['Teacher action',week.action],[],['Topic','Sessions','Questions','Percentage'],...data.topics.map(item=>[item.topic,item.sessions,item.questions,`${item.percentage}%`]),[],['Week starting','Sessions','Questions','Percentage'],...data.weekly_trend.map(item=>[item.week_start,item.sessions,item.questions,item.percentage===null?'':`${item.percentage}%`])];
+  if(!currentTeacherDashboard)return;const data=currentTeacherDashboard;const week=data.weekly_summary;const diagnostic=data.diagnostic_summary;const rows=[['Robo-Teacher Privacy-Safe Class Report'],['Class',data.class_level],['Generated',new Date().toISOString()],[],['Diagnostic placement'],['Completed tests',diagnostic.completed],['Learners assessed',diagnostic.learners],['Average',`${diagnostic.average_percentage}%`],['Most common starting topic',diagnostic.common_focus_topic||'Not enough data'],[],['Learners',data.learners],['Sessions',data.sessions],['Questions',data.questions],['Average',`${data.average_percentage}%`],['Strongest topic',data.strongest_topic||'Not enough data'],['Weakest topic',data.weakest_topic||'Not enough data'],['Recommendation',data.recommendation],[],['Learner code','Status','Sessions','Questions','Percentage','Support topic'],...(data.learner_rows||[]).map(item=>[item.learner_code,item.status,item.sessions,item.questions,item.percentage??'Not started',item.support_topic||'']),[],['Topic','Sessions','Questions','Percentage'],...data.topics.map(item=>[item.topic,item.sessions,item.questions,`${item.percentage}%`]),[],['Week starting','Sessions','Questions','Percentage'],...data.weekly_trend.map(item=>[item.week_start,item.sessions,item.questions,item.percentage===null?'':`${item.percentage}%`])];
   const csv=rows.map(row=>row.map(value=>`"${String(value??'').replaceAll('"','""')}"`).join(',')).join('\r\n');const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));const link=document.createElement('a');link.href=url;link.download=`robo-teacher-${data.class_level.toLowerCase()}-class-report.csv`;link.click();URL.revokeObjectURL(url)
 }
+
+function learnerRosterKey(){return `roboTeacherPrivateRoster:${teacherClass.value}`}
+function loadLearnerRoster(){try{const rows=JSON.parse(localStorage.getItem(learnerRosterKey())||'[]');return Array.isArray(rows)?rows:[]}catch(_error){return []}}
+function saveLearnerRoster(rows){localStorage.setItem(learnerRosterKey(),JSON.stringify(rows));renderLearnerRoster()}
+function nextLearnerCode(prefix,rows){const stem=`${prefix}-${teacherClass.value}-`;const used=rows.map(item=>item.code).filter(code=>code.startsWith(stem)).map(code=>Number(code.slice(stem.length))).filter(Number.isFinite);return `${stem}${String(Math.max(0,...used)+1).padStart(3,'0')}`}
+async function teacherCodesRequest(action,payload={}){const response=await fetch('/api/classroom/teacher/codes',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({access_key:teacherDashboardAccessKey,class_level:teacherClass.value,action,...payload})}),data=await response.json();if(!response.ok)throw new Error(data.detail||'Learner-code manager unavailable');return data}
+function mergeCentralRoster(data){const local=loadLearnerRoster(),names=new Map(local.map(item=>[item.code,item.name||'']));data.codes.forEach(item=>{if(!names.get(item.code)&&item.replaces&&names.get(item.replaces))names.set(item.code,names.get(item.replaces))});localStorage.setItem(learnerRosterKey(),JSON.stringify(data.codes.map(item=>({...item,active:item.status==='Active',name:names.get(item.code)||''}))));renderLearnerRoster();if(!data.storage_synced)learnerCodeManagerStatus.textContent+=' · Central storage is temporarily unavailable.'}
+async function openLearnerCodeManager(){teacherDashboard.classList.add('hidden');learnerCodeManager.classList.remove('hidden');learnerCodeManagerStatus.textContent='Loading learner codes…';try{mergeCentralRoster(await teacherCodesRequest('list'))}catch(error){learnerCodeManagerStatus.textContent=error.message;renderLearnerRoster()}}
+function renderLearnerRoster(){
+  const rows=loadLearnerRoster();learnerCodeRoster.replaceChildren();learnerCodeManagerStatus.textContent=rows.length?`${rows.filter(item=>item.active).length} active · ${rows.filter(item=>!item.active).length} retired`:'No learner codes generated for this class yet.';
+  if(!rows.length)return;
+  const table=document.createElement('table'),head=document.createElement('thead'),body=document.createElement('tbody');head.innerHTML='<tr><th>No.</th><th>Learner code</th><th>Student name (private)</th><th>Status</th><th>Action</th></tr>';
+  rows.forEach((item,index)=>{const row=document.createElement('tr');if(!item.active)row.className='retired';const number=document.createElement('td');number.textContent=index+1;const code=document.createElement('td');code.textContent=item.code;const nameCell=document.createElement('td');const name=document.createElement('input');name.value=item.name||'';name.placeholder='Write student name';name.disabled=!item.active;name.addEventListener('change',()=>{const latest=loadLearnerRoster(),match=latest.find(entry=>entry.code===item.code);if(match){match.name=name.value.trim();saveLearnerRoster(latest)}});nameCell.appendChild(name);const status=document.createElement('td');status.textContent=item.active?'Active':'Retired';const actionCell=document.createElement('td');const action=document.createElement('button');action.type='button';action.textContent=item.active?'Replace':'Replaced';action.disabled=!item.active;action.addEventListener('click',()=>replaceLearnerCode(item.code));actionCell.appendChild(action);row.append(number,code,nameCell,status,actionCell);body.appendChild(row)});table.append(head,body);learnerCodeRoster.appendChild(table)
+}
+async function replaceLearnerCode(code){
+  const old=loadLearnerRoster().find(item=>item.code===code);if(!old||!old.active)return;learnerCodeManagerStatus.textContent=`Replacing ${code}…`;try{const data=await teacherCodesRequest('replace',{learner_code:code});mergeCentralRoster(data);const replacement=data.codes.find(item=>item.replaces===code);learnerCodeManagerStatus.textContent=`${code} retired. Give ${replacement?.code||'the new code'} to ${old.name||'the learner'}.`}catch(error){learnerCodeManagerStatus.textContent=error.message}
+}
+function rosterCsv(){const rows=loadLearnerRoster(),data=[['Robo-Teacher private learner-code roster'],['Class',teacherClass.value],['Generated',new Date().toISOString()],[],['Learner code','Student name','Status','Replaces'],...rows.map(item=>[item.code,item.name||'',item.active?'Active':'Retired',item.replaces||''])];return data.map(row=>row.map(value=>`"${String(value).replaceAll('"','""')}"`).join(',')).join('\r\n')}
+learnerCodeGenerator.addEventListener('submit',async event=>{event.preventDefault();const prefix=learnerCodePrefix.value.trim().toUpperCase().replace(/[^A-Z0-9-]/g,'').replace(/^-+|-+$/g,''),count=Math.min(100,Math.max(1,Number(learnerCodeCount.value)||1));if(!prefix){learnerCodeManagerStatus.textContent='Enter a school prefix such as ISE.';return}learnerCodePrefix.value=prefix;learnerCodeManagerStatus.textContent='Generating learner codes…';try{mergeCentralRoster(await teacherCodesRequest('generate',{prefix,count}))}catch(error){learnerCodeManagerStatus.textContent=error.message}});
+manageLearnerCodes.addEventListener('click',openLearnerCodeManager);closeLearnerCodes.addEventListener('click',()=>{learnerCodeManager.classList.add('hidden');teacherDashboard.classList.remove('hidden')});teacherClass.addEventListener('change',()=>{if(!learnerCodeManager.classList.contains('hidden'))void openLearnerCodeManager()});
+downloadLearnerCodes.addEventListener('click',()=>{const url=URL.createObjectURL(new Blob([rosterCsv()],{type:'text/csv;charset=utf-8'})),link=document.createElement('a');link.href=url;link.download=`robo-teacher-${teacherClass.value.toLowerCase()}-private-roster.csv`;link.click();URL.revokeObjectURL(url)});
+printLearnerCodes.addEventListener('click',()=>window.print());
 
 function qaStorage(){try{return JSON.parse(localStorage.getItem('roboTeacherQaChecklist')||'{}')}catch(_error){return {}}}
 function showQaChecklist(){teacherDashboard.classList.add('hidden');qaChecklist.classList.remove('hidden');renderQaChecklist()}
