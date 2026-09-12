@@ -322,7 +322,25 @@ def classroom_diagnostic_language(request: PracticeLanguage):
 @router.post("/teacher/dashboard")
 def classroom_teacher_dashboard(request: TeacherDashboardRequest):
     _verify_teacher(request)
-    return build_teacher_dashboard(request.class_level)
+    dashboard = build_teacher_dashboard(request.class_level)
+    registered, registry_synced = list_codes(request.class_level)
+    statuses = {item["code"]: item["status"] for item in registered}
+    performance = {item["learner_code"]: item for item in dashboard["learner_rows"]}
+    for row in dashboard["learner_rows"]:
+        row["status"] = statuses.get(row["learner_code"], "Active")
+    for item in registered:
+        if item["code"] not in performance:
+            dashboard["learner_rows"].append({
+                "learner_code": item["code"], "sessions": 0, "questions": 0,
+                "percentage": None, "support_topic": None, "status": item["status"],
+            })
+    dashboard["learner_rows"].sort(key=lambda item: (
+        item["percentage"] is None,
+        item["percentage"] if item["percentage"] is not None else 101,
+        item["learner_code"],
+    ))
+    dashboard["code_registry_synced"] = registry_synced
+    return dashboard
 
 
 @router.post("/teacher/codes")
