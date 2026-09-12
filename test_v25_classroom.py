@@ -11,6 +11,7 @@ import classroom_api
 import practice
 import practice_progress
 import diagnostic_progress
+import learner_codes
 import tutor
 from practice_generator import generate_question
 from tutor import GEMINI_STREAMING_TTS_MODEL, GEMINI_TTS_MODEL, TTS_VOICES, _language_instruction, _pcm_to_wav, _prepare_spoken_transcript, _speech_chunks, _spoken_excerpt, get_tutor_reply
@@ -33,6 +34,8 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
     assert '20260910-mastery1' in html
     assert 'id="learnerNickname"' in html
+    assert 'id="learnerCode"' in html
+    assert 'id="generateLearnerCode"' in html
     assert 'id="learnerClass"' in html
     assert "learnerNickname.value=''" in script
     assert "localStorage.setItem('roboTeacherProfiles'" in script
@@ -391,12 +394,13 @@ def test_teacher_dashboard_returns_aggregates_without_identities():
     assert 'learner_id' not in dashboard['diagnostic_summary']
 
 
-def test_existing_eight_column_progress_sheet_is_extended_for_class_level():
+def test_existing_eight_column_progress_sheet_is_extended_for_class_and_learner_code():
     class Worksheet:
         col_count = 8
-        def row_values(self, row): return practice_progress._HEADER[:-1]
+        def __init__(self): self.updated = []
+        def row_values(self, row): return practice_progress._HEADER[:8]
         def add_cols(self, count): self.col_count += count
-        def update_cell(self, row, column, value): self.updated = (row, column, value)
+        def update_cell(self, row, column, value): self.updated.append((row, column, value))
     worksheet = Worksheet()
     spreadsheet = type('Spreadsheet', (), {'worksheet': lambda self, title: worksheet})()
     client = type('Client', (), {'open_by_key': lambda self, key: spreadsheet})()
@@ -404,8 +408,8 @@ def test_existing_eight_column_progress_sheet_is_extended_for_class_level():
     practice_progress._client = client
     with patch.dict('os.environ', {'GOOGLE_SHEET_ID': 'sheet', 'GOOGLE_SERVICE_ACCOUNT_JSON': '{}'}):
         assert practice_progress._get_worksheet() is worksheet
-    assert worksheet.col_count == 9
-    assert worksheet.updated == (1, 9, 'Class Level')
+    assert worksheet.col_count == 10
+    assert worksheet.updated == [(1, 9, 'Class Level'), (1, 10, 'Learner Code')]
 
 
 def test_classroom_session_accepts_a_safe_nickname_and_class_level():
@@ -419,6 +423,39 @@ def test_classroom_session_accepts_a_safe_nickname_and_class_level():
         'learner_key': 'c' * 48, 'nickname': '<script>', 'class_level': 'JSS4',
     })
     assert unsafe.status_code == 422
+
+
+def test_learner_code_is_normalised_and_restores_identity_across_devices():
+    first = client.post('/api/classroom/session', json={
+        'learner_key': 'a' * 48, 'learner_code': 'ise-jss2-014',
+        'nickname': 'David', 'class_level': 'JSS2',
+    })
+    second = client.post('/api/classroom/session', json={
+        'learner_key': 'b' * 48, 'learner_code': 'ISE-JSS2-014',
+        'nickname': 'David', 'class_level': 'JSS2',
+    })
+    other = client.post('/api/classroom/session', json={
+        'learner_key': 'a' * 48, 'learner_code': 'ISE-JSS2-015',
+        'nickname': 'David', 'class_level': 'JSS2',
+    })
+    assert first.status_code == second.status_code == other.status_code == 200
+    assert first.json()['learner_code'] == 'ISE-JSS2-014'
+    assert first.json()['learner_id'] == second.json()['learner_id']
+    assert first.json()['learner_id'] != other.json()['learner_id']
+    assert client.post('/api/classroom/session', json={'learner_code': 'bad code'}).status_code == 422
+
+
+def test_teacher_dashboard_exposes_codes_without_internal_learner_ids():
+    practice_progress._reset_for_tests()
+    now = datetime.now(timezone.utc).isoformat()
+    practice_progress._memory_records.extend([
+        {'learner_id':'WEB-one','learner_code':'ISE-JSS2-014','class_level':'JSS2','session_id':'one-a','topic':'Simple Equations','difficulty':'Easy','score':2,'attempted':5,'percentage':40,'timestamp':now},
+        {'learner_id':'WEB-two','learner_code':'ISE-JSS2-027','class_level':'JSS2','session_id':'two-a','topic':'Fractions','difficulty':'Easy','score':4,'attempted':5,'percentage':80,'timestamp':now},
+    ])
+    dashboard = practice_progress.build_teacher_dashboard('JSS2')
+    assert [row['learner_code'] for row in dashboard['learner_rows']] == ['ISE-JSS2-014', 'ISE-JSS2-027']
+    assert dashboard['learner_rows'][0]['support_topic'] == 'Simple Equations'
+    assert all('learner_id' not in row for row in dashboard['learner_rows'])
 
 
 def test_practice_options_expose_class_and_term_curriculum():
@@ -1554,6 +1591,72 @@ def test_media_endpoint_requires_a_valid_session():
     assert response.status_code==200 and response.json()['source']=='PhET Interactive Simulations'
     rejected=client.post('/api/classroom/media',json={'session_token':'x'*32,'text':'Explain a fraction.','language':'English'})
     assert rejected.status_code==401
+
+
+def test_teacher_can_manage_private_learner_code_rosters():
+    html=Path('classroom/index.html').read_text();script=Path('classroom/app.js').read_text();styles=Path('classroom/styles.css').read_text()
+    for element_id in ('manageLearnerCodes','learnerCodeManager','learnerCodePrefix','learnerCodeCount','learnerCodeRoster','printLearnerCodes','downloadLearnerCodes'):
+        assert f'id="{element_id}"' in html
+    assert 'function nextLearnerCode(prefix,rows)' in script
+    assert "localStorage.setItem(learnerRosterKey()" in script
+    assert 'function replaceLearnerCode(code)' in script
+    assert "teacherCodesRequest('replace',{learner_code:code})" in script
+    assert 'item.replaces&&names.get(item.replaces)' in script
+    assert "link.download=`robo-teacher-${teacherClass.value.toLowerCase()}-private-roster.csv`" in script
+    assert "printLearnerCodes.addEventListener('click',()=>window.print())" in script
+    assert '.learner-code-generator{' in styles and '@media print{' in styles
+
+
+def test_central_registry_generates_sequential_codes_and_retires_old_code():
+    learner_codes._reset_for_tests();events=[]
+    with patch('learner_codes._read_events', side_effect=lambda: (list(events), True)), patch('learner_codes._append', side_effect=events.append):
+        assert [item['code'] for item in learner_codes.generate_codes('ISE', 'JSS2', 2)] == ['ISE-JSS2-001', 'ISE-JSS2-002']
+        replacement=learner_codes.replace_code('ISE-JSS2-001', 'JSS2')
+        assert replacement['code'] == 'ISE-JSS2-003'
+        assert learner_codes.validate_code('ISE-JSS2-001', 'JSS2') is False
+        assert learner_codes.validate_code('ISE-JSS2-003', 'JSS2') is True
+        assert learner_codes.validate_code('IND-ABC123', 'JSS2') is True
+
+
+def test_retired_central_code_is_rejected_at_student_login():
+    with patch('classroom_api.validate_code', return_value=False):
+        response=client.post('/api/classroom/session',json={'learner_code':'ISE-JSS2-001','nickname':'Tobi','class_level':'JSS2'})
+    assert response.status_code == 403
+    assert 'replacement code' in response.json()['detail']
+
+
+def test_teacher_code_endpoint_requires_private_key_and_returns_no_names():
+    key='teacher-key-for-tests'
+    with patch.dict('os.environ', {'TEACHER_DASHBOARD_KEY':key}), patch('classroom_api.generate_codes'), patch('classroom_api.list_codes', return_value=([{'code':'ISE-JSS2-001','class_level':'JSS2','status':'Active','replaces':'','timestamp':'now'}], True)):
+        denied=client.post('/api/classroom/teacher/codes',json={'access_key':'wrong-key-is-long-enough','class_level':'JSS2'})
+        allowed=client.post('/api/classroom/teacher/codes',json={'access_key':key,'class_level':'JSS2','action':'generate','prefix':'ISE','count':1})
+    assert denied.status_code == 403 and allowed.status_code == 200
+    assert all('name' not in item for item in allowed.json()['codes'])
+
+
+def test_teacher_dashboard_includes_registered_codes_without_practice():
+    key='teacher-dashboard-test-key'
+    base={'learner_rows':[{'learner_code':'ISE-JSS2-001','sessions':2,'questions':10,'percentage':40,'support_topic':'Fractions'}]}
+    with patch.dict('os.environ',{'TEACHER_DASHBOARD_KEY':key}), patch('classroom_api.build_teacher_dashboard',return_value=base), patch('classroom_api.list_codes',return_value=([
+        {'code':'ISE-JSS2-001','status':'Retired'}, {'code':'ISE-JSS2-002','status':'Active'},
+    ],True)):
+        response=client.post('/api/classroom/teacher/dashboard',json={'access_key':key,'class_level':'JSS2'})
+    assert response.status_code == 200
+    rows={item['learner_code']:item for item in response.json()['learner_rows']}
+    assert rows['ISE-JSS2-001']['status'] == 'Retired'
+    assert rows['ISE-JSS2-002']['percentage'] is None
+    assert rows['ISE-JSS2-002']['sessions'] == 0
+
+
+def test_teacher_dashboard_filters_sorts_and_exports_learner_progress():
+    script=Path('classroom/app.js').read_text();styles=Path('classroom/styles.css').read_text()
+    assert "function filteredTeacherLearners(data,query='',status='all',sort='attention')" in script
+    assert "search.placeholder='Search learner code'" in script
+    for label in ('All codes','Active','Retired','Needs attention','Most sessions'):
+        assert label in script
+    assert "item.percentage===null?'Not started'" in script
+    assert "['Learner code','Status','Sessions','Questions','Percentage','Support topic']" in script
+    assert '.teacher-learner-tools{' in styles
 
 
 if __name__ == '__main__':
