@@ -1244,6 +1244,9 @@ backToWhiteboard.addEventListener('click',openWhiteboard);
 language.addEventListener('change',async()=>{
   if(!handsFreeHelp.classList.contains('hidden'))renderHandsFreeHelp();
   const wasReading=teacherPanel.classList.contains('speaking')||teacherSpeechPaused;
+  const practiceFeedbackWasVisible=Boolean(currentPractice)&&
+    !practiceFeedback.classList.contains('hidden')&&
+    (practiceFeedback.classList.contains('correct')||practiceFeedback.classList.contains('incorrect'));
   const answerToTranslate=canvasAnswer.textContent.trim();
   stopTeacherAudio();
   if(wasReading){try{await startAudioKeepAlive()}catch(_error){/* Translation still works without automatic audio. */}}
@@ -1251,8 +1254,15 @@ language.addEventListener('change',async()=>{
   localStorage.setItem('roboTeacherLanguage',language.value);
   const notices={English:'I will teach you in English from now on.',Yoruba:'Mo máa kọ́ ọ ní Yorùbá láti ìsinsin yìí.',Igbo:'Aga m akụziri gị ihe n’Igbo site ugbu a.',Hausa:'Zan koyar da kai da Hausa daga yanzu.'};
   addMessage(notices[language.value],'teacher');
-  if(currentPractice)await switchPracticeLanguage();
-  if(answerToTranslate){
+  let switchedPractice=null;
+  if(currentPractice)switchedPractice=await switchPracticeLanguage();
+  if(practiceFeedbackWasVisible){
+    if(wasReading&&switchedPractice?.answered&&switchedPractice.feedback){
+      const feedback=switchedPractice.feedback;
+      const translatedFeedback=feedback.correct?`${feedback.message}\\n\\n${feedback.explanation}`:`${feedback.message}\\n\\n${feedback.explanation}\\n\\n${feedback.correct_answer_label}: ${feedback.expected_answer}`;
+      if(translatedFeedback)void speakText(translatedFeedback,true,true);
+    }else stopAudioKeepAlive();
+  }else if(answerToTranslate){
     setLearningStatus(`Switching explanation to ${language.options[language.selectedIndex].text}…`,'thinking');
     readAnswerButton.disabled=true;
     try{
@@ -1368,8 +1378,10 @@ async function switchPracticeLanguage(){
     }else if(showHintButton.disabled){practiceFeedback.textContent=`Hint: ${data.hint}`}
     if(data.summary){currentPracticeSummary=data.summary;if(!practiceResults.classList.contains('hidden'))renderPracticeResults(data.summary)}
     setLearningStatus(`${selectedLanguage} question ready`);
+    return data;
   }catch(err){addMessage(err.message,'teacher');setLearningStatus('Language switch needs attention','attention')}
   finally{language.disabled=false}
+  return null;
 }
 
 function showPracticeHint(){
