@@ -1592,6 +1592,19 @@ def test_media_endpoint_requires_a_valid_session():
     assert rejected.status_code==401
 
 
+def test_teacher_can_manage_private_learner_code_rosters():
+    html=Path('classroom/index.html').read_text();script=Path('classroom/app.js').read_text();styles=Path('classroom/styles.css').read_text()
+    for element_id in ('manageLearnerCodes','learnerCodeManager','learnerCodePrefix','learnerCodeCount','learnerCodeRoster','printLearnerCodes','downloadLearnerCodes'):
+        assert f'id="{element_id}"' in html
+    assert 'function nextLearnerCode(prefix,rows)' in script
+    assert "localStorage.setItem(learnerRosterKey()" in script
+    assert 'function replaceLearnerCode(code)' in script
+    assert "old.active=false" in script and "replaces:code" in script
+    assert "link.download=`robo-teacher-${teacherClass.value.toLowerCase()}-private-roster.csv`" in script
+    assert "printLearnerCodes.addEventListener('click',()=>window.print())" in script
+    assert '.learner-code-generator{' in styles and '@media print{' in styles
+
+
 if __name__ == '__main__':
     test_session_and_chat_use_pseudonymous_identity()
     test_tampered_session_is_rejected()
