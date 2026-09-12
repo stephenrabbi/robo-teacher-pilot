@@ -189,6 +189,16 @@ const teacherDashboardContent=document.getElementById('teacherDashboardContent')
 const closeTeacherDashboard=document.getElementById('closeTeacherDashboard');
 const teacherClass=document.getElementById('teacherClass');
 const downloadTeacherReport=document.getElementById('downloadTeacherReport');
+const manageLearnerCodes=document.getElementById('manageLearnerCodes');
+const learnerCodeManager=document.getElementById('learnerCodeManager');
+const learnerCodeGenerator=document.getElementById('learnerCodeGenerator');
+const learnerCodePrefix=document.getElementById('learnerCodePrefix');
+const learnerCodeCount=document.getElementById('learnerCodeCount');
+const learnerCodeManagerStatus=document.getElementById('learnerCodeManagerStatus');
+const learnerCodeRoster=document.getElementById('learnerCodeRoster');
+const printLearnerCodes=document.getElementById('printLearnerCodes');
+const downloadLearnerCodes=document.getElementById('downloadLearnerCodes');
+const closeLearnerCodes=document.getElementById('closeLearnerCodes');
 const openQaChecklist=document.getElementById('openQaChecklist');
 const qaChecklist=document.getElementById('qaChecklist');
 const qaChecklistItems=document.getElementById('qaChecklistItems');
@@ -1500,6 +1510,26 @@ function downloadTeacherDashboardReport(){
   if(!currentTeacherDashboard)return;const data=currentTeacherDashboard;const week=data.weekly_summary;const diagnostic=data.diagnostic_summary;const rows=[['Robo-Teacher Privacy-Safe Class Report'],['Class',data.class_level],['Generated',new Date().toISOString()],[],['Diagnostic placement'],['Completed tests',diagnostic.completed],['Learners assessed',diagnostic.learners],['Average',`${diagnostic.average_percentage}%`],['Most common starting topic',diagnostic.common_focus_topic||'Not enough data'],[],['Learners',data.learners],['Sessions',data.sessions],['Questions',data.questions],['Average',`${data.average_percentage}%`],['Strongest topic',data.strongest_topic||'Not enough data'],['Weakest topic',data.weakest_topic||'Not enough data'],['Recommendation',data.recommendation],[],['This week'],['Week starting',week.week_start],['Sessions',week.sessions],['Questions',week.questions],['Score',week.percentage===null?'':`${week.percentage}%`],['Change in percentage points',week.change_points??''],['Strongest topic',week.strongest_topic||'Not enough data'],['Weakest topic',week.weakest_topic||'Not enough data'],['Teacher action',week.action],[],['Topic','Sessions','Questions','Percentage'],...data.topics.map(item=>[item.topic,item.sessions,item.questions,`${item.percentage}%`]),[],['Week starting','Sessions','Questions','Percentage'],...data.weekly_trend.map(item=>[item.week_start,item.sessions,item.questions,item.percentage===null?'':`${item.percentage}%`])];
   const csv=rows.map(row=>row.map(value=>`"${String(value??'').replaceAll('"','""')}"`).join(',')).join('\r\n');const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));const link=document.createElement('a');link.href=url;link.download=`robo-teacher-${data.class_level.toLowerCase()}-class-report.csv`;link.click();URL.revokeObjectURL(url)
 }
+
+function learnerRosterKey(){return `roboTeacherPrivateRoster:${teacherClass.value}`}
+function loadLearnerRoster(){try{const rows=JSON.parse(localStorage.getItem(learnerRosterKey())||'[]');return Array.isArray(rows)?rows:[]}catch(_error){return []}}
+function saveLearnerRoster(rows){localStorage.setItem(learnerRosterKey(),JSON.stringify(rows));renderLearnerRoster()}
+function nextLearnerCode(prefix,rows){const stem=`${prefix}-${teacherClass.value}-`;const used=rows.map(item=>item.code).filter(code=>code.startsWith(stem)).map(code=>Number(code.slice(stem.length))).filter(Number.isFinite);return `${stem}${String(Math.max(0,...used)+1).padStart(3,'0')}`}
+function openLearnerCodeManager(){teacherDashboard.classList.add('hidden');learnerCodeManager.classList.remove('hidden');renderLearnerRoster()}
+function renderLearnerRoster(){
+  const rows=loadLearnerRoster();learnerCodeRoster.replaceChildren();learnerCodeManagerStatus.textContent=rows.length?`${rows.filter(item=>item.active).length} active · ${rows.filter(item=>!item.active).length} retired`:'No learner codes generated for this class yet.';
+  if(!rows.length)return;
+  const table=document.createElement('table'),head=document.createElement('thead'),body=document.createElement('tbody');head.innerHTML='<tr><th>No.</th><th>Learner code</th><th>Student name (private)</th><th>Status</th><th>Action</th></tr>';
+  rows.forEach((item,index)=>{const row=document.createElement('tr');if(!item.active)row.className='retired';const number=document.createElement('td');number.textContent=index+1;const code=document.createElement('td');code.textContent=item.code;const nameCell=document.createElement('td');const name=document.createElement('input');name.value=item.name||'';name.placeholder='Write student name';name.disabled=!item.active;name.addEventListener('change',()=>{const latest=loadLearnerRoster(),match=latest.find(entry=>entry.code===item.code);if(match){match.name=name.value.trim();saveLearnerRoster(latest)}});nameCell.appendChild(name);const status=document.createElement('td');status.textContent=item.active?'Active':'Retired';const actionCell=document.createElement('td');const action=document.createElement('button');action.type='button';action.textContent=item.active?'Replace':'Replaced';action.disabled=!item.active;action.addEventListener('click',()=>replaceLearnerCode(item.code));actionCell.appendChild(action);row.append(number,code,nameCell,status,actionCell);body.appendChild(row)});table.append(head,body);learnerCodeRoster.appendChild(table)
+}
+function replaceLearnerCode(code){
+  const rows=loadLearnerRoster(),old=rows.find(item=>item.code===code);if(!old||!old.active)return;old.active=false;old.retiredAt=new Date().toISOString();const prefix=code.split('-')[0];const replacement={code:nextLearnerCode(prefix,rows),name:old.name||'',active:true,createdAt:new Date().toISOString(),replaces:code};rows.push(replacement);saveLearnerRoster(rows);learnerCodeManagerStatus.textContent=`${code} retired. Give ${replacement.code} to ${replacement.name||'the learner'}.`
+}
+function rosterCsv(){const rows=loadLearnerRoster(),data=[['Robo-Teacher private learner-code roster'],['Class',teacherClass.value],['Generated',new Date().toISOString()],[],['Learner code','Student name','Status','Replaces'],...rows.map(item=>[item.code,item.name||'',item.active?'Active':'Retired',item.replaces||''])];return data.map(row=>row.map(value=>`"${String(value).replaceAll('"','""')}"`).join(',')).join('\r\n')}
+learnerCodeGenerator.addEventListener('submit',event=>{event.preventDefault();const prefix=learnerCodePrefix.value.trim().toUpperCase().replace(/[^A-Z0-9-]/g,'').replace(/^-+|-+$/g,'');const count=Math.min(100,Math.max(1,Number(learnerCodeCount.value)||1));if(!prefix){learnerCodeManagerStatus.textContent='Enter a school prefix such as ISE.';return}const rows=loadLearnerRoster();for(let index=0;index<count;index+=1)rows.push({code:nextLearnerCode(prefix,rows),name:'',active:true,createdAt:new Date().toISOString()});learnerCodePrefix.value=prefix;saveLearnerRoster(rows)});
+manageLearnerCodes.addEventListener('click',openLearnerCodeManager);closeLearnerCodes.addEventListener('click',()=>{learnerCodeManager.classList.add('hidden');teacherDashboard.classList.remove('hidden')});teacherClass.addEventListener('change',()=>{if(!learnerCodeManager.classList.contains('hidden'))renderLearnerRoster()});
+downloadLearnerCodes.addEventListener('click',()=>{const url=URL.createObjectURL(new Blob([rosterCsv()],{type:'text/csv;charset=utf-8'})),link=document.createElement('a');link.href=url;link.download=`robo-teacher-${teacherClass.value.toLowerCase()}-private-roster.csv`;link.click();URL.revokeObjectURL(url)});
+printLearnerCodes.addEventListener('click',()=>window.print());
 
 function qaStorage(){try{return JSON.parse(localStorage.getItem('roboTeacherQaChecklist')||'{}')}catch(_error){return {}}}
 function showQaChecklist(){teacherDashboard.classList.add('hidden');qaChecklist.classList.remove('hidden');renderQaChecklist()}
