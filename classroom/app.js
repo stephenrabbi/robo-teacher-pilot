@@ -1259,7 +1259,7 @@ language.addEventListener('change',async()=>{
   if(practiceFeedbackWasVisible){
     if(wasReading&&switchedPractice?.answered&&switchedPractice.feedback){
       const feedback=switchedPractice.feedback;
-      const translatedFeedback=feedback.correct?`${feedback.message}\\n\\n${feedback.explanation}`:`${feedback.message}\\n\\n${feedback.explanation}\\n\\n${feedback.correct_answer_label}: ${feedback.expected_answer}`;
+      const translatedFeedback=feedback.correct?`${feedback.message}\n\n${feedback.explanation}`:`${feedback.message}\n\n${feedback.explanation}\n\n${feedback.correct_answer_label}: ${feedback.expected_answer}`;
       if(translatedFeedback)void speakText(translatedFeedback,true,true);
     }else stopAudioKeepAlive();
   }else if(answerToTranslate){
