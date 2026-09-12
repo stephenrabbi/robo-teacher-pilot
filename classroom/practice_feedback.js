@@ -192,7 +192,10 @@
 
   language?.addEventListener('change', () => {
     if (feedback.dataset.feedbackRaw) delete feedback.dataset.feedbackRaw;
-    scheduleDecorate();
+    // Leave the old visible feedback alone while the translated response is in
+    // flight. app.js will replace it, and that DOM mutation will decorate the
+    // new-language feedback. Decorating now would cache and repaint the old
+    // language while the request is still pending.
   });
 
   decorate();
