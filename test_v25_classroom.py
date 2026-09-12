@@ -1634,6 +1634,31 @@ def test_teacher_code_endpoint_requires_private_key_and_returns_no_names():
     assert all('name' not in item for item in allowed.json()['codes'])
 
 
+def test_teacher_dashboard_includes_registered_codes_without_practice():
+    key='teacher-dashboard-test-key'
+    base={'learner_rows':[{'learner_code':'ISE-JSS2-001','sessions':2,'questions':10,'percentage':40,'support_topic':'Fractions'}]}
+    with patch.dict('os.environ',{'TEACHER_DASHBOARD_KEY':key}), patch('classroom_api.build_teacher_dashboard',return_value=base), patch('classroom_api.list_codes',return_value=([
+        {'code':'ISE-JSS2-001','status':'Retired'}, {'code':'ISE-JSS2-002','status':'Active'},
+    ],True)):
+        response=client.post('/api/classroom/teacher/dashboard',json={'access_key':key,'class_level':'JSS2'})
+    assert response.status_code == 200
+    rows={item['learner_code']:item for item in response.json()['learner_rows']}
+    assert rows['ISE-JSS2-001']['status'] == 'Retired'
+    assert rows['ISE-JSS2-002']['percentage'] is None
+    assert rows['ISE-JSS2-002']['sessions'] == 0
+
+
+def test_teacher_dashboard_filters_sorts_and_exports_learner_progress():
+    script=Path('classroom/app.js').read_text();styles=Path('classroom/styles.css').read_text()
+    assert "function filteredTeacherLearners(data,query='',status='all',sort='attention')" in script
+    assert "search.placeholder='Search learner code'" in script
+    for label in ('All codes','Active','Retired','Needs attention','Most sessions'):
+        assert label in script
+    assert "item.percentage===null?'Not started'" in script
+    assert "['Learner code','Status','Sessions','Questions','Percentage','Support topic']" in script
+    assert '.teacher-learner-tools{' in styles
+
+
 if __name__ == '__main__':
     test_session_and_chat_use_pseudonymous_identity()
     test_tampered_session_is_rejected()
