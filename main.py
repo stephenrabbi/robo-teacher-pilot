@@ -26,6 +26,7 @@ CLASSROOM_ENHANCEMENT_SCRIPTS = (
     ("daily_session.js", '<script src="/classroom/daily_session.js?v=20260910-daily-session2"></script>'),
     ("daily_guidance_fix.js", '<script src="/classroom/daily_guidance_fix.js?v=20260910-guidance-fix1"></script>'),
     ("language_switch_guard_v7.js", '<script src="/classroom/language_switch_guard_v7.js?v=20260912-language-switch-guard-v7"></script>'),
+    ("practice_feedback.js", '<script src="/classroom/practice_feedback.js?v=20260912-feedback-p1-3"></script>'),
     ("daily_return_fix.js", '<script src="/classroom/daily_return_fix.js?v=20260912-return-fix6"></script>'),
     ("practice_voice_feedback.js", '<script src="/classroom/practice_voice_feedback.js?v=20260912-practice-voice-feedback1"></script>'),
 )
