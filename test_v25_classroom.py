@@ -33,6 +33,8 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
     assert '20260910-mastery1' in html
     assert 'id="learnerNickname"' in html
+    assert 'id="learnerCode"' in html
+    assert 'id="generateLearnerCode"' in html
     assert 'id="learnerClass"' in html
     assert "learnerNickname.value=''" in script
     assert "localStorage.setItem('roboTeacherProfiles'" in script
@@ -391,12 +393,13 @@ def test_teacher_dashboard_returns_aggregates_without_identities():
     assert 'learner_id' not in dashboard['diagnostic_summary']
 
 
-def test_existing_eight_column_progress_sheet_is_extended_for_class_level():
+def test_existing_eight_column_progress_sheet_is_extended_for_class_and_learner_code():
     class Worksheet:
         col_count = 8
-        def row_values(self, row): return practice_progress._HEADER[:-1]
+        def __init__(self): self.updated = []
+        def row_values(self, row): return practice_progress._HEADER[:8]
         def add_cols(self, count): self.col_count += count
-        def update_cell(self, row, column, value): self.updated = (row, column, value)
+        def update_cell(self, row, column, value): self.updated.append((row, column, value))
     worksheet = Worksheet()
     spreadsheet = type('Spreadsheet', (), {'worksheet': lambda self, title: worksheet})()
     client = type('Client', (), {'open_by_key': lambda self, key: spreadsheet})()
@@ -404,8 +407,8 @@ def test_existing_eight_column_progress_sheet_is_extended_for_class_level():
     practice_progress._client = client
     with patch.dict('os.environ', {'GOOGLE_SHEET_ID': 'sheet', 'GOOGLE_SERVICE_ACCOUNT_JSON': '{}'}):
         assert practice_progress._get_worksheet() is worksheet
-    assert worksheet.col_count == 9
-    assert worksheet.updated == (1, 9, 'Class Level')
+    assert worksheet.col_count == 10
+    assert worksheet.updated == [(1, 9, 'Class Level'), (1, 10, 'Learner Code')]
 
 
 def test_classroom_session_accepts_a_safe_nickname_and_class_level():
@@ -419,6 +422,39 @@ def test_classroom_session_accepts_a_safe_nickname_and_class_level():
         'learner_key': 'c' * 48, 'nickname': '<script>', 'class_level': 'JSS4',
     })
     assert unsafe.status_code == 422
+
+
+def test_learner_code_is_normalised_and_restores_identity_across_devices():
+    first = client.post('/api/classroom/session', json={
+        'learner_key': 'a' * 48, 'learner_code': 'ise-jss2-014',
+        'nickname': 'David', 'class_level': 'JSS2',
+    })
+    second = client.post('/api/classroom/session', json={
+        'learner_key': 'b' * 48, 'learner_code': 'ISE-JSS2-014',
+        'nickname': 'David', 'class_level': 'JSS2',
+    })
+    other = client.post('/api/classroom/session', json={
+        'learner_key': 'a' * 48, 'learner_code': 'ISE-JSS2-015',
+        'nickname': 'David', 'class_level': 'JSS2',
+    })
+    assert first.status_code == second.status_code == other.status_code == 200
+    assert first.json()['learner_code'] == 'ISE-JSS2-014'
+    assert first.json()['learner_id'] == second.json()['learner_id']
+    assert first.json()['learner_id'] != other.json()['learner_id']
+    assert client.post('/api/classroom/session', json={'learner_code': 'bad code'}).status_code == 422
+
+
+def test_teacher_dashboard_exposes_codes_without_internal_learner_ids():
+    practice_progress._reset_for_tests()
+    now = datetime.now(timezone.utc).isoformat()
+    practice_progress._memory_records.extend([
+        {'learner_id':'WEB-one','learner_code':'ISE-JSS2-014','class_level':'JSS2','session_id':'one-a','topic':'Simple Equations','difficulty':'Easy','score':2,'attempted':5,'percentage':40,'timestamp':now},
+        {'learner_id':'WEB-two','learner_code':'ISE-JSS2-027','class_level':'JSS2','session_id':'two-a','topic':'Fractions','difficulty':'Easy','score':4,'attempted':5,'percentage':80,'timestamp':now},
+    ])
+    dashboard = practice_progress.build_teacher_dashboard('JSS2')
+    assert [row['learner_code'] for row in dashboard['learner_rows']] == ['ISE-JSS2-014', 'ISE-JSS2-027']
+    assert dashboard['learner_rows'][0]['support_topic'] == 'Simple Equations'
+    assert all('learner_id' not in row for row in dashboard['learner_rows'])
 
 
 def test_practice_options_expose_class_and_term_curriculum():
