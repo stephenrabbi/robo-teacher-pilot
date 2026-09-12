@@ -189,14 +189,6 @@
 })();
 
 (() => {
-  if(document.getElementById('roboTeacherPracticeFeedbackScript'))return;
-  const script=document.createElement('script');
-  script.id='roboTeacherPracticeFeedbackScript';
-  script.src='/classroom/practice_feedback.js?v=20260911-feedback-p1-2';
-  document.body.appendChild(script);
-})();
-
-(() => {
   if(document.getElementById('roboTeacherHomeNavigationScript'))return;
   const script=document.createElement('script');
   script.id='roboTeacherHomeNavigationScript';
@@ -208,7 +200,7 @@
   if(document.getElementById('roboTeacherDataSaverScript'))return;
   const script=document.createElement('script');
   script.id='roboTeacherDataSaverScript';
-  script.src='/classroom/data_saver.js?v=20260911-data-saver-p2-2';
+  script.src='/classroom/data_saver.js?v=20260911-data-saver-p2-1';
   document.body.appendChild(script);
 })();
 
@@ -233,5 +225,13 @@
   const script=document.createElement('script');
   script.id='roboTeacherDesignTokensScript';
   script.src='/classroom/design_tokens.js?v=20260911-design-p2-1';
+  document.body.appendChild(script);
+})();
+
+(() => {
+  if(document.getElementById('roboTeacherLanguageSwitchStabilityScript'))return;
+  const script=document.createElement('script');
+  script.id='roboTeacherLanguageSwitchStabilityScript';
+  script.src='/classroom/language_switch_stability.js?v=20260911-language-switch-6';
   document.body.appendChild(script);
 })();
