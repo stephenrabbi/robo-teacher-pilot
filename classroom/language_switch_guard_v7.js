@@ -141,3 +141,11 @@
   script.dataset.handsfreeLanguageContinuity = 'true';
   document.head.appendChild(script);
 })();
+
+(() => {
+  if (document.querySelector('script[data-whiteboard-draft-continuity]')) return;
+  const script = document.createElement('script');
+  script.src = '/classroom/whiteboard_draft_continuity.js?v=20260915-whiteboard-draft1';
+  script.dataset.whiteboardDraftContinuity = 'true';
+  document.head.appendChild(script);
+})();
