@@ -34,6 +34,7 @@
     progress.recommended_topic=plan.topic;
     progress.recommended_difficulty=plan.difficulty||progress.recommended_difficulty;
     progress.recommendation=`${plan.title}: ${plan.topic}. ${plan.reason}`;
+    if(plan.teacher_support_required)progress.teacher_support_required=true;
     return progress;
   }
 
@@ -49,6 +50,7 @@
     const mastered=(plan.mastered_topics||[]).filter(Boolean);
     const support=(plan.needs_support_topics||[]).filter(Boolean);
     const remembered=mastered.length?`I remember you mastered ${mastered.slice(-2).join(' and ')}. `:'';
+    if(plan.action==='teacher_help')return `${remembered}${plan.topic} has stayed difficult after repeated support. I recommend pausing Autopilot and showing this progress to your teacher.`;
     if(plan.foundation_for){
       const verb=plan.action==='reteach'?'strengthen':'quickly check';
       return `${remembered}Before we continue with ${plan.foundation_for}, I want to ${verb} ${plan.topic} because it is an important foundation.`;
@@ -87,6 +89,11 @@
 
   async function runPlanAction(plan){
     try{
+      if(plan.action==='teacher_help'){
+        setLearningStatus(`Teacher support recommended for ${plan.topic}. Show your Progress view to your teacher before continuing this topic.`,'attention');
+        if(typeof openProgress==='function')await openProgress();else progressButton?.click();
+        return;
+      }
       setLearningStatus(`Robo-Teacher chose: ${plan.title}`,'thinking');
       if(plan.action==='practice'){
         await ensureProgressForPlan(plan);openRecommendedPractice();return;
