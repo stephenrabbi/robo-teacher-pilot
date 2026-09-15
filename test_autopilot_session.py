@@ -8,7 +8,7 @@ def _read(path: str) -> str:
 
 def test_autopilot_loader_is_versioned_and_present():
     guidance = _read("classroom/daily_guidance_fix.js")
-    assert "autopilot_session.js?v=20260915-autopilot1" in guidance
+    assert "autopilot_session.js?v=20260915-autopilot2" in guidance
     assert "data-autopilot-session" in guidance
 
 
