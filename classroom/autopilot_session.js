@@ -172,7 +172,18 @@
     }, CHECK_POLL_MS);
   }
 
+  function stopForTeacherSupport(plan) {
+    const foundation = plan.foundation_for ? ` before returning to ${plan.foundation_for}` : '';
+    stopSession(`Teacher support is recommended for ${plan.topic}${foundation}. Robo-Teacher has paused rather than repeating autonomous reteaching. Show your Progress view to your teacher, then continue after the topic has been reviewed together.`);
+    title.textContent = 'Teacher support recommended';
+    startButton.textContent = 'Review after teacher support →';
+  }
+
   async function runPlan(plan) {
+    if (plan.action === 'teacher_help') {
+      stopForTeacherSupport(plan);
+      return;
+    }
     const before = canvasAnswer.innerText.trim();
     if (plan.action === 'practice') {
       await openPlanPractice(plan);
@@ -203,13 +214,13 @@
       renderRunning('Choosing your next best learning step…');
       const plan = await fetchPlan();
       if (!session.running || session.paused) return;
-      if (topicLimitReached(plan)) {
+      if (plan.action !== 'teacher_help' && topicLimitReached(plan)) {
         stopSession(`${plan.topic} still needs attention. Autopilot has stopped rather than repeating the same topic again. You can ask a question, practise manually, or get help from your teacher.`);
         return;
       }
       session.currentPlan = plan;
-      session.topicActions.set(plan.topic, (session.topicActions.get(plan.topic) || 0) + 1);
-      session.awaitingEvidence = true;
+      if (plan.action !== 'teacher_help') session.topicActions.set(plan.topic, (session.topicActions.get(plan.topic) || 0) + 1);
+      session.awaitingEvidence = plan.action !== 'teacher_help';
       await runPlan(plan);
     } catch (error) {
       stopSession(error.message || 'Autopilot could not continue this lesson.');
