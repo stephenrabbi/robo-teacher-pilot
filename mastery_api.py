@@ -12,6 +12,7 @@ from classroom_api import _classroom_profiles, _enforce_rate_limit, _verify_sess
 from curriculum import CLASS_TOPICS
 from learning_planner import build_autonomous_plan
 from mastery_progress import infer_topic, learner_summary, persist_event, stage_event, teacher_summary
+from misconceptions import classify_misconception
 
 router = APIRouter(prefix="/api/classroom/mastery", tags=["classroom-mastery"])
 
@@ -23,6 +24,12 @@ class MasteryEventRequest(BaseModel):
     check_id: str = Field(min_length=16, max_length=64, pattern=r"^[a-f0-9]+$")
     stage: Literal["initial", "reteach"] = "initial"
     correct: bool
+    # These fields are used only for deterministic classification. They are
+    # deliberately not written to durable storage.
+    question: str = Field(default="", max_length=1000)
+    selected_choice: str = Field(default="", max_length=500)
+    correct_choice: str = Field(default="", max_length=500)
+    feedback: str = Field(default="", max_length=1500)
 
 
 class MasterySummaryRequest(BaseModel):
@@ -56,6 +63,17 @@ def record_mastery_event(request: MasteryEventRequest, background_tasks: Backgro
             "reason": "topic_not_resolved",
             "summary": learner_summary(student_id, class_level),
         }
+
+    diagnosis = None
+    if not request.correct:
+        diagnosis = classify_misconception(
+            topic,
+            request.question,
+            request.selected_choice,
+            request.correct_choice,
+            request.feedback,
+        )
+
     event_id = hashlib.sha256(f"{student_id}:{request.check_id}:{request.stage}".encode()).hexdigest()[:32]
     record = stage_event(
         event_id,
@@ -65,12 +83,15 @@ def record_mastery_event(request: MasteryEventRequest, background_tasks: Backgro
         topic,
         request.stage,
         request.correct,
+        diagnosis["category"] if diagnosis else "",
+        diagnosis["strategy"] if diagnosis else "",
     )
     background_tasks.add_task(persist_event, event_id)
     return {
         "stored": True,
         "topic": topic,
         "state": record["state"],
+        "misconception": diagnosis if diagnosis else None,
         "summary": learner_summary(student_id, class_level),
     }
 

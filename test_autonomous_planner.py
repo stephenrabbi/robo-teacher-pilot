@@ -112,3 +112,24 @@ def test_return_card_uses_saved_mastery_to_explain_why_the_next_action_was_chose
     assert "I remember you mastered" in script
     assert "still needs some work" in script
     assert "You are ready to continue with" in script
+
+
+def test_reteach_plan_uses_recurring_misconception_to_change_strategy():
+    strategy = "List every possible outcome before counting favourable outcomes."
+    mastery = _mastery(
+        topics=[{
+            "topic": "Probability",
+            "state": "needs_support",
+            "last_seen": "2026-09-15T11:00:00+00:00",
+            "misconception_label": "Probability or sample-space confusion",
+            "teaching_strategy": strategy,
+        }],
+        support=["Probability"],
+    )
+    plan = choose_next_action("JSS2", _practice(), mastery)
+    assert plan["action"] == "reteach"
+    assert plan["misconception"] == "Probability or sample-space confusion"
+    assert plan["teaching_strategy"] == strategy
+    assert strategy in plan["prompt"]
+    assert "Do not repeat the previous explanation word for word" in plan["prompt"]
+    assert "change the teaching approach" in plan["reason"]

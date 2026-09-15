@@ -28,7 +28,7 @@
     return currentLesson?.text || canvasAnswer?.innerText?.trim() || '';
   }
 
-  window.roboTeacherMasteryRecord = async function ({correct, stage, checkId}) {
+  window.roboTeacherMasteryRecord = async function ({correct, stage, checkId, question='', selectedChoice='', correctChoice='', feedback=''}) {
     if (!checkId) return null;
     try {
       const data = await masteryRequest('event', {
@@ -36,7 +36,11 @@
         stage: stage === 'reteach' ? 'reteach' : 'initial',
         check_id: checkId,
         lesson_text: lessonText(),
-        topic_hint: topicHint()
+        topic_hint: topicHint(),
+        question: correct ? '' : String(question || '').slice(0, 1000),
+        selected_choice: correct ? '' : String(selectedChoice || '').slice(0, 500),
+        correct_choice: correct ? '' : String(correctChoice || '').slice(0, 500),
+        feedback: correct ? '' : String(feedback || '').slice(0, 1500)
       });
       if (data.summary) cachedMasterySummary = data.summary;
       return data;
@@ -61,6 +65,9 @@
           item.mastery_memory_confidence = saved.confidence;
           item.mastery_checks = saved.checks;
           item.last_mastery_at = saved.last_seen;
+          item.misconception = saved.misconception || null;
+          item.misconception_label = saved.misconception_label || null;
+          item.teaching_strategy = saved.teaching_strategy || null;
           if (saved.state === 'mastered') {
             item.mastery_status = 'mastered';
             item.status = 'mastered';
@@ -100,6 +107,7 @@
       }
     }
     progress.mastery_memory = summary;
+    if (summary.misconception_focus) progress.misconception_focus = summary.misconception_focus;
     return progress;
   }
 
@@ -126,13 +134,28 @@
       row.mastered_topics = saved.mastered_topics || [];
       row.developing_topics = saved.developing_topics || [];
       row.needs_support_topics = saved.needs_support_topics || [];
-      if (saved.support_topic) row.support_topic = saved.support_topic;
+      row.support_misconception = saved.support_misconception || null;
+      row.teaching_strategy = saved.teaching_strategy || null;
+      if (saved.support_topic) {
+        row.support_topic = saved.support_misconception
+          ? `${saved.support_topic} · ${saved.support_misconception}`
+          : saved.support_topic;
+      }
     });
     if (memory.focus_topic) {
       data.focus_topic = memory.focus_topic;
       data.weakest_topic = memory.focus_topic;
-      data.recommendation = `Prioritise ${memory.focus_topic}; recent mastery checks show learners still need support there.`;
+      if (memory.focus_misconception && memory.focus_teaching_strategy) {
+        data.recommendation = `Prioritise ${memory.focus_misconception_topic || memory.focus_topic}. Recurring pattern: ${memory.focus_misconception}. Suggested intervention: ${memory.focus_teaching_strategy}`;
+      } else {
+        data.recommendation = `Prioritise ${memory.focus_topic}; recent mastery checks show learners still need support there.`;
+      }
     }
+    data.misconception_focus = memory.focus_misconception ? {
+      topic: memory.focus_misconception_topic || memory.focus_topic,
+      label: memory.focus_misconception,
+      teaching_tip: memory.focus_teaching_strategy
+    } : null;
     data.mastery_memory_synced = memory.storage_synced;
     return data;
   }
