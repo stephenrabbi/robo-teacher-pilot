@@ -365,6 +365,7 @@ def test_mastery_requires_repeated_evidence_and_old_learning_becomes_due():
 def test_fraction_error_is_classified_only_when_the_pattern_is_proven():
     error = practice._question_evidence('Calculate 1/4 + 2/4.', '3/8', False, 'Fractions')
     assert error == {'skill': 'fraction_addition', 'correct': False, 'misconception': 'adds_denominators'}
+    assert practice._question_evidence('Calculate 1/4 + 2/4. Give the simplest fraction.', '3/8', False, 'Fractions') == error
     assert practice._question_evidence('Calculate 1/4 + 2/4.', '1/8', False, 'Fractions')['misconception'] is None
     assert practice._question_evidence('Share 1/4 + 2/4 of the cake.', '3/8', False, 'Fractions')['misconception'] is None
 
