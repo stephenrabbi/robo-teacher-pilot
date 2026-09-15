@@ -444,8 +444,18 @@ def classroom_understanding_start(request: ClassroomTranslation):
         check = generate_understanding_check(request.text, request.language, class_level)
     except Exception:
         check = fallback_understanding_check(request.text, request.language, class_level)
+    now = time.time()
+    for expired_id in [key for key, item in _understanding_checks.items() if now - item.get("created", now) > _SESSION_TTL_SECONDS]:
+        _understanding_checks.pop(expired_id, None)
     check_id = secrets.token_hex(16)
-    _understanding_checks[check_id] = {**check, "student_id": student_id, "created": time.time()}
+    _understanding_checks[check_id] = {
+        **check,
+        "student_id": student_id,
+        "created": now,
+        "lesson_text": request.text.strip(),
+        "language": request.language,
+        "class_level": class_level,
+    }
     return {"check_id": check_id, "question": check["question"], "choices": check["choices"], "language": request.language}
 
 
@@ -471,7 +481,29 @@ def classroom_understanding_answer(request: UnderstandingAnswer):
     if not check or check["student_id"] != student_id or time.time() - check["created"] > _SESSION_TTL_SECONDS:
         raise HTTPException(status_code=404, detail="This check has expired. Please start another one")
     correct = request.choice_index == check["correct_index"]
-    return {"correct": correct, "correct_index": check["correct_index"], "feedback": check["feedback"]}
+    feedback = check["feedback"]
+    if not correct:
+        reteach = check.get("reteach", "")
+        if not check.get("reteach_attempted"):
+            check["reteach_attempted"] = True
+            try:
+                reteach = simplify_tutor_text(
+                    check.get("lesson_text", ""),
+                    check.get("language", "English"),
+                    check.get("class_level", "JSS2"),
+                )
+            except Exception:
+                reteach = ""
+            check["reteach"] = reteach
+        if reteach:
+            reteach_intro = {
+                "English": "Let's try it another way:",
+                "Yoruba": "Jẹ́ ká gbìyànjú ọ̀nà míì:",
+                "Igbo": "Ka anyị nwaa ụzọ ọzọ:",
+                "Hausa": "Mu gwada wata hanya:",
+            }.get(check.get("language"), "Let's try it another way:")
+            feedback = f"{feedback} {reteach_intro} {reteach}"
+    return {"correct": correct, "correct_index": check["correct_index"], "feedback": feedback}
 
 
 @router.post("/image")
