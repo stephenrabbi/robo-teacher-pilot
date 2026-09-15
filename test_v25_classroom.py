@@ -362,6 +362,50 @@ def test_mastery_requires_repeated_evidence_and_old_learning_becomes_due():
     assert old_dashboard['recommended_topic'] == 'Fractions'
 
 
+def test_fraction_error_is_classified_only_when_the_pattern_is_proven():
+    error = practice._question_evidence('Calculate 1/4 + 2/4.', '3/8', False, 'Fractions')
+    assert error == {'skill': 'fraction_addition', 'correct': False, 'misconception': 'adds_denominators'}
+    assert practice._question_evidence('Calculate 1/4 + 2/4. Give the simplest fraction.', '3/8', False, 'Fractions') == error
+    assert practice._question_evidence('Calculate 1/4 + 2/4.', '1/8', False, 'Fractions')['misconception'] is None
+    assert practice._question_evidence('Share 1/4 + 2/4 of the cake.', '3/8', False, 'Fractions')['misconception'] is None
+
+
+def test_practice_feedback_and_summary_use_the_same_skill_evidence():
+    questions = [(f'Calculate {n}/4 + 2/4.', 'Keep the denominator.', f'{n+2}/4', 'Add the numerators.') for n in range(1, 6)]
+    with patch.object(practice, '_build_question_queue', return_value=questions):
+        practice.start_practice('WEB-error-unit', 'Fractions', 'Easy', 5, 'JSS1')
+    feedback = practice.answer_practice('WEB-error-unit', '3/8')
+    assert 'do not add the denominators' in feedback['targeted_tip'].lower()
+    for _ in range(4):
+        practice.next_question('WEB-error-unit')
+        result = practice.answer_practice('WEB-error-unit', '0')
+    assert result['completed']
+    assert result['summary']['skill_evidence'][0]['misconception'] == 'adds_denominators'
+    assert all('learner_answer' not in item for item in result['summary']['skill_evidence'])
+
+
+def test_persisted_skill_evidence_is_identity_free_and_drives_support():
+    practice_progress._reset_for_tests()
+    summary = {'session_id': 'evidence-1', 'class_level': 'JSS1', 'topic': 'Fractions',
+               'difficulty': 'Easy', 'score': 3, 'attempted': 5, 'percentage': 60,
+               'skill_evidence': [{'skill': 'fraction_addition', 'correct': False,
+                                   'misconception': 'adds_denominators', 'learner_answer': '3/8', 'question': 'private'},
+                                  {'skill': 'Fractions', 'correct': False, 'misconception': 'invented'}]}
+    with patch.object(practice_progress, '_sheet_configured', return_value=False):
+        assert practice_progress.save_result('WEB-synthetic', summary) is False
+        dashboard = practice_progress.build_dashboard('WEB-synthetic', 'JSS1')
+    stored = practice_progress._memory_records[0]['skill_evidence']
+    assert stored == [{'skill': 'fraction_addition', 'correct': False, 'misconception': 'adds_denominators'}]
+    assert dashboard['misconception_focus']['observations'] == 1
+    assert 'common denominator' in dashboard['misconception_focus']['teaching_tip']
+    assert 'learner_id' not in dashboard
+    later = {**summary, 'session_id': 'evidence-2', 'score': 5, 'percentage': 100,
+             'skill_evidence': [{'skill': 'fraction_addition', 'correct': True, 'misconception': None}] * 2}
+    with patch.object(practice_progress, '_sheet_configured', return_value=False):
+        practice_progress.save_result('WEB-synthetic', later)
+        assert practice_progress.build_dashboard('WEB-synthetic', 'JSS1')['misconception_focus'] is None
+
+
 def test_auto_difficulty_uses_topic_history_without_skipping_a_level():
     practice_progress._reset_for_tests()
     now = __import__('datetime').datetime.now(__import__('datetime').UTC)

@@ -52,13 +52,56 @@ def _normalise_curriculum_records(records: list[dict], class_level: str) -> list
 
 _HEADER = [
     "Timestamp (UTC)", "Session ID", "Learner ID", "Topic", "Difficulty",
-    "Score", "Questions", "Percentage", "Class Level", "Learner Code",
+    "Score", "Questions", "Percentage", "Class Level", "Learner Code", "Skill Evidence JSON",
 ]
 _client = None
 _worksheet = None
 _memory_records: list[dict] = []
 _unsynced_ids: set[str] = set()
 _lock = threading.Lock()
+_SKILLS = {"fraction_addition", "fraction_subtraction"}
+_ERRORS = {"adds_denominators"}
+
+
+def _clean_skill_evidence(value) -> list[dict]:
+    """Allowlist short, identity-free skill signals before durable storage."""
+    if not isinstance(value, list):
+        return []
+    return [
+        {"skill": item["skill"], "correct": item["correct"], "misconception": item.get("misconception") if item.get("misconception") in _ERRORS else None}
+        for item in value[:20]
+        if isinstance(item, dict) and item.get("skill") in _SKILLS and type(item.get("correct")) is bool
+    ]
+
+
+def _decode_skill_evidence(value) -> list[dict]:
+    try:
+        return _clean_skill_evidence(json.loads(str(value)))
+    except (ValueError, TypeError):
+        return []
+
+
+def _misconception_focus(records: list[dict]) -> dict | None:
+    counts = {}
+    recent_success = {}
+    # Newest answers first: two subsequent correct attempts on the same skill
+    # retire an older error instead of repeating obsolete advice forever.
+    ordered = sorted(enumerate(records), key=lambda pair: (pair[1].get("timestamp", ""), pair[0]), reverse=True)
+    for _index, record in ordered:
+        for item in reversed(_clean_skill_evidence(record.get("skill_evidence", []))):
+            skill = item["skill"]
+            if item["correct"]:
+                recent_success[skill] = recent_success.get(skill, 0) + 1
+                continue
+            error = item.get("misconception")
+            if error and recent_success.get(skill, 0) < 2:
+                counts[error] = counts.get(error, 0) + 1
+            recent_success[skill] = 0
+    if not counts:
+        return None
+    error = max(counts, key=lambda key: (counts[key], key))
+    return {"skill": "fraction_addition", "misconception": error, "observations": counts[error],
+            "teaching_tip": "Use a common denominator before adding fractions. Keep that denominator and add only the numerators."}
 
 
 def _sheet_configured() -> bool:
@@ -103,6 +146,7 @@ def save_result(learner_id: str, summary: dict) -> bool:
         "percentage": int(summary["percentage"]),
         "class_level": summary.get("class_level", "JSS2"),
         "learner_code": str(summary.get("learner_code", "")).strip().upper(),
+        "skill_evidence": _clean_skill_evidence(summary.get("skill_evidence", [])),
     }
     with _lock:
         if not any(item["session_id"] == record["session_id"] for item in _memory_records):
@@ -114,7 +158,7 @@ def save_result(learner_id: str, summary: dict) -> bool:
         _get_worksheet().append_row([
             record["timestamp"], record["session_id"], learner_id, record["topic"],
             record["difficulty"], record["score"], record["attempted"], record["percentage"],
-            record["class_level"], record["learner_code"],
+            record["class_level"], record["learner_code"], json.dumps(record["skill_evidence"], separators=(",", ":")),
         ])
         _unsynced_ids.discard(record["session_id"])
         return True
@@ -142,6 +186,7 @@ def _sheet_records(learner_id: str) -> list[dict]:
                 "percentage": int(row["Percentage"]),
                 "class_level": str(row.get("Class Level", "JSS2") or "JSS2"),
                 "learner_code": str(row.get("Learner Code", "")).strip().upper(),
+                "skill_evidence": _decode_skill_evidence(row.get("Skill Evidence JSON", "")),
             })
         except (KeyError, TypeError, ValueError):
             continue
@@ -184,6 +229,7 @@ def get_all_records() -> tuple[list[dict], bool]:
                         "percentage": int(row["Percentage"]),
                         "class_level": str(row.get("Class Level", "JSS2") or "JSS2"),
                         "learner_code": str(row.get("Learner Code", "")).strip().upper(),
+                        "skill_evidence": _decode_skill_evidence(row.get("Skill Evidence JSON", "")),
                     })
                 except (KeyError, TypeError, ValueError):
                     continue
@@ -381,6 +427,7 @@ def build_dashboard(learner_id: str, class_level: str = "JSS2") -> dict:
             })
         learning_path.append({"term": term, "topics": path_topics})
     weekly = _weekly_summary(records)
+    misconception_focus = _misconception_focus(records)
     return {
         "class_level": class_level,
         "sessions": len(records),
@@ -400,6 +447,7 @@ def build_dashboard(learner_id: str, class_level: str = "JSS2") -> dict:
         "weekly_summary": weekly,
         "storage_synced": synced,
         "latest_diagnostic": diagnostic,
+        "misconception_focus": misconception_focus,
     }
 
 

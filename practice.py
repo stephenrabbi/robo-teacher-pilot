@@ -1,6 +1,7 @@
 """Deterministic, pseudonymous Junior Secondary Maths practice sessions."""
 
 import secrets
+import re
 from dataclasses import dataclass, field
 from fractions import Fraction
 
@@ -183,6 +184,7 @@ class PracticeState:
     answered: bool = False
     last_correct: bool | None = None
     missed: list[dict] = field(default_factory=list)
+    skill_evidence: list[dict] = field(default_factory=list)
     question_sets: dict[str, list[tuple[str, str, str, str]]] = field(default_factory=dict)
     session_id: str = field(default_factory=lambda: secrets.token_hex(12))
 
@@ -251,6 +253,30 @@ def _normalise_answer(answer: str) -> str:
         return clean
 
 
+def _question_evidence(question: str, answer: str, correct: bool, topic: str) -> dict:
+    """Store a skill tag and only demonstrable error patterns, never answers."""
+    expression = re.fullmatch(r"(?:Calculate|What is)\s+(\d+)\s*/\s*(\d+)\s*([+-])\s*(\d+)\s*/\s*(\d+)\s*\.(?:\s+Give the simplest fraction\.)?", question.strip(), re.IGNORECASE)
+    if not expression:
+        return {"skill": topic, "correct": correct, "misconception": None}
+    a, b, operation, c, d = expression.groups()
+    a, b, c, d = int(a), int(b), int(c), int(d)
+    skill = "fraction_addition" if operation == "+" else "fraction_subtraction"
+    misconception = None
+    if not correct and operation == "+" and b != 0 and d != 0:
+        try:
+            learner_value = Fraction(_normalise_answer(answer))
+            if learner_value == Fraction(a + c, b + d):
+                misconception = "adds_denominators"
+        except (ValueError, ZeroDivisionError):
+            pass
+    return {"skill": skill, "correct": correct, "misconception": misconception}
+
+
+_MISCONCEPTION_TIPS = {
+    "adds_denominators": "When adding fractions, do not add the denominators. First make the denominators equal; then add only the numerators.",
+}
+
+
 def answer_practice(student_id: str, answer: str) -> dict:
     state = _sessions.get(student_id)
     if not state:
@@ -258,6 +284,10 @@ def answer_practice(student_id: str, answer: str) -> dict:
     if state.answered:
         raise RuntimeError("Question already answered")
     correct = _normalise_answer(answer) == _normalise_answer(state.expected)
+    # Classify against the original Maths question, not translated text.
+    source_question = state.question_sets["English"][state.question_number - 1][0]
+    evidence = _question_evidence(source_question, answer, correct, state.topic)
+    state.skill_evidence.append(evidence)
     state.attempted += 1
     state.correct += int(correct)
     state.answered = True
@@ -275,6 +305,8 @@ def answer_practice(student_id: str, answer: str) -> dict:
         "percentage": round(state.correct / state.attempted * 100),
         "completed": completed,
     }
+    if evidence["misconception"] and state.language == "English":
+        result["targeted_tip"] = _MISCONCEPTION_TIPS[evidence["misconception"]]
     if completed:
         result["summary"] = _summary(state)
     return result
@@ -372,6 +404,7 @@ def _summary(state: PracticeState) -> dict:
         "score": state.correct,
         "attempted": state.attempted,
         "percentage": percentage,
+        "skill_evidence": list(state.skill_evidence),
         "missed": [
             {
                 "question": state.question_sets[state.language][item["question_number"] - 1][0],
