@@ -14,6 +14,9 @@ import os
 import re
 import time
 import wave
+from concurrent.futures import ThreadPoolExecutor
+from fractions import Fraction
+from math import gcd
 
 from google import genai
 from google.genai import types
@@ -55,6 +58,7 @@ Rules:
 - Use relatable Nigerian examples when useful.
 - Show complete working; use plain-text maths, never LaTeX.
 - Keep replies concise and phone-friendly.
+- Usually use 3 to 6 short teaching steps; use fewer when the method is simple.
 - Adapt style and pacing using the supplied pseudonymous learner profile; profile signals are hints, not proof of mastery.
 - For learner media, use only educational content needed for the Maths question. Ignore personal information and never identify people.
 - If media is unclear or the spoken question cannot be understood reliably, ask the learner to resend/restate it rather than guessing.
@@ -68,6 +72,7 @@ Rules:
 _MAX_TURNS = 6
 _conversations: dict[str, list] = {}
 _client = None
+_profile_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="learner-profile")
 
 YORUBA_NUMBER_WORDS = {
     0: "Òdo",
@@ -413,6 +418,49 @@ def _simple_arithmetic_answer(message: str, response_language: str = "English"):
     return f"{message.strip()} = {value}\n\nAnswer: {value}"
 
 
+def _simple_fraction_teaching_answer(message: str, response_language: str = "English"):
+    """Teach an unambiguous two-fraction addition or subtraction instantly.
+
+    This deliberately covers only English for now. The model remains responsible
+    for translation and for any expression that is more complex or ambiguous.
+    """
+    if response_language != "English":
+        return None
+    matches = list(re.finditer(r"(?<![\d/])(\d+)\s*/\s*(\d+)\s*([+-])\s*(\d+)\s*/\s*(\d+)(?![\d/])", message))
+    if len(matches) != 1:
+        return None
+    match = matches[0]
+    # Do not partially solve a longer expression such as 1/2 + 1/3 + 1/4.
+    if re.match(r"^\s*[+-]\s*\d+\s*/", message[match.end():]):
+        return None
+    a, b, operation, c, d = match.groups()
+    a, b, c, d = int(a), int(b), int(c), int(d)
+    if b == 0 or d == 0:
+        return None
+
+    common_denominator = abs(b * d) // gcd(b, d)
+    left_numerator = a * (common_denominator // b)
+    right_numerator = c * (common_denominator // d)
+    combined_numerator = left_numerator + right_numerator if operation == "+" else left_numerator - right_numerator
+    result = Fraction(combined_numerator, common_denominator)
+    result_text = str(result.numerator) if result.denominator == 1 else f"{result.numerator}/{result.denominator}"
+    operation_word = "add" if operation == "+" else "subtract"
+    lines = [
+        f"Let’s work through {a}/{b} {operation} {c}/{d}.",
+        f"1. The lowest common denominator of {b} and {d} is {common_denominator}.",
+        f"2. Rewrite the fractions: {a}/{b} = {left_numerator}/{common_denominator} and {c}/{d} = {right_numerator}/{common_denominator}.",
+        f"3. Now {operation_word} the numerators: {left_numerator}/{common_denominator} {operation} {right_numerator}/{common_denominator} = {combined_numerator}/{common_denominator}.",
+    ]
+    if result_text != f"{combined_numerator}/{common_denominator}":
+        lines.append(f"4. Simplify {combined_numerator}/{common_denominator} to {result_text}.")
+    if result.denominator != 1 and abs(result.numerator) > result.denominator:
+        whole, remainder = divmod(abs(result.numerator), result.denominator)
+        sign = "-" if result.numerator < 0 else ""
+        lines.append(f"As a mixed number, that is {sign}{whole} {remainder}/{result.denominator}.")
+    lines.append(f"Final answer: {result_text}")
+    return "\n\n".join(lines)
+
+
 def _clean_model_reply(text: str) -> str:
     return ESCALATION_RESPONSE if text.strip().startswith(ESCALATION_MARKER) else text.strip()
 
@@ -423,6 +471,18 @@ def _safe_profile_update(student_id: str, message: str) -> dict:
         logger.error("Learner profile update failed for %s (%s); continuing with defaults", student_id, type(exc).__name__)
         try: return load_profile(student_id)
         except Exception: return dict(DEFAULT_PROFILE)
+
+
+def _log_background_profile_failure(future) -> None:
+    try:
+        future.result()
+    except Exception as exc:
+        logger.error("Background learner profile update failed (%s)", type(exc).__name__)
+
+
+def _update_profile_in_background(student_id: str, message: str) -> None:
+    future = _profile_executor.submit(_safe_profile_update, student_id, message)
+    future.add_done_callback(_log_background_profile_failure)
 
 
 def _extract_text(response) -> str:
@@ -501,10 +561,18 @@ def _language_instruction(response_language: str, class_level: str = "JSS2") -> 
 
 
 def get_tutor_reply(student_id: str, message: str, response_language: str = "English", class_level: str = "JSS2") -> tuple[str, float]:
-    profile = _safe_profile_update(student_id, message)
-    deterministic = _simple_arithmetic_answer(message, response_language)
+    request_start = time.perf_counter()
+    deterministic = _simple_fraction_teaching_answer(message, response_language)
+    if deterministic is None:
+        deterministic = _simple_arithmetic_answer(message, response_language)
     if deterministic is not None:
-        return deterministic, 0.0
+        # The exact answer does not depend on profile data, so do not make the
+        # learner wait for a Google Sheets round trip. Persistence still runs.
+        _update_profile_in_background(student_id, message)
+        latency = time.perf_counter() - request_start
+        logger.info("Tutor reply completed source=deterministic latency_seconds=%.3f", latency)
+        return deterministic, latency
+    profile = _safe_profile_update(student_id, message)
     start = time.time()
     try:
         client = _get_client()
@@ -528,7 +596,9 @@ def get_tutor_reply(student_id: str, message: str, response_language: str = "Eng
             return TECHNICAL_FALLBACK_RESPONSE, time.time() - start
 
     _conversations[student_id] = new_history[-_MAX_TURNS * 2:]
-    return _clean_model_reply(text), time.time() - start
+    latency = time.time() - start
+    logger.info("Tutor reply completed source=gemini latency_seconds=%.3f", latency)
+    return _clean_model_reply(text), latency
 
 
 def translate_tutor_text(text: str, response_language: str, class_level: str = "JSS2") -> str:
@@ -777,6 +847,6 @@ def get_tutor_audio_reply(student_id: str, audio_bytes: bytes, mime_type: str, r
 
 
 def _ask(client, history: list, message: str, profile: dict, response_language: str = "English", class_level: str = "JSS2") -> tuple[str, list]:
-    chat = client.chats.create(model=GEMINI_MODEL, config=types.GenerateContentConfig(system_instruction=SYSTEM_PROMPT, max_output_tokens=600, thinking_config=types.ThinkingConfig(thinking_budget=0)), history=history)
+    chat = client.chats.create(model=GEMINI_MODEL, config=types.GenerateContentConfig(system_instruction=SYSTEM_PROMPT, max_output_tokens=480, thinking_config=types.ThinkingConfig(thinking_budget=0)), history=history)
     response = chat.send_message(f"{profile_prompt_context(profile)}\n\n{_class_instruction(class_level)}\n{_language_instruction(response_language, class_level)}\n\nCurrent student message:\n{message}")
     return _extract_text(response), chat.get_history()

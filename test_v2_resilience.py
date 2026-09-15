@@ -103,6 +103,15 @@ def test_client_initialization_failure_returns_safe_fallback():
         assert latency >= 0
 
 
+def test_deterministic_answer_does_not_wait_for_profile_storage():
+    with patch.object(tutor, "_update_profile_in_background") as background_update, \
+         patch.object(tutor, "_safe_profile_update", side_effect=AssertionError("must not block")):
+        reply, latency = tutor.get_tutor_reply("TEST001", "Explain 5/6 - 1/4")
+    assert "Final answer: 7/12" in reply
+    background_update.assert_called_once_with("TEST001", "Explain 5/6 - 1/4")
+    assert latency < 0.1
+
+
 asyncio.run(test_telegram_text_fallback())
 asyncio.run(test_telegram_image_fallback())
 asyncio.run(test_telegram_audio_fallback())
@@ -111,4 +120,5 @@ test_retry_failure_returns_safe_fallback()
 test_failed_retry_does_not_mutate_conversation_history()
 test_retry_rate_limit_returns_rate_limit_fallback()
 test_client_initialization_failure_returns_safe_fallback()
+test_deterministic_answer_does_not_wait_for_profile_storage()
 print("V2 controlled resilience/fallback tests passed.")
