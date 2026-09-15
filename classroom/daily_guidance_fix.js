@@ -131,7 +131,7 @@
 (() => {
   if(document.querySelector('script[data-autonomous-planner]'))return;
   const script=document.createElement('script');
-  script.src='/classroom/autonomous_planner.js?v=20260915-autonomous-plan1';
+  script.src='/classroom/autonomous_planner.js?v=20260915-autonomous-plan2';
   script.dataset.autonomousPlanner='true';
   document.head.appendChild(script);
 })();
