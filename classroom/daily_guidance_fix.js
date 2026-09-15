@@ -143,3 +143,11 @@
   script.dataset.autopilotSession='true';
   document.head.appendChild(script);
 })();
+
+(() => {
+  if(document.querySelector('script[data-learner-identity-guard]'))return;
+  const script=document.createElement('script');
+  script.src='/classroom/learner_identity_guard.js?v=20260915-learner-isolation1';
+  script.dataset.learnerIdentityGuard='true';
+  document.head.appendChild(script);
+})();
