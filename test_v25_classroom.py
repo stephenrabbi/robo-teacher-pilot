@@ -1776,6 +1776,22 @@ def test_teaching_quality_regressions_are_guarded():
     assert 'never cut a sentence mid-word' in tutor_source
 
 
+def test_teacher_device_timings_are_local_and_separate_connection_from_response():
+    html=Path('classroom/index.html').read_text()
+    script=Path('classroom/app.js').read_text()
+    assert 'id="showDeviceTimings"' in html
+    assert 'id="deviceTimingOutput"' in html
+    assert 'function displayDeviceTimings()' in script
+    timing=script.split('function displayDeviceTimings(){',1)[1].split('showDeviceTimings.addEventListener',1)[0]
+    for marker in ("performance.getEntriesByType('navigation')", 'navigation.secureConnectionStart',
+                   'navigation.requestStart,navigation.responseStart', "performance.getEntriesByType('resource')",
+                   'deviceTimingOutput.textContent'):
+        assert marker in timing
+    assert 'fetch(' not in timing
+    assert 'localStorage' not in timing
+    assert 'nickname' not in timing
+
+
 if __name__ == '__main__':
     test_session_and_chat_use_pseudonymous_identity()
     test_tampered_session_is_rejected()
@@ -1788,4 +1804,5 @@ if __name__ == '__main__':
     test_classroom_audio_rejects_unsupported_type()
     test_classroom_audio_rejects_oversized_file()
     test_teaching_quality_regressions_are_guarded()
+    test_teacher_device_timings_are_local_and_separate_connection_from_response()
     print('V2.5 classroom API safety tests passed.')
