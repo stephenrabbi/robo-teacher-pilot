@@ -8,12 +8,13 @@ import threading
 
 import gspread
 from curriculum import CLASS_TOPICS
-from misconceptions import misconception_label
+from misconceptions import misconception_label, strategy_options
 
 _HEADER = [
     "Timestamp (UTC)", "Event ID", "Learner ID", "Learner Code",
     "Class Level", "Topic", "Stage", "Correct", "State",
-    "Misconception", "Teaching Strategy",
+    "Misconception", "Teaching Strategy", "Applied Misconception",
+    "Applied Strategy", "Strategy Outcome",
 ]
 _client = None
 _worksheet = None
@@ -139,7 +140,12 @@ def stage_event(
     correct: bool,
     misconception: str = "",
     teaching_strategy: str = "",
+    applied_misconception: str = "",
+    applied_strategy: str = "",
 ) -> dict:
+    strategy_outcome = ""
+    if stage == "reteach" and applied_strategy:
+        strategy_outcome = "success" if correct else "failure"
     record = {
         "timestamp": datetime.datetime.now(datetime.UTC).isoformat(timespec="seconds"),
         "event_id": event_id,
@@ -152,6 +158,9 @@ def stage_event(
         "state": state_for_event(stage, bool(correct)),
         "misconception": misconception if not correct else "",
         "teaching_strategy": teaching_strategy if not correct else "",
+        "applied_misconception": applied_misconception if applied_strategy else "",
+        "applied_strategy": applied_strategy,
+        "strategy_outcome": strategy_outcome,
     }
     with _lock:
         existing = next((item for item in _memory_records if item["event_id"] == event_id), None)
@@ -174,6 +183,7 @@ def persist_event(event_id: str) -> bool:
             record["timestamp"], record["event_id"], record["learner_id"], record["learner_code"],
             record["class_level"], record["topic"], record["stage"], "TRUE" if record["correct"] else "FALSE", record["state"],
             record.get("misconception", ""), record.get("teaching_strategy", ""),
+            record.get("applied_misconception", ""), record.get("applied_strategy", ""), record.get("strategy_outcome", ""),
         ])
         with _lock:
             _unsynced_ids.discard(event_id)
@@ -200,6 +210,9 @@ def _row_to_record(row: dict) -> dict | None:
             "state": str(row.get("State", "")) or state_for_event(stage, correct),
             "misconception": str(row.get("Misconception", "") or ""),
             "teaching_strategy": str(row.get("Teaching Strategy", "") or ""),
+            "applied_misconception": str(row.get("Applied Misconception", "") or ""),
+            "applied_strategy": str(row.get("Applied Strategy", "") or ""),
+            "strategy_outcome": str(row.get("Strategy Outcome", "") or ""),
         }
     except (TypeError, ValueError):
         return None
@@ -224,6 +237,60 @@ def get_records(learner_id: str | None = None) -> tuple[list[dict], bool]:
     return records + pending, synced and not pending_unsynced
 
 
+def _strategy_effectiveness(items: list[dict], misconception: str) -> dict:
+    options = list(strategy_options(misconception))
+    counts = {strategy: {"strategy": strategy, "successes": 0, "failures": 0, "attempts": 0} for strategy in options}
+    for item in items:
+        if item.get("applied_misconception") != misconception:
+            continue
+        strategy = item.get("applied_strategy", "")
+        outcome = item.get("strategy_outcome", "")
+        if strategy not in counts or outcome not in {"success", "failure"}:
+            continue
+        counts[strategy]["attempts"] += 1
+        counts[strategy]["successes"] += int(outcome == "success")
+        counts[strategy]["failures"] += int(outcome == "failure")
+
+    evidence = [counts[strategy] for strategy in options if counts[strategy]["attempts"]]
+    successful = [row for row in evidence if row["successes"]]
+    if successful:
+        selected = max(
+            successful,
+            key=lambda row: (
+                row["successes"] / row["attempts"],
+                row["successes"],
+                -row["failures"],
+                -options.index(row["strategy"]),
+            ),
+        )["strategy"]
+        reason = "worked_before"
+    else:
+        tried = {row["strategy"] for row in evidence}
+        selected = next((strategy for strategy in options if strategy not in tried), None)
+        if selected:
+            reason = "new_after_failure" if tried else "default"
+        elif options:
+            selected = min(
+                options,
+                key=lambda strategy: (
+                    counts[strategy]["failures"],
+                    counts[strategy]["attempts"],
+                    options.index(strategy),
+                ),
+            )
+            reason = "least_failed"
+        else:
+            selected = None
+            reason = "none"
+    return {
+        "preferred_strategy": selected,
+        "selection_reason": reason,
+        "evidence": evidence,
+        "successful_strategies": [row["strategy"] for row in successful],
+        "failed_strategies": [row["strategy"] for row in evidence if row["failures"] and not row["successes"]],
+    }
+
+
 def summarise_topics(records: list[dict]) -> list[dict]:
     topics = []
     for topic in sorted({item["topic"] for item in records if item.get("topic")}):
@@ -234,7 +301,8 @@ def summarise_topics(records: list[dict]) -> list[dict]:
         reteach_attempts = sum(1 for item in items if item.get("stage") == "reteach")
         confidence = "high" if attempts >= 4 else "medium" if attempts >= 2 else "low"
         misconception = latest.get("misconception", "") if latest.get("state") == "needs_support" else ""
-        strategy = latest.get("teaching_strategy", "") if misconception else ""
+        effectiveness = _strategy_effectiveness(items, misconception) if misconception else None
+        strategy = effectiveness.get("preferred_strategy") if effectiveness else None
         topics.append({
             "topic": topic,
             "state": latest.get("state", "developing"),
@@ -245,7 +313,8 @@ def summarise_topics(records: list[dict]) -> list[dict]:
             "last_seen": latest.get("timestamp", ""),
             "misconception": misconception or None,
             "misconception_label": misconception_label(misconception),
-            "teaching_strategy": strategy or None,
+            "teaching_strategy": strategy,
+            "strategy_effectiveness": effectiveness,
         })
     topics.sort(key=lambda item: (item["state"] != "needs_support", item["last_seen"]), reverse=False)
     return topics
@@ -266,6 +335,7 @@ def learner_summary(learner_id: str, class_level: str) -> dict:
             "category": focus["misconception"],
             "label": focus.get("misconception_label"),
             "teaching_tip": focus.get("teaching_strategy"),
+            "strategy_effectiveness": focus.get("strategy_effectiveness"),
         }
     return {
         "class_level": class_level,
@@ -286,6 +356,7 @@ def teacher_summary(class_level: str) -> dict:
     topic_support = {}
     misconception_counts = {}
     strategy_by_misconception = {}
+    effectiveness_by_misconception = {}
     topic_by_misconception = {}
     for learner_id in sorted({item["learner_id"] for item in records}):
         items = [item for item in records if item["learner_id"] == learner_id]
@@ -302,6 +373,7 @@ def teacher_summary(class_level: str) -> dict:
             "support_topic": current["topic"] if current else None,
             "support_misconception": current.get("misconception_label") if current else None,
             "teaching_strategy": current.get("teaching_strategy") if current else None,
+            "strategy_effectiveness": current.get("strategy_effectiveness") if current else None,
         }
         for row in support_rows:
             topic_support[row["topic"]] = topic_support.get(row["topic"], 0) + 1
@@ -309,6 +381,7 @@ def teacher_summary(class_level: str) -> dict:
             if category:
                 misconception_counts[category] = misconception_counts.get(category, 0) + 1
                 strategy_by_misconception[category] = row.get("teaching_strategy")
+                effectiveness_by_misconception[category] = row.get("strategy_effectiveness")
                 topic_by_misconception[category] = row["topic"]
     focus = max(topic_support, key=lambda topic: (topic_support[topic], topic)) if topic_support else None
     misconception = max(misconception_counts, key=lambda key: (misconception_counts[key], key)) if misconception_counts else None
@@ -319,5 +392,6 @@ def teacher_summary(class_level: str) -> dict:
         "focus_misconception": misconception_label(misconception),
         "focus_misconception_topic": topic_by_misconception.get(misconception) if misconception else None,
         "focus_teaching_strategy": strategy_by_misconception.get(misconception) if misconception else None,
+        "focus_strategy_effectiveness": effectiveness_by_misconception.get(misconception) if misconception else None,
         "storage_synced": synced,
     }
