@@ -97,7 +97,7 @@ def test_second_reteach_miss_is_remembered_as_needs_support():
 
 def test_mastery_storage_keeps_no_lesson_transcript():
     _reset_state()
-    session = _session(learner_key="c" * 48)
+    session = _session(learner_key="c" * 48, class_level="JSS3")
     lesson = "A deliberately unique private lesson sentence about simultaneous equations 84729."
     _event(session, "5" * 32, True, "reteach", lesson)
     assert len(mastery_progress._memory_records) == 1
