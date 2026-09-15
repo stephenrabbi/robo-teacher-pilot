@@ -267,6 +267,8 @@ def _question_evidence(question: str, answer: str, correct: bool, topic: str) ->
             learner_value = Fraction(_normalise_answer(answer))
             if learner_value == Fraction(a + c, b + d):
                 misconception = "adds_denominators"
+            elif b != d and a > 0 and c > 0 and learner_value in (Fraction(a + c, b), Fraction(a + c, d)):
+                misconception = "skips_common_denominator"
         except (ValueError, ZeroDivisionError):
             pass
     return {"skill": skill, "correct": correct, "misconception": misconception}
@@ -274,6 +276,7 @@ def _question_evidence(question: str, answer: str, correct: bool, topic: str) ->
 
 _MISCONCEPTION_TIPS = {
     "adds_denominators": "When adding fractions, do not add the denominators. First make the denominators equal; then add only the numerators.",
+    "skips_common_denominator": "These fractions have different denominators. Convert both to a common denominator before adding their numerators.",
 }
 
 

@@ -60,7 +60,7 @@ _memory_records: list[dict] = []
 _unsynced_ids: set[str] = set()
 _lock = threading.Lock()
 _SKILLS = {"fraction_addition", "fraction_subtraction"}
-_ERRORS = {"adds_denominators"}
+_ERRORS = {"adds_denominators", "skips_common_denominator"}
 
 
 def _clean_skill_evidence(value) -> list[dict]:
@@ -100,8 +100,12 @@ def _misconception_focus(records: list[dict]) -> dict | None:
     if not counts:
         return None
     error = max(counts, key=lambda key: (counts[key], key))
+    tips = {
+        "adds_denominators": "Use a common denominator before adding fractions. Keep that denominator and add only the numerators.",
+        "skips_common_denominator": "Rewrite both fractions with a common denominator, then add their numerators.",
+    }
     return {"skill": "fraction_addition", "misconception": error, "observations": counts[error],
-            "teaching_tip": "Use a common denominator before adding fractions. Keep that denominator and add only the numerators."}
+            "teaching_tip": tips[error]}
 
 
 def _sheet_configured() -> bool:
