@@ -77,5 +77,8 @@ jobs:
       - name: Run teacher-support escalation tests
         run: python -m pytest -q test_teacher_support_escalation.py
 
+      - name: Run resumable Autopilot session tests
+        run: python -m pytest -q test_resumable_autopilot.py
+
       - name: Run bounded Autopilot session tests
         run: python -m pytest -q test_autopilot_session.py
