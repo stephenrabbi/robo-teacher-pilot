@@ -208,6 +208,8 @@ const qaBlockers=document.getElementById('qaBlockers');
 const qaReleaseStatus=document.getElementById('qaReleaseStatus');
 const downloadQaReport=document.getElementById('downloadQaReport');
 const closeQaChecklist=document.getElementById('closeQaChecklist');
+const showDeviceTimings=document.getElementById('showDeviceTimings');
+const deviceTimingOutput=document.getElementById('deviceTimingOutput');
 let currentPractice=null;
 let currentPracticeSummary=null;
 let practiceMode='practice';
@@ -1550,6 +1552,28 @@ downloadLearnerCodes.addEventListener('click',()=>{const url=URL.createObjectURL
 printLearnerCodes.addEventListener('click',()=>window.print());
 
 function qaStorage(){try{return JSON.parse(localStorage.getItem('roboTeacherQaChecklist')||'{}')}catch(_error){return {}}}
+function displayDeviceTimings(){
+  const navigation=performance.getEntriesByType('navigation')[0];
+  if(!navigation){deviceTimingOutput.textContent='Navigation timings are unavailable in this browser.';return}
+  const elapsed=(start,end)=>Number.isFinite(start)&&Number.isFinite(end)&&end>=start?`${Math.round(end-start)} ms`:'unavailable';
+  const lines=[
+    `Page load type: ${navigation.type==='reload'?'reload':navigation.type==='back_forward'?'back/forward':'new navigation'}`,
+    `Connection setup: ${elapsed(navigation.connectStart,navigation.connectEnd)}`,
+    `HTTPS setup: ${navigation.secureConnectionStart>0?elapsed(navigation.secureConnectionStart,navigation.connectEnd):'reused or unavailable'}`,
+    `Request to first byte (network + server): ${elapsed(navigation.requestStart,navigation.responseStart)}`,
+    `Page transfer: ${elapsed(navigation.responseStart,navigation.responseEnd)}`,
+    `DOM ready: ${elapsed(0,navigation.domContentLoadedEventEnd)}`,
+    `Page loaded: ${navigation.loadEventEnd>0?elapsed(0,navigation.loadEventEnd):'unavailable'}`,
+  ];
+  for(const path of ['/classroom/styles.css','/classroom/app.js']){
+    const asset=performance.getEntriesByType('resource').find(entry=>{
+      try{return new URL(entry.name).origin===location.origin&&new URL(entry.name).pathname===path}catch(_error){return false}
+    });
+    lines.push(`${path.split('/').pop()} transfer: ${asset?elapsed(asset.startTime,asset.responseEnd):'unavailable'}`);
+  }
+  deviceTimingOutput.textContent=lines.join('\n');
+}
+showDeviceTimings.addEventListener('click',displayDeviceTimings);
 function showQaChecklist(){teacherDashboard.classList.add('hidden');qaChecklist.classList.remove('hidden');renderQaChecklist()}
 function renderQaChecklist(){
   const saved=qaStorage();qaChecklistItems.replaceChildren();let total=0,completed=0,passed=0,blockers=0;

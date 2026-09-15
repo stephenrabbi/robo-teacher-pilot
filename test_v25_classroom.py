@@ -32,7 +32,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     html = (PROJECT_ROOT / 'classroom' / 'index.html').read_text()
     css = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
-    assert '20260910-mastery1' in html
+    assert '/classroom/styles.css?v=' in html
     assert 'id="learnerNickname"' in html
     assert 'id="learnerCode"' in html
     assert 'id="generateLearnerCode"' in html
@@ -50,7 +50,7 @@ def test_mobile_classroom_keeps_teacher_compact_and_touch_targets_accessible():
     assert "localStorage.setItem('roboTeacherQaChecklist'" in script
     assert 'const resultCopy=' in script
     assert 'labels.yourAnswer' in script
-    assert '20260910-mastery1' in html
+    assert '/classroom/app.js?v=' in html
     assert 'downloadTeacherDashboardReport' in script
     assert 'id="practiceClass"' in html
     assert 'id="startDiagnostic"' in html
@@ -1776,6 +1776,22 @@ def test_teaching_quality_regressions_are_guarded():
     assert 'never cut a sentence mid-word' in tutor_source
 
 
+def test_teacher_device_timings_are_local_and_separate_connection_from_response():
+    html=Path('classroom/index.html').read_text()
+    script=Path('classroom/app.js').read_text()
+    assert 'id="showDeviceTimings"' in html
+    assert 'id="deviceTimingOutput"' in html
+    assert 'function displayDeviceTimings()' in script
+    timing=script.split('function displayDeviceTimings(){',1)[1].split('showDeviceTimings.addEventListener',1)[0]
+    for marker in ("performance.getEntriesByType('navigation')", 'navigation.secureConnectionStart',
+                   'navigation.requestStart,navigation.responseStart', "performance.getEntriesByType('resource')",
+                   'deviceTimingOutput.textContent'):
+        assert marker in timing
+    assert 'fetch(' not in timing
+    assert 'localStorage' not in timing
+    assert 'nickname' not in timing
+
+
 if __name__ == '__main__':
     test_session_and_chat_use_pseudonymous_identity()
     test_tampered_session_is_rejected()
@@ -1788,4 +1804,5 @@ if __name__ == '__main__':
     test_classroom_audio_rejects_unsupported_type()
     test_classroom_audio_rejects_oversized_file()
     test_teaching_quality_regressions_are_guarded()
+    test_teacher_device_timings_are_local_and_separate_connection_from_response()
     print('V2.5 classroom API safety tests passed.')
