@@ -25,7 +25,7 @@ def _reset_state():
     retention_progress.reset_for_tests()
 
 
-def _session(learner_key: str = "r" * 48, class_level: str = "JSS2") -> dict:
+def _session(learner_key: str = "a" * 48, class_level: str = "JSS2") -> dict:
     response = client.post(
         "/api/classroom/session",
         json={"learner_key": learner_key, "nickname": "Retention Learner", "class_level": class_level},
@@ -106,7 +106,7 @@ def test_due_summary_uses_structured_schedule_only():
 
 def test_confirmed_mastery_starts_two_day_schedule_via_api():
     _reset_state()
-    session = _session("s" * 48)
+    session = _session("b" * 48)
     with patch.object(mastery_progress, "_sheet_configured", return_value=False), patch.object(
         retention_progress, "_sheet_configured", return_value=False
     ), patch.object(mastery_api, "is_review_due", return_value=False):
@@ -130,7 +130,7 @@ def test_confirmed_mastery_starts_two_day_schedule_via_api():
 
 def test_successful_due_review_remains_mastered_and_extends_interval():
     _reset_state()
-    session = _session("t" * 48)
+    session = _session("c" * 48)
     with patch.object(mastery_progress, "_sheet_configured", return_value=False), patch.object(
         retention_progress, "_sheet_configured", return_value=False
     ), patch.object(mastery_api, "is_review_due", return_value=True):
@@ -156,7 +156,7 @@ def test_successful_due_review_remains_mastered_and_extends_interval():
 
 def test_failed_due_review_becomes_retention_lapse_without_storing_answer_content():
     _reset_state()
-    session = _session("u" * 48)
+    session = _session("d" * 48)
     unique_question = "PRIVATE-REVIEW-QUESTION-84927"
     with patch.object(mastery_progress, "_sheet_configured", return_value=False), patch.object(
         retention_progress, "_sheet_configured", return_value=False
