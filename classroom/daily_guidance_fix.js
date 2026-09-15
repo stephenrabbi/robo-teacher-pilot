@@ -135,3 +135,11 @@
   script.dataset.autonomousPlanner='true';
   document.head.appendChild(script);
 })();
+
+(() => {
+  if(document.querySelector('script[data-autopilot-session]'))return;
+  const script=document.createElement('script');
+  script.src='/classroom/autopilot_session.js?v=20260915-autopilot1';
+  script.dataset.autopilotSession='true';
+  document.head.appendChild(script);
+})();
