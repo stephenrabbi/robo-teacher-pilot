@@ -335,18 +335,20 @@ def build_dashboard(learner_id: str, class_level: str = "JSS2") -> dict:
         topic_records = [item for item in records if item["topic"] == topic]
         attempted = sum(item["attempted"] for item in topic_records)
         correct = sum(item["score"] for item in topic_records)
+        mastery = _topic_mastery(topic_records)
         topic_rows.append({
             "topic": topic,
             "sessions": len(topic_records),
             "correct": correct,
             "attempted": attempted,
             "percentage": round(correct / attempted * 100) if attempted else 0,
+            **mastery,
         })
-    topic_rows.sort(key=lambda item: (-item["percentage"], item["topic"]))
+    topic_rows.sort(key=lambda item: (-item["mastery_estimate"], item["topic"]))
 
     diagnostic = latest_diagnostic(learner_id, class_level)
     strongest = topic_rows[0] if topic_rows else None
-    weakest = min(topic_rows, key=lambda item: (item["percentage"], item["topic"])) if topic_rows else None
+    weakest = min(topic_rows, key=lambda item: (item["mastery_estimate"], item["topic"])) if topic_rows else None
     recommended_topic, recommendation_reason = _recommended_topic(class_level, records, topic_rows, weakest)
     recommended_difficulty = _recommended_difficulty(records, recommended_topic)
     if not records and diagnostic and diagnostic["recommended_topic"] in CLASS_TOPICS[class_level]:
@@ -364,13 +366,18 @@ def build_dashboard(learner_id: str, class_level: str = "JSS2") -> dict:
             result = scores_by_topic.get(topic)
             status = "not_started"
             if result:
-                status = "mastered" if result["percentage"] >= 80 else "needs_practice"
+                status = "mastered" if result["mastery_status"] == "mastered" else "needs_practice"
             if topic == recommended_topic:
                 status = "recommended"
             path_topics.append({
                 "topic": topic, "status": status,
                 "percentage": result["percentage"] if result else None,
                 "sessions": result["sessions"] if result else 0,
+                "mastery_estimate": result["mastery_estimate"] if result else None,
+                "mastery_status": result["mastery_status"] if result else "not_started",
+                "confidence": result["confidence"] if result else "none",
+                "evidence_questions": result["evidence_questions"] if result else 0,
+                "due_for_review": result["due_for_review"] if result else False,
             })
         learning_path.append({"term": term, "topics": path_topics})
     weekly = _weekly_summary(records)
@@ -408,12 +415,66 @@ def recommend_difficulty_for_topic(learner_id: str, class_level: str, topic: str
     return _recommended_difficulty(records, topic)
 
 
+def _topic_mastery(records: list[dict]) -> dict:
+    """Estimate mastery conservatively from durable practice evidence.
+
+    A small neutral prior prevents a single short session from producing false
+    certainty. Recent and harder work carries more weight, while old evidence
+    fades gradually so previously strong topics can become due for review.
+    """
+    now = datetime.datetime.now(datetime.UTC)
+    difficulty_weight = {"Easy": 0.85, "Medium": 1.0, "Challenge": 1.15}
+    weighted_correct = 0.0
+    weighted_questions = 0.0
+    latest = None
+    for item in records:
+        try:
+            stamp = datetime.datetime.fromisoformat(str(item["timestamp"]).replace("Z", "+00:00"))
+            if stamp.tzinfo is None:
+                stamp = stamp.replace(tzinfo=datetime.UTC)
+        except (KeyError, TypeError, ValueError):
+            stamp = now
+        latest = stamp if latest is None or stamp > latest else latest
+        age_days = max(0, (now - stamp).days)
+        recency_weight = max(0.55, 1 - age_days / 180)
+        weight = difficulty_weight.get(item.get("difficulty"), 1.0) * recency_weight
+        weighted_correct += int(item.get("score", 0)) * weight
+        weighted_questions += int(item.get("attempted", 0)) * weight
+
+    # Beta(1, 1) prior: cautious at low evidence, negligible after repeated work.
+    estimate = round((weighted_correct + 1) / (weighted_questions + 2) * 100) if weighted_questions else 50
+    evidence_questions = sum(int(item.get("attempted", 0)) for item in records)
+    sessions = len(records)
+    confidence = "high" if evidence_questions >= 20 and sessions >= 3 else "medium" if evidence_questions >= 10 and sessions >= 2 else "low"
+    days_since = max(0, (now - latest).days) if latest else None
+    due_for_review = bool(days_since is not None and days_since >= 30 and estimate >= 70)
+    if evidence_questions >= 10 and sessions >= 2 and estimate >= 80 and not due_for_review:
+        status = "mastered"
+    elif evidence_questions >= 5 and estimate < 50:
+        status = "needs_support"
+    else:
+        status = "developing"
+    return {
+        "mastery_estimate": estimate,
+        "mastery_status": status,
+        "confidence": confidence,
+        "evidence_questions": evidence_questions,
+        "days_since_practice": days_since,
+        "due_for_review": due_for_review,
+    }
+
+
 def _recommended_topic(class_level: str, records: list[dict], topic_rows: list[dict], weakest: dict | None) -> tuple[str, str]:
     topics = CLASS_TOPICS[class_level]
     if not records:
         return topics[0], "start"
-    if weakest and weakest["percentage"] < 80:
+    support = [row for row in topic_rows if row["mastery_status"] in {"needs_support", "developing"}]
+    if support:
+        weakest = min(support, key=lambda item: (item["mastery_estimate"], -item["evidence_questions"], item["topic"]))
         return weakest["topic"], "strengthen"
+    due = [row for row in topic_rows if row["due_for_review"]]
+    if due:
+        return min(due, key=lambda item: (-item["days_since_practice"], item["topic"]))["topic"], "review"
     latest_topic = records[0]["topic"]
     latest_results = [item for item in records if item["topic"] == latest_topic][:2]
     if (
@@ -439,6 +500,8 @@ def _recommendation(records: list[dict], topic: str, term: str, difficulty: str,
         return f"Start with {topic} from {term} at {difficulty} level."
     if reason == "strengthen":
         return f"Strengthen {topic} from {term} at {difficulty} level and review each worked explanation."
+    if reason == "review":
+        return f"Review {topic} from {term} to keep your earlier learning strong."
     if reason == "next":
         return f"You have done well so far. Continue with {topic} from {term} at {difficulty} level."
     return f"Keep extending {topic} from {term} at {difficulty} level."
