@@ -200,3 +200,11 @@
 
   decorate();
 })();
+
+(() => {
+  if (document.querySelector('script[data-practice-reliability]')) return;
+  const script = document.createElement('script');
+  script.src = '/classroom/practice_reliability.js?v=20260915-practice-reliability1';
+  script.dataset.practiceReliability = 'true';
+  document.head.appendChild(script);
+})();
