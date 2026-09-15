@@ -90,7 +90,7 @@
     if (supportTopic) {
       progress.recommended_topic = supportTopic;
       progress.focus_topic = supportTopic;
-      progress.recommendation_reason = 'mastery_memory';
+      progress.recommendation_reason = summary.teacher_support_required ? 'teacher_support' : 'mastery_memory';
       progress.recommended_difficulty = 'Easy';
       const match = flat.find(item => item.topic === supportTopic);
       if (match) match.status = 'recommended';
@@ -107,6 +107,9 @@
       }
     }
     progress.mastery_memory = summary;
+    progress.teacher_support_required = Boolean(summary.teacher_support_required);
+    progress.teacher_support_focus = summary.teacher_support_focus || null;
+    progress.watch_topics = summary.watch_topics || [];
     if (summary.misconception_focus) progress.misconception_focus = summary.misconception_focus;
     return progress;
   }
@@ -128,21 +131,43 @@
   function mergeTeacherDashboard(data, memory) {
     if (!data || !memory) return data;
     const byCode = new Map((memory.learners || []).map(item => [item.learner_code, item]));
+    const interventionByCode = new Map((memory.intervention_learners || []).map(item => [item.learner_code, item]));
     (data.learner_rows || []).forEach(row => {
       const saved = byCode.get(row.learner_code);
-      if (!saved) return;
-      row.mastered_topics = saved.mastered_topics || [];
-      row.developing_topics = saved.developing_topics || [];
-      row.needs_support_topics = saved.needs_support_topics || [];
-      row.support_misconception = saved.support_misconception || null;
-      row.teaching_strategy = saved.teaching_strategy || null;
-      if (saved.support_topic) {
-        row.support_topic = saved.support_misconception
-          ? `${saved.support_topic} · ${saved.support_misconception}`
-          : saved.support_topic;
+      const intervention = interventionByCode.get(row.learner_code);
+      if (saved) {
+        row.mastered_topics = saved.mastered_topics || [];
+        row.developing_topics = saved.developing_topics || [];
+        row.needs_support_topics = saved.needs_support_topics || [];
+        row.support_misconception = saved.support_misconception || null;
+        row.teaching_strategy = saved.teaching_strategy || null;
+        if (saved.support_topic) {
+          row.support_topic = saved.support_misconception
+            ? `${saved.support_topic} · ${saved.support_misconception}`
+            : saved.support_topic;
+        }
+      }
+      if (intervention) {
+        row.teacher_support_required = Boolean(intervention.teacher_support_required);
+        row.teacher_support_topics = intervention.teacher_support_topics || [];
+        row.watch_topics = intervention.watch_topics || [];
+        row.teacher_support_focus = intervention.teacher_support_focus || null;
+        if (intervention.teacher_support_required && intervention.teacher_support_focus) {
+          const focus = intervention.teacher_support_focus;
+          const detail = focus.recurring_misconception ? ` · ${focus.recurring_misconception}` : '';
+          row.support_topic = `Teacher support · ${focus.topic}${detail}`;
+        } else if (row.watch_topics.length && !row.support_topic) {
+          row.support_topic = `Watch closely · ${row.watch_topics[0]}`;
+        }
       }
     });
-    if (memory.focus_topic) {
+    data.teacher_support_count = Number(memory.teacher_support_count || 0);
+    data.teacher_support_learners = memory.teacher_support_learners || [];
+    if (data.teacher_support_count > 0) {
+      const first = data.teacher_support_learners[0]?.teacher_support_focus;
+      const focusText = first ? ` First priority: ${first.topic}. ${first.reason || ''}` : '';
+      data.recommendation = `${data.teacher_support_count} learner${data.teacher_support_count === 1 ? '' : 's'} need teacher support after repeated unresolved difficulty.${focusText}`;
+    } else if (memory.focus_topic) {
       data.focus_topic = memory.focus_topic;
       data.weakest_topic = memory.focus_topic;
       if (memory.focus_misconception && memory.focus_teaching_strategy) {
