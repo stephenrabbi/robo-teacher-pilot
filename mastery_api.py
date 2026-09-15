@@ -12,7 +12,7 @@ from classroom_api import _classroom_profiles, _enforce_rate_limit, _verify_sess
 from curriculum import CLASS_TOPICS
 from learning_planner import build_autonomous_plan
 from mastery_progress import infer_topic, learner_summary, persist_event, stage_event, teacher_summary
-from misconceptions import classify_misconception
+from misconceptions import classify_misconception, valid_intervention
 
 router = APIRouter(prefix="/api/classroom/mastery", tags=["classroom-mastery"])
 
@@ -30,6 +30,10 @@ class MasteryEventRequest(BaseModel):
     selected_choice: str = Field(default="", max_length=500)
     correct_choice: str = Field(default="", max_length=500)
     feedback: str = Field(default="", max_length=1500)
+    # Planner-selected interventions are allowlisted against the deterministic
+    # misconception taxonomy before they can become durable evidence.
+    intervention_category: str = Field(default="", max_length=80)
+    intervention_strategy: str = Field(default="", max_length=700)
 
 
 class MasterySummaryRequest(BaseModel):
@@ -74,6 +78,12 @@ def record_mastery_event(request: MasteryEventRequest, background_tasks: Backgro
             request.feedback,
         )
 
+    applied_category = request.intervention_category.strip()
+    applied_strategy = request.intervention_strategy.strip()
+    if not valid_intervention(applied_category, applied_strategy):
+        applied_category = ""
+        applied_strategy = ""
+
     event_id = hashlib.sha256(f"{student_id}:{request.check_id}:{request.stage}".encode()).hexdigest()[:32]
     record = stage_event(
         event_id,
@@ -85,6 +95,8 @@ def record_mastery_event(request: MasteryEventRequest, background_tasks: Backgro
         request.correct,
         diagnosis["category"] if diagnosis else "",
         diagnosis["strategy"] if diagnosis else "",
+        applied_category,
+        applied_strategy,
     )
     background_tasks.add_task(persist_event, event_id)
     return {
@@ -92,6 +104,7 @@ def record_mastery_event(request: MasteryEventRequest, background_tasks: Backgro
         "topic": topic,
         "state": record["state"],
         "misconception": diagnosis if diagnosis else None,
+        "strategy_outcome": record.get("strategy_outcome") or None,
         "summary": learner_summary(student_id, class_level),
     }
 
