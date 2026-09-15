@@ -109,9 +109,21 @@
 })();
 
 (() => {
-  if(document.querySelector('script[data-mastery-recheck]'))return;
-  const script=document.createElement('script');
-  script.src='/classroom/mastery_recheck.js?v=20260915-mastery-recheck1';
-  script.dataset.masteryRecheck='true';
-  document.head.appendChild(script);
+  function loadRecheck(){
+    if(document.querySelector('script[data-mastery-recheck]'))return;
+    const script=document.createElement('script');
+    script.src='/classroom/mastery_recheck.js?v=20260915-mastery-recheck2';
+    script.dataset.masteryRecheck='true';
+    document.head.appendChild(script);
+  }
+  const existing=document.querySelector('script[data-mastery-memory]');
+  if(existing){
+    if(window.roboTeacherMasteryRecord)loadRecheck();else existing.addEventListener('load',loadRecheck,{once:true});
+    return;
+  }
+  const memory=document.createElement('script');
+  memory.src='/classroom/mastery_memory.js?v=20260915-mastery-memory1';
+  memory.dataset.masteryMemory='true';
+  memory.addEventListener('load',loadRecheck,{once:true});
+  document.head.appendChild(memory);
 })();
