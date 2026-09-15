@@ -297,12 +297,13 @@ def choose_next_action(class_level, practice, mastery, retention=None):
         support_row = mastery_rows.get(support_topic, {})
         if support_row.get("intervention_level") == "teacher_support":
             return _make_plan("teacher_help", support_topic, class_level, practice, mastery, "teacher_support_required", retention=retention)
+        retention_row = retention_rows.get(support_topic, {})
+        if retention_row.get("outcome") == "lapse":
+            return _make_plan("reteach", support_topic, class_level, practice, mastery, "retention_lapse", retention=retention)
         foundation = _foundation_plan(class_level, support_topic, practice, mastery, retention)
         if foundation:
             return foundation
-        retention_row = retention_rows.get(support_topic, {})
-        reason_code = "retention_lapse" if retention_row.get("outcome") == "lapse" else "persistent_needs_support"
-        return _make_plan("reteach", support_topic, class_level, practice, mastery, reason_code, retention=retention)
+        return _make_plan("reteach", support_topic, class_level, practice, mastery, "persistent_needs_support", retention=retention)
 
     practice_support = [row for row in practice_rows.values() if row.get("mastery_status") == "needs_support" and row.get("topic") not in persistent_mastered]
     if practice_support:
