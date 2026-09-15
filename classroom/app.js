@@ -1427,7 +1427,7 @@ async function submitPracticeAnswer(event){
   try{
     const result=await (practiceMode==='diagnostic'?diagnosticRequest('answer',{answer}):practiceRequest('answer',{answer}));practiceAnswer.disabled=true;
     practiceScore.textContent=`Score: ${result.score}/${result.attempted} (${result.percentage}%)`;
-    practiceFeedback.textContent=result.correct?`${result.message}\n\n${result.explanation}`:`${result.message}\n\n${result.explanation}\n\n${result.correct_answer_label}: ${result.expected_answer}`;
+    practiceFeedback.textContent=result.correct?`${result.message}\n\n${result.explanation}`:`${result.message}\n\n${result.targeted_tip?`${result.targeted_tip}\n\n`:''}${result.explanation}\n\n${result.correct_answer_label}: ${result.expected_answer}`;
     practiceFeedback.className=`practice-feedback ${result.correct?'correct':'incorrect'}`;nextPracticeButton.classList.remove('hidden');showHintButton.disabled=true;
     if(result.completed){currentPracticeSummary=result.summary;nextPracticeButton.textContent='View Results →'}setLearningStatus(result.correct?'Correct answer':'Review the explanation',result.correct?'success':'attention')
   }catch(err){practiceFeedback.textContent=err.message;practiceFeedback.className='practice-feedback incorrect';checkButton.disabled=false}
@@ -1563,7 +1563,7 @@ function renderProgress(data){
   if(!data.sessions&&!data.latest_diagnostic){progressEmpty.classList.remove('hidden');return}
   progressEmpty.classList.add('hidden');
   progressDashboard.classList.remove('hidden');progressSessions.textContent=data.sessions;progressQuestions.textContent=data.total_questions;
-  progressAverage.textContent=`${data.average_percentage}%`;progressStrongest.textContent=data.strongest_topic||'—';progressRecommendation.textContent=learnerRecommendation(data);document.querySelectorAll('[data-progress-label]').forEach(item=>{item.textContent=dcopy(item.dataset.progressLabel)});practiceRecommendation.textContent=dcopy('continue');
+  progressAverage.textContent=`${data.average_percentage}%`;progressStrongest.textContent=data.strongest_topic||'—';progressRecommendation.textContent=learnerRecommendation(data)+(language.value==='English'&&data.misconception_focus?` ${data.misconception_focus.teaching_tip}`:'');document.querySelectorAll('[data-progress-label]').forEach(item=>{item.textContent=dcopy(item.dataset.progressLabel)});practiceRecommendation.textContent=dcopy('continue');
   const week=data.weekly_summary;weeklySessions.textContent=`${week.sessions} ${dcopy('sessions').toLowerCase()}`;weeklyQuestions.textContent=`${week.questions} ${dcopy('questions').toLowerCase()}`;weeklyScore.textContent=`${week.percentage}%`;
   weeklyImprovement.textContent=weeklyImprovementText(week);
   weeklyStrongest.textContent=week.strongest_topic||'—';weeklyFocus.textContent=week.focus_topic||'—';weeklyNextAction.textContent=weeklyAction(week);
