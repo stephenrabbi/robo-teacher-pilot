@@ -57,7 +57,7 @@
     }
     if(support.length)return `${remembered}${support[0]} still needs some work, so I recommend ${plan.title.toLowerCase()} on ${plan.topic}.`;
     if(plan.action==='mastery_check')return `${remembered}You were making progress on ${plan.topic}. Let’s confirm that you can do it independently.`;
-    if(plan.action==='review')return `${remembered}${plan.topic} is due for a quick review so it stays strong.`;
+    if(plan.action==='review')return `${remembered}${plan.topic} is due for a quick spaced review so it stays strong.`;
     if(plan.action==='advance')return `${remembered}You are ready to continue with ${plan.topic}.`;
     return `${remembered}${plan.title}: ${plan.topic}. ${plan.reason}`;
   }
@@ -77,7 +77,7 @@
   function submitTutorPrompt(plan){
     const before=canvasAnswer.innerText.trim();
     openChat();question.value=plan.prompt;chatForm.requestSubmit();
-    if(plan.action!=='mastery_check')return;
+    if(!['mastery_check','review'].includes(plan.action))return;
     let tries=0;
     const timer=setInterval(()=>{
       tries+=1;
