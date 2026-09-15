@@ -15,6 +15,13 @@ from intervention_support import learner_intervention_summary, teacher_intervent
 from learning_planner import build_autonomous_plan
 from mastery_progress import infer_topic, learner_summary, persist_event, stage_event, teacher_summary
 from misconceptions import classify_misconception
+from retention_progress import (
+    is_review_due,
+    learner_retention_summary,
+    persist_event as persist_retention_event,
+    record_review_result,
+    schedule_after_mastery,
+)
 
 router = APIRouter(prefix="/api/classroom/mastery", tags=["classroom-mastery"])
 
@@ -63,13 +70,21 @@ def _verify_teacher(access_key: str) -> None:
 def _learner_summary(student_id: str, class_level: str) -> dict:
     summary = learner_summary(student_id, class_level)
     intervention = learner_intervention_summary(student_id, class_level)
+    retention = learner_retention_summary(student_id, class_level)
     summary.update({
         "teacher_support_required": intervention["teacher_support_required"],
         "teacher_support_topics": intervention["teacher_support_topics"],
         "watch_topics": intervention["watch_topics"],
         "interventions": intervention["interventions"],
         "teacher_support_focus": intervention["teacher_support_focus"],
-        "storage_synced": bool(summary.get("storage_synced")) and bool(intervention.get("storage_synced")),
+        "retention": retention,
+        "retention_due_topics": retention["due_topics"],
+        "retention_lapse_topics": retention["retention_lapse_topics"],
+        "storage_synced": (
+            bool(summary.get("storage_synced"))
+            and bool(intervention.get("storage_synced"))
+            and bool(retention.get("storage_synced"))
+        ),
     })
     return summary
 
@@ -91,6 +106,7 @@ def record_mastery_event(request: MasteryEventRequest, background_tasks: Backgro
     student_id = _verify_session(request.session_token)
     _enforce_rate_limit(student_id, "mastery-memory", 40)
     profile = _classroom_profiles.get(student_id, {})
+    learner_code = profile.get("learner_code", "")
     class_level = profile.get("class_level", "JSS2")
     topic = infer_topic(request.lesson_text, class_level, request.topic_hint)
     if not topic or topic not in CLASS_TOPICS.get(class_level, ()):
@@ -100,6 +116,7 @@ def record_mastery_event(request: MasteryEventRequest, background_tasks: Backgro
             "summary": _learner_summary(student_id, class_level),
         }
 
+    retention_review = request.stage == "initial" and is_review_due(student_id, class_level, topic)
     diagnosis = None
     if not request.correct:
         diagnosis = classify_misconception(
@@ -114,7 +131,7 @@ def record_mastery_event(request: MasteryEventRequest, background_tasks: Backgro
     record = stage_event(
         event_id,
         student_id,
-        profile.get("learner_code", ""),
+        learner_code,
         class_level,
         topic,
         request.stage,
@@ -123,11 +140,53 @@ def record_mastery_event(request: MasteryEventRequest, background_tasks: Backgro
         diagnosis["strategy"] if diagnosis else "",
     )
     background_tasks.add_task(persist_event, event_id)
+
+    retention_record = None
+    if retention_review:
+        retention_record = record_review_result(
+            event_id,
+            student_id,
+            learner_code,
+            class_level,
+            topic,
+            request.correct,
+        )
+        background_tasks.add_task(persist_retention_event, retention_record["event_id"])
+
+        # A successful scheduled retrieval check is itself strong mastery
+        # evidence. Promote it server-side so review does not accidentally
+        # downgrade a previously mastered topic to merely "developing".
+        if request.correct:
+            confirmation_id = hashlib.sha256(f"{event_id}:retention-confirmed".encode()).hexdigest()[:32]
+            record = stage_event(
+                confirmation_id,
+                student_id,
+                learner_code,
+                class_level,
+                topic,
+                "reteach",
+                True,
+            )
+            background_tasks.add_task(persist_event, confirmation_id)
+    elif record.get("state") == "mastered":
+        retention_record = schedule_after_mastery(
+            event_id,
+            student_id,
+            learner_code,
+            class_level,
+            topic,
+        )
+        background_tasks.add_task(persist_retention_event, retention_record["event_id"])
+
     return {
         "stored": True,
         "topic": topic,
         "state": record["state"],
         "misconception": diagnosis if diagnosis else None,
+        "retention_review": bool(retention_review),
+        "retention_outcome": retention_record.get("outcome") if retention_record else None,
+        "next_review_at": retention_record.get("next_review_at") if retention_record else None,
+        "retention_interval_days": retention_record.get("interval_days") if retention_record else None,
         "summary": _learner_summary(student_id, class_level),
     }
 
