@@ -252,6 +252,7 @@ def teacher_summary(class_level: str) -> dict:
     records, synced = get_records(None)
     records = [item for item in records if item.get("class_level") == class_level]
     learners = {}
+    topic_support = {}
     for learner_id in sorted({item["learner_id"] for item in records}):
         items = [item for item in records if item["learner_id"] == learner_id]
         topics = summarise_topics(items)
@@ -264,10 +265,8 @@ def teacher_summary(class_level: str) -> dict:
             "needs_support_topics": support,
             "support_topic": support[0] if support else None,
         }
-    topic_support = {}
-    for item in records:
-        if item.get("state") == "needs_support":
-            topic_support[item["topic"]] = topic_support.get(item["topic"], 0) + 1
+        for topic in support:
+            topic_support[topic] = topic_support.get(topic, 0) + 1
     focus = max(topic_support, key=lambda topic: (topic_support[topic], topic)) if topic_support else None
     return {
         "class_level": class_level,
