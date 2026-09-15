@@ -8,6 +8,7 @@ from typing import Literal
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pydantic import BaseModel, Field
 
+from autopilot_progress import persist_session_event, session_status, start_or_resume_session, transition_session
 from classroom_api import _classroom_profiles, _enforce_rate_limit, _verify_session
 from curriculum import CLASS_TOPICS
 from intervention_support import learner_intervention_summary, teacher_intervention_summary
@@ -41,6 +42,14 @@ class MasterySummaryRequest(BaseModel):
 class MasteryTeacherRequest(BaseModel):
     access_key: str = Field(min_length=16, max_length=200)
     class_level: Literal["JSS1", "JSS2", "JSS3"] = "JSS2"
+
+
+class AutopilotSessionRequest(BaseModel):
+    session_token: str = Field(min_length=20, max_length=300)
+    class_level: Literal["JSS1", "JSS2", "JSS3"] = "JSS2"
+    action: Literal["status", "start", "step", "pause", "resume", "stop", "finish"] = "status"
+    session_id: str = Field(default="", max_length=64, pattern=r"^[a-f0-9]*$")
+    completed_steps: int = Field(default=0, ge=0, le=3)
 
 
 def _verify_teacher(access_key: str) -> None:
@@ -139,6 +148,48 @@ def get_autonomous_learning_plan(request: MasterySummaryRequest):
     profile = _classroom_profiles.get(student_id, {})
     class_level = profile.get("class_level", request.class_level)
     return build_autonomous_plan(student_id, class_level)
+
+
+@router.post("/autopilot/session")
+def manage_autopilot_session(request: AutopilotSessionRequest, background_tasks: BackgroundTasks):
+    """Start, resume and checkpoint bounded Autopilot sessions without storing lesson content."""
+    student_id = _verify_session(request.session_token)
+    _enforce_rate_limit(student_id, "autopilot-session", 60)
+    profile = _classroom_profiles.get(student_id, {})
+    class_level = profile.get("class_level", request.class_level)
+
+    if request.action == "status":
+        return session_status(student_id, class_level)
+
+    if request.action == "start":
+        result = start_or_resume_session(student_id, class_level)
+    else:
+        if not request.session_id:
+            raise HTTPException(status_code=400, detail="Autopilot session ID is required")
+        status = {
+            "step": "active",
+            "pause": "paused",
+            "resume": "active",
+            "stop": "stopped",
+            "finish": "complete",
+        }[request.action]
+        try:
+            result = transition_session(
+                student_id,
+                class_level,
+                request.session_id,
+                status,
+                request.completed_steps,
+            )
+        except ValueError as exc:
+            if str(exc) == "session_not_found":
+                raise HTTPException(status_code=404, detail="Autopilot session was not found") from exc
+            raise HTTPException(status_code=400, detail="Invalid Autopilot session state") from exc
+
+    event_id = result.pop("event_id", None)
+    if event_id:
+        background_tasks.add_task(persist_session_event, event_id)
+    return result
 
 
 @router.post("/teacher")
