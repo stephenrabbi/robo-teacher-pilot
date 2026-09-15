@@ -110,7 +110,7 @@ def test_mastery_storage_keeps_no_lesson_transcript():
 def test_duplicate_check_event_is_idempotent():
     _reset_state()
     session = _session(learner_key="d" * 48)
-    lesson = "Find the mean, median and mode of the data set."
+    lesson = "Probability measures the chance that an outcome will happen."
     _event(session, "6" * 32, True, "initial", lesson)
     _event(session, "6" * 32, True, "initial", lesson)
     assert len(mastery_progress._memory_records) == 1
