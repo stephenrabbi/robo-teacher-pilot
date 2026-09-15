@@ -370,6 +370,37 @@ def test_fraction_error_is_classified_only_when_the_pattern_is_proven():
     assert practice._question_evidence('Share 1/4 + 2/4 of the cake.', '3/8', False, 'Fractions')['misconception'] is None
 
 
+def test_skipped_common_denominator_only_for_exact_different_denominator_addition():
+    question = 'Calculate 2/3 + 1/6. Give the simplest fraction.'
+    evidence = practice._question_evidence(question, '3/6', False, 'Fractions')
+    assert evidence == {'skill': 'fraction_addition', 'correct': False, 'misconception': 'skips_common_denominator'}
+    assert practice._question_evidence(question, '3/3', False, 'Fractions')['misconception'] == 'skips_common_denominator'
+    assert practice._question_evidence(question, '3/9', False, 'Fractions')['misconception'] == 'adds_denominators'
+    assert practice._question_evidence(question, '2/5', False, 'Fractions')['misconception'] is None
+    assert practice._question_evidence('Calculate 1/4 + 2/4.', '3/4', True, 'Fractions')['misconception'] is None
+    assert practice._question_evidence('Share 2/3 + 1/6 of a cake.', '3/6', False, 'Fractions')['misconception'] is None
+
+
+def test_skipped_common_denominator_progress_tip_is_allowlisted():
+    practice_progress._memory_records.clear()
+    practice_progress._unsynced_ids.clear()
+    summary = {'session_id': 'synthetic-common-denominator', 'class_level': 'JSS1', 'topic': 'Fractions', 'difficulty': 'Easy',
+               'score': 0, 'attempted': 1, 'percentage': 0,
+               'skill_evidence': [{'skill': 'fraction_addition', 'correct': False,
+                                   'misconception': 'skips_common_denominator', 'learner_answer': '3/6'}]}
+    with patch.object(practice_progress, '_sheet_configured', return_value=False):
+        practice_progress.save_result('WEB-synthetic-common-denominator', summary)
+        focus = practice_progress.build_dashboard('WEB-synthetic-common-denominator', 'JSS1')['misconception_focus']
+    assert practice_progress._memory_records[-1]['skill_evidence'][0] == {
+        'skill': 'fraction_addition', 'correct': False, 'misconception': 'skips_common_denominator'}
+    assert focus['misconception'] == 'skips_common_denominator'
+    assert 'common denominator' in focus['teaching_tip']
+
+
+def test_practice_feedback_and_summary_use_the_same_skill_evidence():
+    questions = [(f'Calculate {n}/4 + 2/4.', 'Keep the denominator.', f'{n+2}/4', 'Add the numerators.') for n in range(1, 6)]
+    with patch.object(practice, '_build_question_queue', return_value=questions):
+
 def test_practice_feedback_and_summary_use_the_same_skill_evidence():
     questions = [(f'Calculate {n}/4 + 2/4.', 'Keep the denominator.', f'{n+2}/4', 'Add the numerators.') for n in range(1, 6)]
     with patch.object(practice, '_build_question_queue', return_value=questions):
