@@ -139,4 +139,4 @@ def test_escalation_assets_are_cache_busted():
     guidance = Path("classroom/daily_guidance_fix.js").read_text()
     assert "mastery_memory.js?v=20260915-mastery-memory3" in guidance
     assert "autonomous_planner.js?v=20260915-autonomous-plan4" in guidance
-    assert "autopilot_session.js?v=20260915-autopilot2" in guidance
+    assert "autopilot_session.js?v=20260915-autopilot3" in guidance
