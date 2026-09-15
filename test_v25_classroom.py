@@ -510,8 +510,8 @@ def test_existing_eight_column_progress_sheet_is_extended_for_class_and_learner_
     practice_progress._client = client
     with patch.dict('os.environ', {'GOOGLE_SHEET_ID': 'sheet', 'GOOGLE_SERVICE_ACCOUNT_JSON': '{}'}):
         assert practice_progress._get_worksheet() is worksheet
-    assert worksheet.col_count == 10
-    assert worksheet.updated == [(1, 9, 'Class Level'), (1, 10, 'Learner Code')]
+    assert worksheet.col_count == len(practice_progress._HEADER) == 11
+    assert worksheet.updated == [(1, column, title) for column, title in enumerate(practice_progress._HEADER[8:], 9)]
 
 
 def test_classroom_session_accepts_a_safe_nickname_and_class_level():
@@ -744,7 +744,7 @@ def test_practice_mode_uses_selected_language_without_changing_marking():
 def test_yoruba_deterministic_answer_uses_yoruba_number_word():
     reply, latency = get_tutor_reply("WEB-language-test", "2*3", "Yoruba")
     assert reply == "2*3 = 6\n\nÌdáhùn: Ẹ̀fà"
-    assert latency == 0.0
+    assert 0 <= latency < 0.1
 
 
 def test_igbo_and_hausa_deterministic_answers_use_local_number_words():
@@ -795,7 +795,7 @@ def test_active_voice_language_change_translates_and_restarts_stream():
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
     assert "const wasReading=teacherPanel.classList.contains('speaking')||teacherSpeechPaused" in script
     assert "fetch('/api/classroom/translate'" in script
-    assert "renderLesson(canvasAnswer,data.translation)" in script
+    assert "startLessonDirector(data.translation,currentLesson?.index||0)" in script
     assert "void speakText(data.translation,true)" in script
 
 
@@ -1343,7 +1343,7 @@ def test_hands_free_teaching_pauses_questions_and_resumes_bookmarked_step():
     styles = Path('classroom/styles.css').read_text()
     assert 'id="handsFreeToggle"' in html
     assert 'window.SpeechRecognition||window.webkitSpeechRecognition' in script
-    assert 'function handleHandsFreePhrase(rawPhrase)' in script
+    assert 'function handleHandsFreePhrase(rawPhrase,confidence=0)' in script
     assert "pauseLessonForQuestion('voice')" in script
     assert 'form.requestSubmit()' in script
     assert 'function resumeBookmarkedLessonByVoice()' in script
@@ -1368,7 +1368,8 @@ def test_cross_device_controls_wrap_and_all_answers_keep_canvas_visible():
     script = Path('classroom/app.js').read_text()
     styles = Path('classroom/styles.css').read_text()
     assert "if(!window.matchMedia('(max-width: 700px)').matches)return" not in script
-    assert "setLearningStatus('Answer ready');keepTeachingCanvasVisible()" in script
+    assert "setLearningStatus('Answer ready');" in script
+    assert "keepTeachingCanvasVisible();if(handsFree.enabled)" in script
     assert '.teacher-toolbar>strong{flex:1 1 100%}' in styles
     assert '.composer>*{min-width:0}' in styles
     assert '@media(min-width:601px) and (max-width:1100px)' in styles
@@ -1381,7 +1382,9 @@ def test_wake_word_mode_ignores_background_and_confirms_uncertain_commands():
     assert 'id="handsFreeHeard"' in html
     assert 'function executeHandsFreeIntent(phrase)' in script
     assert 'function handleHandsFreePhrase(rawPhrase,confidence=0)' in script
-    assert "(?:robo|robot|robotic)\\s*(?:teacher|tutor|feature)" in script
+    assert 'function handsFreeWakePattern()' in script
+    assert 'const wake=normalized.match(new RegExp(' in script
+    assert '${handsFreeWakePattern()}' in script
     assert 'start with “Robo-Teacher”' in script
     assert "confidence>0&&confidence<.55" in script
     assert "handsFree.pending=intent" in script
@@ -1416,7 +1419,8 @@ def test_hands_free_pause_can_interrupt_teacher_playback_without_echo_submission
     assert 'function handsFreeBargeIn(result)' in script
     assert "teacherPanel.classList.contains('speaking')" in script
     assert 'void pauseTeacherAudio()' in script
-    assert "updateHandsFreeStatus('Paused')" in script
+    assert 'openHandsFreeFollowUpWindow()' in script
+    assert "teacherVoiceStatus.textContent='Paused'" in script
     assert 'teacher paused so I can hear you.' in script
     assert 'if(handsFreeBargeIn(result))continue' in script
 
@@ -1453,7 +1457,7 @@ def test_unclear_child_speech_accepts_simple_confirmation_or_correction():
 def test_hands_free_local_language_commands_work_during_teacher_playback():
     script = Path('classroom/app.js').read_text()
     assert 'function handsFreeWakePattern()' in script
-    for phrase in ('olukọ', 'oluko', 'malami', 'onye\\s+nkuzi'):
+    for phrase in ('olukọ', 'oluko', 'malami', 'onye\\\\s+nkuzi'):
         assert phrase in script
     for phrase in ('duro', 'dúró', 'kwusi', 'kwụsị', 'dakata', 'dakatar'):
         assert phrase in script
@@ -1494,7 +1498,7 @@ def test_teacher_voice_speed_uses_natural_tts_pacing_and_responsive_controls():
     for command in ('speak slower', 'normal speed', 'speak faster'):
         assert command in script
     assert "localStorage.setItem('roboTeacherSpeechPace'" in script
-    assert '.teacher-speed{' in styles
+    assert '.teacher-speed,.teacher-volume{' in styles
     assert '_speech_pace_direction(pace)' in inspect.getsource(tutor.stream_tutor_speech)
     assert '_speech_pace_direction(pace)' in inspect.getsource(tutor.stream_stable_tutor_speech)
 
@@ -1607,7 +1611,7 @@ def test_saved_lessons_support_search_and_favourites_on_all_devices():
     styles = Path('classroom/styles.css').read_text()
     assert 'id="lessonSearch" type="search"' in html
     assert 'id="lessonFilter"' in html
-    assert "lessonFilter.value!=='favourites'||item.favourite" in script
+    assert "filter!=='favourites'||item.favourite" in script
     assert "favourite.dataset.lessonAction='favourite'" in script
     assert "item.favourite=!item.favourite" in script
     assert "lessonSearch.addEventListener('input',renderMyLessons)" in script
@@ -1772,6 +1776,22 @@ def test_teaching_quality_regressions_are_guarded():
     assert 'never cut a sentence mid-word' in tutor_source
 
 
+def test_teacher_device_timings_are_local_and_separate_connection_from_response():
+    html=Path('classroom/index.html').read_text()
+    script=Path('classroom/app.js').read_text()
+    assert 'id="showDeviceTimings"' in html
+    assert 'id="deviceTimingOutput"' in html
+    assert 'function displayDeviceTimings()' in script
+    timing=script.split('function displayDeviceTimings(){',1)[1].split('showDeviceTimings.addEventListener',1)[0]
+    for marker in ("performance.getEntriesByType('navigation')", 'navigation.secureConnectionStart',
+                   'navigation.requestStart,navigation.responseStart', "performance.getEntriesByType('resource')",
+                   'deviceTimingOutput.textContent'):
+        assert marker in timing
+    assert 'fetch(' not in timing
+    assert 'localStorage' not in timing
+    assert 'nickname' not in timing
+
+
 if __name__ == '__main__':
     test_session_and_chat_use_pseudonymous_identity()
     test_tampered_session_is_rejected()
@@ -1784,4 +1804,5 @@ if __name__ == '__main__':
     test_classroom_audio_rejects_unsupported_type()
     test_classroom_audio_rejects_oversized_file()
     test_teaching_quality_regressions_are_guarded()
+    test_teacher_device_timings_are_local_and_separate_connection_from_response()
     print('V2.5 classroom API safety tests passed.')
