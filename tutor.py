@@ -14,6 +14,7 @@ import os
 import re
 import time
 import wave
+from concurrent.futures import ThreadPoolExecutor
 from fractions import Fraction
 from math import gcd
 
@@ -71,6 +72,7 @@ Rules:
 _MAX_TURNS = 6
 _conversations: dict[str, list] = {}
 _client = None
+_profile_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="learner-profile")
 
 YORUBA_NUMBER_WORDS = {
     0: "Òdo",
@@ -471,6 +473,18 @@ def _safe_profile_update(student_id: str, message: str) -> dict:
         except Exception: return dict(DEFAULT_PROFILE)
 
 
+def _log_background_profile_failure(future) -> None:
+    try:
+        future.result()
+    except Exception as exc:
+        logger.error("Background learner profile update failed (%s)", type(exc).__name__)
+
+
+def _update_profile_in_background(student_id: str, message: str) -> None:
+    future = _profile_executor.submit(_safe_profile_update, student_id, message)
+    future.add_done_callback(_log_background_profile_failure)
+
+
 def _extract_text(response) -> str:
     try:
         if response.text: return response.text
@@ -548,14 +562,17 @@ def _language_instruction(response_language: str, class_level: str = "JSS2") -> 
 
 def get_tutor_reply(student_id: str, message: str, response_language: str = "English", class_level: str = "JSS2") -> tuple[str, float]:
     request_start = time.perf_counter()
-    profile = _safe_profile_update(student_id, message)
     deterministic = _simple_fraction_teaching_answer(message, response_language)
     if deterministic is None:
         deterministic = _simple_arithmetic_answer(message, response_language)
     if deterministic is not None:
+        # The exact answer does not depend on profile data, so do not make the
+        # learner wait for a Google Sheets round trip. Persistence still runs.
+        _update_profile_in_background(student_id, message)
         latency = time.perf_counter() - request_start
         logger.info("Tutor reply completed source=deterministic latency_seconds=%.3f", latency)
         return deterministic, latency
+    profile = _safe_profile_update(student_id, message)
     start = time.time()
     try:
         client = _get_client()
