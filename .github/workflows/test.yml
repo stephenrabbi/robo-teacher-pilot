@@ -48,3 +48,6 @@ jobs:
 
       - name: Collect and run all V2.5 classroom tests
         run: python -m pytest -q test_v25_classroom.py
+
+      - name: Run adaptive understanding reteach tests
+        run: python -m pytest -q test_adaptive_understanding.py
