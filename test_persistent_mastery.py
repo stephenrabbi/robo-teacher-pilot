@@ -114,3 +114,19 @@ def test_duplicate_check_event_is_idempotent():
     _event(session, "6" * 32, True, "initial", lesson)
     _event(session, "6" * 32, True, "initial", lesson)
     assert len(mastery_progress._memory_records) == 1
+
+
+def test_teacher_focus_uses_current_state_not_resolved_failure_history():
+    _reset_state()
+    learner = _session(learner_key="e" * 48)
+    fractions = "When adding fractions, use a common denominator before adding the numerators."
+    probability = "Probability measures the chance that an outcome will happen."
+    _event(learner, "7" * 32, False, "initial", fractions)
+    _event(learner, "8" * 32, True, "reteach", fractions)
+    _event(learner, "9" * 32, False, "reteach", probability)
+    with patch.object(mastery_progress, "_sheet_configured", return_value=False):
+        summary = mastery_progress.teacher_summary("JSS2")
+    assert summary["focus_topic"] == "Probability"
+    row = summary["learners"][0]
+    assert "Fractions, Ratios, Decimals & Percentages" in row["mastered_topics"]
+    assert row["needs_support_topics"] == ["Probability"]
