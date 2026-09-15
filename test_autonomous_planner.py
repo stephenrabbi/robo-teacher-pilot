@@ -86,7 +86,7 @@ def test_brand_new_learner_gets_baseline_practice_not_false_welcome_back():
 def test_browser_planner_loads_and_supports_all_next_action_paths():
     guidance = Path("classroom/daily_guidance_fix.js").read_text()
     script = Path("classroom/autonomous_planner.js").read_text()
-    assert "autonomous_planner.js?v=20260915-autonomous-plan1" in guidance
+    assert "autonomous_planner.js?v=20260915-autonomous-plan2" in guidance
     assert "data-autonomous-planner" in guidance
     assert "/api/classroom/mastery/plan" in script
     assert "ROBO-TEACHER REMEMBERS" in script
@@ -94,3 +94,21 @@ def test_browser_planner_loads_and_supports_all_next_action_paths():
     assert "plan.action==='practice'" in script
     assert "plan.action!=='mastery_check'" in script
     assert "understandingButton.click()" in script
+
+
+def test_browser_planner_recalculates_after_mastery_and_practice_evidence_changes():
+    script = Path("classroom/autonomous_planner.js").read_text()
+    assert "async function evidenceChanged()" in script
+    assert "clearPlanCache({keepReturn:true})" in script
+    assert "fetchAutonomousPlan({force=false}" in script
+    assert "if(data?.stored)void evidenceChanged()" in script
+    assert "renderPracticeResults=function(...args)" in script
+    assert "setTimeout(()=>{void evidenceChanged()},80)" in script
+
+
+def test_return_card_uses_saved_mastery_to_explain_why_the_next_action_was_chosen():
+    script = Path("classroom/autonomous_planner.js").read_text()
+    assert "function rememberedDetail(plan)" in script
+    assert "I remember you mastered" in script
+    assert "still needs some work" in script
+    assert "You are ready to continue with" in script
