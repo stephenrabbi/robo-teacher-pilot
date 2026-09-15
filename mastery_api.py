@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 
 from classroom_api import _classroom_profiles, _enforce_rate_limit, _verify_session
 from curriculum import CLASS_TOPICS
+from intervention_support import learner_intervention_summary, teacher_intervention_summary
 from learning_planner import build_autonomous_plan
 from mastery_progress import infer_topic, learner_summary, persist_event, stage_event, teacher_summary
 from misconceptions import classify_misconception
@@ -50,6 +51,32 @@ def _verify_teacher(access_key: str) -> None:
         raise HTTPException(status_code=403, detail="Incorrect teacher access key")
 
 
+def _learner_summary(student_id: str, class_level: str) -> dict:
+    summary = learner_summary(student_id, class_level)
+    intervention = learner_intervention_summary(student_id, class_level)
+    summary.update({
+        "teacher_support_required": intervention["teacher_support_required"],
+        "teacher_support_topics": intervention["teacher_support_topics"],
+        "watch_topics": intervention["watch_topics"],
+        "interventions": intervention["interventions"],
+        "teacher_support_focus": intervention["teacher_support_focus"],
+        "storage_synced": bool(summary.get("storage_synced")) and bool(intervention.get("storage_synced")),
+    })
+    return summary
+
+
+def _teacher_summary(class_level: str) -> dict:
+    summary = teacher_summary(class_level)
+    intervention = teacher_intervention_summary(class_level)
+    summary.update({
+        "teacher_support_count": intervention["teacher_support_count"],
+        "teacher_support_learners": intervention["teacher_support_learners"],
+        "intervention_learners": intervention["intervention_learners"],
+        "storage_synced": bool(summary.get("storage_synced")) and bool(intervention.get("storage_synced")),
+    })
+    return summary
+
+
 @router.post("/event")
 def record_mastery_event(request: MasteryEventRequest, background_tasks: BackgroundTasks):
     student_id = _verify_session(request.session_token)
@@ -61,7 +88,7 @@ def record_mastery_event(request: MasteryEventRequest, background_tasks: Backgro
         return {
             "stored": False,
             "reason": "topic_not_resolved",
-            "summary": learner_summary(student_id, class_level),
+            "summary": _learner_summary(student_id, class_level),
         }
 
     diagnosis = None
@@ -92,7 +119,7 @@ def record_mastery_event(request: MasteryEventRequest, background_tasks: Backgro
         "topic": topic,
         "state": record["state"],
         "misconception": diagnosis if diagnosis else None,
-        "summary": learner_summary(student_id, class_level),
+        "summary": _learner_summary(student_id, class_level),
     }
 
 
@@ -102,7 +129,7 @@ def get_mastery_summary(request: MasterySummaryRequest):
     _enforce_rate_limit(student_id, "mastery-summary", 30)
     profile = _classroom_profiles.get(student_id, {})
     class_level = profile.get("class_level", request.class_level)
-    return learner_summary(student_id, class_level)
+    return _learner_summary(student_id, class_level)
 
 
 @router.post("/plan")
@@ -117,4 +144,4 @@ def get_autonomous_learning_plan(request: MasterySummaryRequest):
 @router.post("/teacher")
 def get_teacher_mastery_summary(request: MasteryTeacherRequest):
     _verify_teacher(request.access_key)
-    return teacher_summary(request.class_level)
+    return _teacher_summary(request.class_level)
