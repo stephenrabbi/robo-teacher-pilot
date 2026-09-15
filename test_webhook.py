@@ -49,7 +49,7 @@ with patch.dict(os.environ, {
      patch("roster_sheet.mark_awaiting_school_choice", side_effect=_fake_mark_awaiting):
     import main
     from roster_sheet import ONBOARDING_PROMPT, ENROLLMENT_CLOSED_PROMPT
-    from tutor import _simple_arithmetic_answer
+    from tutor import _simple_arithmetic_answer, _simple_fraction_teaching_answer
 
     client = TestClient(main.app)
     assert client.get("/").status_code == 200
@@ -57,6 +57,13 @@ with patch.dict(os.environ, {
     # Arithmetic guardrail is deterministic and does not require Gemini.
     assert "42" in _simple_arithmetic_answer("What is 19 + 23?")
     assert _simple_arithmetic_answer("Tell me about physics") is None
+    fraction_reply = _simple_fraction_teaching_answer("Why is 3/4 + 1/2 equal to 5/4?")
+    assert "lowest common denominator" in fraction_reply.lower()
+    assert "3/4 + 2/4 = 5/4" in fraction_reply
+    assert "Final answer: 5/4" in fraction_reply
+    assert _simple_fraction_teaching_answer("Explain 3/0 + 1/2") is None
+    assert _simple_fraction_teaching_answer("Explain 1/2 + 1/3 + 1/4") is None
+    assert _simple_fraction_teaching_answer("Explain 1/2 + 1/3", "Yoruba") is None
     print("Arithmetic guardrail OK")
 
     # Invalid webhook authentication is rejected.
