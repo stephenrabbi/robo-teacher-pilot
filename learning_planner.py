@@ -41,13 +41,23 @@ def _make_plan(action, topic, class_level, practice, mastery, reason_code):
     difficulty = practice.get("recommended_difficulty") or "Easy"
     practice_row = _topic_rows(practice).get(topic, {})
     mastery_row = _mastery_rows(mastery).get(topic, {})
+    misconception_category = mastery_row.get("misconception")
     misconception = mastery_row.get("misconception_label")
     teaching_strategy = mastery_row.get("teaching_strategy")
+    strategy_effectiveness = mastery_row.get("strategy_effectiveness") or {}
+    strategy_reason = strategy_effectiveness.get("selection_reason")
 
     if action == "reteach" and practice_row.get("mastery_status") == "needs_support":
         difficulty = "Easy"
     if action == "reteach" and misconception and teaching_strategy:
-        reason = f"Recent checks suggest {misconception.lower()}. Robo-Teacher will change the teaching approach instead of repeating the same explanation."
+        if strategy_reason == "worked_before":
+            reason = f"Recent checks suggest {misconception.lower()}. Robo-Teacher remembers an approach that previously helped this learner and will use it again."
+        elif strategy_reason == "new_after_failure":
+            reason = f"Recent checks suggest {misconception.lower()}. The previous intervention did not resolve it, so Robo-Teacher will try a different teaching approach."
+        elif strategy_reason == "least_failed":
+            reason = f"Recent checks suggest {misconception.lower()}. Several approaches have been tried, so Robo-Teacher will use the strongest remaining evidence-based option and check carefully."
+        else:
+            reason = f"Recent checks suggest {misconception.lower()}. Robo-Teacher will change the teaching approach instead of repeating the same explanation."
 
     prompts = {
         "reteach": (
@@ -71,7 +81,10 @@ def _make_plan(action, topic, class_level, practice, mastery, reason_code):
         "reason_code": reason_code,
         "prompt": prompts[action],
         "misconception": misconception,
+        "misconception_category": misconception_category,
         "teaching_strategy": teaching_strategy,
+        "strategy_effectiveness": strategy_effectiveness or None,
+        "strategy_selection_reason": strategy_reason,
         "has_history": bool(practice.get("sessions") or mastery.get("topics")),
         "mastered_topics": sorted(set(mastery.get("mastered_topics", []))),
         "needs_support_topics": sorted(set(mastery.get("needs_support_topics", []))),
