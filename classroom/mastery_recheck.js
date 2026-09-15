@@ -130,6 +130,7 @@
     const text = currentCopy();
     const submitButton = understandingForm.querySelector('button[type="submit"]');
     const wasRetry = masteryRetryActive;
+    const answeredCheckId = understandingCheckId;
     submitButton.disabled = true;
     submitButton.textContent = text.checking;
 
@@ -140,7 +141,7 @@
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
           session_token: token,
-          check_id: understandingCheckId,
+          check_id: answeredCheckId,
           choice_index: Number(selected.value)
         })
       });
@@ -148,6 +149,13 @@
       if (!response.ok) throw new Error(data.detail || 'answer');
 
       recordLearningSignal(data.correct ? 'correct' : 'incorrect');
+      if (typeof window.roboTeacherMasteryRecord === 'function') {
+        void window.roboTeacherMasteryRecord({
+          correct: data.correct,
+          stage: wasRetry ? 'reteach' : 'initial',
+          checkId: answeredCheckId
+        });
+      }
       understandingChoices.querySelectorAll('label').forEach((label, index) => {
         label.classList.toggle('correct-choice', index === data.correct_index);
         label.querySelector('input').disabled = true;
