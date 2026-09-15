@@ -74,5 +74,8 @@ jobs:
       - name: Run prerequisite-aware learning path tests
         run: python -m pytest -q test_prerequisite_learning_path.py
 
+      - name: Run teacher-support escalation tests
+        run: python -m pytest -q test_teacher_support_escalation.py
+
       - name: Run bounded Autopilot session tests
         run: python -m pytest -q test_autopilot_session.py
