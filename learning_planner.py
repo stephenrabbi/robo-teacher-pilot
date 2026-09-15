@@ -39,11 +39,22 @@ def _next_unmastered(class_level, mastered, preferred=None):
 def _make_plan(action, topic, class_level, practice, mastery, reason_code):
     title, reason, button = _ACTION_COPY[action]
     difficulty = practice.get("recommended_difficulty") or "Easy"
-    row = _topic_rows(practice).get(topic, {})
-    if action == "reteach" and row.get("mastery_status") == "needs_support":
+    practice_row = _topic_rows(practice).get(topic, {})
+    mastery_row = _mastery_rows(mastery).get(topic, {})
+    misconception = mastery_row.get("misconception_label")
+    teaching_strategy = mastery_row.get("teaching_strategy")
+
+    if action == "reteach" and practice_row.get("mastery_status") == "needs_support":
         difficulty = "Easy"
+    if action == "reteach" and misconception and teaching_strategy:
+        reason = f"Recent checks suggest {misconception.lower()}. Robo-Teacher will change the teaching approach instead of repeating the same explanation."
+
     prompts = {
-        "reteach": f"Reteach me {topic} at {class_level} level using a different simple approach, then pause so I can check my understanding.",
+        "reteach": (
+            f"Reteach me {topic} at {class_level} level using a different simple approach. "
+            + (f"The recurring misconception is: {misconception}. Use this intervention strategy: {teaching_strategy} " if misconception and teaching_strategy else "")
+            + "Do not repeat the previous explanation word for word. Use one short worked example, then pause so I can check my understanding."
+        ),
         "review": f"Give me a short retrieval review of {topic} at {class_level} level, then pause for a quick understanding check.",
         "mastery_check": f"Give me a very short recap of {topic} at {class_level} level, then pause so Robo-Teacher can check whether I have mastered it.",
         "advance": f"Teach me {topic} step by step at {class_level} level.",
@@ -59,6 +70,8 @@ def _make_plan(action, topic, class_level, practice, mastery, reason_code):
         "button_text": button,
         "reason_code": reason_code,
         "prompt": prompts[action],
+        "misconception": misconception,
+        "teaching_strategy": teaching_strategy,
         "has_history": bool(practice.get("sessions") or mastery.get("topics")),
         "mastered_topics": sorted(set(mastery.get("mastered_topics", []))),
         "needs_support_topics": sorted(set(mastery.get("needs_support_topics", []))),

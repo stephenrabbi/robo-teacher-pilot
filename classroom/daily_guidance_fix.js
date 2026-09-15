@@ -112,7 +112,7 @@
   function loadRecheck(){
     if(document.querySelector('script[data-mastery-recheck]'))return;
     const script=document.createElement('script');
-    script.src='/classroom/mastery_recheck.js?v=20260915-mastery-recheck2';
+    script.src='/classroom/mastery_recheck.js?v=20260915-mastery-recheck3';
     script.dataset.masteryRecheck='true';
     document.head.appendChild(script);
   }
@@ -122,7 +122,7 @@
     return;
   }
   const memory=document.createElement('script');
-  memory.src='/classroom/mastery_memory.js?v=20260915-mastery-memory1';
+  memory.src='/classroom/mastery_memory.js?v=20260915-mastery-memory2';
   memory.dataset.masteryMemory='true';
   memory.addEventListener('load',loadRecheck,{once:true});
   document.head.appendChild(memory);

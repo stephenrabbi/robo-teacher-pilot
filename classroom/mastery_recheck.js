@@ -131,6 +131,9 @@
     const submitButton = understandingForm.querySelector('button[type="submit"]');
     const wasRetry = masteryRetryActive;
     const answeredCheckId = understandingCheckId;
+    const questionText = understandingQuestion.textContent || '';
+    const choiceLabels = Array.from(understandingChoices.querySelectorAll('label span')).map(item => item.textContent || '');
+    const selectedText = choiceLabels[Number(selected.value)] || '';
     submitButton.disabled = true;
     submitButton.textContent = text.checking;
 
@@ -149,11 +152,16 @@
       if (!response.ok) throw new Error(data.detail || 'answer');
 
       recordLearningSignal(data.correct ? 'correct' : 'incorrect');
+      const correctText = choiceLabels[Number(data.correct_index)] || '';
       if (typeof window.roboTeacherMasteryRecord === 'function') {
         void window.roboTeacherMasteryRecord({
           correct: data.correct,
           stage: wasRetry ? 'reteach' : 'initial',
-          checkId: answeredCheckId
+          checkId: answeredCheckId,
+          question: data.correct ? '' : questionText,
+          selectedChoice: data.correct ? '' : selectedText,
+          correctChoice: data.correct ? '' : correctText,
+          feedback: data.correct ? '' : (data.feedback || '')
         });
       }
       understandingChoices.querySelectorAll('label').forEach((label, index) => {
