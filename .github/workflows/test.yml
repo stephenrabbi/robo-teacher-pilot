@@ -52,13 +52,14 @@ jobs:
       - name: Run adaptive understanding reteach tests
         run: python -m pytest -q test_adaptive_understanding.py
 
-      - name: Check mastery, planner, Practice reliability and Autopilot browser scripts syntax
+      - name: Check mastery, planner, Practice, voice continuity and Autopilot browser scripts syntax
         run: |
           node --check classroom/mastery_memory.js
           node --check classroom/mastery_recheck.js
           node --check classroom/autonomous_planner.js
           node --check classroom/autopilot_session.js
           node --check classroom/practice_reliability.js
+          node --check classroom/handsfree_language_continuity.js
 
       - name: Run mastery recheck integration tests
         run: python -m pytest -q test_mastery_recheck.py
@@ -83,6 +84,9 @@ jobs:
 
       - name: Run Practice reliability recovery tests
         run: python -m pytest -q test_practice_reliability.py
+
+      - name: Run hands-free language continuity tests
+        run: python -m pytest -q test_handsfree_language_continuity.py
 
       - name: Run resumable Autopilot session tests
         run: python -m pytest -q test_resumable_autopilot.py
