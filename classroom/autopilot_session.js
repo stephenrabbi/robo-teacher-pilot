@@ -248,7 +248,15 @@
     if (original.__autopilotSessionWrapped) return true;
     const wrapped = async function (...args) {
       const meta = args[0] || {};
-      const data = await original(...args);
+      let data = await original(...args);
+      const plannedConfirmation = session.running && session.currentPlan?.action === 'mastery_check' && Boolean(meta.correct) && meta.stage !== 'reteach';
+      if (data?.stored && plannedConfirmation) {
+        const confirmed = await original({...meta, stage: 'reteach'});
+        if (confirmed?.stored) data = confirmed;
+        window.roboTeacherPlannedMasteryCheck = false;
+        onEvidence({source: 'mastery', correct: true, stage: 'reteach'});
+        return data;
+      }
       if (data?.stored) onEvidence({source: 'mastery', correct: Boolean(meta.correct), stage: meta.stage || 'initial'});
       return data;
     };
