@@ -8,10 +8,12 @@ import threading
 
 import gspread
 from curriculum import CLASS_TOPICS
+from misconceptions import misconception_label
 
 _HEADER = [
     "Timestamp (UTC)", "Event ID", "Learner ID", "Learner Code",
     "Class Level", "Topic", "Stage", "Correct", "State",
+    "Misconception", "Teaching Strategy",
 ]
 _client = None
 _worksheet = None
@@ -127,7 +129,17 @@ def state_for_event(stage: str, correct: bool) -> str:
     return "developing" if correct else "needs_support"
 
 
-def stage_event(event_id: str, learner_id: str, learner_code: str, class_level: str, topic: str, stage: str, correct: bool) -> dict:
+def stage_event(
+    event_id: str,
+    learner_id: str,
+    learner_code: str,
+    class_level: str,
+    topic: str,
+    stage: str,
+    correct: bool,
+    misconception: str = "",
+    teaching_strategy: str = "",
+) -> dict:
     record = {
         "timestamp": datetime.datetime.now(datetime.UTC).isoformat(timespec="seconds"),
         "event_id": event_id,
@@ -138,6 +150,8 @@ def stage_event(event_id: str, learner_id: str, learner_code: str, class_level: 
         "stage": stage,
         "correct": bool(correct),
         "state": state_for_event(stage, bool(correct)),
+        "misconception": misconception if not correct else "",
+        "teaching_strategy": teaching_strategy if not correct else "",
     }
     with _lock:
         existing = next((item for item in _memory_records if item["event_id"] == event_id), None)
@@ -159,6 +173,7 @@ def persist_event(event_id: str) -> bool:
         _get_worksheet().append_row([
             record["timestamp"], record["event_id"], record["learner_id"], record["learner_code"],
             record["class_level"], record["topic"], record["stage"], "TRUE" if record["correct"] else "FALSE", record["state"],
+            record.get("misconception", ""), record.get("teaching_strategy", ""),
         ])
         with _lock:
             _unsynced_ids.discard(event_id)
@@ -183,6 +198,8 @@ def _row_to_record(row: dict) -> dict | None:
             "stage": stage,
             "correct": correct,
             "state": str(row.get("State", "")) or state_for_event(stage, correct),
+            "misconception": str(row.get("Misconception", "") or ""),
+            "teaching_strategy": str(row.get("Teaching Strategy", "") or ""),
         }
     except (TypeError, ValueError):
         return None
@@ -216,6 +233,8 @@ def summarise_topics(records: list[dict]) -> list[dict]:
         correct = sum(1 for item in items if item.get("correct"))
         reteach_attempts = sum(1 for item in items if item.get("stage") == "reteach")
         confidence = "high" if attempts >= 4 else "medium" if attempts >= 2 else "low"
+        misconception = latest.get("misconception", "") if latest.get("state") == "needs_support" else ""
+        strategy = latest.get("teaching_strategy", "") if misconception else ""
         topics.append({
             "topic": topic,
             "state": latest.get("state", "developing"),
@@ -224,6 +243,9 @@ def summarise_topics(records: list[dict]) -> list[dict]:
             "correct_checks": correct,
             "reteach_checks": reteach_attempts,
             "last_seen": latest.get("timestamp", ""),
+            "misconception": misconception or None,
+            "misconception_label": misconception_label(misconception),
+            "teaching_strategy": strategy or None,
         })
     topics.sort(key=lambda item: (item["state"] != "needs_support", item["last_seen"]), reverse=False)
     return topics
@@ -237,6 +259,14 @@ def learner_summary(learner_id: str, class_level: str) -> dict:
     developing = [item for item in topics if item["state"] == "developing"]
     mastered = [item for item in topics if item["state"] == "mastered"]
     focus = (max(support, key=lambda item: item["last_seen"]) if support else max(developing, key=lambda item: item["last_seen"]) if developing else None)
+    misconception_focus = None
+    if focus and focus.get("misconception"):
+        misconception_focus = {
+            "topic": focus["topic"],
+            "category": focus["misconception"],
+            "label": focus.get("misconception_label"),
+            "teaching_tip": focus.get("teaching_strategy"),
+        }
     return {
         "class_level": class_level,
         "topics": topics,
@@ -244,6 +274,7 @@ def learner_summary(learner_id: str, class_level: str) -> dict:
         "developing_topics": [item["topic"] for item in developing],
         "needs_support_topics": [item["topic"] for item in support],
         "focus_topic": focus["topic"] if focus else None,
+        "misconception_focus": misconception_focus,
         "storage_synced": synced,
     }
 
@@ -253,24 +284,40 @@ def teacher_summary(class_level: str) -> dict:
     records = [item for item in records if item.get("class_level") == class_level]
     learners = {}
     topic_support = {}
+    misconception_counts = {}
+    strategy_by_misconception = {}
+    topic_by_misconception = {}
     for learner_id in sorted({item["learner_id"] for item in records}):
         items = [item for item in records if item["learner_id"] == learner_id]
         topics = summarise_topics(items)
         latest_code = next((item.get("learner_code") for item in reversed(items) if item.get("learner_code")), "Unassigned")
-        support = [item["topic"] for item in topics if item["state"] == "needs_support"]
+        support_rows = [item for item in topics if item["state"] == "needs_support"]
+        support = [item["topic"] for item in support_rows]
+        current = support_rows[0] if support_rows else None
         learners[learner_id] = {
             "learner_code": latest_code,
             "mastered_topics": [item["topic"] for item in topics if item["state"] == "mastered"],
             "developing_topics": [item["topic"] for item in topics if item["state"] == "developing"],
             "needs_support_topics": support,
-            "support_topic": support[0] if support else None,
+            "support_topic": current["topic"] if current else None,
+            "support_misconception": current.get("misconception_label") if current else None,
+            "teaching_strategy": current.get("teaching_strategy") if current else None,
         }
-        for topic in support:
-            topic_support[topic] = topic_support.get(topic, 0) + 1
+        for row in support_rows:
+            topic_support[row["topic"]] = topic_support.get(row["topic"], 0) + 1
+            category = row.get("misconception")
+            if category:
+                misconception_counts[category] = misconception_counts.get(category, 0) + 1
+                strategy_by_misconception[category] = row.get("teaching_strategy")
+                topic_by_misconception[category] = row["topic"]
     focus = max(topic_support, key=lambda topic: (topic_support[topic], topic)) if topic_support else None
+    misconception = max(misconception_counts, key=lambda key: (misconception_counts[key], key)) if misconception_counts else None
     return {
         "class_level": class_level,
         "learners": list(learners.values()),
         "focus_topic": focus,
+        "focus_misconception": misconception_label(misconception),
+        "focus_misconception_topic": topic_by_misconception.get(misconception) if misconception else None,
+        "focus_teaching_strategy": strategy_by_misconception.get(misconception) if misconception else None,
         "storage_synced": synced,
     }
