@@ -329,6 +329,37 @@ def test_consistent_success_moves_the_learner_up_one_level():
     fraction = next(item for term in dashboard['learning_path'] for item in term['topics'] if item['topic'] == 'Fractions')
     assert fraction['status'] == 'recommended'
     assert fraction['percentage'] == 100
+    assert fraction['mastery_status'] == 'mastered'
+    assert fraction['mastery_estimate'] >= 80
+    assert fraction['confidence'] == 'medium'
+
+
+def test_mastery_requires_repeated_evidence_and_old_learning_becomes_due():
+    practice_progress._reset_for_tests()
+    now = __import__('datetime').datetime.now(__import__('datetime').UTC)
+    practice_progress._memory_records.append({
+        'learner_id': 'WEB-thin', 'class_level': 'JSS1', 'session_id': 'thin-1',
+        'topic': 'Fractions', 'difficulty': 'Easy', 'score': 5, 'attempted': 5,
+        'percentage': 100, 'timestamp': now.isoformat(),
+    })
+    thin = practice_progress.build_dashboard('WEB-thin', 'JSS1')
+    fraction = next(item for item in thin['topics'] if item['topic'] == 'Fractions')
+    assert fraction['mastery_status'] == 'developing'
+    assert fraction['confidence'] == 'low'
+
+    practice_progress._reset_for_tests()
+    old = (now - __import__('datetime').timedelta(days=45)).isoformat()
+    for index in range(3):
+        practice_progress._memory_records.append({
+            'learner_id': 'WEB-old', 'class_level': 'JSS1', 'session_id': f'old-{index}',
+            'topic': 'Fractions', 'difficulty': 'Medium', 'score': 5, 'attempted': 5,
+            'percentage': 100, 'timestamp': old,
+        })
+    old_dashboard = practice_progress.build_dashboard('WEB-old', 'JSS1')
+    old_fraction = next(item for item in old_dashboard['topics'] if item['topic'] == 'Fractions')
+    assert old_fraction['due_for_review'] is True
+    assert old_fraction['mastery_status'] == 'developing'
+    assert old_dashboard['recommended_topic'] == 'Fractions'
 
 
 def test_auto_difficulty_uses_topic_history_without_skipping_a_level():
