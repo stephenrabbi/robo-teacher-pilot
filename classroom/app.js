@@ -243,7 +243,10 @@ let lessonInterruption=null;
 let pendingChatRecovery=null;
 let savedClassroomSnapshot=null;
 const teachingStage={mode:'lesson',bookmark:0};
-const lessonChoreography={enabled:true,visited:new Set(),timer:null};
+// Recommendations remain visible, but the learner decides when to open a
+// visual, example, or check. Automatic mode changes were disorienting and
+// could hide the explanation before it had been read.
+const lessonChoreography={enabled:false,visited:new Set(),timer:null};
 let learnerMemoryId='';
 let adaptiveMemory={replays:0,simplifications:0,questions:0,correct:0,incorrect:0};
 const handsFree={enabled:false,recognition:null,processing:false,restartTimer:null,restartAttempts:0,lastError:'',startedAt:0,hasStarted:false,phraseTimer:null,phraseBuffer:'',bufferConfidence:0,pending:'',lastPhrase:'',lastAt:0,armedUntil:0,bargeInAt:0,ignorePauseUntil:0};
@@ -1102,9 +1105,17 @@ function keepTeachingCanvasVisible(){
 
 function splitLessonSteps(text){
   const blocks=text.trim().split(/\n\s*\n|(?=\bStep\s+\d+\s*[:.-])/i).map(item=>item.trim()).filter(Boolean);
-  if(blocks.length>1)return blocks;
+  if(blocks.length>1){
+    if(blocks.length<=6)return blocks;
+    const groupSize=Math.ceil(blocks.length/6),grouped=[];
+    for(let index=0;index<blocks.length;index+=groupSize)grouped.push(blocks.slice(index,index+groupSize).join('\n\n'));
+    return grouped;
+  }
   const lines=text.trim().split(/\n+/).map(item=>item.trim()).filter(Boolean);
-  return lines.length>1?lines:[text.trim()];
+  if(lines.length<=6)return lines.length>1?lines:[text.trim()];
+  const groupSize=Math.ceil(lines.length/6),grouped=[];
+  for(let index=0;index<lines.length;index+=groupSize)grouped.push(lines.slice(index,index+groupSize).join('\n'));
+  return grouped;
 }
 
 function renderLessonBlock(container,text){
@@ -1808,7 +1819,7 @@ function closeUnderstandingCheck(){
 }
 
 async function showVisualExplanation(){
-  const lesson=canvasAnswer.textContent.trim();if(!lesson){addMessage('Ask a Maths question first, then I can show a visual explanation.','teacher');return;}
+  const lesson=(currentLesson?.text||canvasAnswer.textContent).trim();if(!lesson){addMessage('Ask a Maths question first, then I can show a visual explanation.','teacher');return;}
   stopTeacherAudio();visualButton.disabled=true;visualButton.textContent='Preparing…';setLearningStatus('Drawing a lesson visual','thinking');
   try{
     const token=await ensureSession();let response;let data;
@@ -1844,7 +1855,7 @@ function dismissLessonOverlays(){stopLessonMedia();visualArea.classList.add('hid
 function closeVisualExplanation(){visualArea.classList.add('hidden');restoreTeachingStage()}
 
 async function openLessonMedia(){
-  const lesson=Array.from(canvasAnswer.querySelectorAll('p')).map(item=>item.innerText.trim()).filter(Boolean).join('\n')||canvasAnswer.innerText.trim();if(!lesson){addMessage('Ask a Maths question first, then I can show an example.','teacher');return;}
+  const lesson=(currentLesson?.text||Array.from(canvasAnswer.querySelectorAll('p')).map(item=>item.innerText.trim()).filter(Boolean).join('\n')||canvasAnswer.innerText).trim();if(!lesson){addMessage('Ask a Maths question first, then I can show an example.','teacher');return;}
   stopTeacherAudio();mediaButton.disabled=true;mediaButton.textContent='Preparing…';setLearningStatus('Preparing a learning example','thinking');
   try{const token=await ensureSession();const response=await fetch('/api/classroom/media',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:lesson,session_token:token,language:language.value})});const data=await response.json();if(!response.ok)throw new Error(data.detail||'media');dismissLessonOverlays();renderLessonMedia(data);canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');mediaArea.classList.remove('hidden');enterTeachingStage('example');setLearningStatus('Learning example ready','success');}
   catch(error){addMessage(error.message||'I could not prepare that example. Please try again.','teacher');setLearningStatus('Example needs another try','attention');}
