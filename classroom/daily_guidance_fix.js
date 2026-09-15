@@ -139,7 +139,7 @@
 (() => {
   if(document.querySelector('script[data-autopilot-session]'))return;
   const script=document.createElement('script');
-  script.src='/classroom/autopilot_session.js?v=20260915-autopilot2';
+  script.src='/classroom/autopilot_session.js?v=20260915-autopilot3';
   script.dataset.autopilotSession='true';
   document.head.appendChild(script);
 })();

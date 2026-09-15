@@ -16,6 +16,10 @@
     nextTimer: null,
     masteryWrapAttempts: 0,
     practiceWrapped: false,
+    sessionId: null,
+    sessionToken: null,
+    classLevel: null,
+    resumed: false,
   };
 
   let card = null;
@@ -25,9 +29,16 @@
   let startButton = null;
   let pauseButton = null;
   let stopButton = null;
+  let resumeHint = null;
+  let resumeHintProfile = '';
+  let resumeHintLoading = null;
 
   function profileReady() {
     return learnerNickname.value.trim().length >= 2 && /^JSS[1-3]$/.test(learnerClass.value);
+  }
+
+  function profileKey() {
+    return `${learnerClass.value}:${learnerNickname.value.trim().toLocaleLowerCase()}`;
   }
 
   function injectStyles() {
@@ -85,6 +96,62 @@
     return card;
   }
 
+  async function sessionApi(action, {sessionId = '', completed = 0, token = null, classLevel = null} = {}) {
+    const authToken = token || await ensureSession();
+    const selectedClass = classLevel || learnerClass.value;
+    const response = await fetch('/api/classroom/mastery/autopilot/session', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+      body: JSON.stringify({
+        session_token: authToken,
+        class_level: selectedClass,
+        action,
+        session_id: sessionId || '',
+        completed_steps: Math.max(0, Math.min(MAX_SESSION_STEPS, Number(completed) || 0)),
+      })
+    });
+    const data = await response.json();
+    if (response.status === 401 && authToken === sessionToken) sessionToken = null;
+    if (!response.ok) throw new Error(data.detail || 'Autopilot checkpoint unavailable');
+    return {data, token: authToken, classLevel: selectedClass};
+  }
+
+  async function loadResumeHint({force = false} = {}) {
+    if (!profileReady() || session.running) return null;
+    const key = profileKey();
+    if (!force && resumeHintProfile === key) return resumeHint;
+    if (resumeHintLoading) return resumeHintLoading;
+    resumeHintLoading = (async () => {
+      try {
+        const {data} = await sessionApi('status');
+        resumeHint = data?.resumable ? data.session : null;
+        resumeHintProfile = key;
+        renderIdle();
+        return resumeHint;
+      } catch (_error) {
+        resumeHint = null;
+        resumeHintProfile = key;
+        return null;
+      }
+    })().finally(() => { resumeHintLoading = null; });
+    return resumeHintLoading;
+  }
+
+  async function checkpointSession(action, completed = session.completed) {
+    if (!session.sessionId || !session.sessionToken || !session.classLevel) return false;
+    try {
+      await sessionApi(action, {
+        sessionId: session.sessionId,
+        completed,
+        token: session.sessionToken,
+        classLevel: session.classLevel,
+      });
+      return true;
+    } catch (_error) {
+      return false;
+    }
+  }
+
   function mountCard() {
     if (classroom.classList.contains('hidden') || !profileReady()) return;
     const host = document.querySelector('.learning-area');
@@ -92,6 +159,7 @@
     const node = ensureCard();
     if (node.parentNode !== host) host.prepend(node);
     renderIdle();
+    void loadResumeHint();
   }
 
   function clearTimers() {
@@ -103,9 +171,21 @@
 
   function renderIdle() {
     if (!card || session.running) return;
-    title.textContent = 'Start My Lesson';
-    detail.textContent = 'Robo-Teacher will choose up to 3 learning steps from your saved progress, but you will still answer every question yourself.';
-    progress.textContent = 'You can pause, stop, ask a question, or change language at any time.';
+    const saved = resumeHintProfile === profileKey() ? resumeHint : null;
+    if (saved) {
+      const completed = Number(saved.completed_steps) || 0;
+      title.textContent = 'Continue My Lesson';
+      detail.textContent = completed
+        ? `You completed ${completed} of ${MAX_SESSION_STEPS} guided steps before this lesson was interrupted. Robo-Teacher will continue from your last confirmed checkpoint.`
+        : 'Your previous Autopilot lesson was interrupted before a learning step was confirmed. Robo-Teacher can safely continue it.';
+      progress.textContent = 'The next action will be recalculated from your latest saved mastery instead of replaying stale lesson content.';
+      startButton.textContent = 'Continue My Lesson →';
+    } else {
+      title.textContent = 'Start My Lesson';
+      detail.textContent = 'Robo-Teacher will choose up to 3 learning steps from your saved progress, but you will still answer every question yourself.';
+      progress.textContent = 'You can pause, stop, ask a question, or change language at any time.';
+      startButton.textContent = 'Start My Lesson →';
+    }
     startButton.classList.remove('hidden');
     pauseButton.classList.add('hidden');
     stopButton.classList.add('hidden');
@@ -117,18 +197,18 @@
     pauseButton.classList.remove('hidden');
     stopButton.classList.remove('hidden');
     pauseButton.textContent = session.paused ? 'Resume' : 'Pause';
-    title.textContent = session.paused ? 'Autopilot paused' : 'Autopilot is guiding this lesson';
+    title.textContent = session.paused ? 'Autopilot paused' : (session.resumed ? 'Autopilot lesson resumed' : 'Autopilot is guiding this lesson');
     const plan = session.currentPlan;
     detail.textContent = message || (plan ? `${plan.title}: ${plan.topic}. ${plan.reason}` : 'Choosing the best next learning step from your progress…');
     progress.textContent = `Step ${Math.min(session.completed + 1, MAX_SESSION_STEPS)} of ${MAX_SESSION_STEPS} · ${session.completed} completed`;
   }
 
   async function fetchPlan() {
-    const token = await ensureSession();
+    const token = session.sessionToken || await ensureSession();
     const response = await fetch('/api/classroom/mastery/plan', {
       method: 'POST',
       headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
-      body: JSON.stringify({session_token: token, class_level: learnerClass.value})
+      body: JSON.stringify({session_token: token, class_level: session.classLevel || learnerClass.value})
     });
     const data = await response.json();
     if (response.status === 401) sessionToken = null;
@@ -137,7 +217,7 @@
   }
 
   async function openPlanPractice(plan) {
-    currentProgress = currentProgress || await practiceRequest('progress', {class_level: learnerClass.value});
+    currentProgress = currentProgress || await practiceRequest('progress', {class_level: session.classLevel || learnerClass.value});
     currentProgress.recommended_topic = plan.topic;
     currentProgress.recommended_difficulty = plan.difficulty || currentProgress.recommended_difficulty;
     currentProgress.recommended_term = plan.term || currentProgress.recommended_term;
@@ -234,7 +314,7 @@
     return Boolean(meta.correct);
   }
 
-  function onEvidence(meta) {
+  async function onEvidence(meta) {
     if (!session.running || !session.awaitingEvidence) return;
     if (!evidenceCompletesStep(meta)) {
       renderRunning('Not quite yet. Robo-Teacher is reteaching this idea once before deciding what to do next.');
@@ -244,11 +324,12 @@
     session.pendingCheck = false;
     session.awaitingEvidence = false;
     session.completed += 1;
+    await checkpointSession('step');
     if (session.completed >= MAX_SESSION_STEPS) {
       finishSession();
       return;
     }
-    renderRunning('Step complete. Robo-Teacher is updating your learning plan from this result…');
+    renderRunning('Step complete. Robo-Teacher saved this checkpoint and is updating your learning plan…');
     if (session.paused) return;
     session.nextTimer = setTimeout(() => { void advanceSession(); }, 900);
   }
@@ -265,10 +346,10 @@
         const confirmed = await original({...meta, stage: 'reteach'});
         if (confirmed?.stored) data = confirmed;
         window.roboTeacherPlannedMasteryCheck = false;
-        onEvidence({source: 'mastery', correct: true, stage: 'reteach'});
+        void onEvidence({source: 'mastery', correct: true, stage: 'reteach'});
         return data;
       }
-      if (data?.stored) onEvidence({source: 'mastery', correct: Boolean(meta.correct), stage: meta.stage || 'initial'});
+      if (data?.stored) void onEvidence({source: 'mastery', correct: Boolean(meta.correct), stage: meta.stage || 'initial'});
       return data;
     };
     wrapped.__autopilotSessionWrapped = true;
@@ -288,7 +369,7 @@
     renderPracticeResults = function (...args) {
       const result = original(...args);
       if (session.running && session.awaitingEvidence && practiceMode === 'practice') {
-        setTimeout(() => onEvidence({source: 'practice'}), 120);
+        setTimeout(() => { void onEvidence({source: 'practice'}); }, 120);
       }
       return result;
     };
@@ -301,16 +382,40 @@
       return;
     }
     clearTimers();
+    const selectedClass = learnerClass.value;
+    let durable = null;
+    let authToken = null;
+    try {
+      const result = await sessionApi('start', {classLevel: selectedClass});
+      durable = result.data;
+      authToken = result.token;
+    } catch (_error) {
+      try { authToken = await ensureSession(); } catch (_ignored) { authToken = null; }
+    }
+
     session.running = true;
     session.paused = false;
     session.awaitingEvidence = false;
     session.pendingCheck = false;
-    session.completed = 0;
+    session.completed = Math.max(0, Math.min(MAX_SESSION_STEPS, Number(durable?.session?.completed_steps) || 0));
     session.currentPlan = null;
     session.topicActions = new Map();
+    session.sessionId = durable?.session?.session_id || null;
+    session.sessionToken = authToken;
+    session.classLevel = selectedClass;
+    session.resumed = Boolean(durable?.resumed);
+    resumeHint = null;
+    resumeHintProfile = profileKey();
     window.roboTeacherPlannedMasteryCheck = false;
-    renderRunning('Reading your saved progress and choosing where to begin…');
-    setLearningStatus('Autopilot lesson started', 'success');
+
+    if (session.completed >= MAX_SESSION_STEPS) {
+      finishSession();
+      return;
+    }
+    renderRunning(session.resumed
+      ? `Resuming from your last confirmed checkpoint: ${session.completed} of ${MAX_SESSION_STEPS} learning steps completed.`
+      : 'Reading your saved progress and choosing where to begin…');
+    setLearningStatus(session.resumed ? 'Autopilot lesson resumed' : 'Autopilot lesson started', 'success');
     await advanceSession();
   }
 
@@ -322,14 +427,16 @@
         try { await pauseTeacherAudio(); } catch (_error) { /* Autopilot pause still applies. */ }
       }
       clearTimeout(session.nextTimer); session.nextTimer = null;
-      renderRunning('Autopilot is paused. You can ask a question, change language, or work manually.');
+      await checkpointSession('pause');
+      renderRunning('Autopilot is paused and this checkpoint is saved. You can ask a question, change language, or work manually.');
       setLearningStatus('Autopilot paused', 'paused');
       return;
     }
+    await checkpointSession('resume');
     if (typeof resumeTeacherAudio === 'function' && teacherSpeechPaused) {
       try { await resumeTeacherAudio(); } catch (_error) { /* Continue without voice if needed. */ }
     }
-    renderRunning('Autopilot resumed.');
+    renderRunning('Autopilot resumed from the saved checkpoint.');
     setLearningStatus('Autopilot resumed', 'success');
     if (session.pendingCheck && !understandingButton.disabled) {
       session.pendingCheck = false;
@@ -342,11 +449,27 @@
 
   function stopSession(message) {
     clearTimers();
+    const closingSessionId = session.sessionId;
+    const closingToken = session.sessionToken;
+    const closingClass = session.classLevel;
+    const closingCompleted = session.completed;
+    if (closingSessionId && closingToken && closingClass) {
+      void sessionApi('stop', {
+        sessionId: closingSessionId,
+        completed: closingCompleted,
+        token: closingToken,
+        classLevel: closingClass,
+      }).catch(() => {});
+    }
     session.running = false;
     session.paused = false;
     session.awaitingEvidence = false;
     session.pendingCheck = false;
     session.currentPlan = null;
+    session.sessionId = null;
+    session.resumed = false;
+    resumeHint = null;
+    resumeHintProfile = profileKey();
     window.roboTeacherPlannedMasteryCheck = false;
     if (typeof stopTeacherAudio === 'function') {
       try { stopTeacherAudio(); } catch (_error) { /* Session can stop even if audio is already idle. */ }
@@ -354,7 +477,7 @@
     ensureCard();
     title.textContent = 'Autopilot stopped';
     detail.textContent = message;
-    progress.textContent = `${session.completed} of ${MAX_SESSION_STEPS} learning steps completed. Your saved progress is unchanged.`;
+    progress.textContent = `${session.completed} of ${MAX_SESSION_STEPS} learning steps completed. Confirmed mastery and practice evidence remains saved.`;
     startButton.textContent = session.completed ? 'Start Another Lesson →' : 'Start My Lesson →';
     startButton.classList.remove('hidden');
     pauseButton.classList.add('hidden');
@@ -364,15 +487,30 @@
 
   function finishSession() {
     clearTimers();
+    const closingSessionId = session.sessionId;
+    const closingToken = session.sessionToken;
+    const closingClass = session.classLevel;
+    if (closingSessionId && closingToken && closingClass) {
+      void sessionApi('finish', {
+        sessionId: closingSessionId,
+        completed: MAX_SESSION_STEPS,
+        token: closingToken,
+        classLevel: closingClass,
+      }).catch(() => {});
+    }
     session.running = false;
     session.paused = false;
     session.awaitingEvidence = false;
     session.pendingCheck = false;
+    session.sessionId = null;
+    session.resumed = false;
+    resumeHint = null;
+    resumeHintProfile = profileKey();
     window.roboTeacherPlannedMasteryCheck = false;
     ensureCard();
     title.textContent = 'My lesson is complete';
     detail.textContent = `Excellent work, ${learnerNickname.value.trim()}. Robo-Teacher completed ${MAX_SESSION_STEPS} guided learning steps and saved the evidence from your answers.`;
-    progress.textContent = 'Your next Autopilot session will start from your updated mastery and practice record.';
+    progress.textContent = 'This Autopilot session is closed. Your next session will start from your updated mastery and practice record.';
     startButton.textContent = 'Start Another Lesson →';
     startButton.classList.remove('hidden');
     pauseButton.classList.add('hidden');
@@ -386,10 +524,12 @@
   classroomObserver.observe(classroom, {attributes: true, attributeFilter: ['class']});
 
   learnerNickname.addEventListener('change', () => {
+    resumeHint = null; resumeHintProfile = '';
     if (session.running) stopSession('Learner changed, so Autopilot stopped safely. Start again for the new learner.');
     else setTimeout(mountCard, 50);
   });
   learnerClass.addEventListener('change', () => {
+    resumeHint = null; resumeHintProfile = '';
     if (session.running) stopSession('Class changed, so Autopilot stopped safely. Start again with the new curriculum level.');
     else setTimeout(mountCard, 50);
   });
