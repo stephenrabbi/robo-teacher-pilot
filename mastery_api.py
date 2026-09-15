@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 
 from classroom_api import _classroom_profiles, _enforce_rate_limit, _verify_session
 from curriculum import CLASS_TOPICS
+from learning_planner import build_autonomous_plan
 from mastery_progress import infer_topic, learner_summary, persist_event, stage_event, teacher_summary
 
 router = APIRouter(prefix="/api/classroom/mastery", tags=["classroom-mastery"])
@@ -81,6 +82,15 @@ def get_mastery_summary(request: MasterySummaryRequest):
     profile = _classroom_profiles.get(student_id, {})
     class_level = profile.get("class_level", request.class_level)
     return learner_summary(student_id, class_level)
+
+
+@router.post("/plan")
+def get_autonomous_learning_plan(request: MasterySummaryRequest):
+    student_id = _verify_session(request.session_token)
+    _enforce_rate_limit(student_id, "autonomous-plan", 30)
+    profile = _classroom_profiles.get(student_id, {})
+    class_level = profile.get("class_level", request.class_level)
+    return build_autonomous_plan(student_id, class_level)
 
 
 @router.post("/teacher")
