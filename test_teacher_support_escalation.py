@@ -138,5 +138,5 @@ def test_browser_never_auto_teaches_teacher_help_plan_and_teacher_view_surfaces_
 def test_escalation_assets_are_cache_busted():
     guidance = Path("classroom/daily_guidance_fix.js").read_text()
     assert "mastery_memory.js?v=20260915-mastery-memory3" in guidance
-    assert "autonomous_planner.js?v=20260915-autonomous-plan4" in guidance
+    assert "autonomous_planner.js?v=20260915-autonomous-plan5" in guidance
     assert "autopilot_session.js?v=20260915-autopilot3" in guidance
