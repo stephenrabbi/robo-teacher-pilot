@@ -255,7 +255,7 @@ def _normalise_answer(answer: str) -> str:
 
 def _question_evidence(question: str, answer: str, correct: bool, topic: str) -> dict:
     """Store a skill tag and only demonstrable error patterns, never answers."""
-    expression = re.fullmatch(r"(?:Calculate|What is)\s+(\d+)\s*/\s*(\d+)\s*([+-])\s*(\d+)\s*/\s*(\d+)\s*\.?", question.strip(), re.IGNORECASE)
+    expression = re.fullmatch(r"(?:Calculate|What is)\s+(\d+)\s*/\s*(\d+)\s*([+-])\s*(\d+)\s*/\s*(\d+)\s*\.(?:\s+Give the simplest fraction\.)?", question.strip(), re.IGNORECASE)
     if not expression:
         return {"skill": topic, "correct": correct, "misconception": None}
     a, b, operation, c, d = expression.groups()
