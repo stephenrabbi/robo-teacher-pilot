@@ -49,6 +49,10 @@
     const mastered=(plan.mastered_topics||[]).filter(Boolean);
     const support=(plan.needs_support_topics||[]).filter(Boolean);
     const remembered=mastered.length?`I remember you mastered ${mastered.slice(-2).join(' and ')}. `:'';
+    if(plan.foundation_for){
+      const verb=plan.action==='reteach'?'strengthen':'quickly check';
+      return `${remembered}Before we continue with ${plan.foundation_for}, I want to ${verb} ${plan.topic} because it is an important foundation.`;
+    }
     if(support.length)return `${remembered}${support[0]} still needs some work, so I recommend ${plan.title.toLowerCase()} on ${plan.topic}.`;
     if(plan.action==='mastery_check')return `${remembered}You were making progress on ${plan.topic}. Let’s confirm that you can do it independently.`;
     if(plan.action==='review')return `${remembered}${plan.topic} is due for a quick review so it stays strong.`;
