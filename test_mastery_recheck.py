@@ -4,8 +4,8 @@ from pathlib import Path
 
 def test_mastery_memory_loads_before_recheck_in_existing_enhancement_chain():
     guidance = Path("classroom/daily_guidance_fix.js").read_text()
-    memory_asset = "mastery_memory.js?v=20260915-mastery-memory1"
-    recheck_asset = "mastery_recheck.js?v=20260915-mastery-recheck2"
+    memory_asset = "mastery_memory.js?v=20260915-mastery-memory2"
+    recheck_asset = "mastery_recheck.js?v=20260915-mastery-recheck3"
     assert memory_asset in guidance
     assert recheck_asset in guidance
     assert "data-mastery-memory" in guidance
