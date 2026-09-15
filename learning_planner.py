@@ -1,11 +1,13 @@
 """Choose one next-best learning action from durable learner evidence."""
 
 from curriculum import CLASS_TOPICS, TOPIC_TERM
+from intervention_support import learner_intervention_summary
 from learning_prerequisites import direct_prerequisites
 from mastery_progress import learner_summary
 from practice_progress import build_dashboard
 
 _ACTION_COPY = {
+    "teacher_help": ("Teacher support recommended", "This topic has remained unresolved after repeated personalised support, so Robo-Teacher should pause and involve a teacher.", "Pause and ask my teacher →"),
     "reteach": ("Reteach before moving on", "This topic still needs support, so Robo-Teacher should explain it differently before checking again.", "Reteach this topic →"),
     "review": ("Refresh an older topic", "You learned this before, but a short retrieval review will help keep it strong.", "Review now →"),
     "mastery_check": ("Confirm mastery", "Your recent check was promising, but there is not enough evidence yet to move on confidently.", "Check my mastery →"),
@@ -70,6 +72,22 @@ def _repeated_difficulty(topic, practice_rows, mastery_rows):
     )
 
 
+def _merge_intervention(mastery: dict, intervention: dict) -> dict:
+    rows = _mastery_rows(mastery)
+    for item in intervention.get("interventions", []):
+        row = rows.get(item.get("topic"))
+        if row is not None:
+            row["intervention_level"] = item.get("level", "none")
+            row["intervention_reason"] = item.get("reason")
+            row["failed_reteaches"] = item.get("failed_reteaches", 0)
+            row["unresolved_incorrect_checks"] = item.get("incorrect_checks", 0)
+    mastery["teacher_support_required"] = intervention.get("teacher_support_required", False)
+    mastery["teacher_support_topics"] = intervention.get("teacher_support_topics", [])
+    mastery["watch_topics"] = intervention.get("watch_topics", [])
+    mastery["teacher_support_focus"] = intervention.get("teacher_support_focus")
+    return mastery
+
+
 def _make_plan(
     action,
     topic,
@@ -87,13 +105,18 @@ def _make_plan(
     mastery_row = _mastery_rows(mastery).get(topic, {})
     misconception = mastery_row.get("misconception_label")
     teaching_strategy = mastery_row.get("teaching_strategy")
+    teacher_support_reason = mastery_row.get("intervention_reason")
 
-    if action == "reteach" and practice_row.get("mastery_status") == "needs_support":
+    if action == "teacher_help":
+        reason = teacher_support_reason or reason
+        if foundation_for:
+            reason = f"{topic} is a foundation for {foundation_for}, but it has remained unresolved after repeated support. Pause Autopilot and involve a teacher before returning to {foundation_for}."
+    elif action == "reteach" and practice_row.get("mastery_status") == "needs_support":
         difficulty = "Easy"
     if action == "reteach" and misconception and teaching_strategy:
         reason = f"Recent checks suggest {misconception.lower()}. Robo-Teacher will change the teaching approach instead of repeating the same explanation."
 
-    if foundation_for:
+    if foundation_for and action != "teacher_help":
         if action == "reteach":
             title = "Repair a missing foundation"
             button = "Strengthen foundation →"
@@ -121,6 +144,7 @@ def _make_plan(
         + "Then pause so Robo-Teacher can check whether I have mastered it."
     )
     prompts = {
+        "teacher_help": "",
         "reteach": reteach_prompt,
         "review": f"Give me a short retrieval review of {topic} at {class_level} level, then pause for a quick understanding check.",
         "mastery_check": mastery_prompt,
@@ -139,6 +163,8 @@ def _make_plan(
         "prompt": prompts[action],
         "misconception": misconception,
         "teaching_strategy": teaching_strategy,
+        "teacher_support_required": action == "teacher_help",
+        "teacher_support_reason": teacher_support_reason,
         "foundation_for": foundation_for,
         "prerequisite_state": prerequisite_state,
         "direct_prerequisites": list(direct_prerequisites(class_level, foundation_for or topic)),
@@ -158,6 +184,19 @@ def _foundation_plan(class_level, target_topic, practice, mastery):
     practice_rows = _topic_rows(practice)
     mastery_rows = _mastery_rows(mastery)
     states = [(topic, _evidence_state(topic, practice_rows, mastery_rows)) for topic in prerequisites]
+
+    for prerequisite, state in states:
+        if state == "needs_support" and mastery_rows.get(prerequisite, {}).get("intervention_level") == "teacher_support":
+            return _make_plan(
+                "teacher_help",
+                prerequisite,
+                class_level,
+                practice,
+                mastery,
+                "prerequisite_teacher_support_required",
+                foundation_for=target_topic,
+                prerequisite_state=state,
+            )
 
     for prerequisite, state in states:
         if state == "needs_support":
@@ -215,6 +254,9 @@ def choose_next_action(class_level, practice, mastery):
 
     support_topic = _latest_topic([t for t in mastery.get("needs_support_topics", []) if t in topics], mastery_rows)
     if support_topic:
+        support_row = mastery_rows.get(support_topic, {})
+        if support_row.get("intervention_level") == "teacher_support":
+            return _make_plan("teacher_help", support_topic, class_level, practice, mastery, "teacher_support_required")
         foundation = _foundation_plan(class_level, support_topic, practice, mastery)
         if foundation:
             return foundation
@@ -249,4 +291,7 @@ def choose_next_action(class_level, practice, mastery):
 
 def build_autonomous_plan(learner_id, class_level):
     class_level = class_level if class_level in CLASS_TOPICS else "JSS2"
-    return choose_next_action(class_level, build_dashboard(learner_id, class_level), learner_summary(learner_id, class_level))
+    practice = build_dashboard(learner_id, class_level)
+    mastery = learner_summary(learner_id, class_level)
+    mastery = _merge_intervention(mastery, learner_intervention_summary(learner_id, class_level))
+    return choose_next_action(class_level, practice, mastery)
