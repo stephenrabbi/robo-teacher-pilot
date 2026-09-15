@@ -65,6 +65,9 @@ jobs:
       - name: Run persistent mastery memory tests
         run: python -m pytest -q test_persistent_mastery.py
 
+      - name: Run misconception-aware memory tests
+        run: python -m pytest -q test_misconception_memory.py
+
       - name: Run autonomous learning planner tests
         run: python -m pytest -q test_autonomous_planner.py
 
