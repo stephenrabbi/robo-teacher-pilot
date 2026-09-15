@@ -77,6 +77,9 @@ jobs:
       - name: Run teacher-support escalation tests
         run: python -m pytest -q test_teacher_support_escalation.py
 
+      - name: Run retention-aware spaced review tests
+        run: python -m pytest -q test_retention_spaced_review.py
+
       - name: Run resumable Autopilot session tests
         run: python -m pytest -q test_resumable_autopilot.py
 

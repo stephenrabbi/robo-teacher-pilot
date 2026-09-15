@@ -86,13 +86,13 @@ def test_brand_new_learner_gets_baseline_practice_not_false_welcome_back():
 def test_browser_planner_loads_and_supports_all_next_action_paths():
     guidance = Path("classroom/daily_guidance_fix.js").read_text()
     script = Path("classroom/autonomous_planner.js").read_text()
-    assert "autonomous_planner.js?v=20260915-autonomous-plan4" in guidance
+    assert "autonomous_planner.js?v=20260915-autonomous-plan5" in guidance
     assert "data-autonomous-planner" in guidance
     assert "/api/classroom/mastery/plan" in script
     assert "ROBO-TEACHER REMEMBERS" in script
     assert "NEXT BEST ACTION" in script
     assert "plan.action==='practice'" in script
-    assert "plan.action!=='mastery_check'" in script
+    assert "['mastery_check','review'].includes(plan.action)" in script
     assert "understandingButton.click()" in script
 
 
