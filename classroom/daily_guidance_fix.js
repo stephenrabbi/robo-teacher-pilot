@@ -122,7 +122,7 @@
     return;
   }
   const memory=document.createElement('script');
-  memory.src='/classroom/mastery_memory.js?v=20260915-mastery-memory2';
+  memory.src='/classroom/mastery_memory.js?v=20260915-mastery-memory3';
   memory.dataset.masteryMemory='true';
   memory.addEventListener('load',loadRecheck,{once:true});
   document.head.appendChild(memory);
@@ -131,7 +131,7 @@
 (() => {
   if(document.querySelector('script[data-autonomous-planner]'))return;
   const script=document.createElement('script');
-  script.src='/classroom/autonomous_planner.js?v=20260915-autonomous-plan2';
+  script.src='/classroom/autonomous_planner.js?v=20260915-autonomous-plan3';
   script.dataset.autonomousPlanner='true';
   document.head.appendChild(script);
 })();
