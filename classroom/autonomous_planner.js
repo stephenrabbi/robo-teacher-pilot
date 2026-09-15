@@ -49,7 +49,11 @@
     const mastered=(plan.mastered_topics||[]).filter(Boolean);
     const support=(plan.needs_support_topics||[]).filter(Boolean);
     const remembered=mastered.length?`I remember you mastered ${mastered.slice(-2).join(' and ')}. `:'';
-    if(support.length)return `${remembered}${support[0]} still needs some work, so I recommend ${plan.title.toLowerCase()} on ${plan.topic}.`;
+    if(support.length){
+      if(plan.strategy_selection_reason==='worked_before')return `${remembered}${support[0]} still needs some work. I remember an explanation approach that helped you before, so I’ll use it again.`;
+      if(plan.strategy_selection_reason==='new_after_failure')return `${remembered}${support[0]} still needs some work. The last approach did not resolve it, so I’ll teach it differently this time.`;
+      return `${remembered}${support[0]} still needs some work, so I recommend ${plan.title.toLowerCase()} on ${plan.topic}.`;
+    }
     if(plan.action==='mastery_check')return `${remembered}You were making progress on ${plan.topic}. Let’s confirm that you can do it independently.`;
     if(plan.action==='review')return `${remembered}${plan.topic} is due for a quick review so it stays strong.`;
     if(plan.action==='advance')return `${remembered}You are ready to continue with ${plan.topic}.`;
@@ -81,14 +85,26 @@
     },500);
   }
 
+  function prepareInterventionEvidence(plan){
+    if(plan.action==='reteach'&&plan.misconception_category&&plan.teaching_strategy){
+      window.roboTeacherSetActiveIntervention?.(plan);
+    }else{
+      window.roboTeacherClearActiveIntervention?.();
+    }
+  }
+
   async function runPlanAction(plan){
     try{
       setLearningStatus(`Robo-Teacher chose: ${plan.title}`,'thinking');
+      prepareInterventionEvidence(plan);
       if(plan.action==='practice'){
         await ensureProgressForPlan(plan);openRecommendedPractice();return;
       }
       submitTutorPrompt(plan);
-    }catch(error){setLearningStatus(error.message||'I could not start that learning step','error')}
+    }catch(error){
+      window.roboTeacherClearActiveIntervention?.();
+      setLearningStatus(error.message||'I could not start that learning step','error');
+    }
   }
 
   function decorateDailyPlan(plan){
@@ -164,7 +180,7 @@
     };
   }
 
-  function resetPlan(){clearPlanCache()}
+  function resetPlan(){window.roboTeacherClearActiveIntervention?.();clearPlanCache()}
   learnerNickname.addEventListener('change',resetPlan);learnerClass.addEventListener('change',resetPlan);
 
   const observer=new MutationObserver(()=>{
