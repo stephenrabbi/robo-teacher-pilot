@@ -152,7 +152,7 @@ def test_direct_prerequisite_order_is_deterministic():
 def test_browser_return_guidance_explains_foundation_detour():
     guidance = Path("classroom/daily_guidance_fix.js").read_text()
     script = Path("classroom/autonomous_planner.js").read_text()
-    assert "autonomous_planner.js?v=20260915-autonomous-plan3" in guidance
+    assert "autonomous_planner.js?v=20260915-autonomous-plan4" in guidance
     assert "if(plan.foundation_for)" in script
     assert "Before we continue with ${plan.foundation_for}" in script
     assert "important foundation" in script
