@@ -400,10 +400,6 @@ def test_skipped_common_denominator_progress_tip_is_allowlisted():
 def test_practice_feedback_and_summary_use_the_same_skill_evidence():
     questions = [(f'Calculate {n}/4 + 2/4.', 'Keep the denominator.', f'{n+2}/4', 'Add the numerators.') for n in range(1, 6)]
     with patch.object(practice, '_build_question_queue', return_value=questions):
-
-def test_practice_feedback_and_summary_use_the_same_skill_evidence():
-    questions = [(f'Calculate {n}/4 + 2/4.', 'Keep the denominator.', f'{n+2}/4', 'Add the numerators.') for n in range(1, 6)]
-    with patch.object(practice, '_build_question_queue', return_value=questions):
         practice.start_practice('WEB-error-unit', 'Fractions', 'Easy', 5, 'JSS1')
     feedback = practice.answer_practice('WEB-error-unit', '3/8')
     assert 'do not add the denominators' in feedback['targeted_tip'].lower()
