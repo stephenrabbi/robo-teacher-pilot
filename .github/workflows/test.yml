@@ -52,8 +52,13 @@ jobs:
       - name: Run adaptive understanding reteach tests
         run: python -m pytest -q test_adaptive_understanding.py
 
-      - name: Check mastery recheck browser script syntax
-        run: node --check classroom/mastery_recheck.js
+      - name: Check mastery browser scripts syntax
+        run: |
+          node --check classroom/mastery_memory.js
+          node --check classroom/mastery_recheck.js
 
       - name: Run mastery recheck integration tests
         run: python -m pytest -q test_mastery_recheck.py
+
+      - name: Run persistent mastery memory tests
+        run: python -m pytest -q test_persistent_mastery.py
