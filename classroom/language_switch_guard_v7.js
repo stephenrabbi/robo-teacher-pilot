@@ -133,3 +133,11 @@
     understandingObserver.observe(understandingArea, { attributes: true, attributeFilter: ['class'] });
   }
 })();
+
+(() => {
+  if (document.querySelector('script[data-handsfree-language-continuity]')) return;
+  const script = document.createElement('script');
+  script.src = '/classroom/handsfree_language_continuity.js?v=20260915-handsfree-language1';
+  script.dataset.handsfreeLanguageContinuity = 'true';
+  document.head.appendChild(script);
+})();
