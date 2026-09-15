@@ -1,5 +1,6 @@
 (() => {
   let cachedMasterySummary = null;
+  let activeIntervention = null;
 
   async function masteryRequest(path, payload) {
     const token = await ensureSession();
@@ -28,21 +29,40 @@
     return currentLesson?.text || canvasAnswer?.innerText?.trim() || '';
   }
 
+  window.roboTeacherSetActiveIntervention = function (plan) {
+    const category = String(plan?.misconception_category || '').trim();
+    const strategy = String(plan?.teaching_strategy || '').trim();
+    const topic = String(plan?.topic || '').trim();
+    activeIntervention = category && strategy && topic ? {category, strategy, topic} : null;
+    return Boolean(activeIntervention);
+  };
+
+  window.roboTeacherClearActiveIntervention = function () {
+    activeIntervention = null;
+  };
+
   window.roboTeacherMasteryRecord = async function ({correct, stage, checkId, question='', selectedChoice='', correctChoice='', feedback=''}) {
     if (!checkId) return null;
+    const hint = topicHint();
+    const intervention = activeIntervention && (!hint || hint === activeIntervention.topic) ? activeIntervention : null;
     try {
       const data = await masteryRequest('event', {
         correct: Boolean(correct),
-        stage: stage === 'reteach' ? 'reteach' : 'initial',
+        // A check immediately following a planner-selected intervention is itself
+        // a reteach check, even though it entered through the ordinary Check UI.
+        stage: intervention ? 'reteach' : (stage === 'reteach' ? 'reteach' : 'initial'),
         check_id: checkId,
         lesson_text: lessonText(),
-        topic_hint: topicHint(),
+        topic_hint: hint,
         question: correct ? '' : String(question || '').slice(0, 1000),
         selected_choice: correct ? '' : String(selectedChoice || '').slice(0, 500),
         correct_choice: correct ? '' : String(correctChoice || '').slice(0, 500),
-        feedback: correct ? '' : String(feedback || '').slice(0, 1500)
+        feedback: correct ? '' : String(feedback || '').slice(0, 1500),
+        intervention_category: intervention?.category || '',
+        intervention_strategy: intervention?.strategy || ''
       });
       if (data.summary) cachedMasterySummary = data.summary;
+      if (intervention && data?.stored) activeIntervention = null;
       return data;
     } catch (_error) {
       return null;
@@ -68,6 +88,7 @@
           item.misconception = saved.misconception || null;
           item.misconception_label = saved.misconception_label || null;
           item.teaching_strategy = saved.teaching_strategy || null;
+          item.strategy_effectiveness = saved.strategy_effectiveness || null;
           if (saved.state === 'mastered') {
             item.mastery_status = 'mastered';
             item.status = 'mastered';
@@ -136,6 +157,7 @@
       row.needs_support_topics = saved.needs_support_topics || [];
       row.support_misconception = saved.support_misconception || null;
       row.teaching_strategy = saved.teaching_strategy || null;
+      row.strategy_effectiveness = saved.strategy_effectiveness || null;
       if (saved.support_topic) {
         row.support_topic = saved.support_misconception
           ? `${saved.support_topic} · ${saved.support_misconception}`
@@ -145,8 +167,15 @@
     if (memory.focus_topic) {
       data.focus_topic = memory.focus_topic;
       data.weakest_topic = memory.focus_topic;
+      const effect = memory.focus_strategy_effectiveness || null;
       if (memory.focus_misconception && memory.focus_teaching_strategy) {
-        data.recommendation = `Prioritise ${memory.focus_misconception_topic || memory.focus_topic}. Recurring pattern: ${memory.focus_misconception}. Suggested intervention: ${memory.focus_teaching_strategy}`;
+        if (effect?.selection_reason === 'worked_before') {
+          data.recommendation = `Prioritise ${memory.focus_misconception_topic || memory.focus_topic}. Recurring pattern: ${memory.focus_misconception}. Reuse the intervention that previously produced a correct check: ${memory.focus_teaching_strategy}`;
+        } else if (effect?.selection_reason === 'new_after_failure') {
+          data.recommendation = `Prioritise ${memory.focus_misconception_topic || memory.focus_topic}. Recurring pattern: ${memory.focus_misconception}. The previous approach did not resolve it; try this different intervention: ${memory.focus_teaching_strategy}`;
+        } else {
+          data.recommendation = `Prioritise ${memory.focus_misconception_topic || memory.focus_topic}. Recurring pattern: ${memory.focus_misconception}. Suggested intervention: ${memory.focus_teaching_strategy}`;
+        }
       } else {
         data.recommendation = `Prioritise ${memory.focus_topic}; recent mastery checks show learners still need support there.`;
       }
@@ -154,7 +183,8 @@
     data.misconception_focus = memory.focus_misconception ? {
       topic: memory.focus_misconception_topic || memory.focus_topic,
       label: memory.focus_misconception,
-      teaching_tip: memory.focus_teaching_strategy
+      teaching_tip: memory.focus_teaching_strategy,
+      strategy_effectiveness: memory.focus_strategy_effectiveness || null
     } : null;
     data.mastery_memory_synced = memory.storage_synced;
     return data;
