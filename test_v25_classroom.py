@@ -1659,6 +1659,17 @@ def test_teacher_dashboard_filters_sorts_and_exports_learner_progress():
     assert '.teacher-learner-tools{' in styles
 
 
+def test_teaching_quality_regressions_are_guarded():
+    html=Path('classroom/index.html').read_text();script=Path('classroom/app.js').read_text();tutor_source=Path('tutor.py').read_text()
+    assert 'const lessonChoreography={enabled:false' in script
+    assert 'aria-pressed="false">Auto Teach: Off' in html
+    assert "if(blocks.length<=6)return blocks" in script
+    assert "(currentLesson?.text||canvasAnswer.textContent).trim()" in script
+    assert "(currentLesson?.text||Array.from(canvasAnswer.querySelectorAll('p'))" in script
+    assert 'part[:160]' in tutor_source
+    assert 'never cut a sentence mid-word' in tutor_source
+
+
 if __name__ == '__main__':
     test_session_and_chat_use_pseudonymous_identity()
     test_tampered_session_is_rejected()
@@ -1670,4 +1681,5 @@ if __name__ == '__main__':
     test_classroom_audio_uses_same_pseudonymous_identity()
     test_classroom_audio_rejects_unsupported_type()
     test_classroom_audio_rejects_oversized_file()
+    test_teaching_quality_regressions_are_guarded()
     print('V2.5 classroom API safety tests passed.')

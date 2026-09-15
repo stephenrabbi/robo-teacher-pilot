@@ -674,7 +674,7 @@ def generate_visual_aid(text: str, response_language: str, class_level: str = "J
         "Use fraction with the first value as numerator and second as denominator. Use balance with left and right values. "
         "Use coordinate with each item's label formatted exactly as x,y and value as its point order. "
         "For steps, value is the step number. For bars, values show relative quantities. For number_line, values are ordered positions. "
-        "Use only values and ideas already present in the lesson; never change the Maths. Keep labels under 45 characters.\n\n"
+        "Use only values and ideas already present in the lesson; never change the Maths. Keep labels complete and under 140 characters; never cut a sentence mid-word.\n\n"
         f"LESSON:\n{text.strip()}"
     )
     response = _get_client().models.generate_content(model=GEMINI_MODEL, contents=prompt, config=types.GenerateContentConfig(system_instruction=SYSTEM_PROMPT, max_output_tokens=450, thinking_config=types.ThinkingConfig(thinking_budget=0), response_mime_type="application/json"))
@@ -685,7 +685,7 @@ def generate_visual_aid(text: str, response_language: str, class_level: str = "J
     cleaned=[]
     for item in items:
         if not isinstance(item,dict): raise ValueError("Invalid visual item")
-        label=str(item.get("label",item.get("name",""))).strip()[:45];value=item.get("value",item.get("position",item.get("amount")))
+        label=str(item.get("label",item.get("name",""))).strip()[:160];value=item.get("value",item.get("position",item.get("amount")))
         if isinstance(value,str):
             try: value=float(value)
             except ValueError:
@@ -718,9 +718,9 @@ def fallback_visual_aid(text: str, response_language: str) -> dict:
         words = text.strip().split()
         midpoint = max(1, len(words) // 2)
         parts = [" ".join(words[:midpoint]), " ".join(words[midpoint:])]
-    items = [{"label": part[:45], "value": index + 1} for index, part in enumerate(parts[:8]) if part]
+    items = [{"label": part[:160], "value": index + 1} for index, part in enumerate(parts[:8]) if part]
     if len(items) < 2:
-        items = [{"label": text.strip()[:45] or title, "value": 1}, {"label": caption[:45], "value": 2}]
+        items = [{"label": text.strip()[:160] or title, "value": 1}, {"label": caption[:160], "value": 2}]
     return {"title": title, "kind": "steps", "items": items, "caption": caption}
 
 
