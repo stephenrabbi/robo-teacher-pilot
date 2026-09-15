@@ -23,7 +23,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements.txt pytest
 
       - name: Run pilot sanity tests
         run: python test_webhook.py
@@ -45,3 +45,6 @@ jobs:
 
       - name: Run V2.5 classroom API safety tests
         run: python test_v25_classroom.py
+
+      - name: Collect and run all V2.5 classroom tests
+        run: python -m pytest -q test_v25_classroom.py
