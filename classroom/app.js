@@ -1134,8 +1134,8 @@ function renderLessonBlock(container,text){
   container.appendChild(paragraph);
 }
 
-function startLessonDirector(text,index=0){
-  const steps=splitLessonSteps(text);
+function startLessonDirector(text,index=0,stepsOverride=null){
+  const steps=Array.isArray(stepsOverride)&&stepsOverride.length?stepsOverride:splitLessonSteps(text);
   currentLesson={text,steps,index:Math.max(0,Math.min(index,steps.length-1))};
   lessonChoreography.visited.clear();
   lessonDirector.classList.remove('hidden');
@@ -1282,7 +1282,9 @@ language.addEventListener('change',async()=>{
   const practiceFeedbackWasVisible=Boolean(currentPractice)&&
     !practiceFeedback.classList.contains('hidden')&&
     (practiceFeedback.classList.contains('correct')||practiceFeedback.classList.contains('incorrect'));
-  const answerToTranslate=canvasAnswer.textContent.trim();
+  const lessonIndexToPreserve=currentLesson?.index||0;
+  const lessonStepsToPreserve=currentLesson?.steps?.slice()||null;
+  const answerToTranslate=currentLesson?.text?.trim()||canvasAnswer.textContent.trim();
   stopTeacherAudio();
   if(wasReading){try{await startAudioKeepAlive()}catch(_error){/* Translation still works without automatic audio. */}}
   const switchId=++languageSwitchRequest;
@@ -1302,12 +1304,12 @@ language.addEventListener('change',async()=>{
     readAnswerButton.disabled=true;
     try{
       const token=await ensureSession();
-      const response=await fetch('/api/classroom/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:answerToTranslate,session_token:token,language:language.value})});
+      const response=await fetch('/api/classroom/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:answerToTranslate,steps:lessonStepsToPreserve,session_token:token,language:language.value})});
       const data=await response.json();
       if(switchId!==languageSwitchRequest)return;
       if(response.status===401){sessionToken=null;throw new Error('session')}
       if(!response.ok)throw new Error(data.detail||'translation');
-      startLessonDirector(data.translation,currentLesson?.index||0);readAnswerButton.disabled=false;
+      startLessonDirector(data.translation,lessonIndexToPreserve,data.translated_steps);readAnswerButton.disabled=false;
       canvasStatus.textContent=`Explanation switched to ${language.options[language.selectedIndex].text}`;
       setLearningStatus('Explanation ready');
       if(wasReading)void speakText(data.translation,true);

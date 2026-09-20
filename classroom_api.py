@@ -41,6 +41,7 @@ from tutor import (
     stream_stable_tutor_speech,
     stream_tutor_speech,
     simplify_tutor_text,
+    translate_tutor_steps,
     translate_tutor_text,
 )
 
@@ -109,6 +110,7 @@ class ClassroomTranslation(BaseModel):
     session_token: str = Field(min_length=20, max_length=300)
     text: str = Field(min_length=1, max_length=6000)
     language: SupportedLanguage
+    steps: list[str] | None = Field(default=None, min_length=1, max_length=6)
 
 
 class UnderstandingAnswer(BaseModel):
@@ -417,10 +419,14 @@ def classroom_translate(request: ClassroomTranslation):
     _enforce_rate_limit(student_id, "translation", 30)
     class_level = _classroom_profiles.get(student_id, {}).get("class_level", "JSS2")
     try:
-        translated = translate_tutor_text(request.text, request.language, class_level)
+        translated_steps = (
+            translate_tutor_steps(request.steps, request.language, class_level)
+            if request.steps else None
+        )
+        translated = "\n\n".join(translated_steps) if translated_steps else translate_tutor_text(request.text, request.language, class_level)
     except Exception as exc:
         raise HTTPException(status_code=503, detail="I could not switch this explanation right now") from exc
-    return {"translation": translated, "language": request.language}
+    return {"translation": translated, "translated_steps": translated_steps, "language": request.language}
 
 
 @router.post("/simplify")

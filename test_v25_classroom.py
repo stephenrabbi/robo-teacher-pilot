@@ -741,6 +741,23 @@ def test_practice_mode_uses_selected_language_without_changing_marking():
     assert marked.json()['message'] in practice.PRACTICE_TEXT['Yoruba']['correct']
 
 
+def test_standard_form_accepts_equivalent_multiplication_and_exponent_formats():
+    expected = '3.5*10^4'
+    equivalents = ('3.5 × 10^4', '3.5 x 10⁴', '3.5*10^4', '3.5e4')
+    assert {practice._normalise_answer(value) for value in equivalents} == {
+        practice._normalise_answer(expected)
+    }
+
+
+def test_language_switch_translates_the_complete_lesson_and_preserves_step_index():
+    script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
+    assert "const lessonIndexToPreserve=currentLesson?.index||0" in script
+    assert "const lessonStepsToPreserve=currentLesson?.steps?.slice()||null" in script
+    assert "const answerToTranslate=currentLesson?.text?.trim()||canvasAnswer.textContent.trim()" in script
+    assert "steps:lessonStepsToPreserve" in script
+    assert "startLessonDirector(data.translation,lessonIndexToPreserve,data.translated_steps)" in script
+
+
 def test_yoruba_deterministic_answer_uses_yoruba_number_word():
     reply, latency = get_tutor_reply("WEB-language-test", "2*3", "Yoruba")
     assert reply == "2*3 = 6\n\nÌdáhùn: Ẹ̀fà"
@@ -795,7 +812,7 @@ def test_active_voice_language_change_translates_and_restarts_stream():
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
     assert "const wasReading=teacherPanel.classList.contains('speaking')||teacherSpeechPaused" in script
     assert "fetch('/api/classroom/translate'" in script
-    assert "startLessonDirector(data.translation,currentLesson?.index||0)" in script
+    assert "startLessonDirector(data.translation,lessonIndexToPreserve,data.translated_steps)" in script
     assert "void speakText(data.translation,true)" in script
 
 
@@ -816,8 +833,25 @@ def test_translate_endpoint_preserves_selected_language_and_class():
             'text': 'Let us continue.', 'language': 'Igbo',
         })
     assert response.status_code == 200
-    assert response.json() == {'translation': 'Ka anyị gaa n’ihu.', 'language': 'Igbo'}
+    assert response.json() == {'translation': 'Ka anyị gaa n’ihu.', 'translated_steps': None, 'language': 'Igbo'}
     assert translator.call_args.args == ('Let us continue.', 'Igbo', 'JSS3')
+
+
+def test_translate_endpoint_preserves_lesson_step_count_and_order():
+    session = client.post('/api/classroom/session', json={
+        'learner_key': '1' * 48, 'nickname': 'UAT', 'class_level': 'JSS2',
+    }).json()
+    steps = ['Step 1: Find the factors.', 'Step 2: Rewrite the equation.', 'Step 3: Factorise.']
+    translated = ['Ìgbésẹ̀ 1: Wá factors.', 'Ìgbésẹ̀ 2: Kọ equation náà padà.', 'Ìgbésẹ̀ 3: Ṣe factorise.']
+    with patch.object(classroom_api, 'translate_tutor_steps', return_value=translated) as translator:
+        response = client.post('/api/classroom/translate', json={
+            'session_token': session['session_token'], 'text': '\n\n'.join(steps),
+            'steps': steps, 'language': 'Yoruba',
+        })
+    assert response.status_code == 200
+    assert response.json()['translated_steps'] == translated
+    assert response.json()['translation'] == '\n\n'.join(translated)
+    assert translator.call_args.args == (steps, 'Yoruba', 'JSS2')
 
 
 def test_translation_function_explicitly_targets_english():
@@ -827,6 +861,30 @@ def test_translation_function_explicitly_targets_english():
     fake_client = type('Client', (), {'models': fake_models})()
     with patch.object(tutor, '_get_client', return_value=fake_client):
         assert tutor.translate_tutor_text('Ìdáhùn ni mẹ́fà.', 'English') == 'The answer is six.'
+
+
+def test_step_translation_requires_json_and_preserves_item_count():
+    import json
+    import tutor
+    translated = ['Ìgbésẹ̀ 1', 'Ìgbésẹ̀ 2']
+    fake_response = type('Response', (), {'text': json.dumps(translated), 'candidates': []})()
+    fake_models = type('Models', (), {'generate_content': lambda self, **kwargs: fake_response})()
+    fake_client = type('Client', (), {'models': fake_models})()
+    with patch.object(tutor, '_get_client', return_value=fake_client):
+        assert tutor.translate_tutor_steps(['Step 1', 'Step 2'], 'Yoruba') == translated
+
+
+def test_step_translation_falls_back_without_merging_steps():
+    import tutor
+    invalid_response = type('Response', (), {'text': 'not-json', 'candidates': []})()
+    fake_models = type('Models', (), {'generate_content': lambda self, **kwargs: invalid_response})()
+    fake_client = type('Client', (), {'models': fake_models})()
+    with patch.object(tutor, '_get_client', return_value=fake_client), patch.object(
+        tutor, 'translate_tutor_text', side_effect=['Ìgbésẹ̀ 1', 'Ìgbésẹ̀ 2']
+    ) as fallback:
+        result = tutor.translate_tutor_steps(['Step 1', 'Step 2'], 'Yoruba')
+    assert result == ['Ìgbésẹ̀ 1', 'Ìgbésẹ̀ 2']
+    assert fallback.call_count == 2
 
 
 def test_practice_translation_prompt_requires_mostly_native_language():
