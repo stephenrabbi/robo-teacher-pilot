@@ -241,8 +241,25 @@ def start_practice(student_id: str, topic: str, difficulty: str, question_count:
 
 def _normalise_answer(answer: str) -> str:
     clean = answer.strip().lower().replace(",", "").replace("₦", "").replace("%", "")
+    clean = clean.translate(str.maketrans({
+        "⁰": "0", "¹": "1", "²": "2", "³": "3", "⁴": "4",
+        "⁵": "5", "⁶": "6", "⁷": "7", "⁸": "8", "⁹": "9",
+        "⁻": "-", "−": "-",
+    }))
     if clean.startswith("x="):
         clean = clean[2:].strip()
+    scientific = re.fullmatch(
+        r"\s*([+-]?(?:\d+(?:\.\d*)?|\.\d+))\s*(?:\*|×|x)\s*10\s*\^?\s*([+-]?\d+)\s*",
+        clean,
+    )
+    if not scientific:
+        scientific = re.fullmatch(
+            r"\s*([+-]?(?:\d+(?:\.\d*)?|\.\d+))\s*e\s*([+-]?\d+)\s*",
+            clean,
+        )
+    if scientific:
+        coefficient, exponent = scientific.groups()
+        return f"{Fraction(coefficient)}*10^{int(exponent)}"
     if ":" in clean:
         left, right = clean.split(":", 1)
         ratio = Fraction(int(left.strip()), int(right.strip()))
