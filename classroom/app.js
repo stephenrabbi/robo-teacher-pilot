@@ -1279,7 +1279,8 @@ backToWhiteboard.addEventListener('click',openWhiteboard);
 language.addEventListener('change',async()=>{
   if(!handsFreeHelp.classList.contains('hidden'))renderHandsFreeHelp();
   const wasReading=teacherPanel.classList.contains('speaking')||teacherSpeechPaused;
-  const practiceFeedbackWasVisible=Boolean(currentPractice)&&
+  const practiceIsActive=Boolean(currentPractice)&&!practiceArea.classList.contains('hidden');
+  const practiceFeedbackWasVisible=practiceIsActive&&
     !practiceFeedback.classList.contains('hidden')&&
     (practiceFeedback.classList.contains('correct')||practiceFeedback.classList.contains('incorrect'));
   const lessonIndexToPreserve=currentLesson?.index||0;
@@ -1292,7 +1293,7 @@ language.addEventListener('change',async()=>{
   const notices={English:'I will teach you in English from now on.',Yoruba:'Mo máa kọ́ ọ ní Yorùbá láti ìsinsin yìí.',Igbo:'Aga m akụziri gị ihe n’Igbo site ugbu a.',Hausa:'Zan koyar da kai da Hausa daga yanzu.'};
   addMessage(notices[language.value],'teacher');
   let switchedPractice=null;
-  if(currentPractice)switchedPractice=await switchPracticeLanguage();
+  if(practiceIsActive)switchedPractice=await switchPracticeLanguage();
   if(practiceFeedbackWasVisible){
     if(wasReading&&switchedPractice?.answered&&switchedPractice.feedback){
       const feedback=switchedPractice.feedback;
