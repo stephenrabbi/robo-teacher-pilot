@@ -1282,7 +1282,8 @@ language.addEventListener('change',async()=>{
   const practiceFeedbackWasVisible=Boolean(currentPractice)&&
     !practiceFeedback.classList.contains('hidden')&&
     (practiceFeedback.classList.contains('correct')||practiceFeedback.classList.contains('incorrect'));
-  const answerToTranslate=canvasAnswer.textContent.trim();
+  const lessonIndexToPreserve=currentLesson?.index||0;
+  const answerToTranslate=currentLesson?.text?.trim()||canvasAnswer.textContent.trim();
   stopTeacherAudio();
   if(wasReading){try{await startAudioKeepAlive()}catch(_error){/* Translation still works without automatic audio. */}}
   const switchId=++languageSwitchRequest;
@@ -1307,7 +1308,7 @@ language.addEventListener('change',async()=>{
       if(switchId!==languageSwitchRequest)return;
       if(response.status===401){sessionToken=null;throw new Error('session')}
       if(!response.ok)throw new Error(data.detail||'translation');
-      startLessonDirector(data.translation,currentLesson?.index||0);readAnswerButton.disabled=false;
+      startLessonDirector(data.translation,lessonIndexToPreserve);readAnswerButton.disabled=false;
       canvasStatus.textContent=`Explanation switched to ${language.options[language.selectedIndex].text}`;
       setLearningStatus('Explanation ready');
       if(wasReading)void speakText(data.translation,true);
