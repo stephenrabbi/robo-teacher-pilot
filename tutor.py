@@ -655,6 +655,7 @@ def translate_tutor_steps(steps: list[str], response_language: str, class_level:
         config=types.GenerateContentConfig(
             system_instruction=SYSTEM_PROMPT,
             max_output_tokens=1800,
+            response_mime_type="application/json",
             thinking_config=types.ThinkingConfig(thinking_budget=0),
         ),
     )
