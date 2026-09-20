@@ -874,6 +874,19 @@ def test_step_translation_requires_json_and_preserves_item_count():
         assert tutor.translate_tutor_steps(['Step 1', 'Step 2'], 'Yoruba') == translated
 
 
+def test_step_translation_falls_back_without_merging_steps():
+    import tutor
+    invalid_response = type('Response', (), {'text': 'not-json', 'candidates': []})()
+    fake_models = type('Models', (), {'generate_content': lambda self, **kwargs: invalid_response})()
+    fake_client = type('Client', (), {'models': fake_models})()
+    with patch.object(tutor, '_get_client', return_value=fake_client), patch.object(
+        tutor, 'translate_tutor_text', side_effect=['Ìgbésẹ̀ 1', 'Ìgbésẹ̀ 2']
+    ) as fallback:
+        result = tutor.translate_tutor_steps(['Step 1', 'Step 2'], 'Yoruba')
+    assert result == ['Ìgbésẹ̀ 1', 'Ìgbésẹ̀ 2']
+    assert fallback.call_count == 2
+
+
 def test_practice_translation_prompt_requires_mostly_native_language():
     from practice_translation import LANGUAGE_STYLE
     assert "modern conversational Yorùbá" in LANGUAGE_STYLE["Yoruba"]
