@@ -631,6 +631,49 @@ def translate_tutor_text(text: str, response_language: str, class_level: str = "
     return _clean_model_reply(_extract_text(response))
 
 
+def translate_tutor_steps(steps: list[str], response_language: str, class_level: str = "JSS2") -> list[str]:
+    """Translate lesson steps without allowing the model to merge or omit them."""
+    if not steps or len(steps) > 6 or any(not step.strip() for step in steps):
+        raise ValueError("Lesson steps must contain between one and six non-empty items")
+    client = _get_client()
+    target_instruction = (
+        f"Reply entirely in simple, modern English suitable for a Nigerian {class_level} learner."
+        if response_language == "English"
+        else _language_instruction(response_language, class_level)
+    )
+    prompt = (
+        f"{_class_instruction(class_level)}\n{target_instruction}\n\n"
+        f"Translate each Maths lesson step in the JSON array below into {response_language}. "
+        "Return only a valid JSON array of strings with exactly the same number of items in the same order. "
+        "Never merge, omit, split, shorten or add a step. Preserve every equation, numeral, mathematical "
+        "symbol, formula, unit and answer exactly.\n\n"
+        f"LESSON STEPS:\n{json.dumps(steps, ensure_ascii=False)}"
+    )
+    try:
+        response = client.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                system_instruction=SYSTEM_PROMPT,
+                max_output_tokens=1800,
+                response_mime_type="application/json",
+                thinking_config=types.ThinkingConfig(thinking_budget=0),
+            ),
+        )
+        raw = _extract_text(response).strip()
+        if raw.startswith("```"):
+            raw = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw, flags=re.IGNORECASE)
+        translated = json.loads(raw)
+        if not isinstance(translated, list) or len(translated) != len(steps):
+            raise ValueError("Translation changed the lesson step count")
+        if any(not isinstance(step, str) or not step.strip() for step in translated):
+            raise ValueError("Translation returned an invalid lesson step")
+        return [step.strip() for step in translated]
+    except Exception as exc:
+        logger.warning("Structured lesson translation failed; translating steps separately (%s)", type(exc).__name__)
+        return [translate_tutor_text(step, response_language, class_level) for step in steps]
+
+
 def simplify_tutor_text(text: str, response_language: str, class_level: str = "JSS2") -> str:
     """Rewrite a worked answer more simply without changing its Maths."""
     if not text.strip():
