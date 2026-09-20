@@ -863,6 +863,17 @@ def test_translation_function_explicitly_targets_english():
         assert tutor.translate_tutor_text('Ìdáhùn ni mẹ́fà.', 'English') == 'The answer is six.'
 
 
+def test_step_translation_requires_json_and_preserves_item_count():
+    import json
+    import tutor
+    translated = ['Ìgbésẹ̀ 1', 'Ìgbésẹ̀ 2']
+    fake_response = type('Response', (), {'text': json.dumps(translated), 'candidates': []})()
+    fake_models = type('Models', (), {'generate_content': lambda self, **kwargs: fake_response})()
+    fake_client = type('Client', (), {'models': fake_models})()
+    with patch.object(tutor, '_get_client', return_value=fake_client):
+        assert tutor.translate_tutor_steps(['Step 1', 'Step 2'], 'Yoruba') == translated
+
+
 def test_practice_translation_prompt_requires_mostly_native_language():
     from practice_translation import LANGUAGE_STYLE
     assert "modern conversational Yorùbá" in LANGUAGE_STYLE["Yoruba"]
