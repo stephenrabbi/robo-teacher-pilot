@@ -752,8 +752,10 @@ def test_standard_form_accepts_equivalent_multiplication_and_exponent_formats():
 def test_language_switch_translates_the_complete_lesson_and_preserves_step_index():
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
     assert "const lessonIndexToPreserve=currentLesson?.index||0" in script
+    assert "const lessonStepsToPreserve=currentLesson?.steps?.slice()||null" in script
     assert "const answerToTranslate=currentLesson?.text?.trim()||canvasAnswer.textContent.trim()" in script
-    assert "startLessonDirector(data.translation,lessonIndexToPreserve)" in script
+    assert "steps:lessonStepsToPreserve" in script
+    assert "startLessonDirector(data.translation,lessonIndexToPreserve,data.translated_steps)" in script
 
 
 def test_yoruba_deterministic_answer_uses_yoruba_number_word():
@@ -810,7 +812,7 @@ def test_active_voice_language_change_translates_and_restarts_stream():
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
     assert "const wasReading=teacherPanel.classList.contains('speaking')||teacherSpeechPaused" in script
     assert "fetch('/api/classroom/translate'" in script
-    assert "startLessonDirector(data.translation,lessonIndexToPreserve)" in script
+    assert "startLessonDirector(data.translation,lessonIndexToPreserve,data.translated_steps)" in script
     assert "void speakText(data.translation,true)" in script
 
 
@@ -831,8 +833,25 @@ def test_translate_endpoint_preserves_selected_language_and_class():
             'text': 'Let us continue.', 'language': 'Igbo',
         })
     assert response.status_code == 200
-    assert response.json() == {'translation': 'Ka anyị gaa n’ihu.', 'language': 'Igbo'}
+    assert response.json() == {'translation': 'Ka anyị gaa n’ihu.', 'translated_steps': None, 'language': 'Igbo'}
     assert translator.call_args.args == ('Let us continue.', 'Igbo', 'JSS3')
+
+
+def test_translate_endpoint_preserves_lesson_step_count_and_order():
+    session = client.post('/api/classroom/session', json={
+        'learner_key': '1' * 48, 'nickname': 'UAT', 'class_level': 'JSS2',
+    }).json()
+    steps = ['Step 1: Find the factors.', 'Step 2: Rewrite the equation.', 'Step 3: Factorise.']
+    translated = ['Ìgbésẹ̀ 1: Wá factors.', 'Ìgbésẹ̀ 2: Kọ equation náà padà.', 'Ìgbésẹ̀ 3: Ṣe factorise.']
+    with patch.object(classroom_api, 'translate_tutor_steps', return_value=translated) as translator:
+        response = client.post('/api/classroom/translate', json={
+            'session_token': session['session_token'], 'text': '\n\n'.join(steps),
+            'steps': steps, 'language': 'Yoruba',
+        })
+    assert response.status_code == 200
+    assert response.json()['translated_steps'] == translated
+    assert response.json()['translation'] == '\n\n'.join(translated)
+    assert translator.call_args.args == (steps, 'Yoruba', 'JSS2')
 
 
 def test_translation_function_explicitly_targets_english():
