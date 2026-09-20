@@ -1834,6 +1834,13 @@ def test_teaching_quality_regressions_are_guarded():
     assert 'never cut a sentence mid-word' in tutor_source
 
 
+def test_hidden_practice_does_not_capture_lesson_language_switch():
+    script=Path('classroom/app.js').read_text()
+    assert "const practiceIsActive=Boolean(currentPractice)&&!practiceArea.classList.contains('hidden')" in script
+    assert 'const practiceFeedbackWasVisible=practiceIsActive&&' in script
+    assert 'if(practiceIsActive)switchedPractice=await switchPracticeLanguage()' in script
+
+
 def test_teacher_device_timings_are_local_and_separate_connection_from_response():
     html=Path('classroom/index.html').read_text()
     script=Path('classroom/app.js').read_text()
