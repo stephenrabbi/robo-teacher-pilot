@@ -741,6 +741,21 @@ def test_practice_mode_uses_selected_language_without_changing_marking():
     assert marked.json()['message'] in practice.PRACTICE_TEXT['Yoruba']['correct']
 
 
+def test_standard_form_accepts_equivalent_multiplication_and_exponent_formats():
+    expected = '3.5*10^4'
+    equivalents = ('3.5 × 10^4', '3.5 x 10⁴', '3.5*10^4', '3.5e4')
+    assert {practice._normalise_answer(value) for value in equivalents} == {
+        practice._normalise_answer(expected)
+    }
+
+
+def test_language_switch_translates_the_complete_lesson_and_preserves_step_index():
+    script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
+    assert "const lessonIndexToPreserve=currentLesson?.index||0" in script
+    assert "const answerToTranslate=currentLesson?.text?.trim()||canvasAnswer.textContent.trim()" in script
+    assert "startLessonDirector(data.translation,lessonIndexToPreserve)" in script
+
+
 def test_yoruba_deterministic_answer_uses_yoruba_number_word():
     reply, latency = get_tutor_reply("WEB-language-test", "2*3", "Yoruba")
     assert reply == "2*3 = 6\n\nÌdáhùn: Ẹ̀fà"
@@ -795,7 +810,7 @@ def test_active_voice_language_change_translates_and_restarts_stream():
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
     assert "const wasReading=teacherPanel.classList.contains('speaking')||teacherSpeechPaused" in script
     assert "fetch('/api/classroom/translate'" in script
-    assert "startLessonDirector(data.translation,currentLesson?.index||0)" in script
+    assert "startLessonDirector(data.translation,lessonIndexToPreserve)" in script
     assert "void speakText(data.translation,true)" in script
 
 
