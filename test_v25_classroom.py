@@ -1739,6 +1739,10 @@ def test_daily_learning_plan_combines_recall_practice_and_new_topic():
     for element_id in ('dailyPlanButton','dailyPlanArea','dailyPlanList','closeDailyPlan'):
         assert f'id="{element_id}"' in html
     assert 'function dailyNewTopic(progress)' in script
+    assert 'function dailyFocusDetail(progress)' in script
+    assert 'progress.recommendation||' in script
+    assert 'progress.misconception_focus?.teaching_tip' in script
+    assert "First focus: ${teachingTip}" in script
     assert 'function renderDailyPlan(progress)' in script
     assert "appendDailyTask(1,'RECALL'" in script
     assert "appendDailyTask(2,'STRENGTHEN'" in script
