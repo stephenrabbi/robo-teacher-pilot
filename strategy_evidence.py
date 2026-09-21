@@ -89,8 +89,7 @@ def _sheet_records() -> list[dict]:
     return records
 
 
-def build_strategy_summary(class_level: str) -> dict:
-    """Aggregate anonymous outcomes without exposing learner-level records."""
+def _all_records() -> tuple[list[dict], bool]:
     synced = False
     records = []
     if _sheet_configured():
@@ -102,6 +101,35 @@ def build_strategy_summary(class_level: str) -> dict:
     known_ids = {item.get("event_id") for item in records if item.get("event_id")}
     with _lock:
         records.extend(item.copy() for item in _memory_records if item.get("event_id") not in known_ids)
+    return records, synced
+
+
+def recommend_strategy(learner_id: str, class_level: str, fallback: str) -> tuple[str, bool]:
+    """Prefer proven learner-specific support only after balanced evidence."""
+    records, _synced = _all_records()
+    learner_records = [
+        item for item in records
+        if item.get("learner_id") == learner_id and item.get("class_level") == class_level
+    ]
+    results = {}
+    for strategy in _STRATEGIES:
+        matches = [item for item in learner_records if item.get("strategy") == strategy]
+        results[strategy] = {
+            "attempts": len(matches),
+            "rate": sum(item.get("correct") is True for item in matches) / len(matches) if matches else 0,
+        }
+    if any(item["attempts"] < 3 for item in results.values()):
+        return fallback, False
+    ordered = sorted(results, key=lambda strategy: (-results[strategy]["rate"], strategy))
+    best, second = ordered[:2]
+    if results[best]["rate"] - results[second]["rate"] < 0.20:
+        return fallback, False
+    return best, True
+
+
+def build_strategy_summary(class_level: str) -> dict:
+    """Aggregate anonymous outcomes without exposing learner-level records."""
+    records, synced = _all_records()
     labels = {
         "familiar_example": "Familiar examples",
         "concrete_objects": "Concrete objects",
