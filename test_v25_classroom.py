@@ -1964,6 +1964,12 @@ def test_teaching_quality_regressions_are_guarded():
     assert 'never cut a sentence mid-word' in tutor_source
 
 
+def test_friendly_error_filter_does_not_hide_valid_large_numbers():
+    source = Path('classroom/friendly_errors.js').read_text()
+    assert "(?:HTTP\\s*|status(?:\\s+code)?\\s*[:=]?\\s*|error\\s+)(?:500|502|503|504)" in source
+    assert "/\\b(?:500|502|503|504)\\b|internal server error" not in source
+
+
 def test_hidden_practice_does_not_capture_lesson_language_switch():
     script=Path('classroom/app.js').read_text()
     assert "const practiceIsActive=Boolean(currentPractice)&&!practiceArea.classList.contains('hidden')" in script
