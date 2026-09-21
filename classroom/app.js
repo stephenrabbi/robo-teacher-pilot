@@ -420,9 +420,15 @@ function renderAdaptiveMemory(){
 
 function adaptivePromptContext(){
   const level=adaptiveSupportLevel();
-  if(level==='support')return 'Teaching memory: this learner benefits from shorter steps, one familiar example, and a brief check after the explanation.';
+  if(level==='support')return `Teaching memory: this learner needs extra support. Switch to ${adaptiveTeachingStrategy().replace('_',' ')} instead of repeating the previous explanation, then give a brief check.`;
   if(level==='challenge')return 'Teaching memory: this learner is answering confidently. Keep the explanation concise and include one slightly more challenging follow-up.';
   return 'Teaching memory: use clear age-appropriate steps and one short understanding check.';
+}
+
+function adaptiveTeachingStrategy(){
+  const difficulty=(Number(adaptiveMemory.replays)||0)+(Number(adaptiveMemory.simplifications)||0)+(Number(adaptiveMemory.incorrect)||0);
+  if(difficulty<2)return 'familiar_example';
+  return ['concrete_objects','guided_questions','familiar_example'][(difficulty-2)%3];
 }
 
 function handsFreeLanguage(){return {English:'en-NG',Yoruba:'yo-NG',Igbo:'ig-NG',Hausa:'ha-NG'}[language.value]||'en-NG'}
@@ -1791,13 +1797,14 @@ async function simplifyCurrentAnswer(){
   const thinking=addMessage('I’m rewriting that explanation in a simpler way…','teacher');
   try{
     const token=await ensureSession();
-    const response=await fetch('/api/classroom/simplify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:currentAnswer,session_token:token,language:language.value})});
+    const teachingStrategy=adaptiveTeachingStrategy();
+    const response=await fetch('/api/classroom/simplify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:currentAnswer,session_token:token,language:language.value,teaching_strategy:teachingStrategy})});
     const data=await response.json();
     if(response.status===401){sessionToken=null;throw new Error('session')}
     if(!response.ok)throw new Error(data.detail||'simplify');
     recordLearningSignal('simplifications');showCanvasAnswer(data.explanation,'Simpler explanation',true);
     void speakText(data.explanation,true);
-    thinking.textContent='I’ve simplified the explanation and added a familiar example.';
+    thinking.textContent=teachingStrategy==='guided_questions'?'I’ve switched to guided questions.':teachingStrategy==='concrete_objects'?'I’ve switched to a concrete-object example.':'I’ve simplified the explanation with a new familiar example.';
   }catch(error){
     stopTeacherAudio();
     thinking.textContent=error.message&&!['simplify','session'].includes(error.message)?error.message:'I could not simplify that explanation right now. Please try again.';
