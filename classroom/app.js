@@ -1804,9 +1804,10 @@ async function simplifyCurrentAnswer(){
     const data=await response.json();
     if(response.status===401){sessionToken=null;throw new Error('session')}
     if(!response.ok)throw new Error(data.detail||'simplify');
-    recordLearningSignal('simplifications');currentTeachingStrategy=teachingStrategy;showCanvasAnswer(data.explanation,'Simpler explanation',true);
+    recordLearningSignal('simplifications');currentTeachingStrategy=data.teaching_strategy||teachingStrategy;showCanvasAnswer(data.explanation,'Simpler explanation',true);
     void speakText(data.explanation,true);
-    thinking.textContent=teachingStrategy==='guided_questions'?'I’ve switched to guided questions.':teachingStrategy==='concrete_objects'?'I’ve switched to a concrete-object example.':'I’ve simplified the explanation with a new familiar example.';
+    const appliedStrategy=data.teaching_strategy||teachingStrategy;const personalizedNote=data.personalized_strategy?' Based on your previous checks, this method has helped you most.':'';
+    thinking.textContent=(appliedStrategy==='guided_questions'?'I’ve switched to guided questions.':appliedStrategy==='concrete_objects'?'I’ve switched to a concrete-object example.':'I’ve simplified the explanation with a new familiar example.')+personalizedNote;
   }catch(error){
     stopTeacherAudio();
     thinking.textContent=error.message&&!['simplify','session'].includes(error.message)?error.message:'I could not simplify that explanation right now. Please try again.';
