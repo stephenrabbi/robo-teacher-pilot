@@ -1103,7 +1103,7 @@ def test_simplify_endpoint_preserves_language_and_class():
         })
     assert response.status_code == 200
     assert response.json() == {'explanation': 'Jẹ́ ká lo àpẹẹrẹ tó rọrùn.', 'language': 'Yoruba'}
-    assert simplifier.call_args.args == ('Existing worked answer', 'Yoruba', 'JSS1')
+    assert simplifier.call_args.args == ('Existing worked answer', 'Yoruba', 'JSS1', 'familiar_example')
 
 
 def test_simplify_prompt_preserves_maths_and_adds_one_example():
@@ -1113,8 +1113,32 @@ def test_simplify_prompt_preserves_maths_and_adds_one_example():
     with patch.object(tutor, '_get_client', return_value=fake_client):
         assert tutor.simplify_tutor_text('2 + 2 = 4', 'English', 'JSS2') == 'Simpler answer.'
     prompt = generate_content.call_args.kwargs['contents']
-    assert 'one familiar everyday example' in prompt
+    assert 'new familiar everyday example' in prompt
     assert 'Preserve every equation, value, operation, unit and final answer exactly' in prompt
+
+
+def test_simplify_endpoint_switches_teaching_strategy():
+    session = client.post('/api/classroom/session', json={
+        'learner_key': 'f' * 48, 'nickname': 'Ada', 'class_level': 'JSS2',
+    }).json()
+    with patch.object(classroom_api, 'simplify_tutor_text', return_value='Try objects.') as simplifier:
+        response = client.post('/api/classroom/simplify', json={
+            'session_token': session['session_token'],
+            'text': 'Existing worked answer', 'language': 'English',
+            'teaching_strategy': 'concrete_objects',
+        })
+    assert response.status_code == 200
+    assert simplifier.call_args.args == ('Existing worked answer', 'English', 'JSS2', 'concrete_objects')
+
+
+def test_simplify_prompt_honours_guided_question_strategy():
+    fake_response = type('Response', (), {'text': 'Guided answer.', 'candidates': []})()
+    generate_content = Mock(return_value=fake_response)
+    fake_client = type('Client', (), {'models': type('Models', (), {'generate_content': generate_content})()})()
+    with patch.object(tutor, '_get_client', return_value=fake_client):
+        tutor.simplify_tutor_text('3 x 4 = 12', 'English', 'JSS2', 'guided_questions')
+    prompt = generate_content.call_args.kwargs['contents']
+    assert 'two short guided questions' in prompt
 
 
 def test_check_my_understanding_ui_is_tied_to_current_lesson():
@@ -1388,6 +1412,9 @@ def test_adaptive_teaching_memory_records_signals_and_changes_support_level():
     assert 'function recordLearningSignal(signal)' in script
     assert 'function adaptiveSupportLevel()' in script
     assert 'function adaptivePromptContext()' in script
+    assert 'function adaptiveTeachingStrategy()' in script
+    assert "['concrete_objects','guided_questions','familiar_example']" in script
+    assert 'teaching_strategy:teachingStrategy' in script
     for signal in ('replays', 'simplifications', 'questions', 'correct', 'incorrect'):
         assert signal in script
     assert "localStorage.setItem(`roboTeacherMemory:${learnerMemoryId}`" in script
