@@ -24,7 +24,7 @@ from diagnostic_progress import save_diagnostic_result
 from learner_codes import generate_codes, list_codes, replace_code, validate_code
 from practice import answer_practice, change_practice_language, next_question, start_practice
 from practice_progress import build_dashboard, build_teacher_dashboard, recommend_difficulty_for_topic, save_result
-from strategy_evidence import build_strategy_summary, save_strategy_outcome
+from strategy_evidence import build_strategy_summary, recommend_strategy, save_strategy_outcome
 
 from tutor import (
     MAX_AUDIO_BYTES,
@@ -437,11 +437,18 @@ def classroom_simplify(request: ClassroomTranslation):
     student_id = _verify_session(request.session_token)
     _enforce_rate_limit(student_id, "simplify", 20)
     class_level = _classroom_profiles.get(student_id, {}).get("class_level", "JSS2")
+    requested_strategy = request.teaching_strategy or "familiar_example"
+    teaching_strategy, personalized = recommend_strategy(student_id, class_level, requested_strategy)
     try:
-        explanation = simplify_tutor_text(request.text, request.language, class_level, request.teaching_strategy or "familiar_example")
+        explanation = simplify_tutor_text(request.text, request.language, class_level, teaching_strategy)
     except Exception as exc:
         raise HTTPException(status_code=503, detail="I could not simplify this explanation right now") from exc
-    return {"explanation": explanation, "language": request.language}
+    return {
+        "explanation": explanation,
+        "language": request.language,
+        "teaching_strategy": teaching_strategy,
+        "personalized_strategy": personalized,
+    }
 
 
 @router.post("/understanding/start")
