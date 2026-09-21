@@ -111,6 +111,7 @@ class ClassroomTranslation(BaseModel):
     text: str = Field(min_length=1, max_length=6000)
     language: SupportedLanguage
     steps: list[str] | None = Field(default=None, min_length=1, max_length=6)
+    teaching_strategy: Literal["familiar_example", "concrete_objects", "guided_questions"] = "familiar_example"
 
 
 class UnderstandingAnswer(BaseModel):
@@ -435,7 +436,7 @@ def classroom_simplify(request: ClassroomTranslation):
     _enforce_rate_limit(student_id, "simplify", 20)
     class_level = _classroom_profiles.get(student_id, {}).get("class_level", "JSS2")
     try:
-        explanation = simplify_tutor_text(request.text, request.language, class_level)
+        explanation = simplify_tutor_text(request.text, request.language, class_level, request.teaching_strategy)
     except Exception as exc:
         raise HTTPException(status_code=503, detail="I could not simplify this explanation right now") from exc
     return {"explanation": explanation, "language": request.language}
