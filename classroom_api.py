@@ -24,7 +24,7 @@ from diagnostic_progress import save_diagnostic_result
 from learner_codes import generate_codes, list_codes, replace_code, validate_code
 from practice import answer_practice, change_practice_language, next_question, start_practice
 from practice_progress import build_dashboard, build_teacher_dashboard, recommend_difficulty_for_topic, save_result
-from strategy_evidence import save_strategy_outcome
+from strategy_evidence import build_strategy_summary, save_strategy_outcome
 
 from tutor import (
     MAX_AUDIO_BYTES,
@@ -327,6 +327,7 @@ def classroom_diagnostic_language(request: PracticeLanguage):
 def classroom_teacher_dashboard(request: TeacherDashboardRequest):
     _verify_teacher(request)
     dashboard = build_teacher_dashboard(request.class_level)
+    dashboard["strategy_effectiveness"] = build_strategy_summary(request.class_level)
     registered, registry_synced = list_codes(request.class_level)
     statuses = {item["code"]: item["status"] for item in registered}
     performance = {item["learner_code"]: item for item in dashboard["learner_rows"]}
