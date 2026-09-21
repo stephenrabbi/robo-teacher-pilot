@@ -1948,6 +1948,10 @@ def test_teacher_dashboard_filters_sorts_and_exports_learner_progress():
         assert label in script
     assert "item.percentage===null?'Not started'" in script
     assert "['Learner code','Status','Sessions','Questions','Percentage','Support topic']" in script
+    assert "['Teaching strategy evidence']" in script
+    assert "['Strategy','Attempts','Correct next checks','Success rate']" in script
+    assert "Observed association only; this does not prove the strategy caused the result" in script
+    assert "strategy.storage_synced?'Synced':'Some evidence may be awaiting durable storage'" in script
     assert '.teacher-learner-tools{' in styles
     assert "strategiesTitle.textContent='Teaching Strategy Effectiveness'" in script
     assert 'Collect at least 5 checks per strategy before comparing them.' in script
