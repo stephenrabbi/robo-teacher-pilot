@@ -24,6 +24,7 @@ from diagnostic_progress import save_diagnostic_result
 from learner_codes import generate_codes, list_codes, replace_code, validate_code
 from practice import answer_practice, change_practice_language, next_question, start_practice
 from practice_progress import build_dashboard, build_teacher_dashboard, recommend_difficulty_for_topic, save_result
+from strategy_evidence import save_strategy_outcome
 
 from tutor import (
     MAX_AUDIO_BYTES,
@@ -111,7 +112,7 @@ class ClassroomTranslation(BaseModel):
     text: str = Field(min_length=1, max_length=6000)
     language: SupportedLanguage
     steps: list[str] | None = Field(default=None, min_length=1, max_length=6)
-    teaching_strategy: Literal["familiar_example", "concrete_objects", "guided_questions"] = "familiar_example"
+    teaching_strategy: Literal["familiar_example", "concrete_objects", "guided_questions"] | None = None
 
 
 class UnderstandingAnswer(BaseModel):
@@ -436,7 +437,7 @@ def classroom_simplify(request: ClassroomTranslation):
     _enforce_rate_limit(student_id, "simplify", 20)
     class_level = _classroom_profiles.get(student_id, {}).get("class_level", "JSS2")
     try:
-        explanation = simplify_tutor_text(request.text, request.language, class_level, request.teaching_strategy)
+        explanation = simplify_tutor_text(request.text, request.language, class_level, request.teaching_strategy or "familiar_example")
     except Exception as exc:
         raise HTTPException(status_code=503, detail="I could not simplify this explanation right now") from exc
     return {"explanation": explanation, "language": request.language}
@@ -462,6 +463,7 @@ def classroom_understanding_start(request: ClassroomTranslation):
         "lesson_text": request.text.strip(),
         "language": request.language,
         "class_level": class_level,
+        "teaching_strategy": request.teaching_strategy,
     }
     return {"check_id": check_id, "question": check["question"], "choices": check["choices"], "language": request.language}
 
@@ -482,12 +484,18 @@ def classroom_media(request: ClassroomTranslation):
 
 
 @router.post("/understanding/answer")
-def classroom_understanding_answer(request: UnderstandingAnswer):
+def classroom_understanding_answer(request: UnderstandingAnswer, background_tasks: BackgroundTasks):
     student_id = _verify_session(request.session_token)
     check = _understanding_checks.get(request.check_id)
     if not check or check["student_id"] != student_id or time.time() - check["created"] > _SESSION_TTL_SECONDS:
         raise HTTPException(status_code=404, detail="This check has expired. Please start another one")
     correct = request.choice_index == check["correct_index"]
+    strategy = check.get("teaching_strategy")
+    if strategy and not check.get("strategy_recorded"):
+        check["strategy_recorded"] = True
+        background_tasks.add_task(
+            save_strategy_outcome, student_id, check.get("class_level", "JSS2"), strategy, correct
+        )
     feedback = check["feedback"]
     if not correct:
         reteach = check.get("reteach", "")
