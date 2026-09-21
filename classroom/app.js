@@ -1031,11 +1031,17 @@ function revisionSchedule(item,now=Date.now()){
 function recommendedLesson(items){return [...items].sort((a,b)=>{const aPlan=revisionSchedule(a),bPlan=revisionSchedule(b);if(aPlan.isDue!==bPlan.isDue)return aPlan.isDue?-1:1;if((Number(a.latestScore)||0)!==(Number(b.latestScore)||0))return (Number(a.latestScore)||0)-(Number(b.latestScore)||0);return aPlan.dueAt-bPlan.dueAt})[0]||null}
 
 function dailyNewTopic(progress){const topics=(progress?.learning_path||[]).flatMap(term=>term.topics.map(item=>({...item,term:term.term})));return topics.find(item=>item.status==='not_started'&&item.topic!==progress?.recommended_topic)||topics.find(item=>item.status==='not_started')||null}
+function dailyFocusDetail(progress){
+  if(!progress?.sessions)return 'Complete a short practice to establish your starting point.';
+  const evidence=progress.recommendation||`Practise at ${progress.recommended_difficulty||'Auto'} difficulty based on your recent results.`;
+  const teachingTip=progress.misconception_focus?.teaching_tip;
+  return teachingTip?`${evidence} First focus: ${teachingTip}`:evidence;
+}
 function appendDailyTask(number,label,title,detail,action,buttonText,complete=false){const card=document.createElement('article');card.className='daily-plan-task';card.dataset.complete=String(complete);const marker=document.createElement('span'),copy=document.createElement('div'),kind=document.createElement('small'),heading=document.createElement('strong'),note=document.createElement('p'),button=document.createElement('button');marker.textContent=complete?'✓':String(number);kind.textContent=label;heading.textContent=title;note.textContent=detail;copy.append(kind,heading,note);button.type='button';button.dataset.dailyAction=action;button.textContent=buttonText;button.classList.toggle('hidden',complete);card.append(marker,copy,button);dailyPlanList.appendChild(card)}
 function renderDailyPlan(progress){
   dailyPlanList.replaceChildren();const dueLesson=loadSavedLessons().filter(item=>revisionSchedule(item).isDue).sort((a,b)=>revisionSchedule(a).dueAt-revisionSchedule(b).dueAt)[0]||null,newTopic=dailyNewTopic(progress),focus=progress?.recommended_topic||newTopic?.topic||'Start with a diagnostic';
   appendDailyTask(1,'RECALL',dueLesson?.title||'Revision is up to date',dueLesson?'A short three-question review will strengthen your memory.':'No saved lesson is due today.','revision',dueLesson?'Revise now':'Done',!dueLesson);
-  appendDailyTask(2,'STRENGTHEN',focus,progress?.sessions?`Practise at ${progress.recommended_difficulty||'Auto'} difficulty based on your recent results.`:'Complete a short practice to establish your starting point.','practice','Start practice');
+  appendDailyTask(2,'STRENGTHEN',focus,dailyFocusDetail(progress),'practice','Start practice');
   appendDailyTask(3,'DISCOVER',newTopic?.topic||'Continue your learning path',newTopic?`${newTopic.term} · Begin the next untouched topic.`:'Ask Robo-Teacher to extend your recommended topic.','lesson','Start lesson');
   dailyPlanList.dataset.revisionId=dueLesson?.id||'';dailyPlanList.dataset.newTopic=newTopic?.topic||focus;dailyPlanLoading.classList.add('hidden');dailyPlanList.classList.remove('hidden');setLearningStatus("Today's plan is ready",'success');
 }
