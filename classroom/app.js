@@ -255,6 +255,7 @@ const handsFree={enabled:false,recognition:null,processing:false,restartTimer:nu
 let languageSwitchRequest=0;
 let teacherAudioKeepAlive=null;
 let understandingCheckId=null;
+let currentTeachingStrategy=null;
 let mediaReplayTimer=null;
 let drawing=false;
 let drawingTool='pen';
@@ -1712,7 +1713,7 @@ async function submitWhiteboard(){
     const data=await response.json();
     if(response.status===401){sessionToken=null;throw new Error('session');}
     if(!response.ok)throw new Error(data.detail||'request');
-    showCanvasAnswer(data.reply,'Whiteboard solution ready',true);
+    currentTeachingStrategy=null;showCanvasAnswer(data.reply,'Whiteboard solution ready',true);
     void speakText(data.reply,true);
     thinking.textContent='I’ve placed the complete whiteboard explanation on the Teaching Canvas.';question.value='';
   }catch(err){
@@ -1776,7 +1777,7 @@ async function finishRecording(){
     if(lessonInterruption){lessonHistory.push(lessonInterruption);lessonInterruption=null;lessonDirector.classList.remove('lesson-paused')}
     canvasWork.classList.add('text-only');problemPreview.hidden=true;
     backToWhiteboard.classList.add('hidden');
-    showCanvasAnswer(data.reply,'Voice question explained',true);
+    currentTeachingStrategy=null;showCanvasAnswer(data.reply,'Voice question explained',true);
     // Start reading as soon as the written voice answer reaches the canvas.
     void speakText(data.reply,true,true);
     thinking.textContent='I’ve placed the complete answer to your voice question on the Teaching Canvas.';
@@ -1802,7 +1803,7 @@ async function simplifyCurrentAnswer(){
     const data=await response.json();
     if(response.status===401){sessionToken=null;throw new Error('session')}
     if(!response.ok)throw new Error(data.detail||'simplify');
-    recordLearningSignal('simplifications');showCanvasAnswer(data.explanation,'Simpler explanation',true);
+    recordLearningSignal('simplifications');currentTeachingStrategy=teachingStrategy;showCanvasAnswer(data.explanation,'Simpler explanation',true);
     void speakText(data.explanation,true);
     thinking.textContent=teachingStrategy==='guided_questions'?'I’ve switched to guided questions.':teachingStrategy==='concrete_objects'?'I’ve switched to a concrete-object example.':'I’ve simplified the explanation with a new familiar example.';
   }catch(error){
@@ -1819,7 +1820,7 @@ async function startUnderstandingCheck(){
   setLearningStatus('Preparing one understanding question','thinking');
   try{
     const token=await ensureSession();
-    const response=await fetch('/api/classroom/understanding/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:currentAnswer,session_token:token,language:language.value})});
+    const response=await fetch('/api/classroom/understanding/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:currentAnswer,session_token:token,language:language.value,teaching_strategy:currentTeachingStrategy})});
     const data=await response.json();
     if(response.status===401){sessionToken=null;throw new Error('session')}
     if(!response.ok)throw new Error(data.detail||'understanding');
@@ -1934,7 +1935,7 @@ async function handleImage(file,source='upload'){
     const data=await response.json();
     if(response.status===401){sessionToken=null;throw new Error('session');}
     if(!response.ok)throw new Error(data.detail||'request');
-    showCanvasAnswer(data.reply,'Teaching response ready');
+    currentTeachingStrategy=null;showCanvasAnswer(data.reply,'Teaching response ready');
     thinking.textContent='I’ve placed the complete image explanation on the Teaching Canvas.';
     question.value='';
   }catch(err){
@@ -1961,7 +1962,7 @@ form.addEventListener('submit',async(e)=>{
     if(interruptedLesson){lessonHistory.push(interruptedLesson);lessonInterruption=null;lessonDirector.classList.remove('lesson-paused')}
     canvasWork.classList.add('text-only');problemPreview.hidden=true;
     backToWhiteboard.classList.add('hidden');
-    showCanvasAnswer(data.reply,'Worked solution');
+    currentTeachingStrategy=null;showCanvasAnswer(data.reply,'Worked solution');
     if(handsFree.enabled)void speakText(data.reply,true,true);
     thinking.textContent='I’ve placed the complete worked solution on the Teaching Canvas.';clearPendingChatRecovery();
   }catch(err){
