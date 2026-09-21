@@ -1164,6 +1164,27 @@ def test_strategy_evidence_is_identity_minimised():
     assert not {'name', 'nickname', 'lesson_text', 'answer'} & stored.keys()
 
 
+def test_strategy_effectiveness_summary_is_class_filtered_and_marks_small_samples():
+    strategy_evidence._reset_for_tests()
+    strategy_evidence._memory_records.extend([
+        {'event_id': 'one', 'class_level': 'JSS2', 'strategy': 'guided_questions', 'correct': True},
+        {'event_id': 'two', 'class_level': 'JSS2', 'strategy': 'guided_questions', 'correct': False},
+        {'event_id': 'three', 'class_level': 'JSS1', 'strategy': 'guided_questions', 'correct': True},
+        {'event_id': 'four', 'class_level': 'JSS2', 'strategy': 'concrete_objects', 'correct': True},
+    ])
+    with patch.object(strategy_evidence, '_sheet_configured', return_value=False):
+        summary = strategy_evidence.build_strategy_summary('JSS2')
+    rows = {item['strategy']: item for item in summary['items']}
+    assert rows['guided_questions'] == {
+        'strategy': 'guided_questions', 'label': 'Guided questions',
+        'attempts': 2, 'correct': 1, 'success_rate': 50,
+    }
+    assert rows['concrete_objects']['success_rate'] == 100
+    assert rows['familiar_example']['success_rate'] is None
+    assert summary['total_attempts'] == 3
+    assert summary['sufficient_evidence'] is False
+
+
 def test_simplify_prompt_honours_guided_question_strategy():
     fake_response = type('Response', (), {'text': 'Guided answer.', 'candidates': []})()
     generate_content = Mock(return_value=fake_response)
@@ -1867,7 +1888,8 @@ def test_teacher_code_endpoint_requires_private_key_and_returns_no_names():
 def test_teacher_dashboard_includes_registered_codes_without_practice():
     key='teacher-dashboard-test-key'
     base={'learner_rows':[{'learner_code':'ISE-JSS2-001','sessions':2,'questions':10,'percentage':40,'support_topic':'Fractions'}]}
-    with patch.dict('os.environ',{'TEACHER_DASHBOARD_KEY':key}), patch('classroom_api.build_teacher_dashboard',return_value=base), patch('classroom_api.list_codes',return_value=([
+    strategy_summary={'items': [], 'total_attempts': 0, 'sufficient_evidence': False, 'storage_synced': True}
+    with patch.dict('os.environ',{'TEACHER_DASHBOARD_KEY':key}), patch('classroom_api.build_teacher_dashboard',return_value=base), patch('classroom_api.build_strategy_summary',return_value=strategy_summary), patch('classroom_api.list_codes',return_value=([
         {'code':'ISE-JSS2-001','status':'Retired'}, {'code':'ISE-JSS2-002','status':'Active'},
     ],True)):
         response=client.post('/api/classroom/teacher/dashboard',json={'access_key':key,'class_level':'JSS2'})
@@ -1876,6 +1898,7 @@ def test_teacher_dashboard_includes_registered_codes_without_practice():
     assert rows['ISE-JSS2-001']['status'] == 'Retired'
     assert rows['ISE-JSS2-002']['percentage'] is None
     assert rows['ISE-JSS2-002']['sessions'] == 0
+    assert response.json()['strategy_effectiveness'] == strategy_summary
 
 
 def test_teacher_dashboard_filters_sorts_and_exports_learner_progress():
@@ -1887,6 +1910,8 @@ def test_teacher_dashboard_filters_sorts_and_exports_learner_progress():
     assert "item.percentage===null?'Not started'" in script
     assert "['Learner code','Status','Sessions','Questions','Percentage','Support topic']" in script
     assert '.teacher-learner-tools{' in styles
+    assert "strategiesTitle.textContent='Teaching Strategy Effectiveness'" in script
+    assert 'Collect at least 5 checks per strategy before comparing them.' in script
 
 
 def test_teaching_quality_regressions_are_guarded():
