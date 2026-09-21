@@ -22,7 +22,7 @@
     if (/429|too many requests|rate limit|quota|resource exhausted/i.test(value)) {
       return 'Robo-Teacher is busy right now. Please wait a moment, then try again.';
     }
-    if (/\b(?:500|502|503|504)\b|internal server error|bad gateway|service unavailable|gateway timeout/i.test(value)) {
+    if (/(?:HTTP\s*|status(?:\s+code)?\s*[:=]?\s*|error\s+)(?:500|502|503|504)\b|internal server error|bad gateway|service unavailable|gateway timeout/i.test(value)) {
       return 'Something went wrong while preparing that. Please try again.';
     }
     if (/timed? out|timeout/i.test(value)) {
