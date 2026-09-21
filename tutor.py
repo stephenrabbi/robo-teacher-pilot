@@ -674,7 +674,12 @@ def translate_tutor_steps(steps: list[str], response_language: str, class_level:
         return [translate_tutor_text(step, response_language, class_level) for step in steps]
 
 
-def simplify_tutor_text(text: str, response_language: str, class_level: str = "JSS2") -> str:
+def simplify_tutor_text(
+    text: str,
+    response_language: str,
+    class_level: str = "JSS2",
+    teaching_strategy: str = "familiar_example",
+) -> str:
     """Rewrite a worked answer more simply without changing its Maths."""
     if not text.strip():
         raise ValueError("Text cannot be empty")
@@ -683,10 +688,16 @@ def simplify_tutor_text(text: str, response_language: str, class_level: str = "J
         if response_language == "English"
         else _language_instruction(response_language, class_level)
     )
+    strategy_instructions = {
+        "familiar_example": "Use a new familiar everyday example, not merely different wording.",
+        "concrete_objects": "Switch strategy: explain with concrete objects a learner can picture or count, then connect them back to the Maths.",
+        "guided_questions": "Switch strategy: use two short guided questions that reveal the solution one step at a time, then state the completed reasoning.",
+    }
+    strategy_instruction = strategy_instructions.get(teaching_strategy, strategy_instructions["familiar_example"])
     prompt = (
         f"{_class_instruction(class_level)}\n{language_instruction}\n\n"
         "Rewrite the existing Maths explanation below so a learner who did not understand it the first time can follow it. "
-        "Use shorter sentences, easier words, clearly numbered steps, and one familiar everyday example. "
+        f"Use shorter sentences, easier words, and clearly numbered steps. {strategy_instruction} "
         "Preserve every equation, value, operation, unit and final answer exactly. Do not change the Maths or introduce a different solution. "
         "Return only the simpler explanation.\n\n"
         f"EXISTING EXPLANATION:\n{text.strip()}"
