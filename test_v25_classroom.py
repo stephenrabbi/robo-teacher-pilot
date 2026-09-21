@@ -1103,7 +1103,10 @@ def test_simplify_endpoint_preserves_language_and_class():
             'text': 'Existing worked answer', 'language': 'Yoruba',
         })
     assert response.status_code == 200
-    assert response.json() == {'explanation': 'Jẹ́ ká lo àpẹẹrẹ tó rọrùn.', 'language': 'Yoruba'}
+    assert response.json() == {
+        'explanation': 'Jẹ́ ká lo àpẹẹrẹ tó rọrùn.', 'language': 'Yoruba',
+        'teaching_strategy': 'familiar_example', 'personalized_strategy': False,
+    }
     assert simplifier.call_args.args == ('Existing worked answer', 'Yoruba', 'JSS1', 'familiar_example')
 
 
@@ -1130,6 +1133,22 @@ def test_simplify_endpoint_switches_teaching_strategy():
         })
     assert response.status_code == 200
     assert simplifier.call_args.args == ('Existing worked answer', 'English', 'JSS2', 'concrete_objects')
+
+
+def test_simplify_endpoint_uses_learner_preference_after_enough_evidence():
+    session = client.post('/api/classroom/session', json={
+        'learner_key': 'b' * 48, 'nickname': 'Tunde', 'class_level': 'JSS2',
+    }).json()
+    with patch.object(classroom_api, 'recommend_strategy', return_value=('guided_questions', True)), \
+         patch.object(classroom_api, 'simplify_tutor_text', return_value='Guided explanation.') as simplifier:
+        response = client.post('/api/classroom/simplify', json={
+            'session_token': session['session_token'], 'text': 'Existing answer',
+            'language': 'English', 'teaching_strategy': 'concrete_objects',
+        })
+    assert response.status_code == 200
+    assert response.json()['teaching_strategy'] == 'guided_questions'
+    assert response.json()['personalized_strategy'] is True
+    assert simplifier.call_args.args == ('Existing answer', 'English', 'JSS2', 'guided_questions')
 
 
 def test_strategy_outcome_is_recorded_after_the_next_check_only():
@@ -1183,6 +1202,25 @@ def test_strategy_effectiveness_summary_is_class_filtered_and_marks_small_sample
     assert rows['familiar_example']['success_rate'] is None
     assert summary['total_attempts'] == 3
     assert summary['sufficient_evidence'] is False
+
+
+def test_strategy_recommendation_waits_for_balanced_learner_evidence():
+    strategy_evidence._reset_for_tests()
+    learner = 'WEB-learner-one'
+    records = []
+    outcomes = {
+        'familiar_example': [True, True, True],
+        'concrete_objects': [True, False, False],
+        'guided_questions': [True, True, False],
+    }
+    for strategy, values in outcomes.items():
+        for index, correct in enumerate(values):
+            records.append({'event_id': f'{strategy}-{index}', 'learner_id': learner,
+                            'class_level': 'JSS2', 'strategy': strategy, 'correct': correct})
+    strategy_evidence._memory_records.extend(records)
+    with patch.object(strategy_evidence, '_sheet_configured', return_value=False):
+        assert strategy_evidence.recommend_strategy(learner, 'JSS2', 'concrete_objects') == ('familiar_example', True)
+        assert strategy_evidence.recommend_strategy('WEB-new', 'JSS2', 'guided_questions') == ('guided_questions', False)
 
 
 def test_simplify_prompt_honours_guided_question_strategy():
@@ -1469,8 +1507,9 @@ def test_adaptive_teaching_memory_records_signals_and_changes_support_level():
     assert 'function adaptiveTeachingStrategy()' in script
     assert "['concrete_objects','guided_questions','familiar_example']" in script
     assert 'teaching_strategy:teachingStrategy' in script
-    assert 'currentTeachingStrategy=teachingStrategy' in script
     assert 'teaching_strategy:currentTeachingStrategy' in script
+    assert 'currentTeachingStrategy=data.teaching_strategy||teachingStrategy' in script
+    assert 'data.personalized_strategy' in script
     for signal in ('replays', 'simplifications', 'questions', 'correct', 'incorrect'):
         assert signal in script
     assert "localStorage.setItem(`roboTeacherMemory:${learnerMemoryId}`" in script
