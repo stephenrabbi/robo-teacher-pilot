@@ -12,6 +12,7 @@ import practice
 import practice_progress
 import diagnostic_progress
 import learner_codes
+import strategy_evidence
 import tutor
 from practice_generator import generate_question
 from tutor import GEMINI_STREAMING_TTS_MODEL, GEMINI_TTS_MODEL, TTS_VOICES, _language_instruction, _pcm_to_wav, _prepare_spoken_transcript, _speech_chunks, _spoken_excerpt, get_tutor_reply
@@ -1131,6 +1132,38 @@ def test_simplify_endpoint_switches_teaching_strategy():
     assert simplifier.call_args.args == ('Existing worked answer', 'English', 'JSS2', 'concrete_objects')
 
 
+def test_strategy_outcome_is_recorded_after_the_next_check_only():
+    session = client.post('/api/classroom/session', json={
+        'learner_key': 'a' * 48, 'nickname': 'Ada', 'class_level': 'JSS2',
+    }).json()
+    generated = {'question': 'What is 2 + 2?', 'choices': ['3', '4', '5'], 'correct_index': 1, 'feedback': 'Add the values.'}
+    with patch.object(classroom_api, 'generate_understanding_check', return_value=generated), \
+         patch.object(classroom_api, 'save_strategy_outcome') as save_outcome:
+        started = client.post('/api/classroom/understanding/start', json={
+            'session_token': session['session_token'], 'text': 'Two plus two equals four.',
+            'language': 'English', 'teaching_strategy': 'guided_questions',
+        })
+        answered = client.post('/api/classroom/understanding/answer', json={
+            'session_token': session['session_token'], 'check_id': started.json()['check_id'], 'choice_index': 1,
+        })
+        repeated = client.post('/api/classroom/understanding/answer', json={
+            'session_token': session['session_token'], 'check_id': started.json()['check_id'], 'choice_index': 1,
+        })
+    assert answered.status_code == repeated.status_code == 200
+    save_outcome.assert_called_once_with(session['learner_id'], 'JSS2', 'guided_questions', True)
+
+
+def test_strategy_evidence_is_identity_minimised():
+    strategy_evidence._reset_for_tests()
+    with patch.object(strategy_evidence, '_sheet_configured', return_value=False):
+        assert strategy_evidence.save_strategy_outcome('WEB-pseudonymous', 'JSS2', 'concrete_objects', False) is False
+    stored = strategy_evidence._memory_records[0]
+    assert stored['learner_id'] == 'WEB-pseudonymous'
+    assert stored['strategy'] == 'concrete_objects'
+    assert stored['correct'] is False
+    assert not {'name', 'nickname', 'lesson_text', 'answer'} & stored.keys()
+
+
 def test_simplify_prompt_honours_guided_question_strategy():
     fake_response = type('Response', (), {'text': 'Guided answer.', 'candidates': []})()
     generate_content = Mock(return_value=fake_response)
@@ -1415,6 +1448,8 @@ def test_adaptive_teaching_memory_records_signals_and_changes_support_level():
     assert 'function adaptiveTeachingStrategy()' in script
     assert "['concrete_objects','guided_questions','familiar_example']" in script
     assert 'teaching_strategy:teachingStrategy' in script
+    assert 'currentTeachingStrategy=teachingStrategy' in script
+    assert 'teaching_strategy:currentTeachingStrategy' in script
     for signal in ('replays', 'simplifications', 'questions', 'correct', 'incorrect'):
         assert signal in script
     assert "localStorage.setItem(`roboTeacherMemory:${learnerMemoryId}`" in script
