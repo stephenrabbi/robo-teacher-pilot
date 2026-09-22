@@ -1916,6 +1916,7 @@ function renderLessonMedia(data){
   const controls=document.createElement('div');controls.className='guided-controls';
   const previous=document.createElement('button'),play=document.createElement('button'),next=document.createElement('button'),read=document.createElement('button');
   previous.type=play.type=next.type=read.type='button';previous.textContent='← Previous';play.textContent='Pause';next.textContent='Next →';read.textContent='🔊 Read this step';controls.append(previous,play,next,read);
+  let video=null;if(data.video_url){video=document.createElement('button');video.type='button';video.className='guided-video';video.textContent=`Watch approved video: ${data.video_title}`;controls.appendChild(video)}
   let explore=null;if(data.kind==='guided'&&data.explore_url){explore=document.createElement('button');explore.type='button';explore.className='guided-explore';explore.textContent='Explore the simulation myself (optional)';controls.appendChild(explore)}
   mediaReplay.appendChild(controls);let active=0,playing=true;
   const show=()=>{steps.forEach((item,index)=>item.classList.toggle('active',index===active));progress.textContent=`Robo-Teacher step ${active+1} of ${steps.length}`;previous.disabled=active===0;next.disabled=active===steps.length-1};
@@ -1923,6 +1924,7 @@ function renderLessonMedia(data){
   previous.addEventListener('click',()=>{active=Math.max(0,active-1);show();restart()});next.addEventListener('click',()=>{active=Math.min(steps.length-1,active+1);show();restart()});
   play.addEventListener('click',()=>{if(!playing&&active===steps.length-1)active=0;playing=!playing;play.textContent=playing?'Pause':(active===steps.length-1?'Replay':'Continue');show();restart()});
   read.addEventListener('click',()=>void speakText(data.steps[active],true,true));
+  if(video)video.addEventListener('click',()=>{if(mediaReplayTimer){clearInterval(mediaReplayTimer);mediaReplayTimer=null}mediaReplay.classList.add('hidden');mediaFrame.title=`Approved lesson video: ${data.video_title}`;mediaFrame.src=data.video_url;mediaFrame.classList.remove('hidden');backToGuidedMedia.classList.remove('hidden');mediaSource.textContent=`Video: ${data.video_source}`});
   if(explore)explore.addEventListener('click',()=>{if(mediaReplayTimer){clearInterval(mediaReplayTimer);mediaReplayTimer=null}mediaReplay.classList.add('hidden');mediaFrame.src=data.explore_url;mediaFrame.classList.remove('hidden');backToGuidedMedia.classList.remove('hidden');mediaSource.textContent=`Optional practice: ${data.explore_source}`});
   backToGuidedMedia.onclick=()=>{mediaFrame.removeAttribute('src');mediaFrame.classList.add('hidden');backToGuidedMedia.classList.add('hidden');mediaReplay.classList.remove('hidden');mediaSource.textContent=`Source: ${data.source}`;show()};
   show();restart();

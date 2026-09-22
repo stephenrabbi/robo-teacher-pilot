@@ -857,6 +857,16 @@ def select_lesson_media(text: str, response_language: str = "English") -> dict:
         (("coordinate","plot","graph","gradient","slope"),"Graphing Lines","https://phet.colorado.edu/sims/html/graphing-lines/latest/graphing-lines_all.html"),
         (("area","rectangle","multiply","factor"),"Area Model Algebra","https://phet.colorado.edu/sims/html/area-model-algebra/latest/area-model-algebra_all.html"),
     ]
+    video_catalog=[
+        (("add fractions","adding fractions","unlike denominator"),"Adding fractions with unlike denominators","2s4vTkBD4tQ"),
+        (("fraction","numerator","denominator"),"Numerator and denominator of a fraction","3XOt1fjWKi8"),
+        (("one-step equation","one step equation","solve x","linear equation"),"How to solve one-step equations","jWpiMu5LNdg"),
+        (("coordinate plane","coordinate","plot","quadrant"),"Introduction to the coordinate plane","pAlq9fFwtus"),
+        (("ratio","proportion"),"Introduction to ratios","HpdMJaKaXXc"),
+        (("percent","percentage"),"Meaning of percent","Lvr2YsxG10o"),
+        (("negative number","number line","absolute value"),"Introduction to negative numbers","u8UKdNdpkh4"),
+        (("algebraic expression","variable","expression"),"Variables, expressions, and equations","vDqOoI-4Z6M"),
+    ]
     replay_text=re.sub(r"(?i)(?<!^)(?=step\s*\d+\s*[:.])","\n",text)
     replay_text=re.sub(r"(?i)(?<!^)(?=final\s+(?:answer|estimation)\s*[:.])","\n",replay_text)
     steps=[part.strip() for part in re.split(r"(?:\n+|(?<=[.!?])\s+)",replay_text) if part.strip()][:6]
@@ -870,8 +880,20 @@ def select_lesson_media(text: str, response_language: str = "English") -> dict:
                     "Hausa":["Da farko ka lura da lambobi da alamomi masu muhimmanci.","Bi hanyar warwarewar mataki ɗaya bayan ɗaya.","Duba amsar ta hanyar mayar da ita cikin tambayar farko."],
                 }
                 steps=prompts.get(response_language,prompts["English"])
-            return {"kind":"guided","title":f"Guided {title}","steps":steps,"explore_url":url,"source":"Robo-Teacher guided lesson","explore_source":"PhET Interactive Simulations"}
-    return {"kind":"replay","title":"Worked example replay","steps":steps or [text.strip()[:240]],"source":"Robo-Teacher"}
+            result={"kind":"guided","title":f"Guided {title}","steps":steps,"explore_url":url,"source":"Robo-Teacher guided lesson","explore_source":"PhET Interactive Simulations"}
+            if response_language=="English":
+                for video_keywords,video_title,video_id in video_catalog:
+                    if any(keyword in lesson for keyword in video_keywords):
+                        result.update({"video_title":video_title,"video_url":f"https://www.youtube-nocookie.com/embed/{video_id}?rel=0","video_source":"Khan Academy"})
+                        break
+            return result
+    result={"kind":"replay","title":"Worked example replay","steps":steps or [text.strip()[:240]],"source":"Robo-Teacher"}
+    if response_language=="English":
+        for video_keywords,video_title,video_id in video_catalog:
+            if any(keyword in lesson for keyword in video_keywords):
+                result.update({"video_title":video_title,"video_url":f"https://www.youtube-nocookie.com/embed/{video_id}?rel=0","video_source":"Khan Academy"})
+                break
+    return result
 
 
 def _media_reply(student_id: str, media_bytes: bytes, mime_type: str, prompt: str, profile_message: str, max_tokens: int = 700) -> tuple[str, float]:
