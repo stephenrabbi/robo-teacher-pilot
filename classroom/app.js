@@ -241,6 +241,7 @@ let activeAvatarRig=null;
 let avatarEnergy=0;
 let showVoiceAnswerAvatar=false;
 let currentLesson=null;
+let latestLearnerQuestion='';
 const lessonHistory=[];
 let lessonInterruption=null;
 let pendingChatRecovery=null;
@@ -1228,7 +1229,7 @@ function renderCurrentLessonStep(){
   lessonPauseNotice.classList.toggle('hidden',!lessonInterruption);
   askLessonQuestion.textContent=lessonInterruption?'Continue this step':'Ask about this step';
   readAnswerButton.disabled=!steps[index].trim();
-  watchStepExample.textContent=lessonHasApprovedVideo(currentLesson.text)?'Watch approved video':'Watch step example';
+  watchStepExample.textContent=lessonHasApprovedVideo(`${latestLearnerQuestion}\n${currentLesson.text}`)?'Watch approved video':'Watch step example';
   canvasAnswer.scrollIntoView({block:'nearest',behavior:'smooth'});
   saveClassroomSnapshot();
   scheduleLessonChoreography();
@@ -1903,7 +1904,8 @@ function closeVisualExplanation(){visualArea.classList.add('hidden');restoreTeac
 function lessonHasApprovedVideo(text){return /square root|perfect square|radical|fraction|numerator|denominator|one[- ]step equation|solve x|linear equation|coordinate|quadrant|ratio|proportion|percent|percentage|negative number|number line|absolute value|algebraic expression|variable|expression/i.test(text)}
 
 async function openLessonMedia(preferVideo=false){
-  const lesson=(currentLesson?.text||Array.from(canvasAnswer.querySelectorAll('p')).map(item=>item.innerText.trim()).filter(Boolean).join('\n')||canvasAnswer.innerText).trim();if(!lesson){addMessage('Ask a Maths question first, then I can show an example.','teacher');return;}
+  const explanation=(currentLesson?.text||Array.from(canvasAnswer.querySelectorAll('p')).map(item=>item.innerText.trim()).filter(Boolean).join('\n')||canvasAnswer.innerText).trim();
+  const lesson=`${latestLearnerQuestion}\n${explanation}`.trim();if(!lesson){addMessage('Ask a Maths question first, then I can show an example.','teacher');return;}
   stopTeacherAudio();mediaButton.disabled=true;mediaButton.textContent='Preparing…';setLearningStatus('Preparing a learning example','thinking');
   try{const token=await ensureSession();const response=await fetch('/api/classroom/media',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:lesson,session_token:token,language:language.value})});const data=await response.json();if(!response.ok)throw new Error(data.detail||'media');dismissLessonOverlays();renderLessonMedia(data,preferVideo);canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');mediaArea.classList.remove('hidden');enterTeachingStage('example');setLearningStatus(data.video_url&&preferVideo?'Approved video ready':'Learning example ready','success');}
   catch(error){addMessage(error.message||'I could not prepare that example. Please try again.','teacher');setLearningStatus('Example needs another try','attention');}
@@ -1969,6 +1971,7 @@ async function handleImage(file,source='upload'){
 
 form.addEventListener('submit',async(e)=>{
   e.preventDefault();const text=question.value.trim();if(!text||sendButton.disabled)return;
+  latestLearnerQuestion=text;
   const recovery=pendingChatRecovery?.text===text?pendingChatRecovery:null;
   const interruptedLesson=recovery?.interruptedLesson||lessonInterruption||(currentLesson?{text:currentLesson.text,index:currentLesson.index,step:currentLesson.steps[currentLesson.index]}:null);
   const interruptedStep=interruptedLesson?.step||currentLesson?.steps?.[interruptedLesson?.index]||interruptedLesson?.text||'';

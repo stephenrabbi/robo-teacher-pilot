@@ -1354,6 +1354,8 @@ def test_watch_example_ui_minimizes_avatar_and_stops_embedded_media():
     assert "fetch('/api/classroom/media'" in script
     assert 'Watch approved video:' in script and 'Video: ${data.video_source}' in script
     assert "'Watch approved video':'Watch step example'" in script
+    assert "latestLearnerQuestion=text" in script
+    assert "`${latestLearnerQuestion}\\n${explanation}`" in script
     assert "mediaFrame.removeAttribute('src')" in script
     assert "teacherPanel.classList.add('minimized')" in script
 
