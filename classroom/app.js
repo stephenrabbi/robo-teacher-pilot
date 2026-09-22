@@ -53,6 +53,7 @@ const mediaFrame=document.getElementById('mediaFrame');
 const mediaReplay=document.getElementById('mediaReplay');
 const mediaSource=document.getElementById('mediaSource');
 const closeMediaButton=document.getElementById('closeMedia');
+const backToGuidedMedia=document.getElementById('backToGuidedMedia');
 const understandingArea=document.getElementById('understandingArea');
 const understandingQuestion=document.getElementById('understandingQuestion');
 const understandingForm=document.getElementById('understandingForm');
@@ -1892,7 +1893,7 @@ function renderVisualAid(data){
 
 function restoreTeacherPanel(){teacherPanel.classList.remove('minimized');classroom.classList.remove('teacher-min');toggle.textContent='Hide';toggle.setAttribute('aria-expanded','true')}
 
-function stopLessonMedia(){if(mediaReplayTimer){clearInterval(mediaReplayTimer);mediaReplayTimer=null}mediaFrame.removeAttribute('src');mediaArea.classList.add('hidden')}
+function stopLessonMedia(){if(mediaReplayTimer){clearInterval(mediaReplayTimer);mediaReplayTimer=null}mediaFrame.removeAttribute('src');backToGuidedMedia.classList.add('hidden');mediaArea.classList.add('hidden')}
 
 function dismissLessonOverlays(){stopLessonMedia();visualArea.classList.add('hidden');understandingArea.classList.add('hidden')}
 
@@ -1903,13 +1904,28 @@ async function openLessonMedia(){
   stopTeacherAudio();mediaButton.disabled=true;mediaButton.textContent='Preparing…';setLearningStatus('Preparing a learning example','thinking');
   try{const token=await ensureSession();const response=await fetch('/api/classroom/media',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:lesson,session_token:token,language:language.value})});const data=await response.json();if(!response.ok)throw new Error(data.detail||'media');dismissLessonOverlays();renderLessonMedia(data);canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');mediaArea.classList.remove('hidden');enterTeachingStage('example');setLearningStatus('Learning example ready','success');}
   catch(error){addMessage(error.message||'I could not prepare that example. Please try again.','teacher');setLearningStatus('Example needs another try','attention');}
-  finally{mediaButton.disabled=false;mediaButton.textContent='Watch or Explore';}
+  finally{mediaButton.disabled=false;mediaButton.textContent='Guided Example';}
 }
 
 function renderLessonMedia(data){
-  if(mediaReplayTimer){clearInterval(mediaReplayTimer);mediaReplayTimer=null}mediaTitle.textContent=data.title;mediaSource.textContent=`Source: ${data.source}`;mediaFrame.classList.add('hidden');mediaReplay.classList.add('hidden');mediaFrame.removeAttribute('src');mediaReplay.replaceChildren();
-  closeMediaButton.textContent=data.kind==='simulation'?'← Exit simulation':'← Exit example';if(data.kind==='simulation'){mediaFrame.src=data.url;mediaFrame.classList.remove('hidden');return;}
-  mediaReplay.classList.remove('hidden');const steps=data.steps.map((text,index)=>{const item=document.createElement('p');item.textContent=`${index+1}. ${text}`;mediaReplay.appendChild(item);return item});let active=0;const show=()=>steps.forEach((item,index)=>item.classList.toggle('active',index===active));show();mediaReplayTimer=setInterval(()=>{active=(active+1)%steps.length;show()},2600);
+  if(mediaReplayTimer){clearInterval(mediaReplayTimer);mediaReplayTimer=null}mediaTitle.textContent=data.title;mediaSource.textContent=`Source: ${data.source}`;mediaFrame.classList.add('hidden');mediaReplay.classList.add('hidden');backToGuidedMedia.classList.add('hidden');mediaFrame.removeAttribute('src');mediaReplay.replaceChildren();
+  closeMediaButton.textContent='← Exit guided example';
+  mediaReplay.classList.remove('hidden');
+  const progress=document.createElement('strong');progress.className='guided-progress';mediaReplay.appendChild(progress);
+  const steps=data.steps.map((text,index)=>{const item=document.createElement('p');item.textContent=`${index+1}. ${text}`;mediaReplay.appendChild(item);return item});
+  const controls=document.createElement('div');controls.className='guided-controls';
+  const previous=document.createElement('button'),play=document.createElement('button'),next=document.createElement('button'),read=document.createElement('button');
+  previous.type=play.type=next.type=read.type='button';previous.textContent='← Previous';play.textContent='Pause';next.textContent='Next →';read.textContent='🔊 Read this step';controls.append(previous,play,next,read);
+  let explore=null;if(data.kind==='guided'&&data.explore_url){explore=document.createElement('button');explore.type='button';explore.className='guided-explore';explore.textContent='Explore the simulation myself (optional)';controls.appendChild(explore)}
+  mediaReplay.appendChild(controls);let active=0,playing=true;
+  const show=()=>{steps.forEach((item,index)=>item.classList.toggle('active',index===active));progress.textContent=`Robo-Teacher step ${active+1} of ${steps.length}`;previous.disabled=active===0;next.disabled=active===steps.length-1};
+  const restart=()=>{if(mediaReplayTimer)clearInterval(mediaReplayTimer);if(playing&&steps.length>1)mediaReplayTimer=setInterval(()=>{if(active<steps.length-1){active++;show()}else{playing=false;play.textContent='Replay';clearInterval(mediaReplayTimer);mediaReplayTimer=null}},4200)};
+  previous.addEventListener('click',()=>{active=Math.max(0,active-1);show();restart()});next.addEventListener('click',()=>{active=Math.min(steps.length-1,active+1);show();restart()});
+  play.addEventListener('click',()=>{if(!playing&&active===steps.length-1)active=0;playing=!playing;play.textContent=playing?'Pause':(active===steps.length-1?'Replay':'Continue');show();restart()});
+  read.addEventListener('click',()=>void speakText(data.steps[active],true,true));
+  if(explore)explore.addEventListener('click',()=>{if(mediaReplayTimer){clearInterval(mediaReplayTimer);mediaReplayTimer=null}mediaReplay.classList.add('hidden');mediaFrame.src=data.explore_url;mediaFrame.classList.remove('hidden');backToGuidedMedia.classList.remove('hidden');mediaSource.textContent=`Optional practice: ${data.explore_source}`});
+  backToGuidedMedia.onclick=()=>{mediaFrame.removeAttribute('src');mediaFrame.classList.add('hidden');backToGuidedMedia.classList.add('hidden');mediaReplay.classList.remove('hidden');mediaSource.textContent=`Source: ${data.source}`;show()};
+  show();restart();
 }
 
 function closeLessonMedia(){stopLessonMedia();restoreTeachingStage()}

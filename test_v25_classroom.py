@@ -1334,9 +1334,11 @@ def test_coordinate_visual_is_deterministic_and_uses_no_model_request():
     client_factory.assert_not_called()
 
 
-def test_watch_example_uses_only_allowlisted_phet_or_local_replay():
+def test_watch_example_teaches_before_optional_allowlisted_phet_or_local_replay():
     fraction=tutor.select_lesson_media('The numerator and denominator form a fraction.','English')
-    assert fraction['kind']=='simulation' and fraction['url'].startswith('https://phet.colorado.edu/sims/html/')
+    assert fraction['kind']=='guided' and len(fraction['steps'])>=2
+    assert fraction['explore_url'].startswith('https://phet.colorado.edu/sims/html/')
+    assert fraction['source']=='Robo-Teacher guided lesson'
     replay=tutor.select_lesson_media('The square root of 49 is 7.','English')
     assert replay['kind']=='replay' and replay['source']=='Robo-Teacher' and replay['steps']
 
@@ -1352,7 +1354,7 @@ def test_watch_example_ui_minimizes_avatar_and_stops_embedded_media():
 def test_mobile_simulation_always_exposes_an_escape_control():
     html=(PROJECT_ROOT/'classroom'/'index.html').read_text();css=(PROJECT_ROOT/'classroom'/'styles.css').read_text()
     assert 'class="exit-media"' in html
-    assert '← Exit simulation' in html
+    assert '← Exit guided example' in html and 'id="backToGuidedMedia"' in html
     assert 'allowfullscreen' not in html
     assert '.media-area>.exit-media{position:fixed' in css
     assert 'height:55vh' in css and 'overscroll-behavior:contain' in css
@@ -1360,10 +1362,10 @@ def test_mobile_simulation_always_exposes_an_escape_control():
 
 def test_mobile_toolbar_is_one_scrollable_row_and_replay_keeps_paragraphs():
     html=(PROJECT_ROOT/'classroom'/'index.html').read_text();script=(PROJECT_ROOT/'classroom'/'app.js').read_text();css=(PROJECT_ROOT/'classroom'/'styles.css').read_text()
-    assert '>Watch or Explore</button>' in html
+    assert '>Guided Example</button>' in html
     assert "map(item=>item.innerText.trim()).filter(Boolean).join('\\n')" in script
     assert 'flex-wrap:nowrap!important' in css and 'overflow-x:auto!important' in css
-    assert "data.kind==='simulation'?'← Exit simulation':'← Exit example'" in script
+    assert "Explore the simulation myself (optional)" in script
 
 
 def test_switching_modes_unloads_media_before_showing_new_content():
@@ -1878,7 +1880,7 @@ def test_daily_learning_plan_combines_recall_practice_and_new_topic():
 def test_media_endpoint_requires_a_valid_session():
     session=client.post('/api/classroom/session').json()
     response=client.post('/api/classroom/media',json={'session_token':session['session_token'],'text':'Explain a fraction.','language':'English'})
-    assert response.status_code==200 and response.json()['source']=='PhET Interactive Simulations'
+    assert response.status_code==200 and response.json()['source']=='Robo-Teacher guided lesson'
     rejected=client.post('/api/classroom/media',json={'session_token':'x'*32,'text':'Explain a fraction.','language':'English'})
     assert rejected.status_code==401
 

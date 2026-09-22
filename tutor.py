@@ -849,7 +849,7 @@ def fallback_visual_aid(text: str, response_language: str) -> dict:
 
 
 def select_lesson_media(text: str, response_language: str = "English") -> dict:
-    """Select only allowlisted free learning media; never return model URLs."""
+    """Build a self-teaching replay and keep allowlisted simulations optional."""
     lesson=text.lower()
     catalog=[
         (("fraction","numerator","denominator"),"Fractions Intro","https://phet.colorado.edu/sims/html/fractions-intro/latest/fractions-intro_all.html"),
@@ -857,11 +857,20 @@ def select_lesson_media(text: str, response_language: str = "English") -> dict:
         (("coordinate","plot","graph","gradient","slope"),"Graphing Lines","https://phet.colorado.edu/sims/html/graphing-lines/latest/graphing-lines_all.html"),
         (("area","rectangle","multiply","factor"),"Area Model Algebra","https://phet.colorado.edu/sims/html/area-model-algebra/latest/area-model-algebra_all.html"),
     ]
-    for keywords,title,url in catalog:
-        if any(keyword in lesson for keyword in keywords): return {"kind":"simulation","title":title,"url":url,"source":"PhET Interactive Simulations"}
     replay_text=re.sub(r"(?i)(?<!^)(?=step\s*\d+\s*[:.])","\n",text)
     replay_text=re.sub(r"(?i)(?<!^)(?=final\s+(?:answer|estimation)\s*[:.])","\n",replay_text)
     steps=[part.strip() for part in re.split(r"(?:\n+|(?<=[.!?])\s+)",replay_text) if part.strip()][:6]
+    for keywords,title,url in catalog:
+        if any(keyword in lesson for keyword in keywords):
+            if len(steps)<2:
+                prompts={
+                    "English":["First, notice the important numbers and signs in the question.","Follow the method one small step at a time.","Check the result by using it in the original question."],
+                    "Yoruba":["Kọ́kọ́ wo àwọn nọ́mbà àti àmì pàtàkì inú ìbéèrè.","Tẹ̀lé ọ̀nà náà ní ìgbésẹ̀ kékeré kọ̀ọ̀kan.","Ṣàyẹ̀wò èsì náà pẹ̀lú ìbéèrè àkọ́kọ́."],
+                    "Igbo":["Buru ụzọ hụ ọnụọgụ na akara ndị dị mkpa n'ajụjụ ahụ.","Soro usoro ahụ otu obere nzọụkwụ n'otu oge.","Lelee azịza ahụ site n'iji ya tụnyere ajụjụ mbụ."],
+                    "Hausa":["Da farko ka lura da lambobi da alamomi masu muhimmanci.","Bi hanyar warwarewar mataki ɗaya bayan ɗaya.","Duba amsar ta hanyar mayar da ita cikin tambayar farko."],
+                }
+                steps=prompts.get(response_language,prompts["English"])
+            return {"kind":"guided","title":f"Guided {title}","steps":steps,"explore_url":url,"source":"Robo-Teacher guided lesson","explore_source":"PhET Interactive Simulations"}
     return {"kind":"replay","title":"Worked example replay","steps":steps or [text.strip()[:240]],"source":"Robo-Teacher"}
 
 
