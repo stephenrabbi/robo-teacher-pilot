@@ -853,7 +853,7 @@ def select_lesson_media(text: str, response_language: str = "English") -> dict:
     lesson=text.lower()
     catalog=[
         (("fraction","numerator","denominator"),"Fractions Intro","https://phet.colorado.edu/sims/html/fractions-intro/latest/fractions-intro_all.html"),
-        (("equation","equal","balance","solve x"),"Equality Explorer","https://phet.colorado.edu/sims/html/equality-explorer-basics/latest/equality-explorer-basics_all.html"),
+        (("equation","equality","balance","solve x"),"Equality Explorer","https://phet.colorado.edu/sims/html/equality-explorer-basics/latest/equality-explorer-basics_all.html"),
         (("coordinate","plot","graph","gradient","slope"),"Graphing Lines","https://phet.colorado.edu/sims/html/graphing-lines/latest/graphing-lines_all.html"),
         (("area","rectangle","multiply","factor"),"Area Model Algebra","https://phet.colorado.edu/sims/html/area-model-algebra/latest/area-model-algebra_all.html"),
     ]

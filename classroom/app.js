@@ -1929,9 +1929,9 @@ function renderLessonMedia(data,preferVideo=false){
   previous.addEventListener('click',()=>{active=Math.max(0,active-1);show();restart()});next.addEventListener('click',()=>{active=Math.min(steps.length-1,active+1);show();restart()});
   play.addEventListener('click',()=>{if(!playing&&active===steps.length-1)active=0;playing=!playing;play.textContent=playing?'Pause':(active===steps.length-1?'Replay':'Continue');show();restart()});
   read.addEventListener('click',()=>void speakText(data.steps[active],true,true));
-  if(video)video.addEventListener('click',()=>{if(mediaReplayTimer){clearInterval(mediaReplayTimer);mediaReplayTimer=null}mediaReplay.classList.add('hidden');mediaFrame.title=`Approved lesson video: ${data.video_title}`;mediaFrame.src=data.video_url;mediaFrame.classList.remove('hidden');backToGuidedMedia.classList.remove('hidden');mediaSource.textContent=`Video: ${data.video_source}`});
+  if(video)video.addEventListener('click',()=>{if(mediaReplayTimer){clearInterval(mediaReplayTimer);mediaReplayTimer=null}mediaReplay.classList.add('hidden');mediaTitle.textContent=data.video_title;mediaFrame.title=`Approved lesson video: ${data.video_title}`;mediaFrame.src=data.video_url;mediaFrame.classList.remove('hidden');backToGuidedMedia.classList.remove('hidden');mediaSource.textContent=`Video: ${data.video_source}`});
   if(explore)explore.addEventListener('click',()=>{if(mediaReplayTimer){clearInterval(mediaReplayTimer);mediaReplayTimer=null}mediaReplay.classList.add('hidden');mediaFrame.src=data.explore_url;mediaFrame.classList.remove('hidden');backToGuidedMedia.classList.remove('hidden');mediaSource.textContent=`Optional practice: ${data.explore_source}`});
-  backToGuidedMedia.onclick=()=>{mediaFrame.removeAttribute('src');mediaFrame.classList.add('hidden');backToGuidedMedia.classList.add('hidden');mediaReplay.classList.remove('hidden');mediaSource.textContent=`Source: ${data.source}`;show()};
+  backToGuidedMedia.onclick=()=>{mediaFrame.removeAttribute('src');mediaFrame.classList.add('hidden');backToGuidedMedia.classList.add('hidden');mediaReplay.classList.remove('hidden');mediaTitle.textContent=data.title;mediaSource.textContent=`Source: ${data.source}`;show()};
   show();restart();if(preferVideo&&video)video.click();
 }
 

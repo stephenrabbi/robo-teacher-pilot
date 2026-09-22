@@ -1343,6 +1343,7 @@ def test_watch_example_teaches_before_optional_allowlisted_phet_or_local_replay(
     assert fraction['video_source']=='Khan Academy'
     roots=tutor.select_lesson_media('What is the square root of 49?','English')
     assert roots['video_url'].startswith('https://www.youtube-nocookie.com/embed/mbc3_e5lWw0')
+    assert roots['kind']=='replay' and 'explore_url' not in roots
     assert 'video_url' not in tutor.select_lesson_media('Explain a fraction.','Yoruba')
     replay=tutor.select_lesson_media('The square root of 49 is 7.','English')
     assert replay['kind']=='replay' and replay['source']=='Robo-Teacher' and replay['steps']
