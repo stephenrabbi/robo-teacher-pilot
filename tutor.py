@@ -858,6 +858,7 @@ def select_lesson_media(text: str, response_language: str = "English") -> dict:
         (("area","rectangle","multiply","factor"),"Area Model Algebra","https://phet.colorado.edu/sims/html/area-model-algebra/latest/area-model-algebra_all.html"),
     ]
     video_catalog=[
+        (("square root","perfect square","radical"),"Introduction to square roots","mbc3_e5lWw0"),
         (("add fractions","adding fractions","unlike denominator"),"Adding fractions with unlike denominators","2s4vTkBD4tQ"),
         (("fraction","numerator","denominator"),"Numerator and denominator of a fraction","3XOt1fjWKi8"),
         (("one-step equation","one step equation","solve x","linear equation"),"How to solve one-step equations","jWpiMu5LNdg"),

@@ -1341,6 +1341,8 @@ def test_watch_example_teaches_before_optional_allowlisted_phet_or_local_replay(
     assert fraction['source']=='Robo-Teacher guided lesson'
     assert fraction['video_url'].startswith('https://www.youtube-nocookie.com/embed/3XOt1fjWKi8')
     assert fraction['video_source']=='Khan Academy'
+    roots=tutor.select_lesson_media('What is the square root of 49?','English')
+    assert roots['video_url'].startswith('https://www.youtube-nocookie.com/embed/mbc3_e5lWw0')
     assert 'video_url' not in tutor.select_lesson_media('Explain a fraction.','Yoruba')
     replay=tutor.select_lesson_media('The square root of 49 is 7.','English')
     assert replay['kind']=='replay' and replay['source']=='Robo-Teacher' and replay['steps']
@@ -1351,6 +1353,7 @@ def test_watch_example_ui_minimizes_avatar_and_stops_embedded_media():
     assert 'id="mediaButton"' in html and 'id="mediaFrame"' in html
     assert "fetch('/api/classroom/media'" in script
     assert 'Watch approved video:' in script and 'Video: ${data.video_source}' in script
+    assert "'Watch approved video':'Watch step example'" in script
     assert "mediaFrame.removeAttribute('src')" in script
     assert "teacherPanel.classList.add('minimized')" in script
 

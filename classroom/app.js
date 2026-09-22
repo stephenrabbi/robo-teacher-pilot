@@ -1228,6 +1228,7 @@ function renderCurrentLessonStep(){
   lessonPauseNotice.classList.toggle('hidden',!lessonInterruption);
   askLessonQuestion.textContent=lessonInterruption?'Continue this step':'Ask about this step';
   readAnswerButton.disabled=!steps[index].trim();
+  watchStepExample.textContent=lessonHasApprovedVideo(currentLesson.text)?'Watch approved video':'Watch step example';
   canvasAnswer.scrollIntoView({block:'nearest',behavior:'smooth'});
   saveClassroomSnapshot();
   scheduleLessonChoreography();
@@ -1243,7 +1244,7 @@ previousLessonStep.addEventListener('click',()=>moveLessonStep(-1));
 nextLessonStep.addEventListener('click',()=>moveLessonStep(1));
 replayLessonStep.addEventListener('click',()=>{if(currentLesson){recordLearningSignal('replays');void speakText(currentLesson.steps[currentLesson.index])}});
 showStepVisual.addEventListener('click',showVisualExplanation);
-watchStepExample.addEventListener('click',openLessonMedia);
+watchStepExample.addEventListener('click',()=>openLessonMedia(true));
 checkStepUnderstanding.addEventListener('click',startUnderstandingCheck);
 function pauseLessonForQuestion(source='text'){
   if(!currentLesson)return;
@@ -1275,7 +1276,7 @@ simplifyButton.addEventListener('click',simplifyCurrentAnswer);
 understandingButton.addEventListener('click',startUnderstandingCheck);
 visualButton.addEventListener('click',showVisualExplanation);
 closeVisualButton.addEventListener('click',closeVisualExplanation);
-mediaButton.addEventListener('click',openLessonMedia);
+mediaButton.addEventListener('click',()=>openLessonMedia(false));
 closeMediaButton.addEventListener('click',closeLessonMedia);
 understandingForm.addEventListener('submit',submitUnderstandingAnswer);
 closeUnderstandingButton.addEventListener('click',closeUnderstandingCheck);
@@ -1899,15 +1900,17 @@ function dismissLessonOverlays(){stopLessonMedia();visualArea.classList.add('hid
 
 function closeVisualExplanation(){visualArea.classList.add('hidden');restoreTeachingStage()}
 
-async function openLessonMedia(){
+function lessonHasApprovedVideo(text){return /square root|perfect square|radical|fraction|numerator|denominator|one[- ]step equation|solve x|linear equation|coordinate|quadrant|ratio|proportion|percent|percentage|negative number|number line|absolute value|algebraic expression|variable|expression/i.test(text)}
+
+async function openLessonMedia(preferVideo=false){
   const lesson=(currentLesson?.text||Array.from(canvasAnswer.querySelectorAll('p')).map(item=>item.innerText.trim()).filter(Boolean).join('\n')||canvasAnswer.innerText).trim();if(!lesson){addMessage('Ask a Maths question first, then I can show an example.','teacher');return;}
   stopTeacherAudio();mediaButton.disabled=true;mediaButton.textContent='Preparing…';setLearningStatus('Preparing a learning example','thinking');
-  try{const token=await ensureSession();const response=await fetch('/api/classroom/media',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:lesson,session_token:token,language:language.value})});const data=await response.json();if(!response.ok)throw new Error(data.detail||'media');dismissLessonOverlays();renderLessonMedia(data);canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');mediaArea.classList.remove('hidden');enterTeachingStage('example');setLearningStatus('Learning example ready','success');}
+  try{const token=await ensureSession();const response=await fetch('/api/classroom/media',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:lesson,session_token:token,language:language.value})});const data=await response.json();if(!response.ok)throw new Error(data.detail||'media');dismissLessonOverlays();renderLessonMedia(data,preferVideo);canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');mediaArea.classList.remove('hidden');enterTeachingStage('example');setLearningStatus(data.video_url&&preferVideo?'Approved video ready':'Learning example ready','success');}
   catch(error){addMessage(error.message||'I could not prepare that example. Please try again.','teacher');setLearningStatus('Example needs another try','attention');}
   finally{mediaButton.disabled=false;mediaButton.textContent='Guided Example';}
 }
 
-function renderLessonMedia(data){
+function renderLessonMedia(data,preferVideo=false){
   if(mediaReplayTimer){clearInterval(mediaReplayTimer);mediaReplayTimer=null}mediaTitle.textContent=data.title;mediaSource.textContent=`Source: ${data.source}`;mediaFrame.classList.add('hidden');mediaReplay.classList.add('hidden');backToGuidedMedia.classList.add('hidden');mediaFrame.removeAttribute('src');mediaReplay.replaceChildren();
   closeMediaButton.textContent='← Exit guided example';
   mediaReplay.classList.remove('hidden');
@@ -1927,7 +1930,7 @@ function renderLessonMedia(data){
   if(video)video.addEventListener('click',()=>{if(mediaReplayTimer){clearInterval(mediaReplayTimer);mediaReplayTimer=null}mediaReplay.classList.add('hidden');mediaFrame.title=`Approved lesson video: ${data.video_title}`;mediaFrame.src=data.video_url;mediaFrame.classList.remove('hidden');backToGuidedMedia.classList.remove('hidden');mediaSource.textContent=`Video: ${data.video_source}`});
   if(explore)explore.addEventListener('click',()=>{if(mediaReplayTimer){clearInterval(mediaReplayTimer);mediaReplayTimer=null}mediaReplay.classList.add('hidden');mediaFrame.src=data.explore_url;mediaFrame.classList.remove('hidden');backToGuidedMedia.classList.remove('hidden');mediaSource.textContent=`Optional practice: ${data.explore_source}`});
   backToGuidedMedia.onclick=()=>{mediaFrame.removeAttribute('src');mediaFrame.classList.add('hidden');backToGuidedMedia.classList.add('hidden');mediaReplay.classList.remove('hidden');mediaSource.textContent=`Source: ${data.source}`;show()};
-  show();restart();
+  show();restart();if(preferVideo&&video)video.click();
 }
 
 function closeLessonMedia(){stopLessonMedia();restoreTeachingStage()}
