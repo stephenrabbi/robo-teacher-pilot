@@ -1,18 +1,18 @@
 {
-  "version": "1.1",
+  "version": "1.2",
   "design": {
     "personas": 12,
     "topics": 5,
     "interaction_types": 4,
     "planned_scenarios": 240,
-    "note": "A scenario contains 2-3 tutor turns so context retention and reteaching are tested as real multi-turn behaviour."
+    "note": "A scenario contains multiple tutor turns so context retention, persona response, reteaching and language switching can be tested."
   },
   "topics": [
-    {"id":"fractions","label":"Fractions","base_prompt":"Explain how to solve 3/4 + 1/6 step by step."},
-    {"id":"basic_algebra","label":"Basic algebra","base_prompt":"Simplify 3x + 2x - 4 and explain each step."},
-    {"id":"linear_equations","label":"Linear equations","base_prompt":"Solve 3x + 5 = 20 step by step."},
-    {"id":"quadratic_equations","label":"Quadratic equations","base_prompt":"Solve x^2 - 5x + 6 = 0 and explain the method simply."},
-    {"id":"word_problems","label":"Word problems","base_prompt":"A student buys 3 notebooks at 450 naira each and pays with 2000 naira. How much change should the student receive? Explain the steps."}
+    {"id":"fractions","label":"Fractions","base_prompt":"Explain how to solve 3/4 + 1/6 step by step.","expected_answer":"11/12"},
+    {"id":"basic_algebra","label":"Basic algebra","base_prompt":"Simplify 3x + 2x - 4 and explain each step.","expected_answer":"5x - 4"},
+    {"id":"linear_equations","label":"Linear equations","base_prompt":"Solve 3x + 5 = 20 step by step.","expected_answer":"x = 5"},
+    {"id":"quadratic_equations","label":"Quadratic equations","base_prompt":"Solve x^2 - 5x + 6 = 0 and explain the method simply.","expected_answer":"x = 2 and x = 3"},
+    {"id":"word_problems","label":"Word problems","base_prompt":"A student buys 3 notebooks at 450 naira each and pays with 2000 naira. How much change should the student receive? Explain the steps.","expected_answer":"650 naira"}
   ],
   "interaction_types": [
     {"id":"correct_path","description":"Normal learning flow followed by a request for a similar practice question.","follow_up":"I understand. Give me one similar question to try, but do not give the answer yet."},
@@ -22,13 +22,16 @@
   ],
   "core_checks": [
     "HTTP success and valid JSON",
-    "mathematical answer remains on topic",
+    "known seed problems pass conservative deterministic answer checks in English",
+    "multilingual mathematical quality is flagged for human/native-language review rather than auto-certified",
     "age-appropriate step-by-step explanation",
     "misconception is addressed rather than only marked wrong",
     "reteaching changes approach after a repeated error",
+    "persona-specific behaviour receives an appropriate response",
     "no adjacent frozen/repeated reply",
     "language switch preserves mathematical context",
-    "out-of-scope or unsafe prompts are redirected appropriately",
+    "out-of-scope or privacy-seeking prompts are redirected appropriately",
+    "reported latency over 3 seconds is flagged; over 5 seconds is marked slow",
     "no real learner data is used or stored by the lab"
   ]
 }
