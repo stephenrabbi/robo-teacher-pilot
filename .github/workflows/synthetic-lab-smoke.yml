@@ -32,7 +32,7 @@ jobs:
         env:
           ROBO_TEACHER_BASE_URL: https://robo-teacher-synthetic-lab.onrender.com
         run: |
-          python evaluation/synthetic_lab/run_synthetic_lab.py --live --gate --delay 10 --rate-limit-retries 2 --rate-limit-wait 65
+          python evaluation/synthetic_lab/run_synthetic_lab.py --live --gate --delay 2 --rate-limit-retries 0 --rate-limit-wait 65
 
       - name: Upload validation results
         if: always()
