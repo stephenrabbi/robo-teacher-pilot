@@ -359,13 +359,18 @@ def run_scenario(base_url: str, case: dict, turn_delay: float, rate_limit_retrie
 
         normalized = " ".join(reply.lower().split())
         reported_latency = body.get("latency_seconds") if isinstance(body, dict) else None
-        math_result = mathematical_check(
-            case["topic"], reply, scripted["language"], scripted["purpose"]
-        )
-        language_result = language_adherence_check(reply, scripted["language"])
-        privacy_result = privacy_safety_check(
-            case["persona"]["persona_id"], scripted["purpose"], scripted["message"], reply
-        )
+        if is_rate_limit_reply(reply):
+            math_result = {"math_check": "not_scored_rate_limit", "math_expected": case["topic"].get("expected_answer")}
+            language_result = {"language_check": "not_scored_rate_limit", "language_signal": "unknown", "language_signal_count": 0}
+            privacy_result = {"privacy_check": "not_scored_rate_limit"}
+        else:
+            math_result = mathematical_check(
+                case["topic"], reply, scripted["language"], scripted["purpose"]
+            )
+            language_result = language_adherence_check(reply, scripted["language"])
+            privacy_result = privacy_safety_check(
+                case["persona"]["persona_id"], scripted["purpose"], scripted["message"], reply
+            )
         turns.append({
             "turn": turn_index,
             "purpose": scripted["purpose"],
@@ -379,7 +384,11 @@ def run_scenario(base_url: str, case: dict, turn_delay: float, rate_limit_retrie
             "latency_flag": latency_flag(reported_latency),
             "reply_chars": len(reply),
             "escalated": reply.startswith("[ESCALATE]"),
-            "possible_adjacent_repeat": bool(normalized and normalized == previous_normalized),
+            "possible_adjacent_repeat": bool(
+                normalized
+                and normalized == previous_normalized
+                and not is_rate_limit_reply(reply)
+            ),
             **math_result,
             **language_result,
             **privacy_result,
@@ -566,14 +575,28 @@ def main() -> int:
         "math_pass": sum(1 for turn in all_turns if turn.get("math_check") == "pass"),
         "math_review_or_fail": sum(1 for turn in all_turns if turn.get("math_check") == "review_or_fail"),
         "math_human_review_multilingual": sum(1 for turn in all_turns if turn.get("math_check") == "human_review_multilingual"),
+        "math_not_scored_rate_limit": sum(1 for turn in all_turns if turn.get("math_check") == "not_scored_rate_limit"),
         "language_pass": sum(1 for turn in all_turns if turn.get("language_check") == "pass"),
         "language_review_mismatch": sum(1 for turn in all_turns if turn.get("language_check") == "review_mismatch"),
         "language_human_review_or_mismatch": sum(1 for turn in all_turns if turn.get("language_check") == "human_review_or_mismatch"),
+        "language_not_scored_rate_limit": sum(1 for turn in all_turns if turn.get("language_check") == "not_scored_rate_limit"),
         "privacy_safe_explicit": sum(1 for turn in all_turns if turn.get("privacy_check") == "safe_explicit"),
         "privacy_safe_generic": sum(1 for turn in all_turns if turn.get("privacy_check") == "safe_generic"),
         "privacy_review": sum(1 for turn in all_turns if turn.get("privacy_check") == "review"),
         "privacy_unsafe_possible_phone_disclosure": sum(1 for turn in all_turns if turn.get("privacy_check") == "unsafe_possible_phone_disclosure"),
+        "privacy_not_scored_rate_limit": sum(1 for turn in all_turns if turn.get("privacy_check") == "not_scored_rate_limit"),
     }
+    rate_limited_turns = final_summary.get("rate_limited_turns_after_retries", 0)
+    final_summary["run_valid_for_quality_analysis"] = (
+        final_summary["http_errors"] == 0
+        and rate_limited_turns == 0
+    )
+    final_summary["validity_note"] = (
+        "Valid for quality analysis."
+        if final_summary["run_valid_for_quality_analysis"]
+        else "Not valid for quality analysis until rate-limited turns are rerun successfully."
+    )
+
     with summary_path.open("w", encoding="utf-8") as summary_file:
         json.dump(final_summary, summary_file, indent=2)
 
