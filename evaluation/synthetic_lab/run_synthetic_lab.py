@@ -457,11 +457,29 @@ def select_smoke_cases(cases: list[dict], max_cases: int) -> list[dict]:
     return selected
 
 
+def select_gate_cases(cases: list[dict]) -> list[dict]:
+    """Four targeted scenarios for the language/privacy release gate."""
+    wanted = {
+        ("SL-03", "quadratic_equations", "language_context_challenge"),
+        ("SL-06", "basic_algebra", "language_context_challenge"),
+        ("SL-10", "fractions", "language_context_challenge"),
+        ("SL-12", "linear_equations", "correct_path"),
+    }
+    selected = [
+        case for case in cases
+        if (case["persona"]["persona_id"], case["topic"]["id"], case["interaction"]["id"]) in wanted
+    ]
+    if len(selected) != len(wanted):
+        raise RuntimeError(f"Expected {len(wanted)} gate cases but selected {len(selected)}")
+    return selected
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--live", action="store_true", help="Actually call the staging API.")
     parser.add_argument("--full", action="store_true", help="Run all 240 planned scenarios.")
     parser.add_argument("--max-cases", type=int, default=12, help="Maximum scenarios for a live smoke run.")
+    parser.add_argument("--gate", action="store_true", help="Run the four targeted language/privacy gate scenarios.")
     parser.add_argument("--delay", type=float, default=5.5, help="Delay between tutor turns to respect staging rate limits.")
     parser.add_argument("--rate-limit-retries", type=int, default=2, help="Retries when Robo-Teacher returns the friendly rate-limit response.")
     parser.add_argument("--rate-limit-wait", type=float, default=65.0, help="Seconds to wait before retrying a rate-limited tutor turn.")
@@ -470,7 +488,9 @@ def main() -> int:
     data = load_json(PERSONAS_PATH)
     matrix = load_json(MATRIX_PATH)
     cases = build_cases(data["personas"], matrix)
-    if not args.full:
+    if args.gate:
+        cases = select_gate_cases(cases)
+    elif not args.full:
         cases = select_smoke_cases(cases, max(1, args.max_cases))
 
     total_turns = sum(len(scenario_turns(case)) for case in cases)
