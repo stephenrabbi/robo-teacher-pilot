@@ -28,11 +28,11 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Run 4-scenario isolated deployment check
+      - name: Run 24-scenario isolated validation
         env:
           ROBO_TEACHER_BASE_URL: https://robo-teacher-synthetic-lab.onrender.com
         run: |
-          python evaluation/synthetic_lab/run_synthetic_lab.py --live --max-cases 4 --delay 1.0
+          python evaluation/synthetic_lab/run_synthetic_lab.py --live --max-cases 24 --delay 5.5
 
       - name: Upload validation results
         if: always()
