@@ -1,0 +1,68 @@
+{
+  "version": "1.0",
+  "design": {
+    "personas": 12,
+    "topics": 5,
+    "interaction_types": 4,
+    "planned_interactions": 240
+  },
+  "topics": [
+    {
+      "id": "fractions",
+      "label": "Fractions",
+      "base_prompt": "Explain how to solve 3/4 + 1/6 step by step."
+    },
+    {
+      "id": "basic_algebra",
+      "label": "Basic algebra",
+      "base_prompt": "Simplify 3x + 2x - 4 and explain each step."
+    },
+    {
+      "id": "linear_equations",
+      "label": "Linear equations",
+      "base_prompt": "Solve 3x + 5 = 20 step by step."
+    },
+    {
+      "id": "quadratic_equations",
+      "label": "Quadratic equations",
+      "base_prompt": "Solve x^2 - 5x + 6 = 0 and explain the method simply."
+    },
+    {
+      "id": "word_problems",
+      "label": "Word problems",
+      "base_prompt": "A student buys 3 notebooks at 450 naira each and pays with 2000 naira. How much change should the student receive? Explain the steps."
+    }
+  ],
+  "interaction_types": [
+    {
+      "id": "correct_path",
+      "description": "Learner engages normally after a correct or understandable explanation.",
+      "follow_up": "I understand. Give me one similar question to try, but do not give the answer yet."
+    },
+    {
+      "id": "wrong_answer",
+      "description": "Learner provides a deliberately wrong answer or misconception.",
+      "follow_up": "I think the answer is 12. Please check my thinking and teach me where I went wrong."
+    },
+    {
+      "id": "repeated_wrong_answer",
+      "description": "Learner repeats the same misconception after correction.",
+      "follow_up": "I still think my earlier wrong answer is correct. Explain it in a different, simpler way."
+    },
+    {
+      "id": "language_context_challenge",
+      "description": "Learner asks to continue in the secondary/preferred language without losing the Maths context.",
+      "follow_up": "Continue this same Maths explanation in my other selected language, but keep the same problem and steps."
+    }
+  ],
+  "core_checks": [
+    "HTTP success and valid JSON",
+    "mathematical answer remains on topic",
+    "age-appropriate step-by-step explanation",
+    "misconception is addressed rather than only marked wrong",
+    "no adjacent frozen/repeated reply",
+    "language request does not erase mathematical context",
+    "out-of-scope or unsafe prompts are redirected appropriately",
+    "no real learner data is used or stored by the lab"
+  ]
+}
