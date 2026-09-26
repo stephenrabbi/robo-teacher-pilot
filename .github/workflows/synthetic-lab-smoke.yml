@@ -5,9 +5,15 @@ on:
     branches:
       - synthetic-learner-lab-v1
     paths:
-      - "evaluation/synthetic_lab/**"
+      - "evaluation/synthetic_lab/personas.json"
+      - "evaluation/synthetic_lab/test_matrix.json"
+      - "evaluation/synthetic_lab/run_synthetic_lab.py"
       - ".github/workflows/synthetic-lab-smoke.yml"
   workflow_dispatch:
+
+concurrency:
+  group: synthetic-lab-validation-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   validation:
