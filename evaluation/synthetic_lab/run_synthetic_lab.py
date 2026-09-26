@@ -26,6 +26,7 @@ RESULTS_DIR = HERE / "results"
 DEFAULT_BASE_URL = "https://robo-teacher-v25-staging.onrender.com"
 RATE_LIMIT_TEXT = "Lots of students are asking me questions right now, so I need a tiny break!"
 # isolated service verification marker
+# gate rerun after dedicated synthetic key and language/privacy fix
 
 
 def load_json(path: Path):
