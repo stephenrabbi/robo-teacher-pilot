@@ -1,0 +1,37 @@
+name: Synthetic Learner Lab Smoke
+
+on:
+  push:
+    branches:
+      - synthetic-learner-lab-v1
+    paths:
+      - "evaluation/synthetic_lab/**"
+      - ".github/workflows/synthetic-lab-smoke.yml"
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run 12-scenario staging smoke test
+        env:
+          ROBO_TEACHER_BASE_URL: https://robo-teacher-v25-staging.onrender.com
+        run: |
+          python evaluation/synthetic_lab/run_synthetic_lab.py --live --max-cases 12 --delay 5.5
+
+      - name: Upload smoke-test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: synthetic-lab-smoke-results
+          path: evaluation/synthetic_lab/results/*.jsonl
+          if-no-files-found: warn
