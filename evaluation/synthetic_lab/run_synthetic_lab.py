@@ -3,6 +3,9 @@
 
 Default mode is dry-run. Pass --live to send synthetic requests to staging.
 No real learner data is required or permitted.
+
+Each scenario uses a fresh synthetic learner key so test conversations are isolated.
+Multi-turn scenarios deliberately reuse the same classroom session within that scenario.
 """
 
 from __future__ import annotations
@@ -28,38 +31,91 @@ def load_json(path: Path):
         return json.load(f)
 
 
-def post_json(url: str, payload: dict, timeout: int = 60) -> tuple[int, dict, float]:
+def post_json(url: str, payload: dict, timeout: int = 90) -> tuple[int, dict, float]:
     body = json.dumps(payload).encode("utf-8")
     req = request.Request(
         url,
         data=body,
-        headers={"Content-Type": "application/json", "User-Agent": "robo-teacher-synthetic-lab/1.0"},
+        headers={"Content-Type": "application/json", "User-Agent": "robo-teacher-synthetic-lab/1.1"},
         method="POST",
     )
     start = time.perf_counter()
     try:
         with request.urlopen(req, timeout=timeout) as resp:
             raw = resp.read().decode("utf-8")
-            elapsed = time.perf_counter() - start
-            return resp.status, json.loads(raw), elapsed
+            return resp.status, json.loads(raw), time.perf_counter() - start
     except error.HTTPError as exc:
-        elapsed = time.perf_counter() - start
         try:
             payload = json.loads(exc.read().decode("utf-8"))
         except Exception:
             payload = {"detail": str(exc)}
-        return exc.code, payload, elapsed
+        return exc.code, payload, time.perf_counter() - start
 
 
-def synthetic_learner_key(persona_id: str) -> str:
-    # API requires a 32-64 lowercase hex key; this is deterministic and contains no PII.
-    return hashlib.sha256(f"synthetic-lab-v1:{persona_id}".encode()).hexdigest()
+def synthetic_learner_key(persona_id: str, topic_id: str, interaction_id: str) -> str:
+    seed = f"synthetic-lab-v1:{persona_id}:{topic_id}:{interaction_id}"
+    return hashlib.sha256(seed.encode()).hexdigest()
 
 
-def choose_language(persona: dict, interaction_type: str) -> str:
-    if interaction_type == "language_context_challenge":
-        return persona.get("secondary_language") or persona["preferred_language"]
-    return persona["preferred_language"]
+def scenario_turns(case: dict) -> list[dict]:
+    persona = case["persona"]
+    topic = case["topic"]
+    interaction_id = case["interaction"]["id"]
+    primary = persona["preferred_language"]
+    secondary = persona.get("secondary_language") or primary
+
+    first = {
+        "language": primary,
+        "message": topic["base_prompt"],
+        "purpose": "initial_explanation",
+    }
+
+    if interaction_id == "correct_path":
+        return [
+            first,
+            {
+                "language": primary,
+                "message": "I understand. Give me one similar question to try, but do not give the answer yet.",
+                "purpose": "normal_follow_up",
+            },
+        ]
+
+    if interaction_id == "wrong_answer":
+        return [
+            first,
+            {
+                "language": primary,
+                "message": case["interaction"]["follow_up"],
+                "purpose": "misconception_correction",
+            },
+        ]
+
+    if interaction_id == "repeated_wrong_answer":
+        return [
+            first,
+            {
+                "language": primary,
+                "message": "I think the answer is 12. Please check my thinking and teach me where I went wrong.",
+                "purpose": "first_wrong_answer",
+            },
+            {
+                "language": primary,
+                "message": case["interaction"]["follow_up"],
+                "purpose": "reteach_after_repeated_error",
+            },
+        ]
+
+    if interaction_id == "language_context_challenge":
+        return [
+            first,
+            {
+                "language": secondary,
+                "message": case["interaction"]["follow_up"],
+                "purpose": "language_switch_context_retention",
+            },
+        ]
+
+    raise ValueError(f"Unknown interaction type: {interaction_id}")
 
 
 def build_cases(personas: list[dict], matrix: dict) -> list[dict]:
@@ -67,89 +123,100 @@ def build_cases(personas: list[dict], matrix: dict) -> list[dict]:
     for persona in personas:
         for topic in matrix["topics"]:
             for interaction in matrix["interaction_types"]:
-                cases.append({
-                    "persona": persona,
-                    "topic": topic,
-                    "interaction": interaction,
-                    "language": choose_language(persona, interaction["id"]),
-                })
+                cases.append({"persona": persona, "topic": topic, "interaction": interaction})
     return cases
 
 
-def make_prompt(case: dict) -> str:
-    p = case["persona"]
-    t = case["topic"]
-    i = case["interaction"]
-    context = (
-        f"Synthetic learner profile for this test only: class {p['class_level']}; "
-        f"ability {p['ability']}; confidence {p['confidence']}; "
-        f"known misconception: {p['misconception']}. "
-    )
-    if i["id"] == "correct_path":
-        return context + t["base_prompt"]
-    return context + t["base_prompt"] + " " + i["follow_up"]
-
-
-def run_case(base_url: str, case: dict) -> dict:
+def create_session(base_url: str, case: dict) -> tuple[int, dict, float]:
     persona = case["persona"]
-    session_payload = {
-        "learner_key": synthetic_learner_key(persona["persona_id"]),
+    payload = {
+        "learner_key": synthetic_learner_key(
+            persona["persona_id"], case["topic"]["id"], case["interaction"]["id"]
+        ),
         "nickname": persona["persona_id"],
         "class_level": persona["class_level"],
     }
-    s_status, s_body, s_elapsed = post_json(f"{base_url}/api/classroom/session", session_payload)
+    return post_json(f"{base_url}/api/classroom/session", payload)
+
+
+def run_scenario(base_url: str, case: dict, turn_delay: float) -> dict:
+    s_status, s_body, s_elapsed = create_session(base_url, case)
     if s_status != 200 or "session_token" not in s_body:
         return {
-            "status": "session_error",
+            "scenario_status": "session_error",
             "session_http": s_status,
             "session_body": s_body,
             "session_wall_seconds": round(s_elapsed, 3),
+            "turns": [],
         }
 
-    chat_payload = {
-        "message": make_prompt(case),
-        "session_token": s_body["session_token"],
-        "language": case["language"],
-    }
-    c_status, c_body, c_elapsed = post_json(f"{base_url}/api/classroom/chat", chat_payload)
-    reply = str(c_body.get("reply", "")) if isinstance(c_body, dict) else ""
-    return {
-        "status": "ok" if c_status == 200 else "chat_error",
-        "chat_http": c_status,
-        "wall_seconds": round(c_elapsed, 3),
-        "reported_latency_seconds": c_body.get("latency_seconds") if isinstance(c_body, dict) else None,
-        "reply_chars": len(reply),
-        "escalated": reply.startswith("[ESCALATE]"),
-        "reply": reply,
-    }
+    token = s_body["session_token"]
+    turns = []
+    previous_normalized = ""
+
+    for turn_index, scripted in enumerate(scenario_turns(case), start=1):
+        payload = {
+            "message": scripted["message"],
+            "session_token": token,
+            "language": scripted["language"],
+        }
+        status, body, elapsed = post_json(f"{base_url}/api/classroom/chat", payload)
+        reply = str(body.get("reply", "")) if isinstance(body, dict) else ""
+        normalized = " ".join(reply.lower().split())
+        turns.append({
+            "turn": turn_index,
+            "purpose": scripted["purpose"],
+            "language": scripted["language"],
+            "prompt": scripted["message"],
+            "http_status": status,
+            "status": "ok" if status == 200 else "error",
+            "wall_seconds": round(elapsed, 3),
+            "reported_latency_seconds": body.get("latency_seconds") if isinstance(body, dict) else None,
+            "reply_chars": len(reply),
+            "escalated": reply.startswith("[ESCALATE]"),
+            "possible_adjacent_repeat": bool(normalized and normalized == previous_normalized),
+            "reply": reply,
+        })
+        previous_normalized = normalized
+
+        if turn_index < len(scenario_turns(case)):
+            time.sleep(max(0.0, turn_delay))
+
+    scenario_status = "ok" if all(t["status"] == "ok" for t in turns) else "chat_error"
+    return {"scenario_status": scenario_status, "turns": turns}
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--live", action="store_true", help="Actually call the staging API.")
-    parser.add_argument("--full", action="store_true", help="Run all 240 planned cases.")
-    parser.add_argument("--max-cases", type=int, default=12, help="Maximum cases for a live smoke run.")
-    parser.add_argument("--delay", type=float, default=5.5, help="Delay between live chat cases to respect tutor rate limits.")
+    parser.add_argument("--full", action="store_true", help="Run all 240 planned scenarios.")
+    parser.add_argument("--max-cases", type=int, default=12, help="Maximum scenarios for a live smoke run.")
+    parser.add_argument("--delay", type=float, default=5.5, help="Delay between tutor turns to respect staging rate limits.")
     args = parser.parse_args()
 
     data = load_json(PERSONAS_PATH)
     matrix = load_json(MATRIX_PATH)
     cases = build_cases(data["personas"], matrix)
-
     if not args.full:
         cases = cases[: max(1, args.max_cases)]
 
+    total_turns = sum(len(scenario_turns(case)) for case in cases)
     summary = {
         "mode": "live" if args.live else "dry-run",
-        "planned_cases_this_run": len(cases),
-        "full_design_cases": 12 * 5 * 4,
+        "planned_scenarios_this_run": len(cases),
+        "planned_tutor_turns_this_run": total_turns,
+        "full_design_scenarios": 12 * 5 * 4,
         "base_url": os.getenv("ROBO_TEACHER_BASE_URL", DEFAULT_BASE_URL),
     }
     print(json.dumps(summary, indent=2))
 
     if not args.live:
         for idx, case in enumerate(cases[:5], start=1):
-            print(f"{idx:02d}. {case['persona']['persona_id']} | {case['topic']['id']} | {case['interaction']['id']} | {case['language']}")
+            print(
+                f"{idx:02d}. {case['persona']['persona_id']} | "
+                f"{case['topic']['id']} | {case['interaction']['id']} | "
+                f"{len(scenario_turns(case))} turns"
+            )
         print("Dry-run complete. Add --live to call staging.")
         return 0
 
@@ -161,27 +228,23 @@ def main() -> int:
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     output_path = RESULTS_DIR / f"synthetic_run_{stamp}.jsonl"
 
-    previous_reply_by_persona: dict[str, str] = {}
     with output_path.open("w", encoding="utf-8") as out:
         for idx, case in enumerate(cases, start=1):
-            persona_id = case["persona"]["persona_id"]
-            result = run_case(base_url, case)
-            normalized_reply = " ".join(str(result.get("reply", "")).lower().split())
-            repeated = bool(normalized_reply and previous_reply_by_persona.get(persona_id) == normalized_reply)
-            previous_reply_by_persona[persona_id] = normalized_reply
+            result = run_scenario(base_url, case, args.delay)
             row = {
-                "run_index": idx,
+                "scenario_index": idx,
                 "timestamp_utc": datetime.now(timezone.utc).isoformat(),
-                "persona_id": persona_id,
+                "persona_id": case["persona"]["persona_id"],
                 "class_level": case["persona"]["class_level"],
                 "topic": case["topic"]["id"],
                 "interaction_type": case["interaction"]["id"],
-                "language": case["language"],
-                "possible_adjacent_repeat": repeated,
                 **result,
             }
             out.write(json.dumps(row, ensure_ascii=False) + "\n")
-            print(f"[{idx}/{len(cases)}] {persona_id} {case['topic']['id']} {case['interaction']['id']}: {row['status']}")
+            print(
+                f"[{idx}/{len(cases)}] {row['persona_id']} "
+                f"{row['topic']} {row['interaction_type']}: {row['scenario_status']}"
+            )
             if idx < len(cases):
                 time.sleep(max(0.0, args.delay))
 
