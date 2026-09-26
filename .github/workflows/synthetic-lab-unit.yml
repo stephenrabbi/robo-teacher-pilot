@@ -1,0 +1,33 @@
+name: Synthetic Learner Lab Unit Checks
+
+on:
+  push:
+    branches:
+      - synthetic-learner-lab-v1
+    paths:
+      - "evaluation/synthetic_lab/**"
+      - ".github/workflows/synthetic-lab-unit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Compile synthetic lab runner
+        run: python -m py_compile evaluation/synthetic_lab/run_synthetic_lab.py
+      - name: Validate JSON files
+        run: |
+          python -m json.tool evaluation/synthetic_lab/personas.json >/dev/null
+          python -m json.tool evaluation/synthetic_lab/test_matrix.json >/dev/null
+      - name: Dry-run balanced selection
+        run: python evaluation/synthetic_lab/run_synthetic_lab.py --max-cases 24
+      - name: Dry-run targeted release gate
+        run: python evaluation/synthetic_lab/run_synthetic_lab.py --gate
