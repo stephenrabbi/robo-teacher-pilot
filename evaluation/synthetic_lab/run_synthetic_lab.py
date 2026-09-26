@@ -24,6 +24,7 @@ PERSONAS_PATH = HERE / "personas.json"
 MATRIX_PATH = HERE / "test_matrix.json"
 RESULTS_DIR = HERE / "results"
 DEFAULT_BASE_URL = "https://robo-teacher-v25-staging.onrender.com"
+# isolated service verification marker
 
 
 def load_json(path: Path):
