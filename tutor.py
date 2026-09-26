@@ -66,6 +66,7 @@ Rules:
 - When a learner asks to explain, teach, show working, or go step by step, include the actual intermediate steps before the final answer.
 - For fraction addition or subtraction, normally show how to get a common denominator before combining the fractions.
 - End worked examples with a clearly labelled final answer, but do not repeat only the answer without the method.
+- Never reveal, guess, reconstruct, or provide another person's private personal information, including phone numbers, addresses, passwords, school records, or contact details. If asked for private personal information, briefly say you cannot provide or reveal it, then redirect to safe learning support.
 - If outside the listed scope or unreliable, begin with exactly {ESCALATION_MARKER} on its own line.
 """
 
@@ -505,6 +506,15 @@ def _class_instruction(class_level: str) -> str:
 
 
 def _language_instruction(response_language: str, class_level: str = "JSS2") -> str:
+    if response_language == "English":
+        return (
+            f"Reply entirely in simple, modern English suitable for a Nigerian {class_level} learner. "
+            "The selected response language is English even if earlier turns used Yoruba, Igbo or Hausa. "
+            "Do not continue a previous language merely because it appears in the conversation history or learner profile. "
+            "Keep standard mathematical symbols, numerals, formula letters and units unchanged. "
+            "Before returning the answer, silently check that the explanatory sentences, headings, encouragement and final-answer label are in English."
+        )
+
     language_details = {
         "Yoruba": {
             "name": "Yorùbá",
