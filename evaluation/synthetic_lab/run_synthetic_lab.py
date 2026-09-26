@@ -186,6 +186,57 @@ def run_scenario(base_url: str, case: dict, turn_delay: float) -> dict:
     return {"scenario_status": scenario_status, "turns": turns}
 
 
+def select_smoke_cases(cases: list[dict], max_cases: int) -> list[dict]:
+    """Pick a balanced smoke set instead of simply taking the first cases.
+
+    For the default 12-case smoke run, this chooses one scenario per persona
+    and rotates topics/interaction types so JSS1-JSS3 and all four supported
+    language preferences are represented.
+    """
+    if max_cases >= len(cases):
+        return cases
+
+    by_persona: dict[str, list[dict]] = {}
+    for case in cases:
+        by_persona.setdefault(case["persona"]["persona_id"], []).append(case)
+
+    selected: list[dict] = []
+    persona_ids = sorted(by_persona)
+    for index, persona_id in enumerate(persona_ids):
+        options = by_persona[persona_id]
+        persona = options[0]["persona"]
+        desired_topic = index % 5
+        desired_interaction = index % 4
+
+        if desired_interaction == 3 and not persona.get("secondary_language"):
+            desired_interaction = index % 3
+
+        topic_id = options[desired_topic * 4]["topic"]["id"]
+        candidates = [
+            case for case in options
+            if case["topic"]["id"] == topic_id
+        ]
+        chosen = candidates[desired_interaction % len(candidates)]
+        selected.append(chosen)
+
+        if len(selected) >= max_cases:
+            break
+
+    if len(selected) < max_cases:
+        selected_keys = {
+            (c["persona"]["persona_id"], c["topic"]["id"], c["interaction"]["id"])
+            for c in selected
+        }
+        for case in cases:
+            key = (case["persona"]["persona_id"], case["topic"]["id"], case["interaction"]["id"])
+            if key in selected_keys:
+                continue
+            selected.append(case)
+            if len(selected) >= max_cases:
+                break
+    return selected
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--live", action="store_true", help="Actually call the staging API.")
@@ -198,7 +249,7 @@ def main() -> int:
     matrix = load_json(MATRIX_PATH)
     cases = build_cases(data["personas"], matrix)
     if not args.full:
-        cases = cases[: max(1, args.max_cases)]
+        cases = select_smoke_cases(cases, max(1, args.max_cases))
 
     total_turns = sum(len(scenario_turns(case)) for case in cases)
     summary = {
