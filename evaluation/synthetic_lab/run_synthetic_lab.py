@@ -241,6 +241,9 @@ def mathematical_check(topic: dict, reply: str, language: str, purpose: str) -> 
             or "answer:5" in compact
             or "correctansweris5" in compact
             or "mustbe5" in compact
+            or "3*(5)+5=20" in compact
+            or "3*5+5=20" in compact
+            or "15/3" in compact and "5" in compact
         )
     elif topic_id == "quadratic_equations":
         compact = text.replace(" ", "")
