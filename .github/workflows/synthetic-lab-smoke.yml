@@ -30,7 +30,7 @@ jobs:
 
       - name: Run 24-scenario staging validation
         env:
-          ROBO_TEACHER_BASE_URL: https://robo-teacher-v25-staging.onrender.com
+          ROBO_TEACHER_BASE_URL: https://robo-teacher-synthetic-lab.onrender.com
         run: |
           python evaluation/synthetic_lab/run_synthetic_lab.py --live --max-cases 24 --delay 5.5
 
