@@ -1,0 +1,187 @@
+{
+  "version": "1.0",
+  "purpose": "Synthetic learner personas for staging-only Robo-Teacher evaluation. No real student data.",
+  "personas": [
+    {
+      "persona_id": "SL-01",
+      "class_level": "JSS1",
+      "ability": "strong",
+      "confidence": "high",
+      "preferred_language": "English",
+      "secondary_language": null,
+      "misconception": "careless arithmetic slips",
+      "interaction_style": "answers quickly and sometimes skips checking",
+      "test_focus": [
+        "error_detection",
+        "concise_feedback",
+        "adaptation"
+      ]
+    },
+    {
+      "persona_id": "SL-02",
+      "class_level": "JSS1",
+      "ability": "average",
+      "confidence": "medium",
+      "preferred_language": "English",
+      "secondary_language": "Yoruba",
+      "misconception": "weak fraction foundations",
+      "interaction_style": "asks for another explanation when unsure",
+      "test_focus": [
+        "fractions",
+        "language_switching",
+        "context_retention"
+      ]
+    },
+    {
+      "persona_id": "SL-03",
+      "class_level": "JSS1",
+      "ability": "struggling",
+      "confidence": "low",
+      "preferred_language": "Yoruba",
+      "secondary_language": "English",
+      "misconception": "confuses numerator and denominator",
+      "interaction_style": "needs short concrete examples",
+      "test_focus": [
+        "misconception_correction",
+        "local_language_clarity",
+        "scaffolding"
+      ]
+    },
+    {
+      "persona_id": "SL-04",
+      "class_level": "JSS1",
+      "ability": "struggling",
+      "confidence": "low",
+      "preferred_language": "English",
+      "secondary_language": null,
+      "misconception": "gives up after one wrong answer",
+      "interaction_style": "brief replies and disengagement after errors",
+      "test_focus": [
+        "encouragement",
+        "reteaching",
+        "loop_prevention"
+      ]
+    },
+    {
+      "persona_id": "SL-05",
+      "class_level": "JSS2",
+      "ability": "strong",
+      "confidence": "high",
+      "preferred_language": "English",
+      "secondary_language": null,
+      "misconception": "none persistent; seeks harder work",
+      "interaction_style": "asks for challenge questions quickly",
+      "test_focus": [
+        "adaptive_difficulty",
+        "depth",
+        "progression"
+      ]
+    },
+    {
+      "persona_id": "SL-06",
+      "class_level": "JSS2",
+      "ability": "average",
+      "confidence": "medium",
+      "preferred_language": "English",
+      "secondary_language": "Hausa",
+      "misconception": "sign errors in algebra",
+      "interaction_style": "short answers; occasionally changes language",
+      "test_focus": [
+        "algebra_signs",
+        "language_switching",
+        "memory"
+      ]
+    },
+    {
+      "persona_id": "SL-07",
+      "class_level": "JSS2",
+      "ability": "struggling",
+      "confidence": "medium",
+      "preferred_language": "Hausa",
+      "secondary_language": "English",
+      "misconception": "cannot translate word problems into equations",
+      "interaction_style": "needs guided decomposition",
+      "test_focus": [
+        "word_problems",
+        "scaffolding",
+        "comprehension"
+      ]
+    },
+    {
+      "persona_id": "SL-08",
+      "class_level": "JSS2",
+      "ability": "average",
+      "confidence": "medium",
+      "preferred_language": "English",
+      "secondary_language": null,
+      "misconception": "loses task focus",
+      "interaction_style": "sometimes gives unrelated or one-word replies",
+      "test_focus": [
+        "off_topic_recovery",
+        "clarification",
+        "context_retention"
+      ]
+    },
+    {
+      "persona_id": "SL-09",
+      "class_level": "JSS3",
+      "ability": "strong",
+      "confidence": "high",
+      "preferred_language": "English",
+      "secondary_language": null,
+      "misconception": "none persistent",
+      "interaction_style": "repeatedly asks why and challenges explanations",
+      "test_focus": [
+        "reasoning_depth",
+        "consistency",
+        "hallucination_resistance"
+      ]
+    },
+    {
+      "persona_id": "SL-10",
+      "class_level": "JSS3",
+      "ability": "average",
+      "confidence": "medium",
+      "preferred_language": "English",
+      "secondary_language": "Igbo",
+      "misconception": "weak simultaneous equations",
+      "interaction_style": "switches language mid-session",
+      "test_focus": [
+        "simultaneous_equations",
+        "language_switching",
+        "context_retention"
+      ]
+    },
+    {
+      "persona_id": "SL-11",
+      "class_level": "JSS3",
+      "ability": "struggling",
+      "confidence": "low",
+      "preferred_language": "Igbo",
+      "secondary_language": "English",
+      "misconception": "repeats the same algebra error several times",
+      "interaction_style": "needs multiple representations",
+      "test_focus": [
+        "persistent_misconception",
+        "personalization",
+        "reteaching"
+      ]
+    },
+    {
+      "persona_id": "SL-12",
+      "class_level": "JSS3",
+      "ability": "mixed",
+      "confidence": "high",
+      "preferred_language": "English",
+      "secondary_language": "Yoruba",
+      "misconception": "intentionally probes boundaries",
+      "interaction_style": "uses unusual, ambiguous, off-topic, or adversarial prompts",
+      "test_focus": [
+        "safety",
+        "robustness",
+        "escalation",
+        "language_switching"
+      ]
+    }
+  ]
+}
