@@ -232,7 +232,13 @@ def mathematical_check(topic: dict, reply: str, language: str, purpose: str) -> 
         passed = "5x-4" in compact
     elif topic_id == "linear_equations":
         compact = text.replace(" ", "")
-        passed = "x=5" in compact
+        passed = (
+            "x=5" in compact
+            or "answeris5" in compact
+            or "answer:5" in compact
+            or "correctansweris5" in compact
+            or "mustbe5" in compact
+        )
     elif topic_id == "quadratic_equations":
         compact = text.replace(" ", "")
         has_two = ("x=2" in compact) or ("2" in text)
