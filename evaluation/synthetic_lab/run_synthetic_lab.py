@@ -24,6 +24,7 @@ PERSONAS_PATH = HERE / "personas.json"
 MATRIX_PATH = HERE / "test_matrix.json"
 RESULTS_DIR = HERE / "results"
 DEFAULT_BASE_URL = "https://robo-teacher-v25-staging.onrender.com"
+RATE_LIMIT_TEXT = "Lots of students are asking me questions right now, so I need a tiny break!"
 # isolated service verification marker
 
 
@@ -321,7 +322,11 @@ def privacy_safety_check(persona_id: str, purpose: str, prompt: str, reply: str)
     return {"privacy_check": "review"}
 
 
-def run_scenario(base_url: str, case: dict, turn_delay: float) -> dict:
+def is_rate_limit_reply(reply: str) -> bool:
+    return RATE_LIMIT_TEXT.lower() in reply.lower()
+
+
+def run_scenario(base_url: str, case: dict, turn_delay: float, rate_limit_retries: int = 2, rate_limit_wait: float = 65.0) -> dict:
     s_status, s_body, s_elapsed = create_session(base_url, case)
     if s_status != 200 or "session_token" not in s_body:
         return {
@@ -344,6 +349,14 @@ def run_scenario(base_url: str, case: dict, turn_delay: float) -> dict:
         }
         status, body, elapsed = post_json(f"{base_url}/api/classroom/chat", payload)
         reply = str(body.get("reply", "")) if isinstance(body, dict) else ""
+        retry_count = 0
+
+        while status == 200 and is_rate_limit_reply(reply) and retry_count < rate_limit_retries:
+            retry_count += 1
+            time.sleep(max(0.0, rate_limit_wait))
+            status, body, elapsed = post_json(f"{base_url}/api/classroom/chat", payload)
+            reply = str(body.get("reply", "")) if isinstance(body, dict) else ""
+
         normalized = " ".join(reply.lower().split())
         reported_latency = body.get("latency_seconds") if isinstance(body, dict) else None
         math_result = mathematical_check(
@@ -359,7 +372,8 @@ def run_scenario(base_url: str, case: dict, turn_delay: float) -> dict:
             "language": scripted["language"],
             "prompt": scripted["message"],
             "http_status": status,
-            "status": "ok" if status == 200 else "error",
+            "status": "ok" if status == 200 and not is_rate_limit_reply(reply) else ("rate_limited" if is_rate_limit_reply(reply) else "error"),
+            "rate_limit_retry_count": retry_count,
             "wall_seconds": round(elapsed, 3),
             "reported_latency_seconds": reported_latency,
             "latency_flag": latency_flag(reported_latency),
@@ -376,7 +390,7 @@ def run_scenario(base_url: str, case: dict, turn_delay: float) -> dict:
         if turn_index < len(scenario_turns(case)):
             time.sleep(max(0.0, turn_delay))
 
-    scenario_status = "ok" if all(t["status"] == "ok" for t in turns) else "chat_error"
+    scenario_status = "ok" if all(t["status"] == "ok" for t in turns) else ("rate_limited" if any(t["status"] == "rate_limited" for t in turns) else "chat_error")
     return {"scenario_status": scenario_status, "turns": turns}
 
 
@@ -449,6 +463,8 @@ def main() -> int:
     parser.add_argument("--full", action="store_true", help="Run all 240 planned scenarios.")
     parser.add_argument("--max-cases", type=int, default=12, help="Maximum scenarios for a live smoke run.")
     parser.add_argument("--delay", type=float, default=5.5, help="Delay between tutor turns to respect staging rate limits.")
+    parser.add_argument("--rate-limit-retries", type=int, default=2, help="Retries when Robo-Teacher returns the friendly rate-limit response.")
+    parser.add_argument("--rate-limit-wait", type=float, default=65.0, help="Seconds to wait before retrying a rate-limited tutor turn.")
     args = parser.parse_args()
 
     data = load_json(PERSONAS_PATH)
@@ -488,7 +504,7 @@ def main() -> int:
 
     with output_path.open("w", encoding="utf-8") as out:
         for idx, case in enumerate(cases, start=1):
-            result = run_scenario(base_url, case, args.delay)
+            result = run_scenario(base_url, case, args.delay, args.rate_limit_retries, args.rate_limit_wait)
             row = {
                 "scenario_index": idx,
                 "timestamp_utc": datetime.now(timezone.utc).isoformat(),
@@ -519,7 +535,9 @@ def main() -> int:
         "scenarios": len(rows),
         "turns": len(all_turns),
         "scenario_errors": sum(1 for row in rows if row.get("scenario_status") != "ok"),
-        "http_errors": sum(1 for turn in all_turns if turn.get("status") != "ok"),
+        "http_errors": sum(1 for turn in all_turns if turn.get("status") == "error"),
+        "rate_limited_turns_after_retries": sum(1 for turn in all_turns if turn.get("status") == "rate_limited"),
+        "rate_limit_retry_attempts": sum(int(turn.get("rate_limit_retry_count", 0) or 0) for turn in all_turns),
         "repeated_reply_flags": sum(1 for turn in all_turns if turn.get("possible_adjacent_repeat")),
         "escalations": sum(1 for turn in all_turns if turn.get("escalated")),
         "latency_ok": sum(1 for turn in all_turns if turn.get("latency_flag") == "ok"),
