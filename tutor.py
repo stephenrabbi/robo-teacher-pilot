@@ -570,6 +570,24 @@ def _language_instruction(response_language: str, class_level: str = "JSS2") -> 
     )
 
 
+def _remember_deterministic_exchange(student_id: str, message: str, reply: str) -> None:
+    """Keep deterministic tutor turns in conversational memory.
+
+    Without this, a learner can receive a deterministic worked answer and then
+    ask a follow-up such as "where did I go wrong?" while the Gemini-backed
+    next turn has no record of the original problem.
+    """
+    history = _conversations.get(student_id, [])
+    try:
+        history.extend([
+            types.Content(role="user", parts=[types.Part(text=message)]),
+            types.Content(role="model", parts=[types.Part(text=reply)]),
+        ])
+        _conversations[student_id] = history[-_MAX_TURNS * 2:]
+    except Exception as exc:
+        logger.warning("Could not preserve deterministic conversation history (%s)", type(exc).__name__)
+
+
 def get_tutor_reply(student_id: str, message: str, response_language: str = "English", class_level: str = "JSS2") -> tuple[str, float]:
     request_start = time.perf_counter()
     deterministic = _simple_fraction_teaching_answer(message, response_language)
@@ -579,6 +597,7 @@ def get_tutor_reply(student_id: str, message: str, response_language: str = "Eng
         # The exact answer does not depend on profile data, so do not make the
         # learner wait for a Google Sheets round trip. Persistence still runs.
         _update_profile_in_background(student_id, message)
+        _remember_deterministic_exchange(student_id, message, deterministic)
         latency = time.perf_counter() - request_start
         logger.info("Tutor reply completed source=deterministic latency_seconds=%.3f", latency)
         return deterministic, latency
