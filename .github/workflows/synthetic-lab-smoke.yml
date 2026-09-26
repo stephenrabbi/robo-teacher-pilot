@@ -1,4 +1,4 @@
-name: Synthetic Learner Lab Smoke
+name: Synthetic Learner Lab Validation
 
 on:
   push:
@@ -10,9 +10,9 @@ on:
   workflow_dispatch:
 
 jobs:
-  smoke:
+  validation:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -22,16 +22,16 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Run 12-scenario staging smoke test
+      - name: Run 24-scenario staging validation
         env:
           ROBO_TEACHER_BASE_URL: https://robo-teacher-v25-staging.onrender.com
         run: |
-          python evaluation/synthetic_lab/run_synthetic_lab.py --live --max-cases 12 --delay 5.5
+          python evaluation/synthetic_lab/run_synthetic_lab.py --live --max-cases 24 --delay 5.5
 
-      - name: Upload smoke-test results
+      - name: Upload validation results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: synthetic-lab-smoke-results
-          path: evaluation/synthetic_lab/results/*.jsonl
+          name: synthetic-lab-validation-results
+          path: evaluation/synthetic_lab/results/*
           if-no-files-found: warn
