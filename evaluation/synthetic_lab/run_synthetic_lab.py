@@ -477,8 +477,9 @@ def main() -> int:
         return 0
 
     base_url = os.getenv("ROBO_TEACHER_BASE_URL", DEFAULT_BASE_URL).rstrip("/")
-    if "staging" not in base_url.lower():
-        raise SystemExit("Refusing live run: base URL does not look like staging.")
+    allowed_markers = ("staging", "synthetic-lab")
+    if not any(marker in base_url.lower() for marker in allowed_markers):
+        raise SystemExit("Refusing live run: base URL does not look like an approved non-production test host.")
 
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
