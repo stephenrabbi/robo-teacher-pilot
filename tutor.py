@@ -588,8 +588,73 @@ def _remember_deterministic_exchange(student_id: str, message: str, reply: str) 
         logger.warning("Could not preserve deterministic conversation history (%s)", type(exc).__name__)
 
 
+def _private_information_refusal(message: str, response_language: str) -> str | None:
+    """Return an explicit privacy refusal for requests to reveal personal data."""
+    lowered = message.lower()
+    request_terms = (
+        "private phone number", "personal phone number", "phone number instead",
+        "private address", "home address", "password", "school record",
+        "personal information", "private information",
+    )
+    if not any(term in lowered for term in request_terms):
+        return None
+
+    replies = {
+        "Yoruba": (
+            "Mi ò lè fún ọ ní nọ́mbà fóònù aládàáni ọmọ ilé-ẹ̀kọ́ gidi tàbí tú àlàyé aládàáni rẹ̀ síta. "
+            "Tí o bá nílò láti bá ọmọ náà sọ̀rọ̀, lo ọ̀nà tí ilé-ẹ̀kọ́ fọwọ́ sí, tàbí bá olùkọ́, òbí tàbí alágbàtọ́ rẹ̀ sọ̀rọ̀. "
+            "Mo lè ràn ọ́ lọ́wọ́ pẹ̀lú ìbéèrè Maths rẹ."
+        ),
+        "Hausa": (
+            "Ba zan iya bayarwa ko bayyana lambar wayar sirri ta wani ɗalibi na gaske ko wasu bayanansa na sirri ba. "
+            "Idan kana buƙatar tuntuɓarsa, yi amfani da hanyar da makaranta ta amince da ita, ko ka tuntubi malami, iyaye ko mai kula da shi. "
+            "Zan iya taimaka maka da tambayar Maths."
+        ),
+        "Igbo": (
+            "Enweghị m ike inye ma ọ bụ kpughee nọmba ekwentị nkeonwe nke nwa akwụkwọ n'ezie ma ọ bụ ozi onwe ya. "
+            "Ọ bụrụ na ịchọrọ ịkpọtụrụ ya, jiri ụzọ ụlọ akwụkwọ kwadoro, ma ọ bụ kpọtụrụ onye nkuzi, nne na nna ma ọ bụ onye nlekọta ya. "
+            "Enwere m ike inyere gị aka na ajụjụ Maths."
+        ),
+    }
+    return replies.get(
+        response_language,
+        "I can’t provide or reveal a real student's private phone number or other personal information. "
+        "If you need to contact the student, use an approved school channel or ask the student, their parent or guardian, or a teacher. "
+        "I can help with your Maths question instead.",
+    )
+
+
+def _clear_language_mismatch(text: str, expected_language: str) -> bool:
+    """Detect only strong language-state mismatches; avoid over-correcting mixed Maths vocabulary."""
+    sample = " " + text.lower() + " "
+    markers = {
+        "Yoruba": (" jẹ́ ", " kò ", " àti ", " ìdáhùn ", " náà ", " rẹ̀ ", " láti ", " nígbà "),
+        "Hausa": (" wannan ", " kuma ", " mataki ", " amsa ", " lamba ", " idan ", " yadda ", " muna "),
+        "Igbo": (" anyị ", " nke ", " azịza ", " dịka ", " otu ", " n'ime ", " ka anyị ", " ugbu a "),
+    }
+    counts = {lang: sum(sample.count(m) for m in words) for lang, words in markers.items()}
+
+    if expected_language == "English":
+        return max(counts.values(), default=0) >= 3
+
+    expected_count = counts.get(expected_language, 0)
+    other_count = max((v for lang, v in counts.items() if lang != expected_language), default=0)
+    english_signals = sum(sample.count(token) for token in (
+        " the ", " and ", " because ", " answer ", " step ", " first ", " next ", " therefore ", " you "
+    ))
+    return expected_count == 0 and (other_count >= 3 or english_signals >= 4)
+
+
 def get_tutor_reply(student_id: str, message: str, response_language: str = "English", class_level: str = "JSS2") -> tuple[str, float]:
     request_start = time.perf_counter()
+    privacy_refusal = _private_information_refusal(message, response_language)
+    if privacy_refusal is not None:
+        _update_profile_in_background(student_id, message)
+        _remember_deterministic_exchange(student_id, message, privacy_refusal)
+        latency = time.perf_counter() - request_start
+        logger.info("Tutor reply completed source=privacy_guard latency_seconds=%.3f", latency)
+        return privacy_refusal, latency
+
     deterministic = _simple_fraction_teaching_answer(message, response_language)
     if deterministic is None:
         deterministic = _simple_arithmetic_answer(message, response_language)
@@ -624,10 +689,25 @@ def get_tutor_reply(student_id: str, message: str, response_language: str = "Eng
             logger.error("Gemini retry failed; returning safe technical fallback (%s)", type(retry_error).__name__)
             return TECHNICAL_FALLBACK_RESPONSE, time.time() - start
 
+    cleaned = _clean_model_reply(text)
+    if cleaned != ESCALATION_RESPONSE and _clear_language_mismatch(cleaned, response_language):
+        try:
+            corrected = translate_tutor_text(cleaned, response_language, class_level)
+            if corrected and not _clear_language_mismatch(corrected, response_language):
+                cleaned = corrected
+                try:
+                    if new_history:
+                        new_history[-1] = types.Content(role="model", parts=[types.Part(text=cleaned)])
+                except Exception:
+                    pass
+                logger.info("Corrected strong response-language mismatch to %s", response_language)
+        except Exception as exc:
+            logger.warning("Language correction fallback failed (%s)", type(exc).__name__)
+
     _conversations[student_id] = new_history[-_MAX_TURNS * 2:]
     latency = time.time() - start
     logger.info("Tutor reply completed source=gemini latency_seconds=%.3f", latency)
-    return _clean_model_reply(text), latency
+    return cleaned, latency
 
 
 def translate_tutor_text(text: str, response_language: str, class_level: str = "JSS2") -> str:
