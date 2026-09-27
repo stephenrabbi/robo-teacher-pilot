@@ -28,11 +28,11 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Run resumable batch 126-165
+      - name: Run resumable batch 166-205
         env:
           ROBO_TEACHER_BASE_URL: https://robo-teacher-synthetic-lab.onrender.com
         run: |
-          python evaluation/synthetic_lab/run_synthetic_lab.py --live --start-index 126 --end-index 165 --delay 2 --rate-limit-retries 1 --rate-limit-wait 65
+          python evaluation/synthetic_lab/run_synthetic_lab.py --live --start-index 166 --end-index 205 --delay 2 --rate-limit-retries 1 --rate-limit-wait 65
 
       - name: Upload validation results
         if: always()
