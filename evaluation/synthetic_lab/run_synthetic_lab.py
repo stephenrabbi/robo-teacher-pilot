@@ -510,6 +510,8 @@ def main() -> int:
     parser.add_argument("--live", action="store_true", help="Actually call the staging API.")
     parser.add_argument("--full", action="store_true", help="Run all 240 planned scenarios.")
     parser.add_argument("--max-cases", type=int, default=12, help="Maximum scenarios for a live smoke run.")
+    parser.add_argument("--start-index", type=int, default=None, help="1-based global scenario index to start from.")
+    parser.add_argument("--end-index", type=int, default=None, help="1-based global scenario index to stop at, inclusive.")
     parser.add_argument("--gate", action="store_true", help="Run the four targeted language/privacy gate scenarios.")
     parser.add_argument("--delay", type=float, default=5.5, help="Delay between tutor turns to respect staging rate limits.")
     parser.add_argument("--rate-limit-retries", type=int, default=2, help="Retries when Robo-Teacher returns the friendly rate-limit response.")
@@ -518,26 +520,55 @@ def main() -> int:
 
     data = load_json(PERSONAS_PATH)
     matrix = load_json(MATRIX_PATH)
-    cases = build_cases(data["personas"], matrix)
-    if args.gate:
-        cases = select_gate_cases(cases)
-    elif not args.full:
-        cases = select_smoke_cases(cases, max(1, args.max_cases))
+    all_cases = build_cases(data["personas"], matrix)
+    indexed_cases = list(enumerate(all_cases, start=1))
 
+    if args.start_index is not None or args.end_index is not None:
+        start_index = args.start_index or 1
+        end_index = args.end_index or len(all_cases)
+        if start_index < 1 or end_index > len(all_cases) or start_index > end_index:
+            raise SystemExit(f"Invalid scenario range {start_index}-{end_index}; valid range is 1-{len(all_cases)}.")
+        indexed_cases = [(idx, case) for idx, case in indexed_cases if start_index <= idx <= end_index]
+    elif args.gate:
+        gate_cases = select_gate_cases(all_cases)
+        gate_keys = {
+            (case["persona"]["persona_id"], case["topic"]["id"], case["interaction"]["id"])
+            for case in gate_cases
+        }
+        indexed_cases = [
+            (idx, case) for idx, case in indexed_cases
+            if (case["persona"]["persona_id"], case["topic"]["id"], case["interaction"]["id"]) in gate_keys
+        ]
+    elif not args.full:
+        smoke_cases = select_smoke_cases(all_cases, max(1, args.max_cases))
+        smoke_keys = {
+            (case["persona"]["persona_id"], case["topic"]["id"], case["interaction"]["id"])
+            for case in smoke_cases
+        }
+        indexed_cases = [
+            (idx, case) for idx, case in indexed_cases
+            if (case["persona"]["persona_id"], case["topic"]["id"], case["interaction"]["id"]) in smoke_keys
+        ]
+
+    cases = [case for _, case in indexed_cases]
     total_turns = sum(len(scenario_turns(case)) for case in cases)
     summary = {
         "mode": "live" if args.live else "dry-run",
         "planned_scenarios_this_run": len(cases),
         "planned_tutor_turns_this_run": total_turns,
         "full_design_scenarios": 12 * 5 * 4,
+        "scenario_range": (
+            [indexed_cases[0][0], indexed_cases[-1][0]]
+            if indexed_cases else []
+        ),
         "base_url": os.getenv("ROBO_TEACHER_BASE_URL", DEFAULT_BASE_URL),
     }
     print(json.dumps(summary, indent=2))
 
     if not args.live:
-        for idx, case in enumerate(cases[:5], start=1):
+        for global_idx, case in indexed_cases[:5]:
             print(
-                f"{idx:02d}. {case['persona']['persona_id']} | "
+                f"{global_idx:03d}. {case['persona']['persona_id']} | "
                 f"{case['topic']['id']} | {case['interaction']['id']} | "
                 f"{len(scenario_turns(case))} turns"
             )
@@ -554,10 +585,12 @@ def main() -> int:
     output_path = RESULTS_DIR / f"synthetic_run_{stamp}.jsonl"
 
     with output_path.open("w", encoding="utf-8") as out:
-        for idx, case in enumerate(cases, start=1):
+        consecutive_rate_limited_scenarios = 0
+        for batch_position, (global_idx, case) in enumerate(indexed_cases, start=1):
             result = run_scenario(base_url, case, args.delay, args.rate_limit_retries, args.rate_limit_wait)
             row = {
-                "scenario_index": idx,
+                "scenario_index": global_idx,
+                "batch_position": batch_position,
                 "timestamp_utc": datetime.now(timezone.utc).isoformat(),
                 "persona_id": case["persona"]["persona_id"],
                 "class_level": case["persona"]["class_level"],
@@ -567,10 +600,26 @@ def main() -> int:
             }
             out.write(json.dumps(row, ensure_ascii=False) + "\n")
             print(
-                f"[{idx}/{len(cases)}] {row['persona_id']} "
+                f"[global {global_idx}/240 | batch {batch_position}/{len(indexed_cases)}] {row['persona_id']} "
                 f"{row['topic']} {row['interaction_type']}: {row['scenario_status']}"
             )
-            if idx < len(cases):
+
+            if row["scenario_status"] == "rate_limited":
+                consecutive_rate_limited_scenarios += 1
+            else:
+                consecutive_rate_limited_scenarios = 0
+
+            # Stop a batch early when provider quota is persistently exhausted.
+            # The partial JSONL is still uploaded by GitHub Actions, so the next
+            # run can resume without burning hours on known fallback replies.
+            if consecutive_rate_limited_scenarios >= 2:
+                print(
+                    "Stopping batch early after 2 consecutive rate-limited scenarios; "
+                    "resume from the first unfinished global scenario after quota recovers."
+                )
+                break
+
+            if batch_position < len(indexed_cases):
                 time.sleep(max(0.0, args.delay))
 
     # Produce a compact machine-readable summary next to the JSONL detail.
@@ -585,6 +634,9 @@ def main() -> int:
     final_summary = {
         "scenarios": len(rows),
         "turns": len(all_turns),
+        "scenario_indexes_completed": [row.get("scenario_index") for row in rows],
+        "first_scenario_index": rows[0].get("scenario_index") if rows else None,
+        "last_scenario_index": rows[-1].get("scenario_index") if rows else None,
         "scenario_errors": sum(1 for row in rows if row.get("scenario_status") != "ok"),
         "http_errors": sum(1 for turn in all_turns if turn.get("status") == "error"),
         "http_retry_attempts": sum(int(turn.get("http_retry_count", 0) or 0) for turn in all_turns),
