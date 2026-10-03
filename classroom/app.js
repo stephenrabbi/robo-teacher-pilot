@@ -688,7 +688,31 @@ handsFreeToggle.addEventListener('click',()=>{
   handsFree.enabled=false;handsFree.processing=false;handsFree.restartAttempts=0;handsFree.lastError='';handsFree.pending='';clearHandsFreePhraseBuffer();stopHandsFreeListening();updateHandsFreeStatus();showHandsFreeHeard('');setLearningStatus('Wake-word teaching off');
 });
 
+// Retry only a read-only readiness probe; never replay a tutoring POST.
+let classroomWakePromise=null;
+async function waitForClassroom(){
+  if(classroomWakePromise)return classroomWakePromise;
+  classroomWakePromise=(async()=>{
+    const notice=setTimeout(()=>setLearningStatus('Your AI teacher is waking up. Please keep this page open.','thinking'),3000);
+    try{
+      for(let attempt=0;attempt<4;attempt++){
+        const controller=new AbortController();
+        const timer=setTimeout(()=>controller.abort(),20000);
+        try{
+          const response=await fetch('/',{headers:{Accept:'application/json'},cache:'no-store',signal:controller.signal});
+          if(response.ok){const data=await response.json();if(data.status)return;}
+        }catch(error){if(!navigator.onLine)throw error;}
+        finally{clearTimeout(timer);}
+        if(attempt<3)await new Promise(resolve=>setTimeout(resolve,2000));
+      }
+      throw new Error('Your AI teacher is still waking up. Your question is saved; please try again shortly.');
+    }finally{clearTimeout(notice);}
+  })();
+  try{await classroomWakePromise;}finally{classroomWakePromise=null;}
+}
+
 async function ensureSession(){
+  await waitForClassroom();
   if(sessionToken)return sessionToken;
   const code=learnerCode.value.trim().toUpperCase();
   const profileId=`${learnerClass.value}:${code}`;
@@ -1977,7 +2001,7 @@ form.addEventListener('submit',async(e)=>{
   const interruptedStep=interruptedLesson?.step||currentLesson?.steps?.[interruptedLesson?.index]||interruptedLesson?.text||'';
   const lessonQuestion=interruptedLesson?`The learner paused this lesson step: "${interruptedStep}"\n\nTheir question is: ${text}`:text;
   const requestText=`${adaptivePromptContext()}\n\n${lessonQuestion}`;
-  if(!recovery)addMessage(text,'student');question.value='';sendButton.disabled=true;sendButton.textContent='Thinking…';setLearningStatus(recovery?'Connection restored — continuing your question':'Working through your question','thinking');
+  if(!recovery)addMessage(text,'student');sendButton.disabled=true;sendButton.textContent='Thinking…';setLearningStatus(recovery?'Connection restored — continuing your question':'Working through your question','thinking');
   const thinking=addMessage(recovery?'Your connection is back. I’m continuing from where we stopped…':'Let me work through that with you…','teacher');
   try{
     const token=await ensureSession();
@@ -1990,10 +2014,10 @@ form.addEventListener('submit',async(e)=>{
     backToWhiteboard.classList.add('hidden');
     currentTeachingStrategy=null;showCanvasAnswer(data.reply,'Worked solution');
     if(handsFree.enabled)void speakText(data.reply,true,true);
-    thinking.textContent='I’ve placed the complete worked solution on the Teaching Canvas.';clearPendingChatRecovery();
+    thinking.textContent='I’ve placed the complete worked solution on the Teaching Canvas.';if(question.value.trim()===text)question.value='';clearPendingChatRecovery();
   }catch(err){
     if(isConnectionFailure(err)){
       savePendingChatRecovery({text,interruptedLesson,language:recovery?.language||language.value});thinking.textContent='Connection lost. Your question and lesson position are saved. I’ll continue automatically when the internet returns.';setLearningStatus('Waiting for internet — lesson saved','paused');
-    }else{clearPendingChatRecovery();thinking.textContent=err.message&&err.message.includes('wait')?err.message:'Sorry, I had a small technical hiccup. Please try your question again in a moment.';}
-  }finally{sendButton.disabled=false;sendButton.textContent='Send';if(!pendingChatRecovery)setLearningStatus('Answer ready');else if(navigator.onLine&&!recovery)setTimeout(retryPendingChat,1000);keepTeachingCanvasVisible();if(handsFree.enabled){handsFree.processing=false;handsFree.restartAttempts=0;scheduleHandsFreeRecovery('answer-complete')}}
+    }else{clearPendingChatRecovery();thinking.textContent=err.message&&/wait|waking/.test(err.message)?err.message:'I could not finish that answer. Your question is still in the box; please try again.';setLearningStatus('Question kept — please try again','paused');}
+  }finally{sendButton.disabled=false;sendButton.textContent='Send';if(!pendingChatRecovery&&!question.value.trim())setLearningStatus('Answer ready');else if(pendingChatRecovery&&navigator.onLine&&!recovery)setTimeout(retryPendingChat,1000);keepTeachingCanvasVisible();if(handsFree.enabled){handsFree.processing=false;handsFree.restartAttempts=0;scheduleHandsFreeRecovery('answer-complete')}}
 });
