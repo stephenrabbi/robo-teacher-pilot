@@ -321,6 +321,11 @@
       .class-tools-more-menu { grid-template-columns: 1fr; }
       .input-tools-menu { grid-template-columns: 1fr; }
     }
+    @media (max-width: 380px) {
+      .lesson-header { flex-wrap: wrap; }
+      .lesson-header > div { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+      .lesson-header .lesson-actions { flex-direction: row; flex-wrap: wrap; }
+    }
   `;
   document.head.appendChild(style);
 
