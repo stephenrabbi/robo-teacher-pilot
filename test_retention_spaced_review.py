@@ -231,7 +231,8 @@ def test_planner_treats_failed_review_as_retention_lapse_not_generic_failure():
 def test_manual_and_autopilot_review_paths_open_real_understanding_checks():
     planner = Path("classroom/autonomous_planner.js").read_text(encoding="utf-8")
     autopilot = Path("classroom/autopilot_session.js").read_text(encoding="utf-8")
-    assert "['mastery_check','review'].includes(plan.action)" in planner
+    assert "createRecommendedLessonFollowup" in planner
+    assert "Check my understanding →" in planner
     assert "understandingButton.click()" in planner
     assert "openUnderstandingWhenReady(before)" in autopilot
     assert "plan.action === 'review'" not in autopilot or "openUnderstandingWhenReady(before)" in autopilot
