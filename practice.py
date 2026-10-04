@@ -247,8 +247,7 @@ def _normalise_answer(answer: str) -> str:
         "⁵": "5", "⁶": "6", "⁷": "7", "⁸": "8", "⁹": "9",
         "⁻": "-", "−": "-",
     }))
-    if clean.startswith("x="):
-        clean = clean[2:].strip()
+    clean = re.sub(r"^x\s*=\s*", "", clean)
     scientific = re.fullmatch(
         r"\s*([+-]?(?:\d+(?:\.\d*)?|\.\d+))\s*(?:\*|×|x)\s*10\s*\^?\s*([+-]?\d+)\s*",
         clean,
@@ -262,11 +261,14 @@ def _normalise_answer(answer: str) -> str:
         coefficient, exponent = scientific.groups()
         return f"{Fraction(coefficient)}*10^{int(exponent)}"
     if ":" in clean:
-        left, right = clean.split(":", 1)
-        ratio = Fraction(int(left.strip()), int(right.strip()))
-        return f"{ratio.numerator}:{ratio.denominator}"
+        try:
+            left, right = clean.split(":", 1)
+            ratio = Fraction(int(left.strip()), int(right.strip()))
+            return f"{ratio.numerator}:{ratio.denominator}"
+        except (ValueError, ZeroDivisionError):
+            return clean
     try:
-        return str(Fraction(clean))
+        return str(Fraction(re.sub(r"\s*/\s*", "/", clean)))
     except (ValueError, ZeroDivisionError):
         return clean
 
