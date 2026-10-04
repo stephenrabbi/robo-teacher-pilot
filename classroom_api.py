@@ -24,6 +24,7 @@ from diagnostic_progress import save_diagnostic_result
 from learner_codes import generate_codes, list_codes, replace_code, validate_code
 from practice import answer_practice, change_practice_language, next_question, start_practice
 from practice_progress import build_dashboard, build_teacher_dashboard, recommend_difficulty_for_topic, save_result
+from misconceptions import classify_misconception
 
 from tutor import (
     MAX_AUDIO_BYTES,
@@ -117,6 +118,10 @@ class UnderstandingAnswer(BaseModel):
     session_token: str = Field(min_length=20, max_length=300)
     check_id: str = Field(min_length=16, max_length=64, pattern=r"^[a-f0-9]+$")
     choice_index: Literal[0, 1, 2]
+
+
+class UnderstandingStart(ClassroomTranslation):
+    previous_check_id: str | None = Field(default=None, min_length=16, max_length=64, pattern=r"^[a-f0-9]+$")
 
 
 class DiagnosticStart(BaseModel):
@@ -442,14 +447,24 @@ def classroom_simplify(request: ClassroomTranslation):
 
 
 @router.post("/understanding/start")
-def classroom_understanding_start(request: ClassroomTranslation):
+def classroom_understanding_start(request: UnderstandingStart):
     student_id = _verify_session(request.session_token)
     _enforce_rate_limit(student_id, "understanding", 20)
     class_level = _classroom_profiles.get(student_id, {}).get("class_level", "JSS2")
+    previous = None
+    generation_text = request.text
+    if request.previous_check_id:
+        previous = _understanding_checks.get(request.previous_check_id)
+        if not previous or previous["student_id"] != student_id or time.time() - previous["created"] > _SESSION_TTL_SECONDS:
+            raise HTTPException(status_code=404, detail="This check has expired. Please start another one")
+        generation_text = (f"{request.text}\n\nCreate a NEW transfer question on the same idea using different values or a different familiar example. "
+                           f"Do not repeat this previous question or its answer choices: {previous['question']} {previous['choices']}")
     try:
-        check = generate_understanding_check(request.text, request.language, class_level)
+        check = generate_understanding_check(generation_text, request.language, class_level)
     except Exception:
         check = fallback_understanding_check(request.text, request.language, class_level)
+    if previous and " ".join(check["question"].lower().split()) == " ".join(previous["question"].lower().split()):
+        raise HTTPException(status_code=503, detail="I could not prepare a different follow-up question. Return to the lesson and try again later")
     now = time.time()
     for expired_id in [key for key, item in _understanding_checks.items() if now - item.get("created", now) > _SESSION_TTL_SECONDS]:
         _understanding_checks.pop(expired_id, None)
@@ -489,12 +504,13 @@ def classroom_understanding_answer(request: UnderstandingAnswer):
     correct = request.choice_index == check["correct_index"]
     feedback = check["feedback"]
     if not correct:
+        diagnosis = classify_misconception("", check["question"], check["choices"][request.choice_index], check["choices"][check["correct_index"]], feedback)
         reteach = check.get("reteach", "")
         if not check.get("reteach_attempted"):
             check["reteach_attempted"] = True
             try:
                 reteach = simplify_tutor_text(
-                    check.get("lesson_text", ""),
+                    f"{check.get('lesson_text', '')}\n\nTeaching focus: {diagnosis['strategy']}\nUse a different concrete example and small steps. Address this incorrect response: {check['choices'][request.choice_index]} to {check['question']}",
                     check.get("language", "English"),
                     check.get("class_level", "JSS2"),
                 )
