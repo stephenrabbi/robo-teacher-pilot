@@ -13,7 +13,7 @@ from classroom_api import _classroom_profiles, _enforce_rate_limit, _verify_sess
 from curriculum import CLASS_TOPICS
 from intervention_support import learner_intervention_summary, teacher_intervention_summary
 from learning_planner import build_autonomous_plan
-from mastery_progress import infer_topic, learner_summary, persist_event, stage_event, teacher_summary
+from mastery_progress import confirm_event_mastery, infer_topic, learner_summary, persist_event, stage_event, teacher_summary
 from misconceptions import classify_misconception
 from retention_progress import (
     is_review_due,
@@ -178,16 +178,29 @@ def record_mastery_event(request: MasteryEventRequest, background_tasks: Backgro
         )
         background_tasks.add_task(persist_retention_event, retention_record["event_id"])
 
+    summary = _learner_summary(student_id, class_level)
+    topic_summary = next((item for item in summary["topics"] if item["topic"] == topic), {})
+    topic_state = topic_summary.get("state", record["state"])
+    if (not retention_review and record["state"] != "mastered" and topic_state == "mastered"
+            and topic_summary.get("last_event_id") == event_id and confirm_event_mastery(event_id)):
+        retention_record = schedule_after_mastery(event_id, student_id, learner_code, class_level, topic)
+        background_tasks.add_task(persist_retention_event, retention_record["event_id"])
+        # Refresh retention only; reuse the mastery summary already loaded above.
+        summary["retention"] = learner_retention_summary(student_id, class_level)
+        summary["retention_due_topics"] = summary["retention"]["due_topics"]
+        summary["retention_lapse_topics"] = summary["retention"]["retention_lapse_topics"]
+        summary["storage_synced"] = bool(summary["storage_synced"]) and bool(summary["retention"].get("storage_synced"))
+
     return {
         "stored": True,
         "topic": topic,
-        "state": record["state"],
+        "state": topic_state,
         "misconception": diagnosis if diagnosis else None,
         "retention_review": bool(retention_review),
         "retention_outcome": retention_record.get("outcome") if retention_record else None,
         "next_review_at": retention_record.get("next_review_at") if retention_record else None,
         "retention_interval_days": retention_record.get("interval_days") if retention_record else None,
-        "summary": _learner_summary(student_id, class_level),
+        "summary": summary,
     }
 
 
