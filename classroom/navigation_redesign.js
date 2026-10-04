@@ -87,7 +87,7 @@
   style.textContent = `
     .class-tools.nav-redesigned {
       display: grid !important;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
+      grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
       gap: 8px;
       overflow: visible !important;
       padding: 0;
@@ -261,7 +261,20 @@
       color: #fff;
     }
     @media (max-width: 600px) {
+      #language, .teacher-speed, .teacher-volume {
+        color: #10203a;
+        background: #f7f9fc;
+        font-size: 16px;
+        min-height: 44px;
+      }
       .class-tools.nav-redesigned { gap: 5px; }
+      .class-tools.nav-redesigned > button {
+        min-width: 0 !important;
+        width: 100% !important;
+        white-space: nowrap !important;
+        padding: 8px 4px !important;
+        font-size: clamp(10px, 3vw, 12px) !important;
+      }
       .class-tools.nav-redesigned > button,
       .class-tools.nav-redesigned > .class-tools-more > summary {
         min-height: 50px;
