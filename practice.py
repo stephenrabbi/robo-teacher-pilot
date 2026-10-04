@@ -186,6 +186,7 @@ class PracticeState:
     missed: list[dict] = field(default_factory=list)
     skill_evidence: list[dict] = field(default_factory=list)
     question_sets: dict[str, list[tuple[str, str, str, str]]] = field(default_factory=dict)
+    focused_checks: dict[int, str] = field(default_factory=dict)
     session_id: str = field(default_factory=lambda: secrets.token_hex(12))
 
 
@@ -330,6 +331,40 @@ def answer_practice(student_id: str, answer: str) -> dict:
     return result
 
 
+def _prepare_focused_check(state: PracticeState) -> None:
+    evidence = state.skill_evidence[-1] if state.skill_evidence else {}
+    misconception = evidence.get("misconception")
+    index = state.question_number
+    if misconception not in _MISCONCEPTION_TIPS or index in state.focused_checks:
+        return
+    # A shared denominator isolates the "add denominators" error. A different
+    # denominator checks whether the learner can perform the conversion.
+    level = "Easy" if misconception == "adds_denominators" else "Medium"
+    seen = {item[0] for item in state.question_sets["English"]}
+    candidate = None
+    for _ in range(100):
+        item = generate_question("Fractions", level)
+        if item[0] in seen:
+            continue
+        if misconception == "skips_common_denominator":
+            denominators = re.findall(r"\d+/(\d+)", item[0])
+            if len(denominators) != 2 or denominators[0] == denominators[1]:
+                continue
+        candidate = item
+        break
+    if candidate is None:
+        return  # Keep the prepared, valid question if variety is exhausted.
+    replacements = {"English": candidate}
+    for language in state.question_sets:
+        if language != "English":
+            replacements[language] = translate_question_batch([candidate], language)[0]
+    # Commit only after every cached language is ready, so retrying a failed
+    # translation cannot leave different questions in different languages.
+    for language, item in replacements.items():
+        state.question_sets[language][index] = item
+    state.focused_checks[index] = misconception
+
+
 def next_question(student_id: str) -> dict:
     state = _sessions.get(student_id)
     if not state:
@@ -338,6 +373,7 @@ def next_question(student_id: str) -> dict:
         raise RuntimeError("Answer the current question first")
     if state.attempted >= state.target_count:
         raise RuntimeError("Practice session is complete")
+    _prepare_focused_check(state)
     questions = state.question_sets[state.language]
     question, hint, expected, explanation = questions[state.question_number]
     state.question, state.hint, state.expected, state.explanation = question, hint, expected, explanation
@@ -396,6 +432,7 @@ def _public_question(state: PracticeState) -> dict:
         "score": state.correct,
         "attempted": state.attempted,
         "total_questions": state.target_count,
+        "focused_check": state.focused_checks.get(state.question_number - 1),
     }
 
 
