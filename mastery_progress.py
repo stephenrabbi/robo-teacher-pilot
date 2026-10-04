@@ -162,6 +162,17 @@ def stage_event(
     return record.copy()
 
 
+def confirm_event_mastery(event_id: str) -> bool:
+    """Persist a server-confirmed state on the existing answer, not a new event."""
+    with _lock:
+        record = next((item for item in _memory_records if item["event_id"] == event_id), None)
+        if not record or not record.get("correct") or record.get("stage") != "initial":
+            return False
+        record["state"] = "mastered"
+        _unsynced_ids.add(event_id)
+    return True
+
+
 def persist_event(event_id: str) -> bool:
     with _lock:
         record = next((item.copy() for item in _memory_records if item["event_id"] == event_id), None)
@@ -227,8 +238,35 @@ def get_records(learner_id: str | None = None) -> tuple[list[dict], bool]:
 def summarise_topics(records: list[dict]) -> list[dict]:
     topics = []
     for topic in sorted({item["topic"] for item in records if item.get("topic")}):
-        items = sorted((item for item in records if item["topic"] == topic), key=lambda item: item.get("timestamp", ""))
+        # A retried storage write is still one learning check.
+        unique = {}
+        for item in records:
+            if item["topic"] == topic and item.get("event_id"):
+                unique.setdefault(item["event_id"], item)
+        items = sorted(unique.values(), key=lambda item: item.get("timestamp", ""))
+        if not items:
+            continue
         latest = items[-1]
+        state = "developing"
+        previous_initial_success = False
+        previous_identity = None
+        for item in items:
+            identity = (item.get("learner_id"), item.get("class_level"))
+            event_state = item.get("state", "developing")
+            if not item.get("correct"):
+                state = "needs_support"
+            elif event_state == "mastered":
+                state = "mastered"
+            elif identity == previous_identity and (
+                state == "mastered" or (item.get("stage") == "initial" and previous_initial_success)
+            ):
+                # Keep confirmed mastery until a wrong answer, or confirm it
+                # from two consecutive separate first-attempt successes.
+                state = "mastered"
+            else:
+                state = event_state
+            previous_initial_success = bool(item.get("correct")) and item.get("stage") == "initial"
+            previous_identity = identity
         attempts = len(items)
         correct = sum(1 for item in items if item.get("correct"))
         reteach_attempts = sum(1 for item in items if item.get("stage") == "reteach")
@@ -237,12 +275,13 @@ def summarise_topics(records: list[dict]) -> list[dict]:
         strategy = latest.get("teaching_strategy", "") if misconception else ""
         topics.append({
             "topic": topic,
-            "state": latest.get("state", "developing"),
+            "state": state,
             "confidence": confidence,
             "checks": attempts,
             "correct_checks": correct,
             "reteach_checks": reteach_attempts,
             "last_seen": latest.get("timestamp", ""),
+            "last_event_id": latest.get("event_id", ""),
             "misconception": misconception or None,
             "misconception_label": misconception_label(misconception),
             "teaching_strategy": strategy or None,
