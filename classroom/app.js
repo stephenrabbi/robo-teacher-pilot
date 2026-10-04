@@ -1772,7 +1772,7 @@ async function toggleRecording(){
     await startAudioKeepAlive();
     await ensureSession();
     micStream=await navigator.mediaDevices.getUserMedia({audio:true});recordedChunks=[];
-    const preferred=['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus'];
+    const preferred=['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus','audio/mp4'];
     const mimeType=preferred.find(type=>MediaRecorder.isTypeSupported(type));
     mediaRecorder=mimeType?new MediaRecorder(micStream,{mimeType}):new MediaRecorder(micStream);
     mediaRecorder.addEventListener('dataavailable',event=>{if(event.data.size)recordedChunks.push(event.data)});
@@ -1797,7 +1797,7 @@ async function finishRecording(){
   micButton.disabled=true;
   try{
     const token=await ensureSession();const body=new FormData();body.append('session_token',token);body.append('language',language.value);
-    body.append('audio',blob,`maths-question.${type.includes('ogg')?'ogg':'webm'}`);
+    body.append('audio',blob,`maths-question.${type.includes('mp4')?'m4a':type.includes('ogg')?'ogg':'webm'}`);
     const response=await fetch('/api/classroom/audio',{method:'POST',headers:{'Accept':'application/json'},body});
     const data=await response.json();
     if(response.status===401){sessionToken=null;throw new Error('session');}
