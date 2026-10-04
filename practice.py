@@ -364,11 +364,16 @@ def _prepare_focused_check(state: PracticeState) -> None:
     if candidate is None:
         return  # Keep the prepared, valid question if variety is exhausted.
     replacements = {"English": candidate}
-    for language in state.question_sets:
-        if language != "English":
-            replacements[language] = translate_question_batch([candidate], language)[0]
-    # Commit only after every cached language is ready, so retrying a failed
-    # translation cannot leave different questions in different languages.
+    if state.language != "English":
+        translated = translate_question_batch([candidate], state.language)[0]
+        if translated == candidate:
+            return  # Translation fell back to English: keep the localised queue.
+        replacements[state.language] = translated
+    # Other languages are rebuilt from the revised source on the next switch.
+    # English checks stay local, even after visiting a translated language.
+    for language in list(state.question_sets):
+        if language not in replacements:
+            del state.question_sets[language]
     for language, item in replacements.items():
         state.question_sets[language][index] = item
     state.focused_checks[index] = misconception
