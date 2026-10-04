@@ -386,6 +386,17 @@ def test_targeted_fraction_feedback_survives_switching_back_to_english():
         assert restored['answered'] is True
 
 
+def test_repeated_old_fraction_errors_retire_after_later_correct_checks():
+    wrong = {'skill': 'fraction_addition', 'correct': False, 'misconception': 'adds_denominators'}
+    right = {'skill': 'fraction_addition', 'correct': True, 'misconception': None}
+    records = [{'timestamp': '2026-10-04T00:00:00Z', 'skill_evidence': [wrong, wrong, right, right, right]}]
+    assert practice_progress._misconception_focus(records) is None
+    records.append({'timestamp': '2026-10-04T01:00:00Z', 'skill_evidence': [wrong]})
+    focus = practice_progress._misconception_focus(records)
+    assert focus['misconception'] == 'adds_denominators'
+    assert focus['observations'] == 1
+
+
 def test_skipped_common_denominator_only_for_exact_different_denominator_addition():
     question = 'Calculate 2/3 + 1/6. Give the simplest fraction.'
     evidence = practice._question_evidence(question, '3/6', False, 'Fractions')
