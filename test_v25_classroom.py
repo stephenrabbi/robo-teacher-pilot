@@ -370,6 +370,32 @@ def test_fraction_error_is_classified_only_when_the_pattern_is_proven():
     assert practice._question_evidence('Share 1/4 + 2/4 of the cake.', '3/8', False, 'Fractions')['misconception'] is None
 
 
+def test_targeted_fraction_feedback_survives_switching_back_to_english():
+    learner = 'WEB-synthetic-feedback-language'
+    questions = [('Calculate 1/4 + 2/4.', 'Keep the denominator.', '3/4', 'Add the numerators.')] * 5
+    with patch.object(practice, '_build_question_queue', return_value=questions), patch.object(practice, 'translate_question_batch', return_value=questions):
+        practice.start_practice(learner, 'Fractions', 'Easy', class_level='JSS1')
+        first = practice.answer_practice(learner, '3/8')
+        assert 'do not add the denominators' in first['targeted_tip']
+        switched = practice.change_practice_language(learner, 'Yoruba')
+        assert 'targeted_tip' not in switched['feedback']
+        restored = practice.change_practice_language(learner, 'English')
+        assert restored['feedback']['targeted_tip'] == first['targeted_tip']
+        assert restored['score'] == 0 and restored['attempted'] == 1
+        assert restored['answered'] is True
+
+
+def test_repeated_old_fraction_errors_retire_after_later_correct_checks():
+    wrong = {'skill': 'fraction_addition', 'correct': False, 'misconception': 'adds_denominators'}
+    right = {'skill': 'fraction_addition', 'correct': True, 'misconception': None}
+    records = [{'timestamp': '2026-10-04T00:00:00Z', 'skill_evidence': [wrong, wrong, right, right, right]}]
+    assert practice_progress._misconception_focus(records) is None
+    records.append({'timestamp': '2026-10-04T01:00:00Z', 'skill_evidence': [wrong]})
+    focus = practice_progress._misconception_focus(records)
+    assert focus['misconception'] == 'adds_denominators'
+    assert focus['observations'] == 1
+
+
 def test_skipped_common_denominator_only_for_exact_different_denominator_addition():
     question = 'Calculate 2/3 + 1/6. Give the simplest fraction.'
     evidence = practice._question_evidence(question, '3/6', False, 'Fractions')
@@ -1871,3 +1897,97 @@ if __name__ == '__main__':
     test_teaching_quality_regressions_are_guarded()
     test_teacher_device_timings_are_local_and_separate_connection_from_response()
     print('V2.5 classroom API safety tests passed.')
+
+
+def test_wrong_fraction_answer_selects_a_unique_focused_check_then_resumes():
+    learner = 'WEB-synthetic-focused'
+    questions = [(f'Calculate {n}/12 + 1/12.', 'Keep 12.', str(__import__('fractions').Fraction(n+1, 12)), 'Add numerators.') for n in range(1, 6)]
+    candidate = ('Calculate 1/4 + 2/4. Give the simplest fraction.', 'Keep 4.', '3/4', 'Add 1 + 2 and keep 4.')
+    with patch.object(practice, '_build_question_queue', return_value=questions), patch.object(practice, 'generate_question', side_effect=[questions[0], candidate]):
+        practice.start_practice(learner, 'Fractions', 'Medium', class_level='JSS1')
+        practice.answer_practice(learner, '2/24')
+        follow = practice.next_question(learner)
+        assert follow['question'] == candidate[0]
+        assert follow['focused_check'] == 'adds_denominators'
+        assert follow['question_number'] == 2 and follow['total_questions'] == 5
+        assert practice.answer_practice(learner, '3/4')['correct'] is True
+        resumed = practice.next_question(learner)
+        assert resumed['question'] == questions[2][0] and resumed['focused_check'] is None
+
+
+def test_skipped_denominator_check_requires_different_denominators():
+    learner = 'WEB-synthetic-conversion'
+    questions = [('Calculate 2/3 + 1/6.', '', '5/6', '')] * 5
+    candidate = ('Calculate 1/3 + 1/6.', 'Use 6.', '1/2', 'Convert 1/3 to 2/6.')
+    with patch.object(practice, '_build_question_queue', return_value=questions), patch.object(practice, 'generate_question', side_effect=[('Calculate 1/4 + 1/4.', '', '1/2', ''), candidate]):
+        practice.start_practice(learner, 'Fractions', 'Medium', class_level='JSS1')
+        practice.answer_practice(learner, '3/6')
+        follow = practice.next_question(learner)
+        assert follow['focused_check'] == 'skips_common_denominator'
+        assert follow['question'] == candidate[0]
+        assert practice.answer_practice(learner, '1/2')['correct'] is True
+
+
+def test_focused_check_translation_failure_is_atomic_and_retryable():
+    learner = 'WEB-synthetic-focused-language'
+    questions = [('Calculate 1/4 + 2/4.', '', '3/4', '')] * 5
+    candidate = ('Calculate 1/6 + 2/6.', '', '1/2', '')
+    with patch.object(practice, '_build_question_queue', return_value=questions), patch.object(practice, 'translate_question_batch', side_effect=lambda items, lang: list(items)):
+        practice.start_practice(learner, 'Fractions', 'Easy', class_level='JSS1', language='Yoruba')
+    practice.answer_practice(learner, '3/8')
+    with patch.object(practice, 'generate_question', return_value=candidate), patch.object(practice, 'translate_question_batch', side_effect=RuntimeError('synthetic translation unavailable')):
+        try:
+            practice.next_question(learner)
+            assert False, 'Translation should fail'
+        except RuntimeError:
+            pass
+    state = practice._sessions[learner]
+    assert state.question_number == 1 and state.answered is True
+    assert state.question_sets['English'][1] == questions[1]
+    translated = ('Yoruba focused question', 'Yoruba hint', '1/2', 'Yoruba explanation')
+    with patch.object(practice, 'generate_question', return_value=candidate), patch.object(practice, 'translate_question_batch', return_value=[translated]):
+        follow = practice.next_question(learner)
+    assert follow['language'] == 'Yoruba' and follow['question_number'] == 2
+    assert practice.change_practice_language(learner, 'English')['question'] == candidate[0]
+
+
+def test_focused_check_rejects_reordered_or_equivalent_previous_operands():
+    learner = 'WEB-synthetic-distinct-focused'
+    questions = [('Calculate 1/4 + 2/4.', '', '3/4', '')] * 5
+    repeats = [('Calculate 2/4 + 1/4.', '', '3/4', ''), ('Calculate 1/2 + 1/4.', '', '3/4', '')]
+    candidate = ('Calculate 1/6 + 2/6.', '', '1/2', '')
+    with patch.object(practice, '_build_question_queue', return_value=questions), patch.object(practice, 'generate_question', side_effect=[*repeats, candidate]):
+        practice.start_practice(learner, 'Fractions', 'Easy', class_level='JSS1')
+        practice.answer_practice(learner, '3/8')
+        assert practice.next_question(learner)['question'] == candidate[0]
+
+
+def test_focused_translation_fallback_keeps_the_localised_planned_question():
+    learner = 'WEB-synthetic-focused-fallback'
+    source = [('Calculate 1/4 + 2/4.', '', '3/4', '')] * 5
+    translated = [('Yoruba question', 'Yoruba hint', '3/4', 'Yoruba explanation')] * 5
+    candidate = ('Calculate 1/6 + 2/6.', '', '1/2', '')
+    with patch.object(practice, '_build_question_queue', return_value=source), patch.object(practice, 'translate_question_batch', return_value=translated):
+        practice.start_practice(learner, 'Fractions', 'Easy', class_level='JSS1', language='Yoruba')
+    practice.answer_practice(learner, '3/8')
+    with patch.object(practice, 'generate_question', return_value=candidate), patch.object(practice, 'translate_question_batch', return_value=[candidate]):
+        follow = practice.next_question(learner)
+    assert follow['question'] == 'Yoruba question' and follow['focused_check'] is None
+    assert practice._sessions[learner].question_sets['English'][1] == source[1]
+
+
+def test_english_focused_check_stays_local_and_invalidates_stale_languages():
+    learner = 'WEB-synthetic-focused-local'
+    source = [('Calculate 1/4 + 2/4.', '', '3/4', '')] * 5
+    candidate = ('Calculate 1/6 + 2/6.', '', '1/2', '')
+    with patch.object(practice, '_build_question_queue', return_value=source), patch.object(practice, 'translate_question_batch', side_effect=lambda items, lang: list(items)):
+        practice.start_practice(learner, 'Fractions', 'Easy', class_level='JSS1')
+        practice.change_practice_language(learner, 'Yoruba')
+        practice.change_practice_language(learner, 'English')
+    practice.answer_practice(learner, '3/8')
+    with patch.object(practice, 'generate_question', return_value=candidate), patch.object(practice, 'translate_question_batch', side_effect=AssertionError('English must stay local')):
+        assert practice.next_question(learner)['question'] == candidate[0]
+    assert 'Yoruba' not in practice._sessions[learner].question_sets
+    with patch.object(practice, 'translate_question_batch', side_effect=lambda items, lang: list(items)) as translate:
+        assert practice.change_practice_language(learner, 'Yoruba')['question'] == candidate[0]
+        assert translate.call_args.args[0][1] == candidate
