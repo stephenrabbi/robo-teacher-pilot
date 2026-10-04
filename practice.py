@@ -325,8 +325,6 @@ def answer_practice(student_id: str, answer: str) -> dict:
         "percentage": round(state.correct / state.attempted * 100),
         "completed": completed,
     }
-    if evidence["misconception"] and state.language == "English":
-        result["targeted_tip"] = _MISCONCEPTION_TIPS[evidence["misconception"]]
     if completed:
         result["summary"] = _summary(state)
     return result
@@ -369,13 +367,20 @@ def change_practice_language(student_id: str, language: str) -> dict:
 
 
 def _answer_feedback(state: PracticeState, correct: bool) -> dict:
-    return {
+    feedback = {
         "correct": correct,
         "message": secrets.choice(PRACTICE_TEXT[state.language]["correct"]) if correct else PRACTICE_TEXT[state.language]["attempt"],
         "expected_answer": state.expected,
         "correct_answer_label": PRACTICE_TEXT[state.language]["correct_answer"],
         "explanation": state.explanation,
     }
+    # Rebuilding feedback after a language switch must preserve the same
+    # observed error. Do not display an English tip in another language.
+    evidence = state.skill_evidence[-1] if state.skill_evidence else {}
+    misconception = evidence.get("misconception")
+    if not correct and state.language == "English" and misconception in _MISCONCEPTION_TIPS:
+        feedback["targeted_tip"] = _MISCONCEPTION_TIPS[misconception]
+    return feedback
 
 
 def _public_question(state: PracticeState) -> dict:
