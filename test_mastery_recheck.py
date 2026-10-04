@@ -28,7 +28,7 @@ def test_wrong_answer_automatically_prepares_one_new_check_from_reteaching_feedb
     script = Path("classroom/mastery_recheck.js").read_text()
     assert "fetch('/api/classroom/understanding/answer'" in script
     assert "fetch('/api/classroom/understanding/start'" in script
-    assert "const retry = await prepareMasteryRetry(data.feedback)" in script
+    assert "const retry = await prepareMasteryRetry(data.feedback, answeredCheckId)" in script
     assert "renderRetryCheck(retry)" in script
     assert "masteryRetryActive = true" in script
 
@@ -73,5 +73,32 @@ for(const [lang,label] of [['English','Check my answer'],['Yoruba','Ṣàyẹ̀w
   assert.equal(button.disabled,false);assert.equal(button.textContent,'Check my answer');
   assert.equal(context.started,true);
 })().catch(error=>{throw error});
+"""
+    subprocess.run(['node','-e',script],check=True)
+
+
+def test_delayed_answer_cannot_change_a_closed_question():
+    import subprocess
+    script = r"""
+const assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs');
+let submit,close,resolveResponse,started;
+const ready=new Promise(r=>{started=r});
+const feedback={textContent:'unchanged'};
+const context={
+ understandingForm:{querySelector:s=>s.startsWith('input')?{value:'0'}:{disabled:false},addEventListener:(n,f)=>{submit=f}},
+ understandingButton:{addEventListener:()=>{}},checkStepUnderstanding:{addEventListener:()=>{}},
+ closeUnderstandingButton:{addEventListener:(n,f)=>{close=f}},language:{value:'English'},
+ understandingCheckId:'a'.repeat(32),understandingQuestion:{textContent:'2 + 2?'},
+ understandingChoices:{querySelectorAll:()=>[{textContent:'3'}]},understandingFeedback:feedback,
+ ensureSession:async()=> 'synthetic', fetch:()=>new Promise(r=>{resolveResponse=r;started()}),
+ recordLearningSignal:()=>{throw Error('closed check changed learning signal')}
+};
+vm.createContext(context);vm.runInContext(fs.readFileSync('classroom/mastery_recheck.js','utf8'),context);
+(async()=>{
+ const pending=submit({preventDefault(){},stopImmediatePropagation(){}});
+ await ready;close();
+ resolveResponse({ok:true,json:async()=>({correct:false,correct_index:1,feedback:'Try again'})});
+ await pending;assert.equal(feedback.textContent,'unchanged');
+})().catch(e=>{console.error(e);process.exitCode=1});
 """
     subprocess.run(['node','-e',script],check=True)
