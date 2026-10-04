@@ -371,6 +371,21 @@ def test_fraction_error_is_classified_only_when_the_pattern_is_proven():
     assert practice._question_evidence('Share 1/4 + 2/4 of the cake.', '3/8', False, 'Fractions')['misconception'] is None
 
 
+def test_targeted_fraction_feedback_survives_switching_back_to_english():
+    learner = 'WEB-synthetic-feedback-language'
+    questions = [('Calculate 1/4 + 2/4.', 'Keep the denominator.', '3/4', 'Add the numerators.')] * 5
+    with patch.object(practice, '_build_question_queue', return_value=questions), patch.object(practice, 'translate_question_batch', return_value=questions):
+        practice.start_practice(learner, 'Fractions', 'Easy', class_level='JSS1')
+        first = practice.answer_practice(learner, '3/8')
+        assert 'do not add the denominators' in first['targeted_tip']
+        switched = practice.change_practice_language(learner, 'Yoruba')
+        assert 'targeted_tip' not in switched['feedback']
+        restored = practice.change_practice_language(learner, 'English')
+        assert restored['feedback']['targeted_tip'] == first['targeted_tip']
+        assert restored['score'] == 0 and restored['attempted'] == 1
+        assert restored['answered'] is True
+
+
 def test_skipped_common_denominator_only_for_exact_different_denominator_addition():
     question = 'Calculate 2/3 + 1/6. Give the simplest fraction.'
     evidence = practice._question_evidence(question, '3/6', False, 'Fractions')
