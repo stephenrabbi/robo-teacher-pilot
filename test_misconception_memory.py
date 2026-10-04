@@ -13,6 +13,14 @@ from misconceptions import classify_misconception
 client = TestClient(app)
 
 
+def test_denominator_addition_requires_evidence_in_the_selected_answer():
+    wrong = classify_misconception('Fractions', 'What is 1/2 + 1/4?', '2/6', '3/4')
+    assert wrong['category'] == 'fraction_denominator_addition'
+    assert 'equal-sized' in wrong['strategy']
+    assert classify_misconception('Fractions', 'What is 1/2 + 1/4?', '1/4', '3/4')['category'] != 'fraction_denominator_addition'
+    assert classify_misconception('Fractions', 'What is 1/0 + 1/4?', '2/4', '3/4')['category'] != 'fraction_denominator_addition'
+
+
 def _reset_state():
     classroom_api._classroom_profiles.clear()
     classroom_api._request_times.clear()
