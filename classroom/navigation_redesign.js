@@ -268,7 +268,8 @@
         min-height: 44px;
       }
       .class-tools.nav-redesigned { gap: 5px; }
-      .class-tools.nav-redesigned > button {
+      .class-tools.nav-redesigned > button,
+      .class-tools.nav-redesigned > .class-tools-more > summary {
         min-width: 0 !important;
         width: 100% !important;
         white-space: nowrap !important;
