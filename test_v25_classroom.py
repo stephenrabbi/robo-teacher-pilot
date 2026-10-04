@@ -2096,7 +2096,8 @@ def test_focused_check_translation_failure_is_atomic_and_retryable():
     state = practice._sessions[learner]
     assert state.question_number == 1 and state.answered is True
     assert state.question_sets['English'][1] == questions[1]
-    with patch.object(practice, 'generate_question', return_value=candidate), patch.object(practice, 'translate_question_batch', return_value=[candidate]):
+    translated = ('Yoruba focused question', 'Yoruba hint', '1/2', 'Yoruba explanation')
+    with patch.object(practice, 'generate_question', return_value=candidate), patch.object(practice, 'translate_question_batch', return_value=[translated]):
         follow = practice.next_question(learner)
     assert follow['language'] == 'Yoruba' and follow['question_number'] == 2
     assert practice.change_practice_language(learner, 'English')['question'] == candidate[0]
@@ -2111,3 +2112,34 @@ def test_focused_check_rejects_reordered_or_equivalent_previous_operands():
         practice.start_practice(learner, 'Fractions', 'Easy', class_level='JSS1')
         practice.answer_practice(learner, '3/8')
         assert practice.next_question(learner)['question'] == candidate[0]
+
+
+def test_focused_translation_fallback_keeps_the_localised_planned_question():
+    learner = 'WEB-synthetic-focused-fallback'
+    source = [('Calculate 1/4 + 2/4.', '', '3/4', '')] * 5
+    translated = [('Yoruba question', 'Yoruba hint', '3/4', 'Yoruba explanation')] * 5
+    candidate = ('Calculate 1/6 + 2/6.', '', '1/2', '')
+    with patch.object(practice, '_build_question_queue', return_value=source), patch.object(practice, 'translate_question_batch', return_value=translated):
+        practice.start_practice(learner, 'Fractions', 'Easy', class_level='JSS1', language='Yoruba')
+    practice.answer_practice(learner, '3/8')
+    with patch.object(practice, 'generate_question', return_value=candidate), patch.object(practice, 'translate_question_batch', return_value=[candidate]):
+        follow = practice.next_question(learner)
+    assert follow['question'] == 'Yoruba question' and follow['focused_check'] is None
+    assert practice._sessions[learner].question_sets['English'][1] == source[1]
+
+
+def test_english_focused_check_stays_local_and_invalidates_stale_languages():
+    learner = 'WEB-synthetic-focused-local'
+    source = [('Calculate 1/4 + 2/4.', '', '3/4', '')] * 5
+    candidate = ('Calculate 1/6 + 2/6.', '', '1/2', '')
+    with patch.object(practice, '_build_question_queue', return_value=source), patch.object(practice, 'translate_question_batch', side_effect=lambda items, lang: list(items)):
+        practice.start_practice(learner, 'Fractions', 'Easy', class_level='JSS1')
+        practice.change_practice_language(learner, 'Yoruba')
+        practice.change_practice_language(learner, 'English')
+    practice.answer_practice(learner, '3/8')
+    with patch.object(practice, 'generate_question', return_value=candidate), patch.object(practice, 'translate_question_batch', side_effect=AssertionError('English must stay local')):
+        assert practice.next_question(learner)['question'] == candidate[0]
+    assert 'Yoruba' not in practice._sessions[learner].question_sets
+    with patch.object(practice, 'translate_question_batch', side_effect=lambda items, lang: list(items)) as translate:
+        assert practice.change_practice_language(learner, 'Yoruba')['question'] == candidate[0]
+        assert translate.call_args.args[0][1] == candidate
