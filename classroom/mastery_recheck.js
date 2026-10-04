@@ -5,6 +5,7 @@
 
   const copy = {
     English: {
+      teacherHelp: 'Ask your teacher for help with this topic. Your difficulty has been flagged in Teacher View.',
       correct: 'Correct!',
       mastered: 'Mastery confirmed.',
       masteredStatus: 'Mastery confirmed',
@@ -20,6 +21,7 @@
       retryFailed: 'I could not prepare the follow-up check right now. You can return to the lesson and try again.'
     },
     Yoruba: {
+      teacherHelp: 'Béèrè fún olùkọ́ rẹ láti ràn ọ́ lọ́wọ́ lórí kókó yìí.',
       correct: 'Ó tọ́!',
       mastered: 'O ti lóye rẹ̀.',
       masteredStatus: 'O ti lóye rẹ̀',
@@ -35,6 +37,7 @@
       retryFailed: 'Mi ò lè pèsè ìbéèrè míì báyìí. Padà sí ẹ̀kọ́ náà kí o sì tún gbìyànjú.'
     },
     Igbo: {
+      teacherHelp: 'Rịọ onye nkuzi gị ka o nyere gị aka n’isiokwu a.',
       correct: 'Ọ dị mma!',
       mastered: 'Ị ghọtala ya.',
       masteredStatus: 'Ị ghọtala ya',
@@ -50,6 +53,7 @@
       retryFailed: 'Enweghị m ike ịkwadebe ajụjụ ọzọ ugbu a. Laghachi n’ihe ọmụmụ ma nwaa ọzọ.'
     },
     Hausa: {
+      teacherHelp: 'Nemi taimakon malaminka a kan wannan batu.',
       correct: 'Daidai!',
       mastered: 'Ka fahimta.',
       masteredStatus: 'Ka fahimta',
@@ -101,13 +105,14 @@
     });
   }
 
-  async function prepareMasteryRetry(reteachText) {
+  async function prepareMasteryRetry(reteachText, previousCheckId) {
     const token = await ensureSession();
     const response = await fetch('/api/classroom/understanding/start', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
         text: reteachText,
+        previous_check_id: previousCheckId,
         session_token: token,
         language: language.value
       })
@@ -163,8 +168,9 @@
 
       recordLearningSignal(data.correct ? 'correct' : 'incorrect');
       const correctText = choiceLabels[Number(data.correct_index)] || '';
+      let masteryResult = null;
       if (typeof window.roboTeacherMasteryRecord === 'function') {
-        void window.roboTeacherMasteryRecord({
+        masteryResult = await window.roboTeacherMasteryRecord({
           correct: data.correct,
           stage: wasRetry ? 'reteach' : 'initial',
           checkId: answeredCheckId,
@@ -191,9 +197,18 @@
       understandingFeedback.textContent = `Not quite. ${data.feedback}`;
       understandingFeedback.className = 'practice-feedback incorrect';
 
+      const needsTeacher = Boolean(masteryResult?.summary?.teacher_support_topics?.includes(masteryResult.topic));
       if (wasRetry) {
         setLearningStatus(text.needsReviewStatus, 'attention');
-        understandingFeedback.textContent = `${text.needsReview} ${data.feedback}`;
+        understandingFeedback.textContent = `${needsTeacher ? text.teacherHelp : text.needsReview} ${data.feedback}`;
+        submitButton.textContent = text.checked;
+        resetMasteryRetry();
+        return;
+      }
+
+      if (needsTeacher) {
+        setLearningStatus(text.needsReviewStatus, 'attention');
+        understandingFeedback.textContent = `${needsTeacher ? text.teacherHelp : text.needsReview} ${data.feedback}`;
         submitButton.textContent = text.checked;
         resetMasteryRetry();
         return;
@@ -201,7 +216,7 @@
 
       setLearningStatus(text.retryPreparing, 'thinking');
       submitButton.textContent = text.preparingButton;
-      const retry = await prepareMasteryRetry(data.feedback);
+      const retry = await prepareMasteryRetry(data.feedback, answeredCheckId);
       renderRetryCheck(retry);
       masteryRetryActive = true;
       submitButton.disabled = false;

@@ -28,7 +28,7 @@ def test_wrong_answer_automatically_prepares_one_new_check_from_reteaching_feedb
     script = Path("classroom/mastery_recheck.js").read_text()
     assert "fetch('/api/classroom/understanding/answer'" in script
     assert "fetch('/api/classroom/understanding/start'" in script
-    assert "const retry = await prepareMasteryRetry(data.feedback)" in script
+    assert "const retry = await prepareMasteryRetry(data.feedback, answeredCheckId)" in script
     assert "renderRetryCheck(retry)" in script
     assert "masteryRetryActive = true" in script
 
