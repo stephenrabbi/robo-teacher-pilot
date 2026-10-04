@@ -44,11 +44,11 @@ def test_autopilot_waits_for_real_learning_evidence():
     assert "Not quite yet. Robo-Teacher is reteaching this idea once" in script
 
 
-def test_planned_mastery_confirmation_is_promoted_only_inside_autopilot():
+def test_autopilot_records_each_answer_once_and_leaves_confirmation_to_server():
     script = _read("classroom/autopilot_session.js")
-    assert "session.currentPlan?.action === 'mastery_check'" in script
-    assert "const confirmed = await original({...meta, stage: 'reteach'})" in script
-    assert "plannedConfirmation" in script
+    assert "let data = await original(...args)" in script
+    assert "const confirmed = await original({...meta, stage: 'reteach'})" not in script
+    assert "plannedConfirmation" not in script
 
 
 def test_autopilot_uses_saved_planner_endpoint_and_updates_practice_target():

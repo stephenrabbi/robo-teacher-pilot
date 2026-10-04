@@ -67,6 +67,9 @@ jobs:
       - name: Run mastery recheck integration tests
         run: python -m pytest -q test_mastery_recheck.py
 
+      - name: Run distinct mastery confirmation tests
+        run: python -m pytest -q test_distinct_mastery_confirmation.py
+
       - name: Run persistent mastery memory tests
         run: python -m pytest -q test_persistent_mastery.py
 

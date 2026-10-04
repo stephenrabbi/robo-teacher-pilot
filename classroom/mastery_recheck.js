@@ -74,6 +74,15 @@
     masteryRetryActive = false;
   }
 
+  function prepareNewUnderstandingCheck() {
+    resetMasteryRetry();
+    const submitButton = understandingForm.querySelector('button[type="submit"]');
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.textContent = currentCopy().checkAnswer;
+    }
+  }
+
   function renderRetryCheck(data) {
     understandingCheckId = data.check_id;
     understandingQuestion.textContent = data.question;
@@ -109,13 +118,14 @@
     return data;
   }
 
-  understandingButton?.addEventListener('click', resetMasteryRetry, true);
+  understandingButton?.addEventListener('click', prepareNewUnderstandingCheck, true);
+  checkStepUnderstanding?.addEventListener('click', prepareNewUnderstandingCheck, true);
   closeUnderstandingButton?.addEventListener('click', resetMasteryRetry, true);
 
   if (typeof startUnderstandingCheck === 'function') {
     const baseStartUnderstandingCheck = startUnderstandingCheck;
     startUnderstandingCheck = async function (...args) {
-      resetMasteryRetry();
+      prepareNewUnderstandingCheck();
       return baseStartUnderstandingCheck(...args);
     };
   }

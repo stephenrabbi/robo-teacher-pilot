@@ -271,7 +271,6 @@
       return;
     }
 
-    window.roboTeacherPlannedMasteryCheck = plan.action === 'mastery_check';
     openChat();
     question.value = plan.prompt;
     chatForm.requestSubmit();
@@ -341,14 +340,6 @@
     const wrapped = async function (...args) {
       const meta = args[0] || {};
       let data = await original(...args);
-      const plannedConfirmation = session.running && session.currentPlan?.action === 'mastery_check' && Boolean(meta.correct) && meta.stage !== 'reteach';
-      if (data?.stored && plannedConfirmation) {
-        const confirmed = await original({...meta, stage: 'reteach'});
-        if (confirmed?.stored) data = confirmed;
-        window.roboTeacherPlannedMasteryCheck = false;
-        void onEvidence({source: 'mastery', correct: true, stage: 'reteach'});
-        return data;
-      }
       if (data?.stored) void onEvidence({source: 'mastery', correct: Boolean(meta.correct), stage: meta.stage || 'initial'});
       return data;
     };
@@ -406,7 +397,6 @@
     session.resumed = Boolean(durable?.resumed);
     resumeHint = null;
     resumeHintProfile = profileKey();
-    window.roboTeacherPlannedMasteryCheck = false;
 
     if (session.completed >= MAX_SESSION_STEPS) {
       finishSession();
@@ -470,7 +460,6 @@
     session.resumed = false;
     resumeHint = null;
     resumeHintProfile = profileKey();
-    window.roboTeacherPlannedMasteryCheck = false;
     if (typeof stopTeacherAudio === 'function') {
       try { stopTeacherAudio(); } catch (_error) { /* Session can stop even if audio is already idle. */ }
     }
@@ -506,7 +495,6 @@
     session.resumed = false;
     resumeHint = null;
     resumeHintProfile = profileKey();
-    window.roboTeacherPlannedMasteryCheck = false;
     ensureCard();
     title.textContent = 'My lesson is complete';
     detail.textContent = `Excellent work, ${learnerNickname.value.trim()}. Robo-Teacher completed ${MAX_SESSION_STEPS} guided learning steps and saved the evidence from your answers.`;
