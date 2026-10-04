@@ -1,11 +1,38 @@
+// Wait for the learner to finish the recommended lesson before checking it.
+// A fresh lesson object identifies repeated explanations with identical text.
+function createRecommendedLessonFollowup({previousLesson, profile, language, startedAt}) {
+  let lesson = null;
+  let finished = false;
+  return {
+    observe(state) {
+      if (finished) return 'cancel';
+      if (state.profile !== profile || state.language !== language || !state.inChat || state.now - startedAt > 1800000) {
+        finished = true;
+        return 'cancel';
+      }
+      if (!lesson) {
+        if (state.lesson && state.lesson !== previousLesson) lesson = state.lesson;
+        else if (state.now - startedAt > 120000) { finished = true; return 'cancel'; }
+        else return 'wait';
+      }
+      if (state.lesson !== lesson) { finished = true; return 'cancel'; }
+      if (lesson.index < lesson.steps.length - 1 || state.paused || !state.checkReady) return 'wait';
+      return 'check';
+    }
+  };
+}
+
 (() => {
   let cachedPlan = null;
   let cachedProfile = '';
   let loadingPlan = null;
   let shownReturnProfile = '';
   let masteryWrapAttempts = 0;
+  let followupTimer = null;
+  let followupButtonHandler = null;
+  let followupLesson = null;
 
-  function profileKey(){return `${learnerClass.value}:${learnerNickname.value.trim().toLocaleLowerCase()}`}
+  function profileKey(){return `${learnerClass.value}:${learnerCode.value.trim().toUpperCase()}:${learnerNickname.value.trim().toLocaleLowerCase()}`}
 
   function clearPlanCache({keepReturn=false}={}){
     cachedPlan=null;cachedProfile='';loadingPlan=null;
@@ -74,18 +101,50 @@
     applyPlanToProgress(currentProgress,plan);return currentProgress;
   }
 
+  function cancelLessonFollowup(){
+    if(followupTimer!==null)clearInterval(followupTimer);
+    followupTimer=null;
+    clearFollowupButton();
+  }
+
+  function clearFollowupButton(){
+    if(followupButtonHandler)nextLessonStep.removeEventListener('click',followupButtonHandler,true);
+    if(followupLesson&&currentLesson===followupLesson&&currentLesson.index===currentLesson.steps.length-1){
+      nextLessonStep.disabled=true;nextLessonStep.textContent='Lesson complete';
+    }
+    followupButtonHandler=null;followupLesson=null;
+  }
+
   function submitTutorPrompt(plan){
-    const before=canvasAnswer.innerText.trim();
+    cancelLessonFollowup();
+    const previousLesson=currentLesson;
     openChat();question.value=plan.prompt;chatForm.requestSubmit();
-    if(!['mastery_check','review'].includes(plan.action))return;
-    let tries=0;
-    const timer=setInterval(()=>{
-      tries+=1;
-      const changed=canvasAnswer.innerText.trim()&&canvasAnswer.innerText.trim()!==before;
-      if(changed&&!understandingButton.disabled){clearInterval(timer);understandingButton.click();return}
-      if(tries>=40)clearInterval(timer);
+    const followup=createRecommendedLessonFollowup({previousLesson,profile:profileKey(),language:language.value,startedAt:Date.now()});
+    followupTimer=setInterval(()=>{
+      const outcome=followup.observe({
+        profile:profileKey(),language:language.value,now:Date.now(),lesson:currentLesson,
+        inChat:!classroom.classList.contains('hidden'),
+        paused:Boolean(lessonInterruption),checkReady:!understandingButton.disabled
+      });
+      if(!understandingArea.classList.contains('hidden')){cancelLessonFollowup();return}
+      if(outcome==='cancel'){cancelLessonFollowup();return}
+      if(outcome==='wait'){clearFollowupButton();return}
+      if(outcome==='check'&&!followupButtonHandler){
+        followupLesson=currentLesson;
+        nextLessonStep.disabled=false;nextLessonStep.textContent='Check my understanding →';
+        followupButtonHandler=event=>{
+          if(currentLesson!==followupLesson||currentLesson.index!==currentLesson.steps.length-1)return;
+          event.preventDefault();event.stopImmediatePropagation();cancelLessonFollowup();understandingButton.click();
+        };
+        nextLessonStep.addEventListener('click',followupButtonHandler,true);
+      }
     },500);
   }
+
+  // Manual navigation or a new question cancels an older lesson's handoff.
+  chatForm.addEventListener('submit',cancelLessonFollowup,true);
+  language.addEventListener('change',cancelLessonFollowup);
+  [practiceButton,progressButton,changeLearnerButton,endLesson,understandingButton,checkStepUnderstanding,document.getElementById('learnerHomeButton')].forEach(button=>button?.addEventListener('click',cancelLessonFollowup,true));
 
   async function runPlanAction(plan){
     try{
@@ -98,6 +157,7 @@
       if(plan.action==='practice'){
         await ensureProgressForPlan(plan);openRecommendedPractice();return;
       }
+      await ensureProgressForPlan(plan);
       submitTutorPrompt(plan);
     }catch(error){setLearningStatus(error.message||'I could not start that learning step','error')}
   }
@@ -175,8 +235,8 @@
     };
   }
 
-  function resetPlan(){clearPlanCache()}
-  learnerNickname.addEventListener('change',resetPlan);learnerClass.addEventListener('change',resetPlan);
+  function resetPlan(){cancelLessonFollowup();clearPlanCache()}
+  learnerNickname.addEventListener('change',resetPlan);learnerClass.addEventListener('change',resetPlan);learnerCode.addEventListener('change',resetPlan);
 
   const observer=new MutationObserver(()=>{
     if(!classroom.classList.contains('hidden'))setTimeout(()=>{void refreshAutonomousPlan({showReturn:true})},120);
