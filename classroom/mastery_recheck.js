@@ -2,6 +2,7 @@
   if (typeof understandingForm === 'undefined' || !understandingForm) return;
 
   let masteryRetryActive = false;
+  let checkGeneration = 0;
 
   const copy = {
     English: {
@@ -76,6 +77,7 @@
 
   function resetMasteryRetry() {
     masteryRetryActive = false;
+    checkGeneration += 1;
   }
 
   function prepareNewUnderstandingCheck() {
@@ -146,6 +148,8 @@
     const submitButton = understandingForm.querySelector('button[type="submit"]');
     const wasRetry = masteryRetryActive;
     const answeredCheckId = understandingCheckId;
+    const answeredGeneration = checkGeneration;
+    const isCurrentCheck = () => answeredGeneration === checkGeneration && answeredCheckId === understandingCheckId;
     const questionText = understandingQuestion.textContent || '';
     const choiceLabels = Array.from(understandingChoices.querySelectorAll('label span')).map(item => item.textContent || '');
     const selectedText = choiceLabels[Number(selected.value)] || '';
@@ -164,6 +168,7 @@
         })
       });
       const data = await response.json();
+      if (!isCurrentCheck()) return;
       if (!response.ok) throw new Error(data.detail || 'answer');
 
       recordLearningSignal(data.correct ? 'correct' : 'incorrect');
@@ -180,6 +185,7 @@
           feedback: data.correct ? '' : (data.feedback || '')
         });
       }
+      if (!isCurrentCheck()) return;
       understandingChoices.querySelectorAll('label').forEach((label, index) => {
         label.classList.toggle('correct-choice', index === data.correct_index);
         label.querySelector('input').disabled = true;
@@ -217,12 +223,14 @@
       setLearningStatus(text.retryPreparing, 'thinking');
       submitButton.textContent = text.preparingButton;
       const retry = await prepareMasteryRetry(data.feedback, answeredCheckId);
+      if (!isCurrentCheck()) return;
       renderRetryCheck(retry);
       masteryRetryActive = true;
       submitButton.disabled = false;
       submitButton.textContent = text.retryButton;
       setLearningStatus(text.retryReady, 'attention');
     } catch (error) {
+      if (!isCurrentCheck()) return;
       understandingFeedback.textContent = masteryRetryActive ? text.retryFailed : (error.message || 'I could not check that answer. Please try again.');
       understandingFeedback.className = 'practice-feedback incorrect';
       submitButton.disabled = false;
