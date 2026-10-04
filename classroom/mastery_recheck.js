@@ -170,6 +170,7 @@
       const data = await response.json();
       if (!isCurrentCheck()) return;
       if (!response.ok) throw new Error(data.detail || 'answer');
+      if (!data.correct) data.feedback = String(data.feedback || '').replace(/^Correct[!:.]\s*/i, '');
 
       recordLearningSignal(data.correct ? 'correct' : 'incorrect');
       const correctText = choiceLabels[Number(data.correct_index)] || '';
