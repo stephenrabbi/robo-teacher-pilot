@@ -127,7 +127,7 @@ def record_mastery_event(request: MasteryEventRequest, background_tasks: Backgro
             request.feedback,
         )
 
-    event_id = hashlib.sha256(f"{student_id}:{request.check_id}:{request.stage}".encode()).hexdigest()[:32]
+    event_id = hashlib.sha256(f"{student_id}:{request.check_id}".encode()).hexdigest()[:32]
     record = stage_event(
         event_id,
         student_id,
@@ -149,25 +149,15 @@ def record_mastery_event(request: MasteryEventRequest, background_tasks: Backgro
             learner_code,
             class_level,
             topic,
-            request.correct,
+            record["correct"],
         )
         background_tasks.add_task(persist_retention_event, retention_record["event_id"])
 
         # A successful scheduled retrieval check is itself strong mastery
         # evidence. Promote it server-side so review does not accidentally
         # downgrade a previously mastered topic to merely "developing".
-        if request.correct:
-            confirmation_id = hashlib.sha256(f"{event_id}:retention-confirmed".encode()).hexdigest()[:32]
-            record = stage_event(
-                confirmation_id,
-                student_id,
-                learner_code,
-                class_level,
-                topic,
-                "reteach",
-                True,
-            )
-            background_tasks.add_task(persist_event, confirmation_id)
+        if record["correct"] and confirm_event_mastery(event_id):
+            record["state"] = "mastered"
     elif record.get("state") == "mastered":
         retention_record = schedule_after_mastery(
             event_id,
