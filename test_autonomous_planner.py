@@ -92,7 +92,8 @@ def test_browser_planner_loads_and_supports_all_next_action_paths():
     assert "ROBO-TEACHER REMEMBERS" in script
     assert "NEXT BEST ACTION" in script
     assert "plan.action==='practice'" in script
-    assert "['mastery_check','review'].includes(plan.action)" in script
+    assert "createRecommendedLessonFollowup" in script
+    assert "Check my understanding →" in script
     assert "understandingButton.click()" in script
 
 
