@@ -1337,7 +1337,7 @@ language.addEventListener('change',async()=>{
   if(practiceFeedbackWasVisible){
     if(wasReading&&switchedPractice?.answered&&switchedPractice.feedback){
       const feedback=switchedPractice.feedback;
-      const translatedFeedback=feedback.correct?`${feedback.message}\n\n${feedback.explanation}`:`${feedback.message}\n\n${feedback.explanation}\n\n${feedback.correct_answer_label}: ${feedback.expected_answer}`;
+      const translatedFeedback=feedback.correct?`${feedback.message}\n\n${feedback.explanation}`:`${feedback.message}\n\n${feedback.targeted_tip?`${feedback.targeted_tip}\n\n`:''}${feedback.explanation}\n\n${feedback.correct_answer_label}: ${feedback.expected_answer}`;
       if(translatedFeedback)void speakText(translatedFeedback,true,true);
     }else stopAudioKeepAlive();
   }else if(answerToTranslate){
@@ -1451,7 +1451,7 @@ async function switchPracticeLanguage(){
     currentPractice={...currentPractice,...data};practicePrompt.textContent=data.question;
     if(data.answered&&data.feedback){
       const feedback=data.feedback;
-      practiceFeedback.textContent=feedback.correct?`${feedback.message}\n\n${feedback.explanation}`:`${feedback.message}\n\n${feedback.explanation}\n\n${feedback.correct_answer_label}: ${feedback.expected_answer}`;
+      practiceFeedback.textContent=feedback.correct?`${feedback.message}\n\n${feedback.explanation}`:`${feedback.message}\n\n${feedback.targeted_tip?`${feedback.targeted_tip}\n\n`:''}${feedback.explanation}\n\n${feedback.correct_answer_label}: ${feedback.expected_answer}`;
       practiceFeedback.className=`practice-feedback ${feedback.correct?'correct':'incorrect'}`;
     }else if(showHintButton.disabled){practiceFeedback.textContent=`Hint: ${data.hint}`}
     if(data.summary){currentPracticeSummary=data.summary;if(!practiceResults.classList.contains('hidden'))renderPracticeResults(data.summary)}
