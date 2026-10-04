@@ -186,6 +186,7 @@ class PracticeState:
     missed: list[dict] = field(default_factory=list)
     skill_evidence: list[dict] = field(default_factory=list)
     question_sets: dict[str, list[tuple[str, str, str, str]]] = field(default_factory=dict)
+    focused_checks: dict[int, str] = field(default_factory=dict)
     session_id: str = field(default_factory=lambda: secrets.token_hex(12))
 
 
@@ -325,11 +326,57 @@ def answer_practice(student_id: str, answer: str) -> dict:
         "percentage": round(state.correct / state.attempted * 100),
         "completed": completed,
     }
-    if evidence["misconception"] and state.language == "English":
-        result["targeted_tip"] = _MISCONCEPTION_TIPS[evidence["misconception"]]
     if completed:
         result["summary"] = _summary(state)
     return result
+
+
+def _fraction_addition_signature(question: str):
+    match = re.search(r"(\d+)/(\d+)\s*\+\s*(\d+)/(\d+)", question)
+    if not match:
+        return None
+    a, b, c, d = map(int, match.groups())
+    return tuple(sorted((Fraction(a, b), Fraction(c, d)))) if b and d else None
+
+
+def _prepare_focused_check(state: PracticeState) -> None:
+    evidence = state.skill_evidence[-1] if state.skill_evidence else {}
+    misconception = evidence.get("misconception")
+    index = state.question_number
+    if misconception not in _MISCONCEPTION_TIPS or index in state.focused_checks:
+        return
+    # A shared denominator isolates the "add denominators" error. A different
+    # denominator checks whether the learner can perform the conversion.
+    level = "Easy" if misconception == "adds_denominators" else "Medium"
+    seen = {item[0] for item in state.question_sets["English"]}
+    seen_sums = {_fraction_addition_signature(question) for question in seen}
+    candidate = None
+    for _ in range(100):
+        item = generate_question("Fractions", level)
+        if item[0] in seen or _fraction_addition_signature(item[0]) in seen_sums:
+            continue
+        if misconception == "skips_common_denominator":
+            denominators = re.findall(r"\d+/(\d+)", item[0])
+            if len(denominators) != 2 or denominators[0] == denominators[1]:
+                continue
+        candidate = item
+        break
+    if candidate is None:
+        return  # Keep the prepared, valid question if variety is exhausted.
+    replacements = {"English": candidate}
+    if state.language != "English":
+        translated = translate_question_batch([candidate], state.language)[0]
+        if translated == candidate:
+            return  # Translation fell back to English: keep the localised queue.
+        replacements[state.language] = translated
+    # Other languages are rebuilt from the revised source on the next switch.
+    # English checks stay local, even after visiting a translated language.
+    for language in list(state.question_sets):
+        if language not in replacements:
+            del state.question_sets[language]
+    for language, item in replacements.items():
+        state.question_sets[language][index] = item
+    state.focused_checks[index] = misconception
 
 
 def next_question(student_id: str) -> dict:
@@ -340,6 +387,7 @@ def next_question(student_id: str) -> dict:
         raise RuntimeError("Answer the current question first")
     if state.attempted >= state.target_count:
         raise RuntimeError("Practice session is complete")
+    _prepare_focused_check(state)
     questions = state.question_sets[state.language]
     question, hint, expected, explanation = questions[state.question_number]
     state.question, state.hint, state.expected, state.explanation = question, hint, expected, explanation
@@ -369,13 +417,20 @@ def change_practice_language(student_id: str, language: str) -> dict:
 
 
 def _answer_feedback(state: PracticeState, correct: bool) -> dict:
-    return {
+    feedback = {
         "correct": correct,
         "message": secrets.choice(PRACTICE_TEXT[state.language]["correct"]) if correct else PRACTICE_TEXT[state.language]["attempt"],
         "expected_answer": state.expected,
         "correct_answer_label": PRACTICE_TEXT[state.language]["correct_answer"],
         "explanation": state.explanation,
     }
+    # Rebuilding feedback after a language switch must preserve the same
+    # observed error. Do not display an English tip in another language.
+    evidence = state.skill_evidence[-1] if state.skill_evidence else {}
+    misconception = evidence.get("misconception")
+    if not correct and state.language == "English" and misconception in _MISCONCEPTION_TIPS:
+        feedback["targeted_tip"] = _MISCONCEPTION_TIPS[misconception]
+    return feedback
 
 
 def _public_question(state: PracticeState) -> dict:
@@ -391,6 +446,7 @@ def _public_question(state: PracticeState) -> dict:
         "score": state.correct,
         "attempted": state.attempted,
         "total_questions": state.target_count,
+        "focused_check": state.focused_checks.get(state.question_number - 1),
     }
 
 

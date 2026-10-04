@@ -84,14 +84,19 @@ def _decode_skill_evidence(value) -> list[dict]:
 def _misconception_focus(records: list[dict]) -> dict | None:
     counts = {}
     recent_success = {}
+    resolved_skills = set()
     # Newest answers first: two subsequent correct attempts on the same skill
     # retire an older error instead of repeating obsolete advice forever.
     ordered = sorted(enumerate(records), key=lambda pair: (pair[1].get("timestamp", ""), pair[0]), reverse=True)
     for _index, record in ordered:
         for item in reversed(_clean_skill_evidence(record.get("skill_evidence", []))):
             skill = item["skill"]
+            if skill in resolved_skills:
+                continue
             if item["correct"]:
                 recent_success[skill] = recent_success.get(skill, 0) + 1
+                if recent_success[skill] >= 2:
+                    resolved_skills.add(skill)
                 continue
             error = item.get("misconception")
             if error and recent_success.get(skill, 0) < 2:

@@ -88,7 +88,14 @@
     }
     @media(max-width:600px){
       .welcome-screen .founder-panel{
-        width:min(100%,250px);
+        width:min(100%,120px);
+      }
+      .welcome-screen .founder-panel .status{
+        left:4px;
+        bottom:6px;
+        padding:4px 6px;
+        font-size:10px;
+        white-space:nowrap;
       }
       .speech-card{
         padding:17px;
