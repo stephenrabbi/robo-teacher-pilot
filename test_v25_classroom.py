@@ -2100,3 +2100,14 @@ def test_focused_check_translation_failure_is_atomic_and_retryable():
         follow = practice.next_question(learner)
     assert follow['language'] == 'Yoruba' and follow['question_number'] == 2
     assert practice.change_practice_language(learner, 'English')['question'] == candidate[0]
+
+
+def test_focused_check_rejects_reordered_or_equivalent_previous_operands():
+    learner = 'WEB-synthetic-distinct-focused'
+    questions = [('Calculate 1/4 + 2/4.', '', '3/4', '')] * 5
+    repeats = [('Calculate 2/4 + 1/4.', '', '3/4', ''), ('Calculate 1/2 + 1/4.', '', '3/4', '')]
+    candidate = ('Calculate 1/6 + 2/6.', '', '1/2', '')
+    with patch.object(practice, '_build_question_queue', return_value=questions), patch.object(practice, 'generate_question', side_effect=[*repeats, candidate]):
+        practice.start_practice(learner, 'Fractions', 'Easy', class_level='JSS1')
+        practice.answer_practice(learner, '3/8')
+        assert practice.next_question(learner)['question'] == candidate[0]
