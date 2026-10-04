@@ -45,3 +45,33 @@ def test_mastery_loop_has_copy_for_all_supported_classroom_languages():
     script = Path("classroom/mastery_recheck.js").read_text()
     for language in ("English", "Yoruba", "Igbo", "Hausa"):
         assert f"{language}: {{" in script
+
+def test_new_check_resets_the_completed_submit_button_in_every_language():
+    import subprocess
+    script = r"""
+const assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs');
+const listeners={};
+const button={disabled:true,textContent:'Correct'};
+const context={
+  understandingForm:{querySelector:()=>button,addEventListener:()=>{}},
+  understandingButton:{addEventListener:(name,fn)=>{listeners.main=fn}},
+  checkStepUnderstanding:{addEventListener:(name,fn)=>{listeners.step=fn}},
+  closeUnderstandingButton:{addEventListener:()=>{}},
+  language:{value:'English'},startUnderstandingCheck:async()=>{context.started=true}
+};
+vm.createContext(context);vm.runInContext(fs.readFileSync('classroom/mastery_recheck.js','utf8'),context);
+for(const [lang,label] of [['English','Check my answer'],['Yoruba','Ṣàyẹ̀wò ìdáhùn mi'],['Igbo','Lelee azịza m'],['Hausa','Duba amsata']]){
+  context.language.value=lang;
+  for(const handler of [listeners.main,listeners.step]){
+    button.disabled=true;button.textContent='Correct';handler();
+    assert.equal(button.disabled,false);assert.equal(button.textContent,label);
+  }
+}
+(async()=>{
+  context.language.value='English';button.disabled=true;
+  await context.startUnderstandingCheck();
+  assert.equal(button.disabled,false);assert.equal(button.textContent,'Check my answer');
+  assert.equal(context.started,true);
+})().catch(error=>{throw error});
+"""
+    subprocess.run(['node','-e',script],check=True)
