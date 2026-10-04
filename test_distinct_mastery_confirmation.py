@@ -32,8 +32,8 @@ def session(key='d' * 48):
     return response.json()['session_token']
 
 
-def answer(token, check_id, correct=True, topic=TOPIC):
-    response = client.post('/api/classroom/mastery/event', json={'session_token':token,'check_id':check_id,'correct':correct,'stage':'initial','topic_hint':topic,'lesson_text':''})
+def answer(token, check_id, correct=True, topic=TOPIC, stage="initial"):
+    response = client.post('/api/classroom/mastery/event', json={'session_token':token,'check_id':check_id,'correct':correct,'stage':stage,'topic_hint':topic,'lesson_text':''})
     assert response.status_code == 200
     return response.json()
 
@@ -45,6 +45,9 @@ def test_two_distinct_successes_confirm_mastery_and_schedule_review():
     repeated=answer(token,'1'*32)
     assert repeated['state']=='developing'
     assert repeated['summary']['topics'][0]['checks']==1
+    relabelled=answer(token,'1'*32,stage='reteach')
+    assert relabelled['state']=='developing'
+    assert relabelled['summary']['topics'][0]['checks']==1
     second=answer(token,'2'*32)
     assert second['state']=='mastered'
     assert second['summary']['mastered_topics']==[TOPIC]
@@ -87,3 +90,12 @@ def test_autopilot_does_not_create_a_second_event_for_the_same_answer():
     script=Path('classroom/autopilot_session.js').read_text()
     assert "original({...meta, stage: 'reteach'})" not in script
     assert script.count('await original(...args)')==1
+
+
+def test_scheduled_review_success_keeps_one_answer_event():
+    token=session()
+    with patch('mastery_api.is_review_due', return_value=True):
+        result=answer(token,'9'*32)
+    assert result['state']=='mastered'
+    assert result['summary']['topics'][0]['checks']==1
+    assert len(mastery_progress._memory_records)==1
