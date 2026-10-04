@@ -81,7 +81,8 @@ def test_delayed_answer_cannot_change_a_closed_question():
     import subprocess
     script = r"""
 const assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs');
-let submit,close,resolveResponse;
+let submit,close,resolveResponse,started;
+const ready=new Promise(r=>{started=r});
 const feedback={textContent:'unchanged'};
 const context={
  understandingForm:{querySelector:s=>s.startsWith('input')?{value:'0'}:{disabled:false},addEventListener:(n,f)=>{submit=f}},
@@ -89,13 +90,13 @@ const context={
  closeUnderstandingButton:{addEventListener:(n,f)=>{close=f}},language:{value:'English'},
  understandingCheckId:'a'.repeat(32),understandingQuestion:{textContent:'2 + 2?'},
  understandingChoices:{querySelectorAll:()=>[{textContent:'3'}]},understandingFeedback:feedback,
- ensureSession:async()=> 'synthetic', fetch:()=>new Promise(r=>{resolveResponse=r}),
+ ensureSession:async()=> 'synthetic', fetch:()=>new Promise(r=>{resolveResponse=r;started()}),
  recordLearningSignal:()=>{throw Error('closed check changed learning signal')}
 };
 vm.createContext(context);vm.runInContext(fs.readFileSync('classroom/mastery_recheck.js','utf8'),context);
 (async()=>{
  const pending=submit({preventDefault(){},stopImmediatePropagation(){}});
- await Promise.resolve();close();
+ await ready;close();
  resolveResponse({ok:true,json:async()=>({correct:false,correct_index:1,feedback:'Try again'})});
  await pending;assert.equal(feedback.textContent,'unchanged');
 })().catch(e=>{console.error(e);process.exitCode=1});
