@@ -54,6 +54,7 @@ jobs:
 
       - name: Check mastery, planner, Practice, voice, whiteboard, identity and Autopilot browser scripts syntax
         run: |
+          node --check classroom/app.js
           node --check classroom/mastery_memory.js
           node --check classroom/mastery_recheck.js
           node --check classroom/autonomous_planner.js
@@ -83,6 +84,9 @@ jobs:
 
       - name: Run retention-aware spaced review tests
         run: python -m pytest -q test_retention_spaced_review.py
+
+      - name: Run pilot input and audio regression tests
+        run: python -m pytest -q test_pilot_report_regressions.py
 
       - name: Run Practice reliability recovery tests
         run: python -m pytest -q test_practice_reliability.py
