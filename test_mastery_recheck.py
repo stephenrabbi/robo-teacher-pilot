@@ -75,3 +75,29 @@ for(const [lang,label] of [['English','Check my answer'],['Yoruba','Ṣàyẹ̀w
 })().catch(error=>{throw error});
 """
     subprocess.run(['node','-e',script],check=True)
+
+
+def test_delayed_answer_cannot_change_a_closed_question():
+    import subprocess
+    script = r"""
+const assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs');
+let submit,close,resolveResponse;
+const feedback={textContent:'unchanged'};
+const context={
+ understandingForm:{querySelector:s=>s.startsWith('input')?{value:'0'}:{disabled:false},addEventListener:(n,f)=>{submit=f}},
+ understandingButton:{addEventListener:()=>{}},checkStepUnderstanding:{addEventListener:()=>{}},
+ closeUnderstandingButton:{addEventListener:(n,f)=>{close=f}},language:{value:'English'},
+ understandingCheckId:'a'.repeat(32),understandingQuestion:{textContent:'2 + 2?'},
+ understandingChoices:{querySelectorAll:()=>[{textContent:'3'}]},understandingFeedback:feedback,
+ ensureSession:async()=> 'synthetic', fetch:()=>new Promise(r=>{resolveResponse=r}),
+ recordLearningSignal:()=>{throw Error('closed check changed learning signal')}
+};
+vm.createContext(context);vm.runInContext(fs.readFileSync('classroom/mastery_recheck.js','utf8'),context);
+(async()=>{
+ const pending=submit({preventDefault(){},stopImmediatePropagation(){}});
+ await Promise.resolve();close();
+ resolveResponse({ok:true,json:async()=>({correct:false,correct_index:1,feedback:'Try again'})});
+ await pending;assert.equal(feedback.textContent,'unchanged');
+})().catch(e=>{console.error(e);process.exitCode=1});
+"""
+    subprocess.run(['node','-e',script],check=True)
