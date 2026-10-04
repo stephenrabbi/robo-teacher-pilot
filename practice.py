@@ -331,6 +331,14 @@ def answer_practice(student_id: str, answer: str) -> dict:
     return result
 
 
+def _fraction_addition_signature(question: str):
+    match = re.search(r"(\d+)/(\d+)\s*\+\s*(\d+)/(\d+)", question)
+    if not match:
+        return None
+    a, b, c, d = map(int, match.groups())
+    return tuple(sorted((Fraction(a, b), Fraction(c, d)))) if b and d else None
+
+
 def _prepare_focused_check(state: PracticeState) -> None:
     evidence = state.skill_evidence[-1] if state.skill_evidence else {}
     misconception = evidence.get("misconception")
@@ -341,10 +349,11 @@ def _prepare_focused_check(state: PracticeState) -> None:
     # denominator checks whether the learner can perform the conversion.
     level = "Easy" if misconception == "adds_denominators" else "Medium"
     seen = {item[0] for item in state.question_sets["English"]}
+    seen_sums = {_fraction_addition_signature(question) for question in seen}
     candidate = None
     for _ in range(100):
         item = generate_question("Fractions", level)
-        if item[0] in seen:
+        if item[0] in seen or _fraction_addition_signature(item[0]) in seen_sums:
             continue
         if misconception == "skips_common_denominator":
             denominators = re.findall(r"\d+/(\d+)", item[0])
