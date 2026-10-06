@@ -19,6 +19,33 @@ from mastery_api import router as mastery_router
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("robo-teacher")
 app = FastAPI(title="Robo-Teacher Pilot")
+
+@app.middleware("http")
+async def add_privacy_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers.setdefault("Referrer-Policy", "no-referrer")
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Permissions-Policy", "geolocation=(), camera=(self), microphone=(self)")
+    content_type = response.headers.get("content-type", "")
+    if "text/html" in content_type:
+        response.headers.setdefault(
+            "Content-Security-Policy",
+            "default-src 'self'; "
+            "script-src 'self'; "
+            "style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data: blob:; "
+            "media-src 'self' data: blob:; "
+            "connect-src 'self'; "
+            "frame-src https://phet.colorado.edu; "
+            "font-src 'self' data:; "
+            "object-src 'none'; "
+            "base-uri 'self'; "
+            "form-action 'self'; "
+            "frame-ancestors 'none'"
+        )
+    return response
+
 app.include_router(classroom_router)
 app.include_router(mastery_router)
 if os.path.isdir("classroom"):
