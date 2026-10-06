@@ -100,25 +100,26 @@
   }
 
   function wireConsent() {
-    const start = document.getElementById('startLearning');
     const consent = document.getElementById('learnerConsent');
     const error = document.getElementById('onboardingError');
-    if (start && consent) {
-      start.addEventListener('click', event => {
-        if (!consent.checked) {
-          event.preventDefault();
-          event.stopImmediatePropagation();
-          if (error) {
-            error.textContent = 'Please confirm the privacy and permission statement before starting.';
-            error.classList.remove('hidden');
-          }
-          consent.focus();
-          return;
-        }
-        setChoice(CONSENT_KEY, JSON.stringify({version:1, acceptedAt:new Date().toISOString()}));
-      }, true);
-      if (getChoice(CONSENT_KEY)) consent.checked = true;
-    }
+    const requireConsent = event => {
+      if (!consent || consent.checked) {
+        if (consent?.checked) setChoice(CONSENT_KEY, JSON.stringify({version:1, acceptedAt:new Date().toISOString()}));
+        return true;
+      }
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (error) {
+        error.textContent = 'Please confirm the privacy and permission statement before continuing.';
+        error.classList.remove('hidden');
+      }
+      consent.focus();
+      return false;
+    };
+    ['startLearning','resumeLearning','hearFounder'].forEach(id => {
+      document.getElementById(id)?.addEventListener('click', requireConsent, true);
+    });
+    if (consent && getChoice(CONSENT_KEY)) consent.checked = true;
 
     document.getElementById('clearOnboarding')?.addEventListener('click', clearOnboarding);
     document.getElementById('clearQuestion')?.addEventListener('click', () => {
