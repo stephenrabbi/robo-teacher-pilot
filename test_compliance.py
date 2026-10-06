@@ -27,7 +27,7 @@ assert 'id="clearPracticeAnswer"' in index
 assert 'referrerpolicy="no-referrer"' in index
 assert 'sandbox=' in index
 assert "externalContentAllowed" in compliance
-assert "Clear this device data" in compliance
+assert "Clear device data" in compliance
 assert "Essential only" in compliance
 assert "#0757c9" in css
 

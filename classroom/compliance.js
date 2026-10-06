@@ -68,18 +68,18 @@
     if (document.getElementById('privacyConsentBanner')) return;
     const banner = document.createElement('aside');
     banner.id = 'privacyConsentBanner';
-    banner.className = 'privacy-consent-banner';
+    banner.className = 'privacy-consent-banner compact-privacy-banner';
     banner.setAttribute('aria-label','Privacy and cookie choices');
     banner.innerHTML = `
       <div>
-        <strong>Privacy & cookie choices</strong>
-        <p>Robo-Teacher does not currently use advertising or behavioural analytics cookies. Essential browser storage is used for learning continuity. Optional third-party learning content may use cookies or similar storage and stays blocked unless you allow it.</p>
-        <a href="/classroom/cookie-policy.html">Read Cookie Policy</a>
+        <strong>Privacy choices</strong>
+        <p>Essential storage keeps your learning session working. Optional external simulations stay blocked unless you allow them.</p>
+        <a href="/classroom/cookie-policy.html">Cookie Policy</a>
       </div>
       <div class="privacy-consent-actions">
         <button type="button" data-choice="essential">Essential only</button>
-        <button type="button" data-choice="allow" class="primary-consent">Allow external content</button>
-        <button type="button" data-action="clear-device">Clear this device data</button>
+        <button type="button" data-choice="allow" class="primary-consent">Allow simulations</button>
+        <button type="button" data-action="clear-device">Clear device data</button>
       </div>`;
     document.body.appendChild(banner);
     banner.querySelector('[data-choice="essential"]').addEventListener('click', () => {
