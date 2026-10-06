@@ -28,6 +28,9 @@ jobs:
       - name: Run pilot sanity tests
         run: python test_webhook.py
 
+      - name: Run privacy and accessibility regression checks
+        run: python test_compliance.py
+
       - name: Run V2 adaptive-memory tests
         run: python test_v2_profile.py
 
