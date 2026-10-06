@@ -21,13 +21,13 @@ https://t.me/RoboTeacherAfricaBot
 **Staging environment:**  
 https://robo-teacher-v25-staging.onrender.com/classroom-app
 
-> **Current production status — 10 September 2026:** Robo-Teacher V2.5 is live on the production `main` branch following staging validation and production smoke testing. The verified V2.5 feature release was promoted through **PR #18** and squash-merged as code release commit `411ae06ce2608b315f628acd8136eff24c703f87`.
+> **Current production status — 6 October 2026:** Robo-Teacher **V2.6 — Pilot Stable Release** is the current production version on the `main` branch. It incorporates the verified V2.5 classroom release plus the subsequent pilot-stability, mobile, practice-input, learner-isolation, personalised lesson handoff and independent mastery-check improvements through commit `7eafd76e4943537653701fe845d3400478bc6273`. GitHub Actions run #455 passed successfully for this release point.
 
 ---
 
 ## See Robo-Teacher in Action
 
-The following graphics are **illustrated product walkthroughs of features implemented and manually validated in Robo-Teacher V2.5**. They are not presented as screenshots of the exact current browser pixels. The **live production demo above is the source of truth for the current UI**.
+The following graphics are **illustrated product walkthroughs of features implemented and validated in Robo-Teacher V2.6**. They are not presented as screenshots of the exact current browser pixels. The **live production demo above is the source of truth for the current UI**.
 
 ### 1. Today — personalized daily learning
 
@@ -82,7 +82,7 @@ Robo-Teacher is being developed as an **always-available AI learning layer that 
 
 ---
 
-## What Works in V2.5 Today
+## What Works in V2.6 Today
 
 ### Personalized daily learning journey
 
@@ -159,7 +159,7 @@ The whiteboard includes pen, eraser, clear and **Ask Teacher** controls so learn
 
 Worked explanations are displayed on a large Teaching Canvas intended to behave more like a teaching surface than a conventional chatbot window.
 
-V2.5 also includes teacher-voice playback, pause/continue controls, visual teaching pathways and an AI teacher/avatar interface.
+V2.6 also includes teacher-voice playback, pause/continue controls, visual teaching pathways and an AI teacher/avatar interface.
 
 ### Saved lessons and intelligent revision
 
@@ -179,7 +179,7 @@ The Teacher View is intended to help the AI **support human teachers rather than
 
 ---
 
-## Product Progress: Pilot → V2.5
+## Product Progress: Pilot → V2.6
 
 | Stage | What was demonstrated |
 |---|---|
@@ -188,7 +188,7 @@ The Teacher View is intended to help the AI **support human teachers rather than
 | **V2.5 classroom** | Browser classroom, Teaching Canvas, whiteboard, Practice Mode and multilingual learning |
 | **Personalization** | Diagnostic assessment, learner progress, learning path, adaptive difficulty and Continue Learning |
 | **Teacher support** | Teacher dashboard, weekly summaries, privacy-safe aggregates and CSV reporting |
-| **Current production** | Daily **Recall → Strengthen → Discover** journey, persistence, revision scheduling, Welcome-back continuation and learner-isolated progress |
+| **V2.6 Pilot Stable Release** | V2.5 classroom capabilities plus verified mobile-layout fixes, safer practice input, iPhone MP4 voice compatibility, shared-device learner isolation, personalised lesson-to-check handoff, and independent mastery confirmation |
 
 ---
 
