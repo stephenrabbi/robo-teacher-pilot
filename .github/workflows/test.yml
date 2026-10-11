@@ -124,6 +124,35 @@ jobs:
       - name: Run bounded Autopilot session tests
         run: python -m pytest -q test_autopilot_session.py
 
+  synthetic-postgres-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: synthetic
+          POSTGRES_PASSWORD: synthetic_ci_only
+          POSTGRES_DB: synthetic_identity
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U synthetic -d synthetic_identity"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      SYNTHETIC_PG_TEST_DSN: postgresql://synthetic:synthetic_ci_only@localhost:5432/synthetic_identity
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install disposable database test driver
+        run: pip install "psycopg[binary]>=3.2,<4"
+      - name: Exercise real PostgreSQL rollback and concurrent replay
+        run: python -m unittest discover -s tests -p test_real_postgres_atomic.py -v
+
   runtime-import:
     runs-on: ubuntu-latest
     timeout-minutes: 5
