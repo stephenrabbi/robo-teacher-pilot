@@ -6,9 +6,15 @@
 
 <p align="center"><strong>Every learner. Their own AI teacher.</strong></p>
 
-Robo-Teacher is a **Gemini-powered, adaptive, multilingual and multimodal Mathematics learning system for African learners**, built by **Earlyon-Tech Brainery**.
+Robo-Teacher is a **working, deployed AI teaching and learning platform** developed by **Earlyon-Tech Brainery** to expand access to personalised education across subjects and grade levels in Africa. It is designed to complement human teachers, not replace them.
 
-The project began as an AI tutoring pilot delivered through WhatsApp and Telegram and has evolved into a **live browser-based AI classroom for JSS1–JSS3 Mathematics**. Robo-Teacher can currently teach, practise, assess, personalize, track progress, support revision, and guide learners through a daily learning journey using text, voice, images and an interactive whiteboard.
+**What is available now:** the live browser classroom supports **Mathematics for Junior Secondary School 1, 2 and 3 (JSS1–JSS3)**. Learners can access curriculum-aware teaching, practice, diagnostic assessment, revision, adaptive guidance and progress views through a multilingual, multimodal classroom.
+
+**Real school use and evaluation:** Robo-Teacher has been used with learners from **two Lagos State schools — Ise Junior High School, Epe, and Tio College, Ikorodu**. The documented evaluation includes **56 learners**, matched baseline and post-test results, and **188 successful logged interactions**. The evidence and limitations are described below; these figures are **not** claims about paying customers or a controlled causal study.
+
+**Wider product scope:** Robo-Teacher is an **all-subject AI teacher initiative**, with expansion beyond the currently implemented JSS1–JSS3 Mathematics curriculum part of its product roadmap. **The implemented Mathematics scope should not be mistaken for a JSS2-only, First-Term-only tutor, nor should the all-subject vision be mistaken for verified deployment of every subject today.**
+
+The initial WhatsApp/Telegram tutoring pilot began with JSS2 Mathematics; that describes the **starting point**, not the scope of the current live platform.
 
 ## 🚀 Live Production Demo
 
@@ -21,7 +27,7 @@ https://t.me/RoboTeacherAfricaBot
 **Staging environment:**  
 https://robo-teacher-v25-staging.onrender.com/classroom-app
 
-> **Current production status — 6 October 2026:** Robo-Teacher **V2.6 — Pilot Stable Release** is the current production version on the `main` branch. It incorporates the verified V2.5 classroom release plus the subsequent pilot-stability, mobile, practice-input, learner-isolation, personalised lesson handoff and independent mastery-check improvements through commit `7eafd76e4943537653701fe845d3400478bc6273`. GitHub Actions run #455 passed successfully for this release point.
+> **Current production baseline — 11 October 2026:** The deployed classroom is the **v2.6.1 release line** on `main` (verified commit `f9555ab2`), with JSS1–JSS3 Mathematics, classroom learning tools and the pilot-stability improvements described below. Experimental secure cross-device persistence work is on a separate, unmerged development pull request and is **not** a live production feature.
 
 ---
 
@@ -82,7 +88,7 @@ Robo-Teacher is being developed as an **always-available AI learning layer that 
 
 ---
 
-## What Works in V2.6 Today
+## Current Working Classroom: JSS1–JSS3 Mathematics
 
 ### Personalized daily learning journey
 
@@ -179,7 +185,7 @@ The Teacher View is intended to help the AI **support human teachers rather than
 
 ---
 
-## Product Progress: Pilot → V2.6
+## Product Evolution: Initial Pilot to Working Classroom
 
 | Stage | What was demonstrated |
 |---|---|
@@ -385,7 +391,7 @@ Keep `ALLOW_AUTO_ENROLL=false` for controlled pilots unless enrollment is delibe
 
 ## Known Limitations
 
-Robo-Teacher is a **live early-stage education technology product**, not a finished autonomous teacher.
+Robo-Teacher is a **working AI education product already used in Lagos schools**, with ongoing development and validation. It complements teachers rather than claiming to be a fully autonomous replacement.
 
 Current limitations include:
 
@@ -393,7 +399,7 @@ Current limitations include:
 - voice quality/availability depends on provider capacity and browser/device support;
 - image tutoring depends on image clarity;
 - conversation context can be limited by service/runtime state;
-- current production scope focuses on Junior Secondary Mathematics rather than all subjects or education levels;
+- current verified subject coverage is JSS1–JSS3 Mathematics; broader subject coverage is an expansion objective;
 - internet access is required for the current live experience;
 - the original pilot did not include a randomized control group;
 - the post-test average remained low in absolute terms despite the observed improvement; and
@@ -405,7 +411,7 @@ Human teachers remain important for safeguarding, curriculum judgment, motivatio
 
 ## Roadmap
 
-### Current — V2.5 production
+### Implemented classroom — v2.6.1 release line
 
 - live browser AI classroom
 - JSS1–JSS3 Mathematics
@@ -425,7 +431,7 @@ Human teachers remain important for safeguarding, curriculum judgment, motivatio
 - more reliable low-latency natural teacher voice;
 - improved mid-explanation language switching;
 - stronger avatar lip-sync and gesture behavior;
-- more subjects and curriculum levels;
+- expand the implemented curriculum to additional subjects and grade levels, toward the all-subject vision;
 - stronger teacher analytics and intervention tools;
 - lower-bandwidth access patterns;
 - larger controlled school pilots; and
@@ -435,7 +441,7 @@ Human teachers remain important for safeguarding, curriculum judgment, motivatio
 
 ## Vision
 
-Robo-Teacher is not intended to be another question-answer chatbot.
+Robo-Teacher is built as an all-subject teaching and learning platform, with a working JSS1–JSS3 Mathematics classroom as its current implemented subject coverage. It is not intended to be another question-answer chatbot.
 
 The long-term goal is to build an **AI teacher infrastructure layer for African education**: a system that can understand where a learner is, teach at that learner's level, switch language when necessary, show concepts visually, listen to questions, provide practice, remember progress, identify learning gaps and help human teachers see where support is needed.
 
