@@ -229,3 +229,32 @@ jobs:
 
       - name: Verify staging app imports promptly on Python 3.14
         run: timeout 30 python -c "import v25_app; print('Python 3.14 staging import OK')"
+
+
+  synthetic-postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: synthetic
+          POSTGRES_PASSWORD: synthetic-ci-only
+          POSTGRES_DB: synthetic_progress
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U synthetic -d synthetic_progress"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      ROBO_SYNTHETIC_PG_DSN: postgresql://synthetic:synthetic-ci-only@localhost:5432/synthetic_progress
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install disposable PostgreSQL test driver
+        run: pip install "psycopg[binary]>=3.2,<4"
+      - name: Test synthetic PostgreSQL v0001 and revocation serialization
+        run: python -m unittest discover -s tests -p test_postgres_synthetic.py -v
