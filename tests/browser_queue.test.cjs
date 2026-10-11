@@ -35,3 +35,15 @@ test('conflicting IDs do not overwrite existing progress', () => {
   assert.throws(()=>sync.enqueue(s,{...ev('one'),correct:4}),/Conflicting/);
   assert.equal(sync.read(s)[0].event.correct,3);
 });
+
+test('concurrent mutation never causes silent loss of pending progress', async () => {
+  const s=storage();sync.enqueue(s,ev('one'));
+  await assert.rejects(sync.flush(s,async()=>{
+    const changed=sync.read(s);
+    changed[0].event.correct=4;
+    s.setItem(sync.STORAGE_KEY,JSON.stringify(changed));
+    return true;
+  }),/Pending event changed/);
+  assert.equal(sync.read(s).length,1);
+  assert.equal(sync.read(s)[0].event.correct,4);
+});
