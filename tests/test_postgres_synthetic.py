@@ -2,6 +2,8 @@
 import os, pathlib, threading, uuid, unittest
 import psycopg
 from psycopg.errors import UniqueViolation, ForeignKeyViolation
+from progress_store.postgres_adapter import SyntheticPostgresProgress
+from progress_store.session_auth import issue_test_session
 
 DSN=os.environ.get("ROBO_SYNTHETIC_PG_DSN")
 SQL=pathlib.Path(__file__).resolve().parents[1]/"progress_store/postgres/0001_synthetic_schema.sql"
@@ -24,6 +26,29 @@ class SyntheticPostgresTests(unittest.TestCase):
         self.db.execute("TRUNCATE rt_synthetic.events, rt_synthetic.enrollments CASCADE")
         self.db.execute("INSERT INTO rt_synthetic.enrollments(school,subject,reviewer_id,approved_at) VALUES ('school','A','reviewer',1000),('school','B','reviewer',1000)")
         self.db.commit()
+    def test_adapter_scoping_replay_and_revocation(self):
+        adapter=SyntheticPostgresProgress(lambda:psycopg.connect(DSN),b"postgres-disposable-signing-secret-12345")
+        key=b"postgres-disposable-signing-secret-12345"
+        token_a=issue_test_session(subject="A",school="school",secret=key,session_epoch=0)
+        token_b=issue_test_session(subject="B",school="school",secret=key,session_epoch=0)
+        item=dict(event_id=str(uuid.uuid4()),event_type="practice_completed",
+                  class_level="JSS2",topic_key="fractions",correct=3,total=5,
+                  occurred_at="2026-10-11T12:00:00+00:00")
+        self.assertTrue(adapter.write(bearer_token=token_a,event=item))
+        self.assertFalse(adapter.write(bearer_token=token_a,event=item))
+        self.assertEqual(len(adapter.history(bearer_token=token_a)),1)
+        self.assertEqual(adapter.history(bearer_token=token_b),[])
+        with self.assertRaises(ValueError):
+            adapter.write(bearer_token=token_a,event=dict(item,correct=4))
+        self.db.execute("UPDATE rt_synthetic.enrollments SET session_epoch=1 WHERE school='school' AND subject='A'")
+        self.db.commit()
+        with self.assertRaises(PermissionError):
+            adapter.write(bearer_token=token_a,event=dict(item,event_id=str(uuid.uuid4())))
+        with self.assertRaises(PermissionError):
+            adapter.history(bearer_token=token_a)
+        refreshed=issue_test_session(subject="A",school="school",secret=key,session_epoch=1)
+        self.assertEqual(len(adapter.history(bearer_token=refreshed)),1)
+
     def test_scoped_event_and_foreign_key(self):
         event_id=uuid.uuid4()
         self.db.execute("""INSERT INTO rt_synthetic.events
