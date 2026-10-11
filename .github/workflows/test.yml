@@ -34,6 +34,9 @@ jobs:
       - name: Test isolated synthetic credentials and lockout
         run: python -m unittest discover -s tests -p test_synthetic_credential_lab.py -v
 
+      - name: Test durable synthetic credential revocation and lockout
+        run: python -m unittest discover -s tests -p test_synthetic_durable_credential_lab.py -v
+
       - name: Run pilot sanity tests
         run: python test_webhook.py
 
