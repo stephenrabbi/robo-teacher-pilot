@@ -58,7 +58,7 @@ class ReaderTests(unittest.TestCase):
         with patch.dict(os.environ,{"ROBO_SUPABASE_LEARNER_READ_ENABLED":"true",
                 "ROBO_SUPABASE_PUBLISHABLE_KEY":"sb_publishable_dummy"}):
             with self.assertRaises(PermissionError):
-                read_own_progress("x"*40+"\\r",enabled=True)
+                read_own_progress("x"*40+"\r",enabled=True)
     def test_unexpected_owner_identifier_rejected_from_response(self):
         class LeakingClient(FakeClient):
             def get(self,*args,**kwargs):
