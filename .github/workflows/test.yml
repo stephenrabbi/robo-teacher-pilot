@@ -40,6 +40,9 @@ jobs:
       - name: Test synthetic recovery authorization and old-session revocation
         run: python -m unittest discover -s tests -p test_synthetic_recovery_gate.py -v
 
+      - name: Test signed synthetic operator and reviewer roles
+        run: python -m unittest discover -s tests -p test_synthetic_role_verifier.py -v
+
       - name: Run pilot sanity tests
         run: python test_webhook.py
 
