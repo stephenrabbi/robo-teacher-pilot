@@ -4,6 +4,15 @@
 
 # Robo-Teacher
 
+## Secure learner accounts — development status (11 October 2026)
+
+The **existing live Robo-Teacher classroom** is separate from the account-security research. [Draft PR #85](https://github.com/stephenrabbi/robo-teacher-pilot/pull/85) contains a synthetic PostgreSQL progress-storage prototype and remains **unmerged**. [Draft PR #91](https://github.com/stephenrabbi/robo-teacher-pilot/pull/91) contains the proposed school/guardian enrollment process and a **synthetic-only** credential laboratory.
+
+PR #91 currently provides test-only school and guardian decision checks, independent operator-verification injection, and in-memory credential hashing (scrypt), login failure lockout and revocation-epoch simulation. **It does not create real learner accounts, authenticate real school or guardian approvals, issue production sessions, or persist learner credentials.** These modules are not mounted into the live app. The school's reported approval covers planning and synthetic-data tests only.
+
+Real learner identity and persistent progress features remain **NO-GO for production** pending independently verified approvals, protected managed staging, a durable authenticated account system, shared-device safeguards, data governance and security review. Do not merge these draft PRs or configure Render to deploy either branch as production.
+
+
 <p align="center"><strong>Every learner. Their own AI teacher.</strong></p>
 
 Robo-Teacher is a **working, deployed AI teaching and learning platform** developed by **Earlyon-Tech Brainery** to expand access to personalised education across subjects and grade levels in Africa. It is designed to complement human teachers, not replace them.
