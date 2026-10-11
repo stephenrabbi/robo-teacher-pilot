@@ -115,6 +115,9 @@ jobs:
       - name: Run synthetic progress persistence authorization tests
         run: python -m unittest discover -s tests -p test_progress_store.py -v
 
+      - name: Run concurrent progress write and replay tests
+        run: python -m unittest discover -s tests -p test_progress_concurrency.py -v
+
       - name: Run synthetic signed-session authentication tests
         run: python -m unittest discover -s tests -p test_progress_auth.py -v
 
