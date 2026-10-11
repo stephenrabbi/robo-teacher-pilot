@@ -10,6 +10,7 @@ class RecoveryApproval:
     reviewer_ref: str
     expires_at: datetime
     approved: bool
+    decision_ref: str
 
 class SyntheticRecoveryGate:
     def __init__(self, *, reviewers, verify_operator, audit_sink):
@@ -25,6 +26,7 @@ class SyntheticRecoveryGate:
         try:
             if (not isinstance(approval, RecoveryApproval) or not approval.approved
                 or not approval.learner_ref or not approval.school_ref
+                or not isinstance(approval.decision_ref,str) or len(approval.decision_ref)<16
                 or approval.reviewer_ref not in self.reviewers
                 or approval.expires_at.tzinfo is None or approval.expires_at<=now):
                 raise PermissionError("Recovery approval invalid")
@@ -32,7 +34,7 @@ class SyntheticRecoveryGate:
             if not isinstance(operator,str) or not operator or operator==approval.reviewer_ref:
                 raise PermissionError("Independent operator required")
             allowed=True
-            return (approval.school_ref,approval.learner_ref)
+            return (approval.school_ref,approval.learner_ref,approval.decision_ref)
         finally:
             self.audit_sink({"action":"synthetic_recovery_authorization","allowed":allowed,
                              "time":now.isoformat()})
