@@ -53,7 +53,7 @@ jobs:
         run: python -m unittest discover -s tests -p test_synthetic_identity_smoke.py -v
 
       - name: Verify synthetic staging exposure and live-entry isolation
-        run: python tests/synthetic_staging_preflight.py
+        run: PYTHONPATH=. python tests/synthetic_staging_preflight.py
 
       - name: Run pilot sanity tests
         run: python test_webhook.py
