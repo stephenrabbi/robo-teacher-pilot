@@ -2,7 +2,7 @@
 const sync = require('./browser_queue.cjs');
 const active = new WeakMap();
 function scopedKey(scope) {
-  if (!scope || typeof scope !== 'object' || !/^[A-Za-z0-9_-]{1,100}$/.test(scope.school) || !/^[A-Za-z0-9_-]{1,100}$/.test(scope.subject))
+  if (!scope || typeof scope !== 'object' || typeof scope.school !== 'string' || typeof scope.subject !== 'string' || !/^[A-Za-z0-9_-]{1,100}$/.test(scope.school) || !/^[A-Za-z0-9_-]{1,100}$/.test(scope.subject))
     throw Error('Verified learner scope required');
   // The caller MUST derive this scope from a verified server session.
   return 'roboTeacherSyntheticQueue:v2:' + scope.school + ':' + scope.subject;
