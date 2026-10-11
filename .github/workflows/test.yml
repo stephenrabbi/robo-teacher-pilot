@@ -130,6 +130,9 @@ jobs:
       - name: Run complete synthetic learner journey tests
         run: python -m unittest discover -s tests -p test_synthetic_progress_journey.py -v
 
+      - name: Run disabled-by-default synthetic progress API tests
+        run: python -m unittest discover -s tests -p test_synthetic_api.py -v
+
       - name: Run resumable Autopilot session tests
         run: python -m pytest -q test_resumable_autopilot.py
 
