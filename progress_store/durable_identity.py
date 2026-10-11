@@ -16,6 +16,7 @@ def create_identity_schema(db):
     db.execute("""CREATE TABLE IF NOT EXISTS synthetic_enrollments (
       school TEXT NOT NULL, subject TEXT NOT NULL,
       reviewer_id TEXT NOT NULL, approved_at INTEGER NOT NULL,
+      session_epoch INTEGER NOT NULL DEFAULT 0,
       PRIMARY KEY(school,subject))""")
     db.execute("""CREATE TABLE IF NOT EXISTS synthetic_recovery (
       school TEXT NOT NULL, subject TEXT NOT NULL,
@@ -57,7 +58,7 @@ class DurableSyntheticIdentity:
         try:
             self.db.execute("BEGIN IMMEDIATE")
             self._redeem(decision,"enrollment",subject,school)
-            self.db.execute("INSERT INTO synthetic_enrollments VALUES (?,?,?,?)",
+            self.db.execute("INSERT INTO synthetic_enrollments (school,subject,reviewer_id,approved_at) VALUES (?,?,?,?)",
                             (school,subject,decision.reviewer_id,int(self.clock())))
             self.db.commit()
         except sqlite3.IntegrityError as exc:
@@ -68,11 +69,12 @@ class DurableSyntheticIdentity:
             raise
 
     def issue(self, *, subject, school):
-        if not self.db.execute("SELECT 1 FROM synthetic_enrollments WHERE school=? AND subject=?",
-                               (school,subject)).fetchone():
+        row=self.db.execute("SELECT session_epoch FROM synthetic_enrollments WHERE school=? AND subject=?",
+                            (school,subject)).fetchone()
+        if row is None:
             raise PermissionError("Unapproved learner")
         return issue_test_session(subject=subject,school=school,secret=self.signing_key,
-                                  now=int(self.clock()))
+                                  now=int(self.clock()),session_epoch=row[0])
 
     def begin_recovery(self, assertion, *, subject, school):
         decision=self._approval(assertion,"recovery",subject,school)
@@ -130,7 +132,11 @@ class DurableSyntheticIdentity:
                 raise PermissionError("Invalid or expired recovery")
             self.db.execute("DELETE FROM synthetic_recovery WHERE school=? AND subject=?",(school,subject))
             self.db.execute("DELETE FROM synthetic_recovery_attempts WHERE school=? AND subject=?",(school,subject))
-            token=issue_test_session(subject=subject,school=school,secret=self.signing_key,now=now)
+            self.db.execute("UPDATE synthetic_enrollments SET session_epoch=session_epoch+1 WHERE school=? AND subject=?",
+                            (school,subject))
+            epoch=self.db.execute("SELECT session_epoch FROM synthetic_enrollments WHERE school=? AND subject=?",
+                                  (school,subject)).fetchone()[0]
+            token=issue_test_session(subject=subject,school=school,secret=self.signing_key,now=now,session_epoch=epoch)
             self.db.commit()
             return token
         except Exception:
