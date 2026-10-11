@@ -50,6 +50,6 @@ class EvidenceGatedIdentity:
     def authorize_recovery(self, *, reference, subject, school):
         decision, key = self._check(reference=reference, subject=subject, school=school, kind="recovery")
         # Enrolment scope is verified again before approving a recovery operation.
-        self.gateway.issue(subject=subject, school=school)
+        self.gateway.require_enrollment(subject=subject, school=school)
         self._used.add(key)
         return True
