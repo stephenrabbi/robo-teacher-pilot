@@ -32,29 +32,27 @@ def build_synthetic_progress_app(*, enabled=False, signing_key=None, connection=
         raise ValueError("Test signing secret required")
     if connection is None:
         raise ValueError("An isolated synthetic database connection is required")
+    if enrollment_connection is None:
+        raise ValueError("Durable enrollment connection is required")
+    from .durable_identity import create_identity_schema
+    create_identity_schema(enrollment_connection)
     create_schema(connection)
     boundary = ProgressBoundary(connection, signing_key)
-    # When supplied, only persist events for independently enrolled identities.
-    # Legacy synthetic API tests may omit it; no production path imports this app.
-    if enrollment_connection is not None:
-        from .durable_identity import create_identity_schema
-        create_identity_schema(enrollment_connection)
     app = FastAPI(title="Synthetic Robo-Teacher Progress API", docs_url=None, redoc_url=None, openapi_url=None)
 
     def token_from_header(authorization):
         if not authorization or not authorization.startswith("Bearer ") or len(authorization) > 4096:
             raise HTTPException(status_code=401, detail="Authentication required")
         token = authorization[7:]
-        if enrollment_connection is not None:
-            try:
-                principal = verify_session(token, secret=signing_key)
-                enrolled = enrollment_connection.execute(
-                    "SELECT 1 FROM synthetic_enrollments WHERE school=? AND subject=?",
-                    (principal.school, principal.subject)).fetchone()
-                if not enrolled:
-                    raise PermissionError("Unenrolled learner")
-            except PermissionError:
-                raise HTTPException(status_code=401, detail="Invalid or unenrolled session")
+        try:
+            principal = verify_session(token, secret=signing_key)
+            enrolled = enrollment_connection.execute(
+                "SELECT 1 FROM synthetic_enrollments WHERE school=? AND subject=?",
+                (principal.school, principal.subject)).fetchone()
+            if not enrolled:
+                raise PermissionError("Unenrolled learner")
+        except PermissionError:
+            raise HTTPException(status_code=401, detail="Invalid or unenrolled session")
         return token
 
     @app.post("/internal/synthetic-progress/events", status_code=201)
