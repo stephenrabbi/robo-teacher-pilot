@@ -55,7 +55,7 @@ class SyntheticProofLogin:
             raise
 
     def login(self,*,school,subject,credential):
-        row=self.db.execute("""SELECT c.salt,c.verifier FROM synthetic_login_credentials c
+        row=self.db.execute("""SELECT c.salt,c.verifier,e.session_epoch FROM synthetic_login_credentials c
             JOIN synthetic_enrollments e ON e.school=c.school AND e.subject=c.subject
             WHERE c.school=? AND c.subject=?""",(school,subject)).fetchone()
         if row is None:
@@ -66,4 +66,4 @@ class SyntheticProofLogin:
             raise PermissionError("Invalid credentials") from None
         if not hmac.compare_digest(actual,row[1]):
             raise PermissionError("Invalid credentials")
-        return issue_test_session(subject=subject,school=school,secret=self.signing_key,now=int(self.clock()))
+        return issue_test_session(subject=subject,school=school,secret=self.signing_key,now=int(self.clock()),session_epoch=row[2])
