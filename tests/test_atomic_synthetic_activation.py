@@ -50,7 +50,7 @@ class AtomicTests(unittest.TestCase):
     def test_account_insert_failure_rolls_back_redemption(self):
         self.db.execute("""CREATE TRIGGER block_test_account BEFORE INSERT ON atomic_test_accounts
             BEGIN SELECT RAISE(ABORT,'synthetic failure'); END""")
-        with self.assertRaises(sqlite3.IntegrityError):
+        with self.assertRaises(PermissionError):
             self.service.activate(school="school-A",learner="learner-A",approval_proof="signed-test-A")
         self.assertEqual(self.db.execute("SELECT count(*) FROM atomic_test_approvals").fetchone()[0],0)
         self.db.execute("DROP TRIGGER block_test_account")
