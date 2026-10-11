@@ -14,7 +14,7 @@ from .boundary import ProgressBoundary
 from .prototype import create_schema
 
 class ProgressEvent(BaseModel):
-    model_config = ConfigDict(extra="forbid", strict=True)
+    model_config = ConfigDict(extra="forbid")
     event_id: UUID
     event_type: Literal["practice_completed", "diagnostic_completed", "revision_completed"]
     class_level: Literal["JSS1", "JSS2", "JSS3"]
