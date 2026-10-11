@@ -148,6 +148,9 @@ jobs:
       - name: Run reviewed enrollment gate tests
         run: python -m unittest discover -s tests -p test_enrollment_gateway.py -v
 
+      - name: Run independent approval evidence boundary tests
+        run: python -m unittest discover -s tests -p test_approval_evidence.py -v
+
       - name: Run complete synthetic learner journey tests
         run: python -m unittest discover -s tests -p test_synthetic_progress_journey.py -v
 
