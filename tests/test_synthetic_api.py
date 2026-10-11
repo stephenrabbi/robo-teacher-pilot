@@ -16,8 +16,8 @@ class SyntheticAPITests(unittest.TestCase):
         self.db.executemany("INSERT INTO synthetic_enrollments (school,subject,reviewer_id,approved_at) VALUES (?,?,?,?)", [("one","A","test-reviewer",1000),("one","B","test-reviewer",1000)])
         self.db.commit()
         self.client = TestClient(build_synthetic_progress_app(enabled=True, signing_key=KEY, connection=self.db, enrollment_connection=self.db))
-        self.a = issue_test_session(subject="A", school="one", secret=KEY)
-        self.b = issue_test_session(subject="B", school="one", secret=KEY)
+        self.a = issue_test_session(subject="A", school="one", secret=KEY, session_epoch=0)
+        self.b = issue_test_session(subject="B", school="one", secret=KEY, session_epoch=0)
 
     def tearDown(self):
         self.client.close()
