@@ -22,6 +22,8 @@ class SyntheticDurableCredentialLab:
                 digest BLOB NOT NULL, failures INTEGER NOT NULL DEFAULT 0,
                 locked INTEGER NOT NULL DEFAULT 0, epoch INTEGER NOT NULL DEFAULT 0,
                 PRIMARY KEY (school,learner))""")
+            self.db.execute("""CREATE TABLE IF NOT EXISTS synthetic_used_recovery(
+                decision_ref TEXT PRIMARY KEY, school TEXT NOT NULL, learner TEXT NOT NULL)""")
 
     @staticmethod
     def _hash(password, salt):
@@ -86,10 +88,15 @@ class SyntheticDurableCredentialLab:
         from .recovery_gate import SyntheticRecoveryGate
         if not isinstance(recovery_gate,SyntheticRecoveryGate):
             raise PermissionError("Recovery authority required")
-        school,learner=recovery_gate.authorize(approval=approval,operator_proof=operator_proof,now=now)
+        school,learner,decision_ref=recovery_gate.authorize(approval=approval,operator_proof=operator_proof,now=now)
         salt=secrets.token_bytes(16)
         digest=self._hash(new_password,salt)
         with self.lock,self.db:
+            try:
+                self.db.execute("INSERT INTO synthetic_used_recovery(decision_ref,school,learner) VALUES (?,?,?)",
+                                (decision_ref,school,learner))
+            except sqlite3.IntegrityError as exc:
+                raise PermissionError("Recovery approval already redeemed") from exc
             row=self.db.execute("""UPDATE synthetic_credentials
                 SET salt=?,digest=?,failures=0,locked=0,epoch=epoch+1
                 WHERE school=? AND learner=? RETURNING epoch""",
