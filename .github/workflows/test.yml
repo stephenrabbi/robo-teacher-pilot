@@ -112,6 +112,9 @@ jobs:
       - name: Run browser learner continuity regression tests
         run: node --test tests/learner_continuity.test.cjs
 
+      - name: Run synthetic progress persistence authorization tests
+        run: python -m unittest discover -s tests -p test_progress_store.py -v
+
       - name: Run resumable Autopilot session tests
         run: python -m pytest -q test_resumable_autopilot.py
 
