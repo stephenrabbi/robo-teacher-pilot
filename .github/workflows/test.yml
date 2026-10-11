@@ -151,6 +151,9 @@ jobs:
       - name: Run independent approval evidence boundary tests
         run: python -m unittest discover -s tests -p test_approval_evidence.py -v
 
+      - name: Verify signed independent provider assertions
+        run: python -m unittest discover -s tests -p test_signed_approval_provider.py -v
+
       - name: Run complete synthetic learner journey tests
         run: python -m unittest discover -s tests -p test_synthetic_progress_journey.py -v
 
