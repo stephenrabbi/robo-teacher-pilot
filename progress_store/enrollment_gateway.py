@@ -36,7 +36,3 @@ class VerifiedEnrollmentGateway:
         self._approved.add(key)
         self._authority.register_approved(subject=enrollment.subject, school=enrollment.school, approved=True)
 
-    def issue(self, *, subject, school, now=None):
-        if (school, subject) not in self._approved:
-            raise PermissionError("Learner not approved")
-        return self._authority.issue_for_approved(subject=subject, school=school, now=now)
