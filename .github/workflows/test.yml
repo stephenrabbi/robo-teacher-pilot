@@ -163,6 +163,9 @@ jobs:
       - name: Verify synthetic proof-of-possession login
         run: python -m unittest discover -s tests -p test_proof_login.py -v
 
+      - name: Verify durable synthetic login throttling
+        run: python -m unittest discover -s tests -p test_login_rate_limits.py -v
+
       - name: Verify enrolled identity protected synthetic progress API
         run: python -m unittest discover -s tests -p test_durable_identity_api.py -v
 
