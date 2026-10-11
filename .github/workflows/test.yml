@@ -115,6 +115,9 @@ jobs:
       - name: Run isolated browser offline queue tests
         run: node --test tests/browser_queue.test.cjs
 
+      - name: Run isolated per-learner browser queue tests
+        run: node --test tests/scoped_browser_queue.test.cjs
+
       - name: Run synthetic progress persistence authorization tests
         run: python -m unittest discover -s tests -p test_progress_store.py -v
 
