@@ -57,7 +57,7 @@ class SyntheticJourneyTests(unittest.TestCase):
 
     def test_other_learner_and_school_cannot_read_history(self):
         self.boundary.submit(
-            bearer_token=self.enrollment.issue(subject="synthetic-A", school="school-one", now=1000),
+            bearer_token=issue_test_session(subject="synthetic-A", school="school-one", secret=KEY, now=1000),
             event=practice_event(), now=1001)
         for subject, school in (("synthetic-B", "school-one"), ("synthetic-A", "school-two")):
             self.enrollment.approve(
