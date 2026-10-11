@@ -54,6 +54,33 @@ class IntegratedDurableIdentityAPITests(unittest.TestCase):
         self.db.commit()
         self.assertEqual(self.client.get(url,headers=self.headers("A")).status_code,401)
         self.assertEqual(self.client.post(url,json=self.event(),headers=self.headers("A")).status_code,401)
+    def test_expired_session_denied_even_for_enrolled_learner(self):
+        from time import time
+        old=issue_test_session(subject="A",school="school-one",secret=KEY,now=int(time())-4000)
+        url="/internal/synthetic-progress/events"
+        headers={"Authorization":"Bearer "+old}
+        self.assertEqual(self.client.get(url,headers=headers).status_code,401)
+        self.assertEqual(self.client.post(url,json=self.event(),headers=headers).status_code,401)
+
+    def test_recovery_session_preserves_only_correct_learner_progress(self):
+        url="/internal/synthetic-progress/events"
+        self.assertEqual(self.client.post(url,json=self.event(),headers=self.headers("A")).status_code,201)
+        from time import time
+        now=int(time())
+        verifier=SignedApprovalVerifier(provider_id="test-school",secret=PROVIDER_KEY,clock=lambda:now)
+        recovery=DurableSyntheticIdentity(self.db,verifier.verify,provider_id="test-school",
+            reviewers={"reviewer-one"},signing_key=KEY,clock=lambda:now)
+        proof=sign_synthetic_approval(dict(issuer="test-school",decision_id="recovery-A",
+            subject="A",school="school-one",reviewer_id="reviewer-one",kind="recovery",
+            approved=True,issued_at=now-1,expires_at=now+120),secret=PROVIDER_KEY)
+        challenge=recovery.begin_recovery(proof,subject="A",school="school-one")
+        recovered_token=recovery.complete_recovery(subject="A",school="school-one",challenge=challenge)
+        headers={"Authorization":"Bearer "+recovered_token}
+        self.assertEqual(len(self.client.get(url,headers=headers).json()["events"]),1)
+        self.assertEqual(self.client.get(url,headers=self.headers("B")).json()["events"],[])
+        with self.assertRaises(PermissionError):
+            recovery.complete_recovery(subject="A",school="school-one",challenge=challenge)
+
     def test_client_scope_override_rejected(self):
         url="/internal/synthetic-progress/events"
         self.assertEqual(self.client.post(url,json=dict(self.event(),subject="B"),
