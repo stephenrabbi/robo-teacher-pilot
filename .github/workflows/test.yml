@@ -25,6 +25,9 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt pytest
 
+      - name: Test atomic synthetic approval redemption and account creation
+        run: python -m unittest discover -s tests -p test_atomic_synthetic_activation.py -v
+
       - name: Run pilot sanity tests
         run: python test_webhook.py
 
