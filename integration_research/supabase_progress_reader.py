@@ -21,6 +21,11 @@ def read_own_progress(access_token, *, enabled=False, client=None):
     own_client=client is None
     session=client or httpx.Client(timeout=12)
     try:
+        verified=session.get(PROJECT_URL+"/auth/v1/user",headers=headers)
+        verified.raise_for_status()
+        identity=verified.json()
+        if not isinstance(identity,dict) or not identity.get("id"):
+            raise PermissionError("Session identity could not be verified")
         response=session.get(PROJECT_URL+"/rest/v1/robo_learning_progress",
             params={"select":"topic_code,mastery_score,updated_at","order":"updated_at.desc","limit":"100"},
             headers=headers)
