@@ -163,6 +163,9 @@ jobs:
       - name: Verify enrolled identity protected synthetic progress API
         run: python -m unittest discover -s tests -p test_durable_identity_api.py -v
 
+      - name: Verify persistent recovery attempt rate limits
+        run: python -m unittest discover -s tests -p test_recovery_rate_limits.py -v
+
       - name: Run complete synthetic learner journey tests
         run: python -m unittest discover -s tests -p test_synthetic_progress_journey.py -v
 
