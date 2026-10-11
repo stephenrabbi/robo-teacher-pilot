@@ -31,11 +31,6 @@ class TestIdentityAuthority:
             raise PermissionError("Verified enrollment approval is required")
         self._enrollments[(school, subject)] = Enrollment(subject, school, True)
 
-    def issue_for_approved(self, *, subject, school, now=None):
-        if (school, subject) not in self._enrollments:
-            raise PermissionError("Unapproved learner")
-        return issue_test_session(subject=subject, school=school, secret=self._key, now=now)
-
     def create_recovery_challenge(self, *, subject, school, approved_recovery, now=None):
         if not approved_recovery or (school, subject) not in self._enrollments:
             raise PermissionError("Recovery approval required")
@@ -54,4 +49,7 @@ class TestIdentityAuthority:
         actual = hmac.new(self._key, challenge.encode(), hashlib.sha256).digest()
         if now >= expiry or not hmac.compare_digest(digest, actual):
             raise PermissionError("Expired or invalid recovery")
-        return self.issue_for_approved(subject=subject, school=school, now=now)
+        # Legacy synthetic recovery only; never exposed to live application.
+        if (school, subject) not in self._enrollments:
+            raise PermissionError("Unapproved learner")
+        return issue_test_session(subject=subject, school=school, secret=self._key, now=now)
