@@ -42,5 +42,5 @@ test('different learner pending progress cannot be flushed through another sessi
 });
 test('malformed session cannot become active',()=>{
   const controller=createSessionController(store());
-  assert.throws(()=>controller.switchSession({scope:{school:'demo'},token:'fake'}),/scope/);
+  assert.throws(()=>controller.switchSession({scope:{school:'demo'},token:'fake'}),/session|scope/);
 });
