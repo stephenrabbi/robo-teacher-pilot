@@ -34,6 +34,8 @@ def build_synthetic_progress_app(*, enabled=False, signing_key=None, connection=
         raise ValueError("An isolated synthetic database connection is required")
     if enrollment_connection is None:
         raise ValueError("Durable enrollment connection is required")
+    if connection is not enrollment_connection:
+        raise ValueError('Atomic progress requires one shared SQLite connection')
     from .durable_identity import create_identity_schema
     create_identity_schema(enrollment_connection)
     create_schema(connection)
@@ -43,24 +45,13 @@ def build_synthetic_progress_app(*, enabled=False, signing_key=None, connection=
     def token_from_header(authorization):
         if not authorization or not authorization.startswith("Bearer ") or len(authorization) > 4096:
             raise HTTPException(status_code=401, detail="Authentication required")
-        token = authorization[7:]
-        try:
-            principal = verify_session(token, secret=signing_key)
-            enrolled = enrollment_connection.execute(
-                "SELECT session_epoch FROM synthetic_enrollments WHERE school=? AND subject=?",
-                (principal.school, principal.subject)).fetchone()
-            if enrolled is None:
-                raise PermissionError("Unenrolled learner")
-            verify_session(token, secret=signing_key, expected_epoch=enrolled[0])
-        except PermissionError:
-            raise HTTPException(status_code=401, detail="Invalid or unenrolled session")
-        return token
+        return authorization[7:]
 
     @app.post("/internal/synthetic-progress/events", status_code=201)
     def save(event: ProgressEvent, authorization: str | None = Header(default=None)):
         try:
             payload = event.model_dump(mode="json")
-            inserted = boundary.submit(bearer_token=token_from_header(authorization), event=payload)
+            inserted = boundary.submit_enrolled(bearer_token=token_from_header(authorization), event=payload, enrollment_connection=enrollment_connection)
             return {"recorded": inserted}
         except PermissionError:
             raise HTTPException(status_code=401, detail="Invalid session")
@@ -70,7 +61,7 @@ def build_synthetic_progress_app(*, enabled=False, signing_key=None, connection=
     @app.get("/internal/synthetic-progress/events")
     def history(authorization: str | None = Header(default=None)):
         try:
-            rows = boundary.history(bearer_token=token_from_header(authorization))
+            rows = boundary.history_enrolled(bearer_token=token_from_header(authorization), enrollment_connection=enrollment_connection)
             return {"events": [
                 dict(zip(("event_id","event_type","class_level","topic_key","correct","total","occurred_at"), row))
                 for row in rows
