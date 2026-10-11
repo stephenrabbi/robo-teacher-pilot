@@ -13,7 +13,7 @@ class ProofLoginTests(unittest.TestCase):
         create_identity_schema(self.db)
         create_login_schema(self.db)
         self.login=SyntheticProofLogin(self.db,signing_key=KEY,clock=lambda:1050)
-        self.db.execute("INSERT INTO synthetic_enrollments VALUES (?,?,?,?)",
+        self.db.execute("INSERT INTO synthetic_enrollments (school,subject,reviewer_id,approved_at) VALUES (?,?,?,?)",
                         ("school-A","learner-A","trusted",1000))
         self.db.commit()
     def tearDown(self):
