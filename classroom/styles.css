@@ -250,10 +250,11 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 /* Legal footer readability and responsive layout */
 .legal-footer{
   max-width:1500px;
-  margin:28px auto 0;
-  padding:26px 24px 32px;
-  border-top:1px solid #526881;
-  color:#f0f5fb;
+  margin:16px auto 0;
+  padding:20px 24px 24px;
+  border-top:1px solid #c4d2e3;
+  background:#eef4fb;
+  color:#34445c;
   font-size:14px;
   line-height:1.6;
 }
@@ -264,21 +265,22 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 }
 .legal-footer section{
   min-width:0;
+  overflow-wrap:anywhere;
 }
 .legal-footer .footer-title{
   display:block;
   margin-bottom:6px;
-  color:#fff;
+  color:#10203a;
   font-size:16px;
   line-height:1.3;
 }
 .legal-footer p{
   margin:4px 0;
-  color:#dbe7f5;
+  color:#34445c;
 }
 .legal-footer a,
 .legal-footer .footer-link-button{
-  color:#fff;
+  color:#174d86;
   text-decoration:underline;
   text-decoration-thickness:1.5px;
   text-underline-offset:3px;
@@ -289,11 +291,11 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   gap:10px 18px;
   margin-top:18px;
   padding-top:14px;
-  border-top:1px solid #395474;
+  border-top:1px solid #c4d2e3;
 }
 .legal-footer-links a,
 .legal-footer-links .footer-link-button{
-  min-height:36px;
+  min-height:44px;
   display:inline-flex;
   align-items:center;
   font-size:14px;
@@ -331,7 +333,13 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 /* Student-first welcome, October 2026. Presentation-only:
    Preserve founderPanel, avatar frames, speaking classes and voice controls. */
 #welcome.welcome-screen{grid-template-columns:minmax(0,1.12fr) minmax(0,1fr);gap:clamp(18px,3vw,42px)}
-#welcome .student-first-founder-panel{position:relative;width:100%;max-width:none;margin:0;min-width:0;min-height:430px}
+#welcome.welcome-screen{min-height:0;align-items:start;padding-block:8px 0}
+#welcome .welcome-copy{min-width:0}
+#welcome .welcome-copy .eyebrow{margin-top:0}
+#welcome .welcome-copy h1{font-size:clamp(36px,3.8vw,56px)}
+#welcome .learner-code-row,#welcome .learner-code-help,
+#welcome .learner-consent,#welcome .privacy-helper,#welcome .subtle-clear{grid-column:1 / -1}
+#welcome .student-first-founder-panel{position:relative;align-self:start;width:100%;max-width:none;margin:0;min-width:0;min-height:430px}
 #welcome .student-welcome-photo{
   position:relative;width:100%;height:450px;overflow:hidden;
   border-radius:28px;background:linear-gradient(145deg,#123558,#0d203b);
@@ -376,8 +384,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   #welcome .student-photo-caption{right:140px;max-width:calc(100% - 154px)}
 }
 @media(max-width:560px){
-  #welcome .student-first-founder-panel{min-height:244px}
-  #welcome .student-welcome-photo,#welcome .student-welcome-photo.photo-unavailable{height:250px}
+  #welcome .student-first-founder-panel{min-height:210px}
+  #welcome .student-welcome-photo,#welcome .student-welcome-photo.photo-unavailable{height:210px}
   #welcome .student-first-founder-panel .founder-avatar-stage{
     right:10px;bottom:10px;width:85px;height:106px;border-width:2px;border-radius:14px;
   }
