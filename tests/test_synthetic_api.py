@@ -5,13 +5,17 @@ from datetime import datetime, timezone
 from fastapi.testclient import TestClient
 from progress_store.synthetic_api import build_synthetic_progress_app
 from progress_store.session_auth import issue_test_session
+from progress_store.durable_identity import create_identity_schema
 
 KEY = b"synthetic-api-test-secret-never-production-0000000"
 
 class SyntheticAPITests(unittest.TestCase):
     def setUp(self):
         self.db = sqlite3.connect(":memory:", check_same_thread=False)
-        self.client = TestClient(build_synthetic_progress_app(enabled=True, signing_key=KEY, connection=self.db))
+        create_identity_schema(self.db)
+        self.db.executemany("INSERT INTO synthetic_enrollments VALUES (?,?,?,?)", [("one","A","test-reviewer",1000),("one","B","test-reviewer",1000)])
+        self.db.commit()
+        self.client = TestClient(build_synthetic_progress_app(enabled=True, signing_key=KEY, connection=self.db, enrollment_connection=self.db))
         self.a = issue_test_session(subject="A", school="one", secret=KEY)
         self.b = issue_test_session(subject="B", school="one", secret=KEY)
 
@@ -30,6 +34,10 @@ class SyntheticAPITests(unittest.TestCase):
     def test_disabled_by_default(self):
         with self.assertRaises(RuntimeError):
             build_synthetic_progress_app(signing_key=KEY, connection=self.db)
+
+    def test_enabled_api_without_enrollment_store_fails_closed(self):
+        with self.assertRaisesRegex(ValueError, "Durable enrollment connection is required"):
+            build_synthetic_progress_app(enabled=True, signing_key=KEY, connection=self.db)
 
     def test_unauthenticated_requests_denied(self):
         self.assertEqual(self.client.get("/internal/synthetic-progress/events").status_code, 401)
