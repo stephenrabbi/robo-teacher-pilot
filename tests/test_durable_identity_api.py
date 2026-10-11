@@ -8,6 +8,7 @@ from progress_store.durable_approvals import create_approval_schema
 from progress_store.durable_identity import DurableSyntheticIdentity, create_identity_schema
 from progress_store.signed_approval_provider import SignedApprovalVerifier, sign_synthetic_approval
 from progress_store.session_auth import issue_test_session
+from progress_store.proof_login import SyntheticProofLogin, create_login_schema
 
 KEY=b"isolated-api-persistence-session-secret-123"
 PROVIDER_KEY=b"isolated-api-approval-signing-secret-1234"
@@ -26,9 +27,20 @@ class IntegratedDurableIdentityAPITests(unittest.TestCase):
             reviewers={"reviewer-one"},signing_key=KEY,clock=lambda:1050)
         self.identity.enroll(approval("approval-A","A"),subject="A",school="school-one")
         self.identity.enroll(approval("approval-B","B"),subject="B",school="school-one")
+        create_login_schema(self.db)
+        self.login = SyntheticProofLogin(self.db, signing_key=KEY)
+        for subject in ("A", "B"):
+            self.login.provision(school="school-one", subject=subject,
+                credential="isolated-login-proof-" + subject + "-2026", authorized_operator=True)
         self.client=TestClient(build_synthetic_progress_app(enabled=True,connection=self.db,
             signing_key=KEY,enrollment_connection=self.db))
-        self.tokens={k:issue_test_session(subject=k,school="school-one",secret=KEY, session_epoch=0) for k in ("A","B","C")}
+        self.tokens = {
+            subject: self.login.login(school="school-one", subject=subject,
+                credential="isolated-login-proof-" + subject + "-2026")
+            for subject in ("A", "B")
+        }
+        # Test-only signed token deliberately bypasses login to check enrollment rejection.
+        self.tokens["C"] = issue_test_session(subject="C",school="school-one",secret=KEY,session_epoch=0)
     def tearDown(self):
         self.client.close()
         self.db.close()
