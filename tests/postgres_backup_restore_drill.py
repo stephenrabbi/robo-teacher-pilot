@@ -15,6 +15,7 @@ with psycopg.connect(dsn) as db:
     with db.transaction():
         db.execute("DROP SCHEMA IF EXISTS rt_synthetic CASCADE")
     db.execute(migration.read_text())
+    db.commit()
     event_id=uuid.uuid4()
     with db.transaction():
         db.execute("""INSERT INTO rt_synthetic.enrollments
