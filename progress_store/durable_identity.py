@@ -22,6 +22,11 @@ def create_identity_schema(db):
       challenge_hash BLOB NOT NULL, expires_at INTEGER NOT NULL,
       PRIMARY KEY(school,subject),
       FOREIGN KEY(school,subject) REFERENCES synthetic_enrollments(school,subject))""")
+    db.execute("""CREATE TABLE IF NOT EXISTS synthetic_recovery_attempts (
+      school TEXT NOT NULL, subject TEXT NOT NULL,
+      failures INTEGER NOT NULL DEFAULT 0,
+      locked_until INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY(school,subject))""")
     db.commit()
 
 class DurableSyntheticIdentity:
@@ -93,21 +98,42 @@ class DurableSyntheticIdentity:
             raise
         return secret
 
+    def _register_failed_recovery(self, *, subject, school, now):
+        self.db.execute("""INSERT INTO synthetic_recovery_attempts
+          (school,subject,failures,locked_until) VALUES (?,?,1,0)
+          ON CONFLICT(school,subject) DO UPDATE SET failures=failures+1""",
+          (school,subject))
+        failures=self.db.execute("SELECT failures FROM synthetic_recovery_attempts WHERE school=? AND subject=?",
+                                 (school,subject)).fetchone()[0]
+        if failures>=5:
+            self.db.execute("UPDATE synthetic_recovery_attempts SET locked_until=? WHERE school=? AND subject=?",
+                            (now+900,school,subject))
+
     def complete_recovery(self, *, subject, school, challenge):
         if not isinstance(challenge,str) or not challenge or len(challenge)>256:
             raise PermissionError("Invalid recovery challenge")
         try:
             self.db.execute("BEGIN IMMEDIATE")
+            now=int(self.clock())
+            state=self.db.execute("SELECT failures,locked_until FROM synthetic_recovery_attempts WHERE school=? AND subject=?",
+                                  (school,subject)).fetchone()
+            if state and now < state[1]:
+                raise PermissionError("Recovery temporarily locked")
+            if state and state[1] and now>=state[1]:
+                self.db.execute("DELETE FROM synthetic_recovery_attempts WHERE school=? AND subject=?",(school,subject))
             record=self.db.execute("SELECT challenge_hash,expires_at FROM synthetic_recovery WHERE school=? AND subject=?",
                                    (school,subject)).fetchone()
             digest=hmac.new(self.signing_key,challenge.encode(),hashlib.sha256).digest()
-            if not record or int(self.clock())>=record[1] or not hmac.compare_digest(digest,record[0]):
+            if not record or now>=record[1] or not hmac.compare_digest(digest,record[0]):
+                self._register_failed_recovery(subject=subject,school=school,now=now)
+                self.db.commit()
                 raise PermissionError("Invalid or expired recovery")
             self.db.execute("DELETE FROM synthetic_recovery WHERE school=? AND subject=?",(school,subject))
-            token=issue_test_session(subject=subject,school=school,secret=self.signing_key,
-                                    now=int(self.clock()))
+            self.db.execute("DELETE FROM synthetic_recovery_attempts WHERE school=? AND subject=?",(school,subject))
+            token=issue_test_session(subject=subject,school=school,secret=self.signing_key,now=now)
             self.db.commit()
             return token
         except Exception:
-            self.db.rollback()
+            if self.db.in_transaction:
+                self.db.rollback()
             raise
