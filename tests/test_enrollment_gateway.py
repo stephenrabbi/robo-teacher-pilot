@@ -13,22 +13,14 @@ class EnrollmentGatewayTests(unittest.TestCase):
         with self.assertRaises(PermissionError):
             self.gateway.approve(enrollment, authenticated_reviewer="outsider")
 
-    def test_unapproved_learner_cannot_get_token(self):
-        with self.assertRaises(PermissionError):
-            self.gateway.issue(subject="learner-A", school="school-one", now=1000)
-
-    def test_approved_subject_can_get_scoped_token(self):
-        enrollment = ApprovedEnrollment("learner-A", "school-one", "approval-123", "reviewer-1")
-        self.gateway.approve(enrollment, authenticated_reviewer="reviewer-1")
-        token = self.gateway.issue(subject="learner-A", school="school-one", now=1000)
-        principal = verify_session(token, secret=KEY, now=1001)
-        self.assertEqual((principal.subject, principal.school), ("learner-A", "school-one"))
-
-    def test_approval_does_not_cross_school_or_subject(self):
-        self.gateway.approve(ApprovedEnrollment("learner-A", "school-one", "approval-123", "reviewer-1"), authenticated_reviewer="reviewer-1")
-        for subject, school in [("learner-B", "school-one"), ("learner-A", "school-two")]:
-            with self.assertRaises(PermissionError):
-                self.gateway.issue(subject=subject, school=school, now=1000)
+    def test_enrollment_review_does_not_issue_session(self):
+        self.gateway.approve(
+            ApprovedEnrollment("learner-A", "school-one", "approval-123", "reviewer-1"),
+            authenticated_reviewer="reviewer-1",
+        )
+        self.assertIn(("school-one", "learner-A"), self.gateway._approved)
+        self.assertFalse(hasattr(self.gateway, "issue"))
+        self.assertFalse(hasattr(self.gateway._authority, "issue_for_approved"))
 
     def test_missing_reference_denied(self):
         with self.assertRaises(PermissionError):
