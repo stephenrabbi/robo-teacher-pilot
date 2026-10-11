@@ -32,14 +32,18 @@ class DurableIdentityTests(unittest.TestCase):
     def tearDown(self):
         self.db.close()
         self.tmp.cleanup()
-    def test_enrollment_survives_restart(self):
+    def test_enrollment_survives_restart_without_issuing_session(self):
         self.identity.enroll(evidence("e1"),subject="student-a",school="school-a")
         self.restart()
-        token=self.identity.issue(subject="student-a",school="school-a")
-        p=verify_session(token,secret=SIGNING_KEY,now=1050)
-        self.assertEqual((p.subject,p.school),("student-a","school-a"))
-        with self.assertRaises(PermissionError):
-            self.identity.issue(subject="student-b",school="school-a")
+        row=self.db.execute(
+            "SELECT session_epoch FROM synthetic_enrollments WHERE school=? AND subject=?",
+            ("school-a","student-a")).fetchone()
+        self.assertEqual(row,(0,))
+        self.assertFalse(hasattr(self.identity,"issue"))
+        self.assertIsNone(self.db.execute(
+            "SELECT 1 FROM synthetic_enrollments WHERE school=? AND subject=?",
+            ("school-a","student-b")).fetchone())
+
     def test_recovery_survives_restart_and_is_single_use(self):
         self.identity.enroll(evidence("e1"),subject="student-a",school="school-a")
         challenge=self.identity.begin_recovery(evidence("r1","recovery"),subject="student-a",school="school-a")
