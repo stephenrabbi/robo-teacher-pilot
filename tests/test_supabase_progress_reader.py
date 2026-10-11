@@ -27,6 +27,28 @@ class ReaderTests(unittest.TestCase):
         with patch.dict(os.environ,{"ROBO_SUPABASE_LEARNER_READ_ENABLED":"true",
                 "ROBO_SUPABASE_PUBLISHABLE_KEY":"sb_secret_forbidden"}):
             with self.assertRaises(RuntimeError):read_own_progress("x"*40,enabled=True)
+    def test_missing_identity_fails_without_progress_request(self):
+        class NoIdentity(FakeClient):
+            def get(self,*args,**kwargs):
+                self.calls.append((args,kwargs))
+                return FakeResponse({})
+        c=NoIdentity()
+        with patch.dict(os.environ,{"ROBO_SUPABASE_LEARNER_READ_ENABLED":"true",
+                "ROBO_SUPABASE_PUBLISHABLE_KEY":"sb_publishable_dummy"}):
+            with self.assertRaises(PermissionError):
+                read_own_progress("x"*40,enabled=True,client=c)
+        self.assertEqual(len(c.calls),1)
+
+    def test_invalid_progress_payload_is_rejected(self):
+        class InvalidProgress(FakeClient):
+            def get(self,*args,**kwargs):
+                self.calls.append((args,kwargs))
+                return FakeResponse({"id":"synthetic-test-user"} if args[0].endswith("/auth/v1/user") else {"error":"unexpected"})
+        with patch.dict(os.environ,{"ROBO_SUPABASE_LEARNER_READ_ENABLED":"true",
+                "ROBO_SUPABASE_PUBLISHABLE_KEY":"sb_publishable_dummy"}):
+            with self.assertRaises(RuntimeError):
+                read_own_progress("x"*40,enabled=True,client=InvalidProgress())
+
     def test_calls_user_token_no_privileged_owner_filter(self):
         c=FakeClient()
         with patch.dict(os.environ,{"ROBO_SUPABASE_LEARNER_READ_ENABLED":"true",
