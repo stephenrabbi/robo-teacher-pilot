@@ -43,6 +43,9 @@ jobs:
       - name: Test signed synthetic operator and reviewer roles
         run: python -m unittest discover -s tests -p test_synthetic_role_verifier.py -v
 
+      - name: Verify synthetic signed assertion replay protection
+        run: python -m unittest discover -s tests -p test_synthetic_role_replay_guard.py -v
+
       - name: Run pilot sanity tests
         run: python test_webhook.py
 
