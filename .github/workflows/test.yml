@@ -169,6 +169,9 @@ jobs:
       - name: Verify recovery revocation after restart and concurrent redemption
         run: python -m unittest discover -s tests -p test_revocation_restart.py -v
 
+      - name: Verify atomic progress authorization against concurrent recovery
+        run: python -m unittest discover -s tests -p test_atomic_progress_auth.py -v
+
       - name: Verify enrolled identity protected synthetic progress API
         run: python -m unittest discover -s tests -p test_durable_identity_api.py -v
 
