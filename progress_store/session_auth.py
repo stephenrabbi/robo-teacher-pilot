@@ -60,7 +60,7 @@ def verify_session(token, *, secret, now=None, expected_epoch=None):
         if "epoch" in payload and (type(payload["epoch"]) is not int or payload["epoch"] < 0):
             raise PermissionError("Invalid session epoch")
         if expected_epoch is not None:
-            if type(expected_epoch) is not int or expected_epoch < 0 or payload.get("epoch", 0) != expected_epoch:
+            if type(expected_epoch) is not int or expected_epoch < 0 or payload.get("epoch") != expected_epoch:
                 raise PermissionError("Revoked session")
         if payload["aud"] != AUDIENCE:
             raise PermissionError("Wrong session audience")
