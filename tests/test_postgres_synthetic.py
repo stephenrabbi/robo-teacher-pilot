@@ -79,6 +79,32 @@ class SyntheticPostgresTests(unittest.TestCase):
             self.assertEqual(client.post(url,json=dict(event,event_id=str(uuid.uuid4())),headers=headers).status_code,401)
             self.assertEqual(client.get(url,headers=headers).status_code,401)
 
+    def test_concurrent_same_event_only_one_commit(self):
+        key=b"postgres-disposable-signing-secret-12345"
+        adapter=SyntheticPostgresProgress(lambda:psycopg.connect(DSN),key)
+        token=issue_test_session(subject="A",school="school",secret=key,session_epoch=0)
+        event=dict(event_id=str(uuid.uuid4()),event_type="practice_completed",
+            class_level="JSS2",topic_key="fractions",correct=3,total=5,
+            occurred_at="2026-10-11T12:00:00+00:00")
+        with ThreadPoolExecutor(max_workers=6) as pool:
+            results=list(pool.map(lambda _:adapter.write(bearer_token=token,event=event),range(12)))
+        self.assertEqual(results.count(True),1)
+        self.assertEqual(results.count(False),11)
+        self.assertEqual(len(adapter.history(bearer_token=token)),1)
+
+    def test_failed_transaction_keeps_acknowledged_event(self):
+        key=b"postgres-disposable-signing-secret-12345"
+        adapter=SyntheticPostgresProgress(lambda:psycopg.connect(DSN),key)
+        token=issue_test_session(subject="A",school="school",secret=key,session_epoch=0)
+        event=dict(event_id=str(uuid.uuid4()),event_type="practice_completed",
+            class_level="JSS2",topic_key="fractions",correct=3,total=5,
+            occurred_at="2026-10-11T12:00:00+00:00")
+        self.assertTrue(adapter.write(bearer_token=token,event=event))
+        with self.assertRaises(ValueError):
+            adapter.write(bearer_token=token,event=dict(event,correct=4))
+        self.assertEqual(len(adapter.history(bearer_token=token)),1)
+        self.assertEqual(adapter.history(bearer_token=token)[0][4],3)
+
     def test_scoped_event_and_foreign_key(self):
         event_id=uuid.uuid4()
         self.db.execute("""INSERT INTO rt_synthetic.events
