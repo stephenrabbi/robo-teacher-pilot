@@ -109,6 +109,9 @@ jobs:
       - name: Run learner identity isolation tests
         run: python -m pytest -q test_learner_identity_guard.py
 
+      - name: Run browser learner continuity regression tests
+        run: node --test tests/learner_continuity.test.cjs
+
       - name: Run resumable Autopilot session tests
         run: python -m pytest -q test_resumable_autopilot.py
 
