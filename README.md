@@ -10,7 +10,7 @@ Robo-Teacher is a **working, deployed AI teaching and learning platform** develo
 
 **What is available now:** the live browser classroom supports **Mathematics for Junior Secondary School 1, 2 and 3 (JSS1–JSS3)**. Learners can access curriculum-aware teaching, practice, diagnostic assessment, revision, adaptive guidance and progress views through a multilingual, multimodal classroom.
 
-**Real school use and evaluation:** Robo-Teacher has been used with learners from **two Lagos State schools — Ise Junior High School, Epe, and Tio College, Ikorodu**. The documented evaluation includes **56 learners**, matched baseline and post-test results, and **188 successful logged interactions**. The evidence and limitations are described below; these figures are **not** claims about paying customers or a controlled causal study.
+**Real school use and evaluation:** Robo-Teacher has been used with learners from **two Lagos State schools — Ise Junior High School, Epe, and Tio College, Ikorodu**. A separate onboarding activity recorded **331 students onboarded** to the participating schools. The documented learning evaluation covered **56 learners**, with matched baseline and post-test results and **188 successful logged interactions**. The 331 onboarding figure must not be interpreted as 331 evaluated learners or verified active users. The evidence and limitations are described below; these figures are **not** claims about paying customers or a controlled causal study.
 
 **Wider product scope:** Robo-Teacher is an **all-subject AI teacher initiative**, with expansion beyond the currently implemented JSS1–JSS3 Mathematics curriculum part of its product roadmap. **The implemented Mathematics scope should not be mistaken for a JSS2-only, First-Term-only tutor, nor should the all-subject vision be mistaken for verified deployment of every subject today.**
 
@@ -198,7 +198,10 @@ The Teacher View is intended to help the AI **support human teachers rather than
 
 ---
 
-## Verified Pilot Evidence
+## School Reach and Evaluation Evidence
+
+**331 students onboarded:** reported school onboarding reach, separate from the 56-learner matched evaluation. This figure does not establish that all 331 were evaluated, regularly active, or paying users.
+
 
 The original evaluation involved students from **Ise Junior High School, Epe** and **Tio College, Ikorodu**, Lagos State.
 
