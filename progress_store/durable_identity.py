@@ -68,14 +68,6 @@ class DurableSyntheticIdentity:
             self.db.rollback()
             raise
 
-    def issue(self, *, subject, school):
-        row=self.db.execute("SELECT session_epoch FROM synthetic_enrollments WHERE school=? AND subject=?",
-                            (school,subject)).fetchone()
-        if row is None:
-            raise PermissionError("Unapproved learner")
-        return issue_test_session(subject=subject,school=school,secret=self.signing_key,
-                                  now=int(self.clock()),session_epoch=row[0])
-
     def begin_recovery(self, assertion, *, subject, school):
         decision=self._approval(assertion,"recovery",subject,school)
         secret=secrets.token_urlsafe(32)
