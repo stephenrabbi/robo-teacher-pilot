@@ -31,6 +31,22 @@ class AtomicTests(unittest.TestCase):
                 self.service.activate(school=school,learner=learner,approval_proof=proof)
         self.assertEqual(self.db.execute("SELECT count(*) FROM atomic_test_accounts").fetchone()[0],0)
         self.assertEqual(self.db.execute("SELECT count(*) FROM atomic_test_approvals").fetchone()[0],0)
+    def test_two_connections_cannot_redeem_same_proof(self):
+        second_db=sqlite3.connect(self.path,isolation_level=None)
+        try:
+            second=AtomicSyntheticActivation(second_db,self.verifier)
+            self.assertTrue(self.service.activate(school="school-A",learner="learner-A",
+                approval_proof="signed-test-A"))
+            with self.assertRaises(PermissionError):
+                second.activate(school="school-A",learner="learner-A",
+                    approval_proof="signed-test-A")
+            self.assertEqual(second_db.execute(
+                "SELECT count(*) FROM atomic_test_approvals").fetchone()[0],1)
+            self.assertEqual(second_db.execute(
+                "SELECT count(*) FROM atomic_test_accounts").fetchone()[0],1)
+        finally:
+            second_db.close()
+
     def test_account_insert_failure_rolls_back_redemption(self):
         self.db.execute("""CREATE TRIGGER block_test_account BEFORE INSERT ON atomic_test_accounts
             BEGIN SELECT RAISE(ABORT,'synthetic failure'); END""")
