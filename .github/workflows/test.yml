@@ -25,6 +25,9 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt pytest
 
+      - name: Test synthetic enrollment authorization boundary
+        run: python -m unittest discover -s tests -p test_synthetic_enrollment_gate.py -v
+
       - name: Run pilot sanity tests
         run: python test_webhook.py
 
