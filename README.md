@@ -111,11 +111,15 @@ The tutoring layer is designed to teach rather than simply return answers. It su
 - class-level adaptation; and
 - curriculum-aware teaching.
 
-### JSS1–JSS3 curriculum-aware learning
+### JSS1–JSS3 curriculum-aware learning — all three terms
 
-The browser classroom currently supports **Junior Secondary School 1, 2 and 3 Mathematics**.
+The working browser classroom supports **Junior Secondary School 1, 2 and 3 Mathematics**, with **First, Second and Third Term topic mappings for each class** in `curriculum.py`. The class-and-term curriculum is used to organise practice topics and recommendations.
 
-Practice and recommendations are class-aware and term-aware. Curriculum mapping is maintained in `curriculum.py`, while tutoring and pedagogical instructions are coordinated through the classroom and tutor layers.
+The `CURRICULUM_TOPICS` list in `tutor.py` is a **combined topic guide for conversational Mathematics teaching**, not the full class-by-class curriculum specification. The actual mapping is organised by both class and term in `curriculum.py` through `CURRICULUM`, `CLASS_TOPICS` and `TOPIC_TERM`. This is **not restricted to JSS2 First Term**. Topic mapping alone does not prove equal mastery or independently evaluated coverage for every topic.
+
+Examples represented across the curriculum and tutor guidance include numbers and place value, number bases and standard form, fractions and decimals, LCM/HCF, approximation, directed numbers, ratios and percentages, algebra, inequalities and graphs, geometrical constructions and transformations, mensuration, statistics and probability.
+
+The current `tutor.py` system prompt and its out-of-scope message explicitly target **JSS1–JSS3 Mathematics**. That is an intentional guardrail for the **currently implemented subject module**, not the end goal for Robo-Teacher. Extending those subject-specific prompts, content maps, assessment rules and safeguards to additional subjects remains part of the all-subject platform roadmap.
 
 ### Adaptive Practice Mode
 
