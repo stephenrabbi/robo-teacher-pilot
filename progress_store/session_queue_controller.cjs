@@ -6,8 +6,11 @@ function createSessionController(storage) {
   let active = null;
   let generation = 0;
   function switchSession(session) {
+    // Invalidate the previous session before validating a replacement.
+    // A malformed login attempt must never leave the prior learner active.
     generation++;
-    if (session === null) { active = null; return; }
+    active = null;
+    if (session === null) return;
     if (!session || typeof session.token !== 'string' || !session.token ||
       !session.scope || typeof session.scope.school !== 'string' ||
       typeof session.scope.subject !== 'string')
