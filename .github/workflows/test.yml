@@ -121,6 +121,9 @@ jobs:
       - name: Run approved identity and recovery prototype tests
         run: python -m unittest discover -s tests -p test_identity_prototype.py -v
 
+      - name: Run isolated authenticated progress boundary tests
+        run: python -m unittest discover -s tests -p test_progress_boundary.py -v
+
       - name: Run resumable Autopilot session tests
         run: python -m pytest -q test_resumable_autopilot.py
 
