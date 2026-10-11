@@ -1,5 +1,6 @@
 """Disposable-only PostgreSQL role separation and interrupted-transaction drill."""
 import os
+import pathlib
 from urllib.parse import urlparse
 import psycopg
 from psycopg import sql
@@ -10,7 +11,15 @@ u=urlparse(DSN)
 if u.hostname not in ("localhost","127.0.0.1") or u.path!="/synthetic_progress":
     raise SystemExit("Refusing to run outside local disposable synthetic_progress")
 
+migration=pathlib.Path(__file__).resolve().parents[1]/"progress_store/postgres/0001_synthetic_schema.sql"
 with psycopg.connect(DSN,autocommit=True) as admin:
+    admin.execute(migration.read_text())
+    admin.execute("""INSERT INTO rt_synthetic.enrollments(school,subject,reviewer_id,approved_at,session_epoch)
+        VALUES ('school','acknowledged','reviewer',1000,2)""")
+    admin.execute("""INSERT INTO rt_synthetic.events
+        (school,subject,event_id,event_type,class_level,topic_key,correct_count,total_count,occurred_at)
+        VALUES ('school','acknowledged','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        'practice_completed','JSS2','fractions',4,5,now())""")
     admin.execute("CREATE ROLE rt_ci_runtime LOGIN PASSWORD 'temporary-runtime-only'")
     admin.execute("REVOKE ALL ON SCHEMA rt_synthetic FROM PUBLIC")
     admin.execute("GRANT USAGE ON SCHEMA rt_synthetic TO rt_ci_runtime")
