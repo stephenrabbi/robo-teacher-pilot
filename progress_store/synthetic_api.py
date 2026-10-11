@@ -47,10 +47,11 @@ def build_synthetic_progress_app(*, enabled=False, signing_key=None, connection=
         try:
             principal = verify_session(token, secret=signing_key)
             enrolled = enrollment_connection.execute(
-                "SELECT 1 FROM synthetic_enrollments WHERE school=? AND subject=?",
+                "SELECT session_epoch FROM synthetic_enrollments WHERE school=? AND subject=?",
                 (principal.school, principal.subject)).fetchone()
-            if not enrolled:
+            if enrolled is None:
                 raise PermissionError("Unenrolled learner")
+            verify_session(token, secret=signing_key, expected_epoch=enrolled[0])
         except PermissionError:
             raise HTTPException(status_code=401, detail="Invalid or unenrolled session")
         return token
