@@ -49,6 +49,9 @@ jobs:
       - name: Test complete synthetic identity authorization journey
         run: python -m unittest discover -s tests -p test_synthetic_identity_journey.py -v
 
+      - name: Test synthetic-only HTTP readiness boundary
+        run: python -m unittest discover -s tests -p test_synthetic_identity_smoke.py -v
+
       - name: Run pilot sanity tests
         run: python test_webhook.py
 
