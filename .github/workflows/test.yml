@@ -160,6 +160,9 @@ jobs:
       - name: Verify durable synthetic enrollment and recovery
         run: python -m unittest discover -s tests -p test_durable_identity.py -v
 
+      - name: Verify enrolled identity protected synthetic progress API
+        run: python -m unittest discover -s tests -p test_durable_identity_api.py -v
+
       - name: Run complete synthetic learner journey tests
         run: python -m unittest discover -s tests -p test_synthetic_progress_journey.py -v
 
