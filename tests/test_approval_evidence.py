@@ -20,11 +20,12 @@ class ApprovalEvidenceTests(unittest.TestCase):
         with self.assertRaises(PermissionError):
             self.gate.enroll(reference="unknown",subject="A",school="school-one")
 
-    def test_verified_enrollment_issues_scoped_session(self):
+    def test_verified_enrollment_does_not_issue_session(self):
         self.gate.enroll(reference="enroll-1",subject="A",school="school-one")
-        self.assertTrue(self.gateway.issue(subject="A",school="school-one",now=1000))
+        self.assertTrue(self.gateway.require_enrollment(subject="A",school="school-one"))
+        self.assertFalse(hasattr(self.gateway, "issue"))
         with self.assertRaises(PermissionError):
-            self.gateway.issue(subject="B",school="school-one",now=1000)
+            self.gateway.require_enrollment(subject="B",school="school-one")
 
     def test_wrong_school_or_learner_denied(self):
         for subject, school in (("B","school-one"),("A","school-two")):
