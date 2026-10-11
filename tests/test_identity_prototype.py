@@ -11,16 +11,9 @@ class TestIdentityIssuance(unittest.TestCase):
         self.authority = TestIdentityAuthority(KEY)
         self.authority.register_approved(subject="synthetic-A", school="school-one", approved=True)
 
-    def test_unapproved_identity_cannot_receive_session(self):
-        with self.assertRaises(PermissionError):
-            self.authority.issue_for_approved(subject="synthetic-B", school="school-one", now=1000)
-        with self.assertRaises(PermissionError):
-            self.authority.issue_for_approved(subject="synthetic-A", school="school-two", now=1000)
-
-    def test_approved_identity_receives_scoped_session(self):
-        token = self.authority.issue_for_approved(subject="synthetic-A", school="school-one", now=1000)
-        principal = verify_session(token, secret=KEY, now=1001)
-        self.assertEqual((principal.subject, principal.school), ("synthetic-A", "school-one"))
+    def test_enrollment_alone_cannot_issue_session(self):
+        self.assertFalse(hasattr(self.authority, "issue_for_approved"))
+        self.assertIn(("school-one", "synthetic-A"), self.authority._enrollments)
 
     def test_no_recovery_without_separate_approval(self):
         with self.assertRaises(PermissionError):
