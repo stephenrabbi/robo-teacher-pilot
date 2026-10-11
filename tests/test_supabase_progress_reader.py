@@ -49,6 +49,26 @@ class ReaderTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 read_own_progress("x"*40,enabled=True,client=InvalidProgress())
 
+    def test_rejects_legacy_anon_key(self):
+        with patch.dict(os.environ,{"ROBO_SUPABASE_LEARNER_READ_ENABLED":"true",
+                "ROBO_SUPABASE_PUBLISHABLE_KEY":"legacy-anon-key"}):
+            with self.assertRaises(RuntimeError):
+                read_own_progress("x"*40,enabled=True)
+    def test_token_whitespace_rejected(self):
+        with patch.dict(os.environ,{"ROBO_SUPABASE_LEARNER_READ_ENABLED":"true",
+                "ROBO_SUPABASE_PUBLISHABLE_KEY":"sb_publishable_dummy"}):
+            with self.assertRaises(PermissionError):
+                read_own_progress("x"*40+"\\r",enabled=True)
+    def test_unexpected_owner_identifier_rejected_from_response(self):
+        class LeakingClient(FakeClient):
+            def get(self,*args,**kwargs):
+                self.calls.append((args,kwargs))
+                return FakeResponse({"id":"synthetic-test-user"} if args[0].endswith("/auth/v1/user") else
+                    [{"topic_code":"fractions","mastery_score":70,"updated_at":"2026-10-11T00:00:00Z","user_id":"unexpected-other-user"}])
+        with patch.dict(os.environ,{"ROBO_SUPABASE_LEARNER_READ_ENABLED":"true",
+                "ROBO_SUPABASE_PUBLISHABLE_KEY":"sb_publishable_dummy"}):
+            with self.assertRaises(RuntimeError):
+                read_own_progress("x"*40,enabled=True,client=LeakingClient())
     def test_calls_user_token_no_privileged_owner_filter(self):
         c=FakeClient()
         with patch.dict(os.environ,{"ROBO_SUPABASE_LEARNER_READ_ENABLED":"true",
