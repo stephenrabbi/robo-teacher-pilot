@@ -62,21 +62,21 @@ def record_event(connection, principal, event):
         raise ValueError("Invalid assessment counts")
     fields = (principal.school, principal.subject, event_id, event["event_type"],
               event["class_level"], topic, correct, total, stamp.isoformat())
-    # Idempotent retry; a collision with changed content must fail rather than silently overwrite.
-    existing = connection.execute(
-        "SELECT event_type,class_level,topic_key,correct_count,total_count,occurred_at "
-        "FROM learner_events WHERE school=? AND subject=? AND event_id=?",
-        fields[:3]).fetchone()
-    if existing:
-        if tuple(existing) != fields[3:]:
+    # The unique database constraint arbitrates concurrent insert attempts.
+    # Once the attempted insertion completes, compare the stored value:
+    # identical retries are safe, while conflicting payloads fail closed.
+    with connection:
+        cursor = connection.execute(
+            "INSERT INTO learner_events VALUES (?,?,?,?,?,?,?,?,?) "
+            "ON CONFLICT(school, subject, event_id) DO NOTHING", fields)
+        inserted = cursor.rowcount == 1
+        stored = connection.execute(
+            "SELECT event_type,class_level,topic_key,correct_count,total_count,occurred_at "
+            "FROM learner_events WHERE school=? AND subject=? AND event_id=?",
+            fields[:3]).fetchone()
+        if stored is None or tuple(stored) != fields[3:]:
             raise ValueError("Conflicting event ID")
-        return False
-    try:
-        with connection:
-            connection.execute("INSERT INTO learner_events VALUES (?,?,?,?,?,?,?,?,?)", fields)
-    except sqlite3.IntegrityError:
-        raise ValueError("Concurrent conflicting event; retry read")
-    return True
+    return inserted
 
 def list_events(connection, principal):
     _require_principal(principal)
