@@ -5,7 +5,7 @@
 ## Provisioned synthetic infrastructure
 - Render PostgreSQL: `dpg-db5s7acs728c738s84eg-a`, `robo-teacher-identity-synthetic-staging`, Frankfurt, PostgreSQL 16.
 - Free plan; **expires 10 November 2026**. No HA; not an operational production database.
-- Status at creation: `creating`. Recheck before any integration and do not copy connection strings into GitHub.
+- Render confirms the instance is **available**. Its external IP allowlist is empty; the hosted database query connector correctly cannot connect. This is a safe access restriction, not evidence of a completed application-to-database test. Do not open public network access just for convenience. Do not copy connection strings into GitHub.
 - Do not put names, phone numbers, consent records, learner passwords, real sessions, or actual student progress in this staging database.
 - The CI PostgreSQL integration already runs against disposable PostgreSQL 16; that success does not verify this new Render database's access configuration or backup/restore support.
 
