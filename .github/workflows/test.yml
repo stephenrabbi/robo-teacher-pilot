@@ -118,6 +118,9 @@ jobs:
       - name: Run concurrent progress write and replay tests
         run: python -m unittest discover -s tests -p test_progress_concurrency.py -v
 
+      - name: Run synthetic offline sync and recovery tests
+        run: python -m unittest discover -s tests -p test_offline_sync.py -v
+
       - name: Run synthetic signed-session authentication tests
         run: python -m unittest discover -s tests -p test_progress_auth.py -v
 
