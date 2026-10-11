@@ -55,6 +55,13 @@ class SyntheticAPITests(unittest.TestCase):
         payload = dict(self.event(), subject="B", school="one")
         self.assertEqual(self.client.post("/internal/synthetic-progress/events", json=payload, headers=self.headers(self.a)).status_code, 422)
 
+    def test_signed_legacy_epochless_session_denied(self):
+        legacy = issue_test_session(subject="A", school="one", secret=KEY)
+        self.assertEqual(
+            self.client.get("/internal/synthetic-progress/events", headers=self.headers(legacy)).status_code,
+            401,
+        )
+
     def test_rejects_forged_session(self):
         self.assertEqual(self.client.get("/internal/synthetic-progress/events", headers=self.headers("forged")).status_code, 401)
 
