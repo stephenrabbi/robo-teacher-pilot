@@ -4,6 +4,9 @@ import psycopg
 from psycopg.errors import UniqueViolation, ForeignKeyViolation
 from progress_store.postgres_adapter import SyntheticPostgresProgress
 from progress_store.session_auth import issue_test_session
+from progress_store.postgres_synthetic_api import build_postgres_synthetic_api
+from fastapi.testclient import TestClient
+from concurrent.futures import ThreadPoolExecutor
 
 DSN=os.environ.get("ROBO_SYNTHETIC_PG_DSN")
 SQL=pathlib.Path(__file__).resolve().parents[1]/"progress_store/postgres/0001_synthetic_schema.sql"
@@ -48,6 +51,33 @@ class SyntheticPostgresTests(unittest.TestCase):
             adapter.history(bearer_token=token_a)
         refreshed=issue_test_session(subject="A",school="school",secret=key,session_epoch=1)
         self.assertEqual(len(adapter.history(bearer_token=refreshed)),1)
+
+    def test_api_authentication_concurrent_requests_and_failed_writes(self):
+        key=b"postgres-disposable-signing-secret-12345"
+        with self.assertRaises(RuntimeError):
+            build_postgres_synthetic_api(connection_factory=lambda:psycopg.connect(DSN),signing_key=key)
+        with TestClient(build_postgres_synthetic_api(enabled=True,
+                connection_factory=lambda:psycopg.connect(DSN),signing_key=key)) as client:
+            url="/internal/synthetic-postgres/events"
+            token=issue_test_session(subject="A",school="school",secret=key,session_epoch=0)
+            headers={"Authorization":"Bearer "+token}
+            event=dict(event_id=str(uuid.uuid4()),event_type="practice_completed",
+                class_level="JSS2",topic_key="fractions",correct=3,total=5,
+                occurred_at="2026-10-11T12:00:00+00:00")
+            self.assertEqual(client.get(url).status_code,401)
+            self.assertEqual(client.post(url,json=event,headers=headers).status_code,201)
+            self.assertEqual(client.post(url,json=event,headers=headers).json(),{"recorded":False})
+            self.assertEqual(client.post(url,json=dict(event,correct=4),headers=headers).status_code,422)
+            self.assertEqual(len(client.get(url,headers=headers).json()["events"]),1)
+            tasks=[dict(event,event_id=str(uuid.uuid4())) for _ in range(8)]
+            with ThreadPoolExecutor(max_workers=4) as pool:
+                responses=list(pool.map(lambda e:client.post(url,json=e,headers=headers).status_code,tasks))
+            self.assertEqual(responses,[201]*8)
+            self.assertEqual(len(client.get(url,headers=headers).json()["events"]),9)
+            self.db.execute("UPDATE rt_synthetic.enrollments SET session_epoch=1 WHERE school='school' AND subject='A'")
+            self.db.commit()
+            self.assertEqual(client.post(url,json=dict(event,event_id=str(uuid.uuid4())),headers=headers).status_code,401)
+            self.assertEqual(client.get(url,headers=headers).status_code,401)
 
     def test_scoped_event_and_foreign_key(self):
         event_id=uuid.uuid4()
