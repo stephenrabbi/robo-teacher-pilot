@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 from progress_store.synthetic_api import build_synthetic_progress_app
 from progress_store.session_auth import issue_test_session
 from progress_store.durable_identity import create_identity_schema
+from progress_store.proof_login import SyntheticProofLogin, create_login_schema
 
 KEY = b"synthetic-api-test-secret-never-production-0000000"
 
@@ -15,9 +16,14 @@ class SyntheticAPITests(unittest.TestCase):
         create_identity_schema(self.db)
         self.db.executemany("INSERT INTO synthetic_enrollments (school,subject,reviewer_id,approved_at) VALUES (?,?,?,?)", [("one","A","test-reviewer",1000),("one","B","test-reviewer",1000)])
         self.db.commit()
+        create_login_schema(self.db)
+        self.login = SyntheticProofLogin(self.db, signing_key=KEY)
+        for subject in ("A", "B"):
+            self.login.provision(school="one", subject=subject,
+                credential="long-test-credential-" + subject + "-2026", authorized_operator=True)
         self.client = TestClient(build_synthetic_progress_app(enabled=True, signing_key=KEY, connection=self.db, enrollment_connection=self.db))
-        self.a = issue_test_session(subject="A", school="one", secret=KEY, session_epoch=0)
-        self.b = issue_test_session(subject="B", school="one", secret=KEY, session_epoch=0)
+        self.a = self.login.login(school="one", subject="A", credential="long-test-credential-A-2026")
+        self.b = self.login.login(school="one", subject="B", credential="long-test-credential-B-2026")
 
     def tearDown(self):
         self.client.close()
