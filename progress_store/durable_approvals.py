@@ -45,7 +45,7 @@ class DurableApprovalGate:
                     authenticated_reviewer=decision.reviewer_id)
             else:
                 # This only authorises a later recovery challenge; no token is issued.
-                self.gateway.issue(subject=subject, school=school)
+                self.gateway.require_enrollment(subject=subject, school=school)
                 if decision.reviewer_id not in self.gateway._reviewers:
                     raise PermissionError("Untrusted reviewer")
             self.db.commit()
