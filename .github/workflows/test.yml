@@ -127,6 +127,9 @@ jobs:
       - name: Run reviewed enrollment gate tests
         run: python -m unittest discover -s tests -p test_enrollment_gateway.py -v
 
+      - name: Run complete synthetic learner journey tests
+        run: python -m unittest discover -s tests -p test_synthetic_progress_journey.py -v
+
       - name: Run resumable Autopilot session tests
         run: python -m pytest -q test_resumable_autopilot.py
 
