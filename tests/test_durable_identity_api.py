@@ -28,7 +28,7 @@ class IntegratedDurableIdentityAPITests(unittest.TestCase):
         self.identity.enroll(approval("approval-B","B"),subject="B",school="school-one")
         self.client=TestClient(build_synthetic_progress_app(enabled=True,connection=self.db,
             signing_key=KEY,enrollment_connection=self.db))
-        self.tokens={k:issue_test_session(subject=k,school="school-one",secret=KEY) for k in ("A","B","C")}
+        self.tokens={k:issue_test_session(subject=k,school="school-one",secret=KEY, session_epoch=0) for k in ("A","B","C")}
     def tearDown(self):
         self.client.close()
         self.db.close()
@@ -56,7 +56,7 @@ class IntegratedDurableIdentityAPITests(unittest.TestCase):
         self.assertEqual(self.client.post(url,json=self.event(),headers=self.headers("A")).status_code,401)
     def test_expired_session_denied_even_for_enrolled_learner(self):
         from time import time
-        old=issue_test_session(subject="A",school="school-one",secret=KEY,now=int(time())-4000)
+        old=issue_test_session(subject="A",school="school-one",secret=KEY,now=int(time())-4000,session_epoch=0)
         url="/internal/synthetic-progress/events"
         headers={"Authorization":"Bearer "+old}
         self.assertEqual(self.client.get(url,headers=headers).status_code,401)
