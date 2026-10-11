@@ -160,6 +160,25 @@ jobs:
       - name: Run bounded Autopilot session tests
         run: python -m pytest -q test_autopilot_session.py
 
+  browser-sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install isolated browser test tooling
+        run: npm install --no-save @playwright/test esbuild
+      - name: Install Chromium for browser tests
+        run: npx playwright install --with-deps chromium
+      - name: Build isolated browser adapter bundle
+        run: npx esbuild progress_store/browser_lock_adapter.cjs --bundle --platform=browser --format=iife --global-name=SyntheticBrowserLocks --outfile=build/synthetic-lock-bundle.js
+      - name: Test real Chromium tabs and learner isolation
+        run: npx playwright test tests/real_browser_sync.spec.cjs --reporter=line
+
   runtime-import:
     runs-on: ubuntu-latest
     timeout-minutes: 5
