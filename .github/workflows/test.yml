@@ -255,6 +255,6 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install disposable PostgreSQL test driver
-        run: pip install "psycopg[binary]>=3.2,<4"
+        run: pip install "psycopg[binary]>=3.2,<4" "fastapi>=0.110,<1" "httpx>=0.27,<1"
       - name: Test synthetic PostgreSQL v0001 and revocation serialization
         run: python -m unittest discover -s tests -p test_postgres_synthetic.py -v
