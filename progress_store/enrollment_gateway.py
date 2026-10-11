@@ -36,3 +36,9 @@ class VerifiedEnrollmentGateway:
         self._approved.add(key)
         self._authority.register_approved(subject=enrollment.subject, school=enrollment.school, approved=True)
 
+
+    def require_enrollment(self, *, subject, school):
+        """Check synthetic approval membership only; never issue a session."""
+        if (school, subject) not in self._approved:
+            raise PermissionError("Learner not approved")
+        return True
