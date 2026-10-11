@@ -428,6 +428,19 @@ Human teachers remain important for safeguarding, curriculum judgment, motivatio
 - Welcome-back and unfinished-session continuation
 - Teacher View and CSV reporting
 
+### Learner-selected AI teacher and mobile conversation — product requirements
+
+Robo-Teacher is designed to be a **personal AI teacher that learners can speak or type to from their mobile phones, at any time**, subject to connectivity and service availability. The intended experience includes:
+
+- **Avatar selection:** learners choose their preferred teacher avatar, with preferences retained safely between sessions.
+- **Voice selection:** learners independently choose an available teaching voice, along with language and speech settings; avatar choice must not force a particular voice.
+- **Intelligent presentation:** the avatar is prominent while speaking or engaging with a learner, **automatically minimises** to make room for teaching videos, images, diagrams, animations, infographics or the whiteboard, and **restores** after the visual explanation.
+- **Uninterrupted instruction:** voice, teaching context, lesson progress and visual state continue across avatar transitions without restarting explanations.
+- **Conversational mobile access:** learners can ask educational questions, discuss their learning, request clarification, practise and revisit lessons from a responsive mobile interface.
+- **Continuity and safety:** individual preferences and learning history must remain isolated across shared devices, with child-appropriate safeguarding and verified access controls.
+
+These are **product requirements and acceptance targets**, not a statement that every capability is already available or validated. See `docs/product/teacher-avatar-voice-mobile-requirements.md` for detailed acceptance criteria.
+
 ### Next development priorities
 
 - richer animated visual explanations;
