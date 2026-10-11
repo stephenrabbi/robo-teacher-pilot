@@ -30,7 +30,7 @@ class RevocationRestartTests(unittest.TestCase):
            subject="learner",school="school",reviewer_id="reviewer",kind="recovery",
            approved=True,issued_at=1000,expires_at=1100),secret=PKEY)
     def test_old_token_stays_revoked_after_restart(self):
-        old=self.identity(self.db).issue(subject="learner",school="school")
+        old=issue_test_session(subject="learner",school="school",secret=KEY,now=1050,session_epoch=0)
         challenge=self.identity(self.db).begin_recovery(self.proof(),subject="learner",school="school")
         fresh=self.identity(self.db).complete_recovery(subject="learner",school="school",challenge=challenge)
         self.db.close()
