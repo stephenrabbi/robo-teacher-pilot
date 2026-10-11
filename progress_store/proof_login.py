@@ -17,6 +17,10 @@ def create_login_schema(db):
         school TEXT NOT NULL, subject TEXT NOT NULL,
         salt BLOB NOT NULL, verifier BLOB NOT NULL,
         PRIMARY KEY(school,subject))""")
+    db.execute("""CREATE TABLE IF NOT EXISTS synthetic_login_attempts (
+        school TEXT NOT NULL, subject TEXT NOT NULL,
+        failures INTEGER NOT NULL DEFAULT 0, locked_until INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY(school,subject))""")
     db.commit()
 
 def _derive(password, salt):
@@ -55,15 +59,40 @@ class SyntheticProofLogin:
             raise
 
     def login(self,*,school,subject,credential):
-        row=self.db.execute("""SELECT c.salt,c.verifier,e.session_epoch FROM synthetic_login_credentials c
-            JOIN synthetic_enrollments e ON e.school=c.school AND e.subject=c.subject
-            WHERE c.school=? AND c.subject=?""",(school,subject)).fetchone()
-        if row is None:
-            raise PermissionError("Invalid credentials")
+        now=int(self.clock())
         try:
-            actual=_derive(credential,row[0])
-        except (ValueError,TypeError):
-            raise PermissionError("Invalid credentials") from None
-        if not hmac.compare_digest(actual,row[1]):
-            raise PermissionError("Invalid credentials")
-        return issue_test_session(subject=subject,school=school,secret=self.signing_key,now=int(self.clock()),session_epoch=row[2])
+            self.db.execute("BEGIN IMMEDIATE")
+            state=self.db.execute("SELECT failures,locked_until FROM synthetic_login_attempts WHERE school=? AND subject=?",
+                                  (school,subject)).fetchone()
+            if state and now<state[1]:
+                raise PermissionError("Invalid credentials")
+            if state and state[1] and now>=state[1]:
+                self.db.execute("DELETE FROM synthetic_login_attempts WHERE school=? AND subject=?",(school,subject))
+            row=self.db.execute("""SELECT c.salt,c.verifier,e.session_epoch FROM synthetic_login_credentials c
+                JOIN synthetic_enrollments e ON e.school=c.school AND e.subject=c.subject
+                WHERE c.school=? AND c.subject=?""",(school,subject)).fetchone()
+            valid=False
+            if row:
+                try:
+                    valid=hmac.compare_digest(_derive(credential,row[0]),row[1])
+                except (PermissionError,ValueError,TypeError):
+                    valid=False
+            if not valid:
+                self.db.execute("""INSERT INTO synthetic_login_attempts VALUES (?,?,1,0)
+                    ON CONFLICT(school,subject) DO UPDATE SET failures=failures+1""",(school,subject))
+                count=self.db.execute("SELECT failures FROM synthetic_login_attempts WHERE school=? AND subject=?",
+                                      (school,subject)).fetchone()[0]
+                if count>=5:
+                    self.db.execute("UPDATE synthetic_login_attempts SET locked_until=? WHERE school=? AND subject=?",
+                                    (now+900,school,subject))
+                self.db.commit()
+                raise PermissionError("Invalid credentials")
+            self.db.execute("DELETE FROM synthetic_login_attempts WHERE school=? AND subject=?",(school,subject))
+            token=issue_test_session(subject=subject,school=school,secret=self.signing_key,
+                                     now=now,session_epoch=row[2])
+            self.db.commit()
+            return token
+        except Exception:
+            if self.db.in_transaction:
+                self.db.rollback()
+            raise
