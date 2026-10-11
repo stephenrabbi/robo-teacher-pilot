@@ -44,3 +44,13 @@ test('malformed session cannot become active',()=>{
   const controller=createSessionController(store());
   assert.throws(()=>controller.switchSession({scope:{school:'demo'},token:'fake'}),/session|scope/);
 });
+
+test('failed account switch does not leave previous learner active', async()=>{
+  const controller=createSessionController(store());
+  controller.switchSession(session('A'));
+  controller.queue(event('a1'));
+  assert.throws(()=>controller.switchSession({scope:{school:'demo'},token:'invalid'}));
+  assert.equal(controller.current(),null);
+  assert.throws(()=>controller.queue(event('a2')),/No active session/);
+  await assert.rejects(controller.flush(async()=>true),/No active session/);
+});
