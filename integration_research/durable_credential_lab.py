@@ -80,3 +80,20 @@ class SyntheticDurableCredentialLab:
             if row is None or row[1] or type(epoch) is not int or row[0]!=epoch:
                 raise PermissionError("Revoked or locked account")
             return True
+
+    def recover(self, *, recovery_gate, approval, operator_proof, new_password, now=None):
+        """Synthetic recovery replaces verifier and increments epoch atomically."""
+        from .recovery_gate import SyntheticRecoveryGate
+        if not isinstance(recovery_gate,SyntheticRecoveryGate):
+            raise PermissionError("Recovery authority required")
+        school,learner=recovery_gate.authorize(approval=approval,operator_proof=operator_proof,now=now)
+        salt=secrets.token_bytes(16)
+        digest=self._hash(new_password,salt)
+        with self.lock,self.db:
+            row=self.db.execute("""UPDATE synthetic_credentials
+                SET salt=?,digest=?,failures=0,locked=0,epoch=epoch+1
+                WHERE school=? AND learner=? RETURNING epoch""",
+                (salt,digest,school,learner)).fetchone()
+            if row is None:
+                raise PermissionError("Unknown account")
+            return row[0]
