@@ -124,6 +124,9 @@ jobs:
       - name: Run synthetic cross-tab synchronization tests
         run: node --test tests/cross_tab_sync.test.cjs
 
+      - name: Run synthetic browser Web Locks adapter tests
+        run: node --test tests/browser_lock_adapter.test.cjs
+
       - name: Run synthetic progress persistence authorization tests
         run: python -m unittest discover -s tests -p test_progress_store.py -v
 
