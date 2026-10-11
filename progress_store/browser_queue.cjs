@@ -54,7 +54,8 @@
       }
       const latest = read(storage);
       const index = latest.findIndex(x => x.id === entry.id);
-      if (index < 0) throw Error("Pending event changed during sync");
+      if (index < 0 || JSON.stringify(latest[index].event) !== JSON.stringify(entry.event))
+        throw Error("Pending event changed during sync");
       latest.splice(index, 1);
       save(storage, latest);
       acknowledged += 1;
