@@ -3,8 +3,7 @@
 No enrollment, credentials or tokens accepted. Never mounted by live classroom.
 A private staging gateway must control external access independently.
 """
-import os
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 
 def build_synthetic_identity_smoke_app(*, enabled=False):
     if not enabled:
@@ -13,7 +12,4 @@ def build_synthetic_identity_smoke_app(*, enabled=False):
     @app.get("/internal/synthetic-identity/health")
     def health():
         return {"synthetic_only":True,"identity_endpoints_enabled":False}
-    @app.get("/internal/synthetic-identity/learner")
-    def reject_real_identity():
-        raise HTTPException(status_code=404,detail="No learner API mounted")
     return app
