@@ -14,7 +14,7 @@ class SyntheticRecoveryTests(unittest.TestCase):
                           password="original-synthetic-password")
         self.now=datetime(2026,10,11,tzinfo=timezone.utc)
         self.approval=RecoveryApproval("learner-A","school-A","school-recovery-reviewer",
-            self.now+timedelta(days=1),True)
+            self.now+timedelta(days=1),True,"synthetic-decision-0001")
         self.audits=[]
         self.gate=SyntheticRecoveryGate(reviewers={"school-recovery-reviewer"},
             verify_operator=lambda proof:"different-operator" if proof=="approved-test-proof" else None,
@@ -24,6 +24,9 @@ class SyntheticRecoveryTests(unittest.TestCase):
     def test_recovery_revokes_old_epoch_and_replaces_password(self):
         self.assertEqual(self.lab.recover(recovery_gate=self.gate,approval=self.approval,
             operator_proof="approved-test-proof",new_password="replacement-synthetic-password",now=self.now),1)
+        with self.assertRaises(PermissionError):
+            self.lab.recover(recovery_gate=self.gate,approval=self.approval,
+                operator_proof="approved-test-proof",new_password="replay-synthetic-password",now=self.now)
         with self.assertRaises(PermissionError):
             self.lab.verify_epoch(school_ref="school-A",learner_ref="learner-A",epoch=0)
         with self.assertRaises(PermissionError):
