@@ -77,6 +77,9 @@ class IntegratedDurableIdentityAPITests(unittest.TestCase):
         recovered_token=recovery.complete_recovery(subject="A",school="school-one",challenge=challenge)
         headers={"Authorization":"Bearer "+recovered_token}
         self.assertEqual(len(self.client.get(url,headers=headers).json()["events"]),1)
+        # Tokens issued before recovery are revoked, despite unexpired signature.
+        self.assertEqual(self.client.get(url,headers=self.headers("A")).status_code,401)
+        self.assertEqual(self.client.post(url,json=self.event(),headers=self.headers("A")).status_code,401)
         self.assertEqual(self.client.get(url,headers=self.headers("B")).json()["events"],[])
         with self.assertRaises(PermissionError):
             recovery.complete_recovery(subject="A",school="school-one",challenge=challenge)
