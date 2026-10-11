@@ -5,10 +5,13 @@ from integration_research.supabase_progress_reader import read_own_progress, PRO
 
 class FakeResponse:
     def raise_for_status(self):pass
-    def json(self):return [{"topic_code":"fractions","mastery_score":70,"updated_at":"2026-10-11T00:00:00Z"}]
+    def __init__(self,body):self.body=body
+    def json(self):return self.body
 class FakeClient:
     def __init__(self):self.calls=[]
-    def get(self,*args,**kwargs):self.calls.append((args,kwargs));return FakeResponse()
+    def get(self,*args,**kwargs):
+        self.calls.append((args,kwargs))
+        return FakeResponse({"id":"synthetic-test-user"} if args[0].endswith("/auth/v1/user") else [{"topic_code":"fractions","mastery_score":70,"updated_at":"2026-10-11T00:00:00Z"}])
 
 class ReaderTests(unittest.TestCase):
     def test_disabled_even_with_key_and_token(self):
@@ -30,6 +33,8 @@ class ReaderTests(unittest.TestCase):
                 "ROBO_SUPABASE_PUBLISHABLE_KEY":"sb_publishable_dummy"}):
             self.assertEqual(len(read_own_progress("x"*40,enabled=True,client=c)),1)
         args,opts=c.calls[0]
+        self.assertEqual(args[0],PROJECT_URL+"/auth/v1/user")
+        args,opts=c.calls[1]
         self.assertEqual(args[0],PROJECT_URL+"/rest/v1/robo_learning_progress")
         self.assertEqual(opts["headers"]["Authorization"],"Bearer "+"x"*40)
         self.assertEqual(opts["headers"]["apikey"],"sb_publishable_dummy")
