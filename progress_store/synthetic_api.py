@@ -12,6 +12,7 @@ import sqlite3
 
 from .boundary import ProgressBoundary
 from .prototype import create_schema
+from .session_auth import verify_session
 
 class ProgressEvent(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -23,7 +24,7 @@ class ProgressEvent(BaseModel):
     total: int = Field(ge=0, le=100)
     occurred_at: datetime
 
-def build_synthetic_progress_app(*, enabled=False, signing_key=None, connection=None):
+def build_synthetic_progress_app(*, enabled=False, signing_key=None, connection=None, enrollment_connection=None):
     """Explicitly injectable test dependencies; no production defaults."""
     if not enabled:
         raise RuntimeError("Synthetic progress API is disabled")
@@ -33,12 +34,28 @@ def build_synthetic_progress_app(*, enabled=False, signing_key=None, connection=
         raise ValueError("An isolated synthetic database connection is required")
     create_schema(connection)
     boundary = ProgressBoundary(connection, signing_key)
+    # When supplied, only persist events for independently enrolled identities.
+    # Legacy synthetic API tests may omit it; no production path imports this app.
+    if enrollment_connection is not None:
+        from .durable_identity import create_identity_schema
+        create_identity_schema(enrollment_connection)
     app = FastAPI(title="Synthetic Robo-Teacher Progress API", docs_url=None, redoc_url=None, openapi_url=None)
 
     def token_from_header(authorization):
         if not authorization or not authorization.startswith("Bearer ") or len(authorization) > 4096:
             raise HTTPException(status_code=401, detail="Authentication required")
-        return authorization[7:]
+        token = authorization[7:]
+        if enrollment_connection is not None:
+            try:
+                principal = verify_session(token, secret=signing_key)
+                enrolled = enrollment_connection.execute(
+                    "SELECT 1 FROM synthetic_enrollments WHERE school=? AND subject=?",
+                    (principal.school, principal.subject)).fetchone()
+                if not enrolled:
+                    raise PermissionError("Unenrolled learner")
+            except PermissionError:
+                raise HTTPException(status_code=401, detail="Invalid or unenrolled session")
+        return token
 
     @app.post("/internal/synthetic-progress/events", status_code=201)
     def save(event: ProgressEvent, authorization: str | None = Header(default=None)):
