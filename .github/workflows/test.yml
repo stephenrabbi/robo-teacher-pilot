@@ -262,3 +262,5 @@ jobs:
         run: sudo apt-get update -qq && sudo apt-get install -y postgresql-client
       - name: Verify synthetic acknowledged-event backup and restore
         run: python tests/postgres_backup_restore_drill.py
+      - name: Verify restricted runtime role and interrupted transaction
+        run: python tests/postgres_role_interruption_drill.py
