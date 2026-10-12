@@ -727,8 +727,14 @@ async function ensureSession(){
 start.addEventListener('click',async()=>{
   const nickname=learnerNickname.value.trim();
   if(nickname.length<2){onboardingError.textContent='Please enter a nickname with at least 2 letters.';onboardingError.classList.remove('hidden');learnerNickname.focus();return}
-  const code=learnerCode.value.trim().toUpperCase();
-  if(!/^[A-Z0-9][A-Z0-9-]{3,23}$/.test(code)){onboardingError.textContent='Enter the learner code from your teacher, or tap Generate my code.';onboardingError.classList.remove('hidden');learnerCode.focus();return}
+  // School enrollment is optional. An independent code is a local learning reference,
+  // never proof of identity or permission to access someone else's cloud progress.
+  let code=learnerCode.value.trim().toUpperCase();
+  if(!code){
+    const bytes=crypto.getRandomValues(new Uint8Array(3));
+    code=`IND-${Array.from(bytes,byte=>byte.toString(16).padStart(2,'0')).join('').toUpperCase()}`;
+  }
+  if(!/^[A-Z0-9][A-Z0-9-]{3,23}$/.test(code)){onboardingError.textContent='Enter a valid school code, or leave this blank to generate an independent code.';onboardingError.classList.remove('hidden');learnerCode.focus();return}
   learnerCode.value=code;
   onboardingError.classList.add('hidden');start.disabled=true;start.textContent='Opening classroom…';
   try{
