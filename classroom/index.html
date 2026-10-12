@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Robo-Teacher Classroom</title>
-  <link rel="stylesheet" href="/classroom/styles.css?v=20261012-start-guide1" />
+  <link rel="stylesheet" href="/classroom/styles.css?v=20261012-guide-gap-fix1" />
 </head>
 <body>
   <main class="app-shell">
@@ -17,6 +17,7 @@
     </header>
 
     <section id="welcome" class="screen welcome-screen">
+      <div class="welcome-visual-column">
       <div id="founderPanel" class="founder-panel avatar-rig student-first-founder-panel">
         <div class="student-welcome-photo" aria-label="Real Robo-Teacher classroom demonstration">
           <img src="/classroom/assets/real-students-classroom-welcome.jpg" alt="Students taking part in a Robo-Teacher classroom demonstration" loading="eager" decoding="async" />
@@ -29,6 +30,15 @@
           <img class="founder-avatar avatar-head-motion avatar-head-speaking founder-head-motion" src="/classroom/assets/herbert-stephen-founder-speaking.jpg" alt="" aria-hidden="true" />
         </div>
         <span class="status">Online and ready</span>
+      </div>
+      <aside class="welcome-start-guide" aria-labelledby="welcomeStartGuideTitle">
+        <h2 id="welcomeStartGuideTitle">How to get started</h2>
+        <ol>
+          <li><strong>Enter your nickname</strong> and your learner code, or generate a code if you are learning independently.</li>
+          <li><strong>Choose your class</strong> and confirm you have permission to use Robo-Teacher.</li>
+          <li><strong>Select Start Learning Now</strong> to meet your AI teacher and begin.</li>
+        </ol>
+      </aside>
       </div>
       <div class="welcome-copy">
         <p class="eyebrow">WELCOME TO YOUR AI CLASSROOM</p>
@@ -66,14 +76,7 @@
         </div>
         <p class="privacy-note">Your learning experience is designed with privacy and safety in mind.</p>
       </div>
-      <aside class="welcome-start-guide" aria-labelledby="welcomeStartGuideTitle">
-        <h2 id="welcomeStartGuideTitle">How to get started</h2>
-        <ol>
-          <li><strong>Enter your nickname</strong> and your learner code, or generate a code if you are learning independently.</li>
-          <li><strong>Choose your class</strong> and confirm you have permission to use Robo-Teacher.</li>
-          <li><strong>Select Start Learning Now</strong> to meet your AI teacher and begin.</li>
-        </ol>
-      </aside>
+
     </section>
 
     <section id="classroom" class="screen classroom-screen hidden">

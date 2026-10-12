@@ -413,3 +413,30 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   #welcome .welcome-start-guide h2{font-size:17px}
   #welcome .welcome-start-guide li{font-size:13px}
 }
+
+/* Fix PR #97 row-stretch gap: photo and guide share one grid child. */
+#welcome .welcome-visual-column{
+  grid-column:1;
+  display:flex;
+  flex-direction:column;
+  align-self:start;
+  min-width:0;
+  gap:16px;
+}
+#welcome .welcome-visual-column .student-first-founder-panel{
+  flex:0 0 auto;
+  min-height:0;
+}
+#welcome .welcome-visual-column .welcome-start-guide{
+  grid-column:auto;
+  grid-row:auto;
+  margin:0;
+  align-self:stretch;
+}
+#welcome .welcome-copy{grid-column:2;grid-row:1;align-self:start}
+@media(max-width:900px){
+  #welcome .welcome-visual-column{display:contents}
+  #welcome .welcome-visual-column .student-first-founder-panel{grid-column:1;grid-row:1}
+  #welcome .welcome-copy{grid-column:1;grid-row:2}
+  #welcome .welcome-visual-column .welcome-start-guide{grid-column:1;grid-row:3}
+}
