@@ -32,7 +32,7 @@ Keep original screenshots privately. Record or submit only anonymized examples e
 
 ## 3. Pilot usage metrics
 
-| Metric | Verified value |
+| Metric | Earlier recorded snapshot |
 |---|---:|
 | Students consented | 56 |
 | Students in roster | 56 |
@@ -43,7 +43,7 @@ Keep original screenshots privately. Record or submit only anonymized examples e
 | Average interactions per student | 3.36 |
 | Average response latency | 3.17 seconds |
 
-The 188-interaction figure is the current aggregate interaction count in the live pilot dataset. The approved students continued using Robo-Teacher after the baseline/post evaluation window; learning outcomes remain based on the matched 56-student baseline/post cohort. Historical development/test records and controlled test interactions are retained separately or excluded and are not part of this figure.
+The 188-interaction figure is a historical GitHub-recorded snapshot (119 WhatsApp, 69 Telegram), not the current cumulative count. A later private Google Sheet snapshot checked on 11 October 2026 reports 213 interactions (121 WhatsApp, 92 Telegram). School-level interaction counts in section 4 also refer to the earlier 188-interaction snapshot; do not mix them with the later totals. The approved students continued using Robo-Teacher after the baseline/post evaluation window; learning outcomes remain based on the matched 56-student baseline/post cohort. Historical development/test records and controlled test interactions are retained separately or excluded and are not part of this figure.
 
 ## 4. School breakdown
 
@@ -145,3 +145,17 @@ The learning results are descriptive matched pre/post observations. The pilot di
 - [x] Application claim boundary documented
 - [x] Final anonymized product screenshots archived/selected for submission
 - [ ] Final competition application text completed
+
+## 11. Release acceptance and deployment evidence (12 October 2026)
+
+| Verification item | Evidence and boundary |
+|---|---|
+| Production source | GitHub `main` commit `567456a678b9fcc51d7c5c29cf904e0737be99a7` (PR #99) |
+| Render production deployment | `dep-db6eb40u01pc73fi8rh0`, reported live on 12 October 2026 |
+| Automated regression | GitHub Actions Robo-Teacher Tests workflow #691 passed on PR #99 branch |
+| Desktop visual inspection | Public welcome page inspected after deployment: classroom image, six-step guide beneath photo, founder image assets, registration controls and footer present; no horizontal overflow observed in tested desktop viewport |
+| Android acceptance | Founder reported completing all seven device checks successfully on 12 October 2026: fit/no horizontal scroll, classroom photo and founder display, guide readability, founder audio start/stop, registration and consent validation, classroom handover, and keyboard/camera/microphone during a lesson |
+| iPhone device testing | Not yet verified in this acceptance round |
+
+The Android result is a **founder-reported real-device acceptance check**. It is not an independently witnessed test, a new learner cohort, or a measured educational outcome. No actual device model, operating-system version, browser version or test recording has been entered here. Keep this evidence separate from the August 2026 learning assessment.
+
