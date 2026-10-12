@@ -393,3 +393,23 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   #welcome .student-first-founder-panel .status{right:10px;bottom:125px!important;font-size:10px}
   #welcome .student-photo-caption{left:10px;bottom:10px;right:110px;max-width:calc(100% - 125px);font-size:11px;padding:8px}
 }
+
+/* Compact onboarding guide: beneath classroom photo on desktop,
+   after the sign-up area on narrow screens. No existing controls changed. */
+#welcome .welcome-start-guide{
+  grid-column:1;grid-row:2;align-self:start;min-width:0;
+  padding:18px 20px;border:1px solid #c4d7ec;border-radius:18px;
+  background:#f2f7fd;color:#173451;
+}
+#welcome .welcome-start-guide h2{margin:0 0 10px;font-size:18px;line-height:1.3;color:#102c53}
+#welcome .welcome-start-guide ol{margin:0;padding-left:22px;display:grid;gap:9px}
+#welcome .welcome-start-guide li{padding-left:3px;font-size:14px;line-height:1.5}
+#welcome .welcome-start-guide strong{color:#102c53}
+@media(max-width:900px){
+  #welcome .welcome-start-guide{grid-column:1;grid-row:auto;padding:16px}
+}
+@media(max-width:560px){
+  #welcome .welcome-start-guide{padding:14px;border-radius:14px}
+  #welcome .welcome-start-guide h2{font-size:17px}
+  #welcome .welcome-start-guide li{font-size:13px}
+}
