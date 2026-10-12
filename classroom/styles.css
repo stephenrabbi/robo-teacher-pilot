@@ -440,3 +440,14 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   #welcome .welcome-copy{grid-column:1;grid-row:2}
   #welcome .welcome-visual-column .welcome-start-guide{grid-column:1;grid-row:3}
 }
+
+/* Readable, content-led welcome instructions without fixed height or filler. */
+#welcome .welcome-start-guide .welcome-guide-intro{margin:0 0 12px;font-size:14px;line-height:1.55;color:#38526d}
+#welcome .welcome-start-guide ol{gap:12px}
+#welcome .welcome-start-guide li{line-height:1.55}
+#welcome .welcome-start-guide em{font-style:normal;font-weight:700}
+#welcome .welcome-start-guide .welcome-guide-note{margin:15px 0 0;padding:12px 14px;border-radius:10px;background:#e2eefc;color:#173451;font-size:13px;line-height:1.5}
+@media(max-width:560px){
+  #welcome .welcome-start-guide .welcome-guide-intro{font-size:13px}
+  #welcome .welcome-start-guide ol{gap:10px}
+}
