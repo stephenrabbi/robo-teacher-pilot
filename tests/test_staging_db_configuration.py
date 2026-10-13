@@ -5,7 +5,7 @@ from test_staging_db_configuration import validate_test_db_configuration
 class TestStagingDBConfig(unittest.TestCase):
     def test_correct_test_project(self):
         self.assertTrue(validate_test_db_configuration(
-            "postgresql://test_user:never-real-secret@db.drzaxpofuhqchmpkwhpy.supabase.co:5432/postgres"))
+            "postgresql://robo_test_staging_login:placeholder@db.drzaxpofuhqchmpkwhpy.supabase.co:5432/postgres?sslmode=verify-full"))
 
     def test_production_project_rejected(self):
         with self.assertRaises(ValueError):
