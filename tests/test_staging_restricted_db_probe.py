@@ -29,6 +29,7 @@ class TestRestrictedProbe(unittest.TestCase):
     def test_expected_restricted_role(self):
         conn = Connection([
             ("robo_test_staging_login", "robo_test_staging_login"),
+            (False, False, False, False),
             ("robo_test_enrollment_executor", "robo_test_staging_login"),
             (False,),
         ])
@@ -40,9 +41,18 @@ class TestRestrictedProbe(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "Unexpected connected database role"):
             check_restricted_connection(lambda dsn: conn, self.dsn)
 
+    def test_reject_unexpected_direct_permissions(self):
+        conn = Connection([
+            ("robo_test_staging_login", "robo_test_staging_login"),
+            (True, False, False, False),
+        ])
+        with self.assertRaisesRegex(RuntimeError, "unexpected direct privileges"):
+            check_restricted_connection(lambda dsn: conn, self.dsn)
+
     def test_reject_broad_progress_update(self):
         conn = Connection([
             ("robo_test_staging_login", "robo_test_staging_login"),
+            (False, False, False, False),
             ("robo_test_enrollment_executor", "robo_test_staging_login"),
             (True,),
         ])
