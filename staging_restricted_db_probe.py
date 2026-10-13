@@ -18,6 +18,18 @@ def check_restricted_connection(connect, dsn):
             login, session = cursor.fetchone()
             if (login, session) != (EXPECTED_LOGIN, EXPECTED_LOGIN):
                 raise RuntimeError("Unexpected connected database role")
+            cursor.execute(
+                "SELECT has_schema_privilege(current_user, "
+                "'robo_test_private', 'USAGE'), "
+                "has_function_privilege(current_user, "
+                "'robo_test_private.consume_and_enroll(uuid,bytea)', 'EXECUTE'), "
+                "has_table_privilege(current_user, "
+                "'public.robo_learning_progress', 'SELECT'), "
+                "has_table_privilege(current_user, "
+                "'public.robo_learning_progress', 'UPDATE')"
+            )
+            if any(cursor.fetchone()):
+                raise RuntimeError("Staging login has unexpected direct privileges")
             cursor.execute("SET LOCAL ROLE robo_test_enrollment_executor")
             cursor.execute("SELECT current_user, session_user")
             role, session_after = cursor.fetchone()
