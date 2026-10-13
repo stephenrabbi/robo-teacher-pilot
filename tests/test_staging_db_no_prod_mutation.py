@@ -12,7 +12,7 @@ class TestStageOnlyValidation(unittest.TestCase):
                 validate_test_db_configuration(dsn)
 
     def test_validation_is_offline_and_does_not_connect(self):
-        dsn="postgresql://fake:fake@db.drzaxpofuhqchmpkwhpy.supabase.co:5432/postgres"
+        dsn="postgresql://robo_test_staging_login:placeholder@db.drzaxpofuhqchmpkwhpy.supabase.co:5432/postgres?sslmode=verify-full"
         with patch("socket.create_connection", side_effect=AssertionError("Network attempted")):
             self.assertTrue(validate_test_db_configuration(dsn))
 
