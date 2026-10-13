@@ -1,0 +1,9 @@
+# Test-only atomic new cloud enrollment — 2026-10-13
+
+Environment: isolated Supabase project `drzaxpofuhqchmpkwhpy`; no production Supabase or live classroom changes.
+
+Migration `private_atomic_new_cloud_enrollment` creates a `robo_test_private.cloud_enrollments` table (user_id primary key referencing auth.users; independently generated unique cloud_identity UUID) with RLS enabled and all client roles denied. The private SECURITY INVOKER function `robo_test_private.consume_and_enroll(uuid,bytea)` conditionally consumes an unexpired challenge and creates a fresh cloud identity in the **same database transaction**. It returns null for wrong user/invalid or reused proof and raises on duplicate account enrollment, rolling the complete transaction back. Access to this function is revoked from PUBLIC, anon and authenticated. It is not in the exposed API schema.
+
+**Synthetic SQL transaction assertions executed:** wrong user rejected, first valid use yielded fresh enrollment, replay returned null, exactly one transient enrollment existed. The transaction was rolled back. Follow-up inspection confirmed zero persistent challenges and zero persistent cloud enrollments, no anonymous or authenticated EXECUTE permission.
+
+**Limits:** There is not yet a live backend caller authenticated with actual Supabase JWTs, a secure proof issuance HTTP endpoint, a remote test environment route, transactional concurrency stress under real network load, account recovery, guardian authorization, or a completed cloud progress API. The private function takes a caller-supplied UUID at the SQL level; the future trusted backend must derive it from an independently verified Supabase user token. Never allow clients to supply or choose ownership IDs, invoke this private function, or migrate existing classroom progress based on learner code/session alone. This milestone is a verified database proof of concept, **not** a functional end-to-end enrollment service.
