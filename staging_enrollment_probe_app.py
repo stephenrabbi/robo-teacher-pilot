@@ -71,6 +71,13 @@ def health():
         return JSONResponse({"status":"not_configured"},status_code=503)
     try:
         import psycopg
+        # Inspect libpq's parsed SSL mode without logging secrets.
+        options = psycopg.conninfo.conninfo_to_dict(dsn)
+        sslmode = options.get("sslmode")
+        if sslmode != "verify-full":
+            logger.warning("Restricted staging probe: parsed_sslmode_mismatch")
+            return JSONResponse({"status":"restricted_connection_failed"},status_code=503)
+        logger.info("Restricted staging probe: parsed_sslmode_verified")
         check_restricted_connection(psycopg.connect,dsn)
     except Exception as exc:
         logger.warning("Restricted staging probe: %s",safe_failure_category(exc))
