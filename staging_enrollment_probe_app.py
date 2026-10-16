@@ -26,7 +26,7 @@ def safe_failure_category(exc):
         detail = str(exc).lower()
         if "root certificate file" in detail or "sslrootcert" in detail or "no such file or directory" in detail:
             return "tls_ca_store_configuration_failed"
-        if "sslmode" in detail or "invalid connection option" in detail or "invalid ssl" in detail:
+        if "invalid sslmode value" in detail or "invalid connection option" in detail or "invalid ssl mode" in detail:
             return "postgresql_tls_option_rejected"
         if "server closed the connection unexpectedly" in detail or "connection reset by peer" in detail:
             return "database_connection_terminated"
@@ -34,6 +34,12 @@ def safe_failure_category(exc):
             return "tls_handshake_failed"
         if "failing row contains" in detail:
             return "database_server_rejected_connection"
+        if "connection requires a valid client certificate" in detail:
+            return "tls_client_certificate_required"
+        if "certificate" in detail and "verify" in detail:
+            return "tls_certificate_verification_failed"
+        if "ssl" in detail and ("not supported" in detail or "disabled" in detail):
+            return "tls_not_supported_or_disabled"
         if "password authentication failed" in detail or "authentication failed" in detail:
             return "database_authentication_failed"
         if "tenant or user not found" in detail or "invalid tenant" in detail:
