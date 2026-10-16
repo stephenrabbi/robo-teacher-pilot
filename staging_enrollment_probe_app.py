@@ -22,7 +22,22 @@ def safe_failure_category(exc):
         return "database_permission_denied"
     name = type(exc).__name__
     if name == "OperationalError":
-        # Driver details intentionally suppressed, including TLS/network text.
+        # Use fixed labels only. Never log error text, DSN, or credentials.
+        detail = str(exc).lower()
+        if "password authentication failed" in detail or "authentication failed" in detail:
+            return "database_authentication_failed"
+        if "tenant or user not found" in detail or "invalid tenant" in detail:
+            return "pooler_tenant_or_username_rejected"
+        if "certificate verify failed" in detail or "certificate verification failed" in detail:
+            return "tls_certificate_verification_failed"
+        if "hostname mismatch" in detail or "hostname doesn't match" in detail:
+            return "tls_hostname_verification_failed"
+        if "name or service not known" in detail or "could not translate host name" in detail:
+            return "database_dns_resolution_failed"
+        if "connection timed out" in detail or "timeout expired" in detail:
+            return "database_connection_timed_out"
+        if "connection refused" in detail:
+            return "database_connection_refused"
         return "database_transport_or_tls_or_auth_failed"
     if name in ("ImportError", "ModuleNotFoundError"):
         return "database_driver_missing"
