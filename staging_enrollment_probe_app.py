@@ -75,7 +75,11 @@ def health():
         options = psycopg.conninfo.conninfo_to_dict(dsn)
         sslmode = options.get("sslmode")
         if sslmode != "verify-full":
-            logger.warning("Restricted staging probe: parsed_sslmode_mismatch")
+            category = ("sslmode_missing" if sslmode is None
+                        else "sslmode_quoted" if str(sslmode).strip("\\\"'") == "verify-full"
+                        else "sslmode_whitespace" if str(sslmode).strip() == "verify-full"
+                        else "sslmode_other")
+            logger.warning("Restricted staging probe: %s", category)
             return JSONResponse({"status":"restricted_connection_failed"},status_code=503)
         logger.info("Restricted staging probe: parsed_sslmode_verified")
         check_restricted_connection(psycopg.connect,dsn)
