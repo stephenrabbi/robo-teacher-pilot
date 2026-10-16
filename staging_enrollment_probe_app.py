@@ -24,6 +24,16 @@ def safe_failure_category(exc):
     if name == "OperationalError":
         # Use fixed labels only. Never log error text, DSN, or credentials.
         detail = str(exc).lower()
+        if "root certificate file" in detail or "sslrootcert" in detail or "no such file or directory" in detail:
+            return "tls_ca_store_configuration_failed"
+        if "sslmode" in detail or "invalid connection option" in detail or "invalid ssl" in detail:
+            return "postgresql_tls_option_rejected"
+        if "server closed the connection unexpectedly" in detail or "connection reset by peer" in detail:
+            return "database_connection_terminated"
+        if "could not establish ssl connection" in detail or "ssl handshake" in detail:
+            return "tls_handshake_failed"
+        if "failing row contains" in detail:
+            return "database_server_rejected_connection"
         if "password authentication failed" in detail or "authentication failed" in detail:
             return "database_authentication_failed"
         if "tenant or user not found" in detail or "invalid tenant" in detail:
