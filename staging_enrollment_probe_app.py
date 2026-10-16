@@ -66,7 +66,7 @@ def safe_failure_category(exc):
 
 @app.get("/health")
 def health():
-    dsn=os.environ.get("ROBO_TEST_DATABASE_URL")
+    dsn=(os.environ.get("ROBO_TEST_DATABASE_URL") or "").strip()
     if os.environ.get("ROBO_TEST_PROBE_ENABLED")!="true" or not dsn:
         return JSONResponse({"status":"not_configured"},status_code=503)
     try:
