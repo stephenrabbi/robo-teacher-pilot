@@ -4,6 +4,9 @@ Run only in the isolated Synthetic Lab after a password is stored privately.
 No enrollment writes and no HTTP route. Errors intentionally omit DSN details.
 """
 import os
+import logging
+
+logger = logging.getLogger('robo-teacher-staging-probe')
 from test_staging_db_configuration import validate_test_db_configuration
 
 EXPECTED_LOGIN = "robo_test_staging_login"
@@ -14,10 +17,12 @@ def check_restricted_connection(connect, dsn):
     validate_test_db_configuration(dsn)
     with connect(dsn) as connection:
         with connection.cursor() as cursor:
+            logger.warning("Restricted staging probe stage: inspect_connected_identity")
             cursor.execute("SELECT current_user, session_user")
             login, session = cursor.fetchone()
             if (login, session) != (EXPECTED_LOGIN, EXPECTED_LOGIN):
                 raise RuntimeError("Unexpected connected database role")
+            logger.warning("Restricted staging probe stage: inspect_direct_privileges")
             cursor.execute(
                 "SELECT has_schema_privilege(current_user, "
                 "'robo_test_private', 'USAGE'), "
@@ -30,11 +35,14 @@ def check_restricted_connection(connect, dsn):
             )
             if any(cursor.fetchone()):
                 raise RuntimeError("Staging login has unexpected direct privileges")
+            logger.warning("Restricted staging probe stage: activate_restricted_executor")
             cursor.execute("SET LOCAL ROLE robo_test_enrollment_executor")
+            logger.warning("Restricted staging probe stage: verify_executor_identity")
             cursor.execute("SELECT current_user, session_user")
             role, session_after = cursor.fetchone()
             if (role, session_after) != (EXPECTED_EXECUTOR, EXPECTED_LOGIN):
                 raise RuntimeError("Restricted role activation failed")
+            logger.warning("Restricted staging probe stage: verify_denied_progress_write")
             cursor.execute(
                 "SELECT has_table_privilege(current_user, "
                 "'public.robo_learning_progress', 'UPDATE')"
