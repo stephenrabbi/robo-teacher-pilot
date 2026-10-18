@@ -26,8 +26,11 @@ def check_restricted_connection(connect, dsn):
             cursor.execute(
                 "SELECT has_schema_privilege(current_user, "
                 "'robo_test_private', 'USAGE'), "
-                "has_function_privilege(current_user, "
-                "'robo_test_private.consume_and_enroll(uuid,bytea)', 'EXECUTE'), "
+                "COALESCE((SELECT has_function_privilege(current_user, p.oid, 'EXECUTE') "
+                "FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace "
+                "WHERE n.nspname = 'robo_test_private' AND p.proname = 'consume_and_enroll' "
+                "AND p.pronargs = 2 AND p.proargtypes[0] = 'uuid'::regtype "
+                "AND p.proargtypes[1] = 'bytea'::regtype LIMIT 1), false), "
                 "has_table_privilege(current_user, "
                 "'public.robo_learning_progress', 'SELECT'), "
                 "has_table_privilege(current_user, "
