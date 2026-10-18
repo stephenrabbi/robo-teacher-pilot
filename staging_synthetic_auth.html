@@ -3,7 +3,7 @@
 <meta name="robots" content="noindex,nofollow"><title>Robo-Teacher | Synthetic authentication audit</title>
 <style>body{font:16px system-ui,sans-serif;margin:2rem auto;max-width:680px;padding:0 1rem;color:#12233e}label{display:block;margin:1em 0 .3em}input,button{font:inherit;padding:.7em;width:100%;box-sizing:border-box}button{margin-top:1em;background:#183868;color:white;border:0;border-radius:6px;cursor:pointer}.secondary{background:#555}pre{white-space:pre-wrap;background:#eff3f8;padding:1em}small{color:#555}</style></head>
 <body><h1>Robo-Teacher synthetic learner sign-in</h1><p>Staging test only. Use either of the two synthetic learner accounts. This page reads record counts only and does not write learner progress.</p>
-<form id="login"><label for="email">Synthetic account email</label><input id="email" type="email" required autocomplete="off" pattern="robotest\\.learner\\.[ab]@example\\.com" placeholder="robotest.learner.a@example.com">
+<form id="login"><label for="email">Synthetic account email</label><input id="email" type="email" required autocomplete="off" pattern="robotest\.learner\.[ab]@example\.com" placeholder="robotest.learner.a@example.com">
 <label for="password">Password</label><input id="password" type="password" required autocomplete="off">
 <button id="submit">Sign in and test ownership</button></form>
 <button class="secondary" id="logout" hidden>Sign out and clear session</button>
@@ -20,7 +20,7 @@ document.getElementById('logout').onclick=()=>{clear();show('Signed out; in-memo
 document.getElementById('login').onsubmit=async e=>{
  e.preventDefault();clear();show('Testing sign-in...');
  const email=document.getElementById('email').value.trim().toLowerCase();
- if(!/^robotest\\.learner\\.[ab]@example\\.com$/.test(email)){show('Synthetic accounts A and B only.');return;}
+ if(!/^robotest\.learner\.[ab]@example\.com$/.test(email)){show('Synthetic accounts A and B only.');return;}
  try{
   if(!apiKey){const conf=await fetch('/synthetic-auth-config',{cache:'no-store'});if(!conf.ok)throw Error('Staging configuration unavailable');const obj=await conf.json();apiKey=obj.publishable_key;}
   const signed=await fetch(S+'/auth/v1/token?grant_type=password',{method:'POST',headers:{'apikey':apiKey,'Content-Type':'application/json'},body:JSON.stringify({email,password:document.getElementById('password').value}),cache:'no-store'});
