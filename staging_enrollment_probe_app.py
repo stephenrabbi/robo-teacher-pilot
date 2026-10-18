@@ -2,7 +2,7 @@
 import logging
 import os
 from fastapi import FastAPI
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
 from staging_restricted_db_probe import check_restricted_connection
 
 logger = logging.getLogger("robo-teacher-staging-probe")
@@ -87,3 +87,26 @@ def health():
         logger.warning("Restricted staging probe: %s",safe_failure_category(exc))
         return JSONResponse({"status":"restricted_connection_failed"},status_code=503)
     return {"status":"restricted_connection_verified"}
+
+
+@app.get("/synthetic-auth-config")
+def synthetic_auth_config():
+    key = os.environ.get("ROBO_TEST_SUPABASE_PUBLISHABLE_KEY", "")
+    if os.environ.get("ROBO_TEST_PROBE_ENABLED") != "true" or not key.startswith("sb_publishable_"):
+        return JSONResponse({"status":"not_configured"},status_code=503)
+    return JSONResponse({"publishable_key":key},headers={"Cache-Control":"no-store"})
+
+
+@app.get("/synthetic-login",response_class=HTMLResponse)
+def synthetic_login():
+    if os.environ.get("ROBO_TEST_PROBE_ENABLED") != "true":
+        return JSONResponse({"status":"not_configured"},status_code=503)
+    with open("staging_synthetic_auth.html",encoding="utf-8") as f:
+        markup=f.read()
+    return HTMLResponse(markup,headers={
+        "Cache-Control":"no-store",
+        "Content-Security-Policy":"default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self' https://drzaxpofuhqchmpkwhpy.supabase.co; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
+        "Referrer-Policy":"no-referrer",
+        "X-Content-Type-Options":"nosniff",
+        "X-Frame-Options":"DENY",
+    })
