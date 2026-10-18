@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><title>Robo-Teacher | Synthetic authentication audit</title>
+<style>body{font:16px system-ui,sans-serif;margin:2rem auto;max-width:680px;padding:0 1rem;color:#12233e}label{display:block;margin:1em 0 .3em}input,button{font:inherit;padding:.7em;width:100%;box-sizing:border-box}button{margin-top:1em;background:#183868;color:white;border:0;border-radius:6px;cursor:pointer}.secondary{background:#555}pre{white-space:pre-wrap;background:#eff3f8;padding:1em}small{color:#555}</style></head>
+<body><h1>Robo-Teacher synthetic learner sign-in</h1><p>Staging test only. Use either of the two synthetic learner accounts. This page reads record counts only and does not write learner progress.</p>
+<form id="login"><label for="email">Synthetic account email</label><input id="email" type="email" required autocomplete="off" pattern="robotest\\.learner\\.[ab]@example\\.com" placeholder="robotest.learner.a@example.com">
+<label for="password">Password</label><input id="password" type="password" required autocomplete="off">
+<button id="submit">Sign in and test ownership</button></form>
+<button class="secondary" id="logout" hidden>Sign out and clear session</button>
+<p id="status" role="status" aria-live="polite">Not signed in.</p><pre id="result" hidden></pre>
+<small>Passwords and access tokens are held in memory only, not saved to local storage. Don't use real student accounts.</small>
+<script>
+'use strict';
+const S='https://drzaxpofuhqchmpkwhpy.supabase.co';
+const statusEl=document.getElementById('status'), result=document.getElementById('result');
+let token=null, apiKey=null;
+function show(text){statusEl.textContent=text;}
+function clear(){token=null;document.getElementById('password').value='';result.hidden=true;result.textContent='';document.getElementById('logout').hidden=true;}
+document.getElementById('logout').onclick=()=>{clear();show('Signed out; in-memory session cleared.');};
+document.getElementById('login').onsubmit=async e=>{
+ e.preventDefault();clear();show('Testing sign-in...');
+ const email=document.getElementById('email').value.trim().toLowerCase();
+ if(!/^robotest\\.learner\\.[ab]@example\\.com$/.test(email)){show('Synthetic accounts A and B only.');return;}
+ try{
+  if(!apiKey){const conf=await fetch('/synthetic-auth-config',{cache:'no-store'});if(!conf.ok)throw Error('Staging configuration unavailable');const obj=await conf.json();apiKey=obj.publishable_key;}
+  const signed=await fetch(S+'/auth/v1/token?grant_type=password',{method:'POST',headers:{'apikey':apiKey,'Content-Type':'application/json'},body:JSON.stringify({email,password:document.getElementById('password').value}),cache:'no-store'});
+  document.getElementById('password').value='';
+  if(!signed.ok)throw Error('Sign-in rejected. Verify synthetic account credentials.');
+  const auth=await signed.json();token=auth.access_token;
+  if(!token||!auth.user||auth.user.email?.toLowerCase()!==email)throw Error('Authenticated identity mismatch');
+  const headers={'apikey':apiKey,'Authorization':'Bearer '+token};
+  const resources=['robo_learner_profiles','robo_learning_progress'];
+  const counts={};
+  for(const table of resources){
+   const response=await fetch(S+'/rest/v1/'+table+'?select=user_id',{headers,cache:'no-store'});
+   if(!response.ok)throw Error('Ownership read unavailable for '+table);
+   const rows=await response.json();
+   if(!Array.isArray(rows)||rows.some(row=>row.user_id!==auth.user.id))throw Error('SECURITY FAILURE: cross-owner record returned for '+table);
+   counts[table]=rows.length;
+  }
+  result.textContent=JSON.stringify({account:email,owned_profile_rows:counts.robo_learner_profiles,owned_progress_rows:counts.robo_learning_progress,cross_owner_records_found:false,read_only:true},null,2);
+  result.hidden=false;document.getElementById('logout').hidden=false;show('Authenticated reads passed. This session remains in memory until sign-out or page closure.');
+ }catch(err){clear();show(err.message||'Synthetic authentication test failed.');}
+};
+</script></body></html>
