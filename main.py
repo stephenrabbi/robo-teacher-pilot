@@ -36,7 +36,7 @@ async def add_privacy_security_headers(request: Request, call_next):
             "style-src 'self' 'unsafe-inline'; "
             "img-src 'self' data: blob:; "
             "media-src 'self' data: blob:; "
-            "connect-src 'self'; "
+            ("connect-src 'self' https://drzaxpofuhqchmpkwhpy.supabase.co; " if os.environ.get("ROBO_SYNTHETIC_CLASSROOM_SYNC_ENABLED") == "true" else "connect-src 'self'; ")
             "frame-src https://phet.colorado.edu; "
             "font-src 'self' data:; "
             "object-src 'none'; "
