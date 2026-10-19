@@ -29,6 +29,7 @@ async def add_privacy_security_headers(request: Request, call_next):
     response.headers.setdefault("Permissions-Policy", "geolocation=(), camera=(self), microphone=(self)")
     content_type = response.headers.get("content-type", "")
     if "text/html" in content_type:
+        allowed_connect_src = "connect-src 'self' https://drzaxpofuhqchmpkwhpy.supabase.co; " if os.environ.get("ROBO_SYNTHETIC_CLASSROOM_SYNC_ENABLED") == "true" else "connect-src 'self'; "
         response.headers.setdefault(
             "Content-Security-Policy",
             "default-src 'self'; "
@@ -36,7 +37,7 @@ async def add_privacy_security_headers(request: Request, call_next):
             "style-src 'self' 'unsafe-inline'; "
             "img-src 'self' data: blob:; "
             "media-src 'self' data: blob:; "
-            ("connect-src 'self' https://drzaxpofuhqchmpkwhpy.supabase.co; " if os.environ.get("ROBO_SYNTHETIC_CLASSROOM_SYNC_ENABLED") == "true" else "connect-src 'self'; ")
+            + allowed_connect_src +
             "frame-src https://phet.colorado.edu; "
             "font-src 'self' data:; "
             "object-src 'none'; "
