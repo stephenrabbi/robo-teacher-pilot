@@ -6,7 +6,7 @@
 <form id="login"><label for="email">Synthetic account email</label><input id="email" type="email" required autocomplete="off" pattern="robotest\.learner\.[ab]@example\.com" placeholder="robotest.learner.a@example.com">
 <label for="password">Password</label><input id="password" type="password" required autocomplete="off">
 <button id="submit">Sign in and test ownership</button></form>
-<section id="syncPanel" hidden><h2>Synthetic progress sync test</h2><p>Only synthetic practice events can be created. The database assigns your user ID automatically.</p><label for="syncScore">Synthetic test score (0–100)</label><input id="syncScore" type="number" min="0" max="100" value="70"><button id="saveSync" type="button">Save synthetic progress</button><button class="secondary" id="refreshSync" type="button">Retrieve progress again</button><pre id="syncResults" aria-live="polite"></pre></section><button class="secondary" id="logout" hidden>Sign out and clear session</button>
+<section id="syncPanel" hidden><h2>Synthetic progress sync test</h2><p>Only synthetic practice events can be created. The database assigns your user ID automatically.</p><label for="syncScore">Synthetic test score (0–100)</label><input id="syncScore" type="number" min="0" max="100" value="70"><button id="saveSync" type="button">Save synthetic progress</button><button class="secondary" id="refreshSync" type="button">Retrieve progress again</button><button class="secondary" id="testWriteGuards" type="button">Test blocked writes</button><pre id="writeGuardResults" aria-live="polite"></pre><pre id="syncResults" aria-live="polite"></pre></section><button class="secondary" id="logout" hidden>Sign out and clear session</button>
 <p id="status" role="status" aria-live="polite">Not signed in.</p><pre id="result" hidden></pre>
 <small>Passwords and access tokens are held in memory only, not saved to local storage. Don't use real student accounts.</small>
 <script>
@@ -15,7 +15,7 @@ const S='https://drzaxpofuhqchmpkwhpy.supabase.co';
 const statusEl=document.getElementById('status'), result=document.getElementById('result');
 let token=null, apiKey=null, signedUserId=null;
 function show(text){statusEl.textContent=text;}
-function clear(){token=null;signedUserId=null;document.getElementById('syncPanel').hidden=true;document.getElementById('syncResults').textContent='';document.getElementById('password').value='';result.hidden=true;result.textContent='';document.getElementById('logout').hidden=true;}
+function clear(){token=null;signedUserId=null;document.getElementById('syncPanel').hidden=true;document.getElementById('syncResults').textContent='';document.getElementById('writeGuardResults').textContent='';document.getElementById('password').value='';result.hidden=true;result.textContent='';document.getElementById('logout').hidden=true;}
 document.getElementById('logout').onclick=()=>{clear();show('Signed out; in-memory session cleared.');};
 document.getElementById('login').onsubmit=async e=>{
  e.preventDefault();
@@ -68,5 +68,26 @@ document.getElementById('saveSync').onclick=async()=>{
   if(!res.ok)throw Error('Synthetic progress save rejected (HTTP '+res.status+')');
   await refreshSync();show('Synthetic progress saved and retrieved. Sign out and sign in again to verify persistence.');
  }catch(e){show(e.message||'Synthetic sync test failed')}
+};
+
+document.getElementById('testWriteGuards').onclick=async()=>{
+ if(!token||!signedUserId){show('Sign in first');return}
+ const out=document.getElementById('writeGuardResults');
+ out.textContent='Testing denied writes on synthetic-only records...';
+ const h={apikey:apiKey,Authorization:'Bearer '+token,'Content-Type':'application/json',Prefer:'return=minimal'};
+ const tests=[
+  {name:'Forged learner ID insert',url:'/rest/v1/robo_synthetic_sync_events',method:'POST',body:JSON.stringify({user_id:'00000000-0000-4000-8000-000000000001',topic_code:'synthetic_security_test',score:55})},
+  {name:'Unauthorized progress update',url:'/rest/v1/robo_synthetic_sync_events?user_id=eq.'+encodeURIComponent(signedUserId),method:'PATCH',body:JSON.stringify({score:55})},
+  {name:'Unauthorized progress deletion',url:'/rest/v1/robo_synthetic_sync_events?user_id=eq.'+encodeURIComponent(signedUserId),method:'DELETE'}
+ ];
+ const results=[];
+ for(const t of tests){
+  try{const res=await fetch(S+t.url,{method:t.method,headers:h,body:t.body,cache:'no-store'});
+   results.push({test:t.name,http_status:res.status,blocked:!res.ok});
+  }catch(_){results.push({test:t.name,blocked:null,network_error:true})}
+ }
+ const passed=results.every(x=>x.blocked===true);
+ out.textContent=JSON.stringify({all_blocked:passed,results},null,2);
+ show(passed?'All synthetic unauthorized-write checks were rejected.':'Security checks need review; do not use real learners.');
 };
 </script></body></html>
