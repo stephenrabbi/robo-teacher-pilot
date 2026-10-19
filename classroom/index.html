@@ -245,5 +245,13 @@
   </footer>
   <script src="/classroom/compliance.js?v=20261006-privacy1"></script>
   <script src="/classroom/app.js?v=20261006-privacy1"></script>
+  <section id="syntheticCloudSync" hidden aria-label="Synthetic Supabase progress test" style="max-width:42rem;margin:1rem auto;padding:1rem;border:1px solid #aab6c5;border-radius:10px;background:#f6f9fd;color:#142a45">
+    <h2>Synthetic cloud progress test</h2><p>Staging-only. Synthetic accounts A and B only. Real learners must not use this panel.</p>
+    <label for="syntheticCloudEmail">Synthetic account email</label><input id="syntheticCloudEmail" type="email" placeholder="robotest.learner.a@example.com" autocomplete="off" style="width:100%">
+    <label for="syntheticCloudPassword">Synthetic password</label><input id="syntheticCloudPassword" type="password" autocomplete="off" style="width:100%">
+    <button id="syntheticCloudLogin" type="button">Connect synthetic progress</button><button id="syntheticCloudLogout" type="button">Clear synthetic session</button>
+    <p id="syntheticCloudStatus" role="status" aria-live="polite">Not connected.</p>
+  </section>
+  <script type="module" src="/classroom/supabase_classroom_optin.js"></script>
 </body>
 </html>
