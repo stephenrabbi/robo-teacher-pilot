@@ -18,12 +18,14 @@ function show(text){statusEl.textContent=text;}
 function clear(){token=null;document.getElementById('password').value='';result.hidden=true;result.textContent='';document.getElementById('logout').hidden=true;}
 document.getElementById('logout').onclick=()=>{clear();show('Signed out; in-memory session cleared.');};
 document.getElementById('login').onsubmit=async e=>{
- e.preventDefault();clear();show('Testing sign-in...');
+ e.preventDefault();
+ const enteredPassword=document.getElementById('password').value;
+ clear();show('Testing sign-in...');
  const email=document.getElementById('email').value.trim().toLowerCase();
  if(!/^robotest\.learner\.[ab]@example\.com$/.test(email)){show('Synthetic accounts A and B only.');return;}
  try{
   if(!apiKey){const conf=await fetch('/synthetic-auth-config',{cache:'no-store'});if(!conf.ok)throw Error('Staging configuration unavailable');const obj=await conf.json();apiKey=obj.publishable_key;}
-  const signed=await fetch(S+'/auth/v1/token?grant_type=password',{method:'POST',headers:{'apikey':apiKey,'Content-Type':'application/json'},body:JSON.stringify({email,password:document.getElementById('password').value}),cache:'no-store'});
+  const signed=await fetch(S+'/auth/v1/token?grant_type=password',{method:'POST',headers:{'apikey':apiKey,'Content-Type':'application/json'},body:JSON.stringify({email,password:enteredPassword}),cache:'no-store'});
   document.getElementById('password').value='';
   if(!signed.ok){
    let code='unknown';
