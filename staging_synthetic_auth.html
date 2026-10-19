@@ -2,20 +2,20 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow"><title>Robo-Teacher | Synthetic authentication audit</title>
 <style>body{font:16px system-ui,sans-serif;margin:2rem auto;max-width:680px;padding:0 1rem;color:#12233e}label{display:block;margin:1em 0 .3em}input,button{font:inherit;padding:.7em;width:100%;box-sizing:border-box}button{margin-top:1em;background:#183868;color:white;border:0;border-radius:6px;cursor:pointer}.secondary{background:#555}pre{white-space:pre-wrap;background:#eff3f8;padding:1em}small{color:#555}</style></head>
-<body><h1>Robo-Teacher synthetic learner sign-in</h1><p>Staging test only. Use either of the two synthetic learner accounts. This page reads record counts only and does not write learner progress.</p>
+<body><h1>Robo-Teacher synthetic learner sign-in</h1><p>Staging test only. Use either of the two synthetic learner accounts. This isolated page tests synthetic authentication, progress saving, access restrictions, and session recovery. No real learner accounts.</p>
 <form id="login"><label for="email">Synthetic account email</label><input id="email" type="email" required autocomplete="off" pattern="robotest\.learner\.[ab]@example\.com" placeholder="robotest.learner.a@example.com">
 <label for="password">Password</label><input id="password" type="password" required autocomplete="off">
 <button id="submit">Sign in and test ownership</button></form>
-<section id="syncPanel" hidden><h2>Synthetic progress sync test</h2><p>Only synthetic practice events can be created. The database assigns your user ID automatically.</p><label for="syncScore">Synthetic test score (0–100)</label><input id="syncScore" type="number" min="0" max="100" value="70"><button id="saveSync" type="button">Save synthetic progress</button><button class="secondary" id="refreshSync" type="button">Retrieve progress again</button><button class="secondary" id="testWriteGuards" type="button">Test blocked writes</button><pre id="writeGuardResults" aria-live="polite"></pre><pre id="syncResults" aria-live="polite"></pre></section><button class="secondary" id="logout" hidden>Sign out and clear session</button>
+<section id="syncPanel" hidden><h2>Synthetic progress sync test</h2><p>Only synthetic practice events can be created. The database assigns your user ID automatically.</p><label for="syncScore">Synthetic test score (0–100)</label><input id="syncScore" type="number" min="0" max="100" value="70"><button id="saveSync" type="button">Save synthetic progress</button><button class="secondary" id="refreshSync" type="button">Retrieve progress again</button><button class="secondary" id="testWriteGuards" type="button">Test blocked writes</button><button class="secondary" id="testSessionClear" type="button">Test session clearance and re-sign-in</button><pre id="writeGuardResults" aria-live="polite"></pre><pre id="syncResults" aria-live="polite"></pre></section><button class="secondary" id="logout" hidden>Sign out and clear session</button>
 <p id="status" role="status" aria-live="polite">Not signed in.</p><pre id="result" hidden></pre>
 <small>Passwords and access tokens are held in memory only, not saved to local storage. Don't use real student accounts.</small>
 <script>
 'use strict';
 const S='https://drzaxpofuhqchmpkwhpy.supabase.co';
 const statusEl=document.getElementById('status'), result=document.getElementById('result');
-let token=null, apiKey=null, signedUserId=null;
+let token=null, apiKey=null, signedUserId=null, expiryAt=null;
 function show(text){statusEl.textContent=text;}
-function clear(){token=null;signedUserId=null;document.getElementById('syncPanel').hidden=true;document.getElementById('syncResults').textContent='';document.getElementById('writeGuardResults').textContent='';document.getElementById('password').value='';result.hidden=true;result.textContent='';document.getElementById('logout').hidden=true;}
+function clear(){token=null;signedUserId=null;expiryAt=null;document.getElementById('syncPanel').hidden=true;document.getElementById('syncResults').textContent='';document.getElementById('writeGuardResults').textContent='';document.getElementById('password').value='';result.hidden=true;result.textContent='';document.getElementById('logout').hidden=true;}
 document.getElementById('logout').onclick=()=>{clear();show('Signed out; in-memory session cleared.');};
 document.getElementById('login').onsubmit=async e=>{
  e.preventDefault();
@@ -32,7 +32,7 @@ document.getElementById('login').onsubmit=async e=>{
    try{const data=await signed.json();const allowed=new Set(['invalid_credentials','email_not_confirmed','user_banned','over_email_send_rate_limit','over_request_rate_limit','validation_failed','weak_password','unexpected_failure']);if(allowed.has(data.code))code=data.code;}catch(_ignored){}
    throw Error('Supabase sign-in rejected (HTTP '+signed.status+', code: '+code+').');
   }
-  const auth=await signed.json();token=auth.access_token;signedUserId=auth.user?.id;
+  const auth=await signed.json();token=auth.access_token;signedUserId=auth.user?.id;expiryAt=Number(auth.expires_at||0);
   if(!token||!auth.user||auth.user.email?.toLowerCase()!==email)throw Error('Authenticated identity mismatch');
   const headers={'apikey':apiKey,'Authorization':'Bearer '+token};
   const resources=['robo_learner_profiles','robo_learning_progress'];
@@ -52,12 +52,14 @@ document.getElementById('login').onsubmit=async e=>{
 async function refreshSync(){
  if(!token||!signedUserId)throw Error('Sign in first');
  const out=document.getElementById('syncResults');out.textContent='Retrieving only your synthetic progress...';
+ if(expiryAt&&Date.now()>=expiryAt*1000){clear();show('Session expired. Sign in again to retrieve saved progress.');return}
  const res=await fetch(S+'/rest/v1/robo_synthetic_sync_events?select=id,user_id,topic_code,score,created_at&order=created_at.desc&limit=15',{headers:{apikey:apiKey,Authorization:'Bearer '+token},cache:'no-store'});
  if(!res.ok)throw Error('Synthetic progress retrieval failed (HTTP '+res.status+')');
  const rows=await res.json();
  if(!Array.isArray(rows)||rows.some(r=>r.user_id!==signedUserId))throw Error('SECURITY FAILURE: progress belonging to another account returned');
  out.textContent=JSON.stringify({owned_events_shown:rows.length,cross_owner_records_found:false,events:rows.map(x=>({topic_code:x.topic_code,score:x.score,created_at:x.created_at}))},null,2);
 }
+document.getElementById('testSessionClear').onclick=()=>{const hadSession=Boolean(token&&signedUserId);clear();const cleared=!token&&!signedUserId&&!expiryAt;show(hadSession&&cleared?'Session memory cleared. Re-enter your synthetic account credentials and sign in again; saved progress should reappear.':'Session clear test needs a signed-in learner.');};
 document.getElementById('refreshSync').onclick=async()=>{try{await refreshSync();show('Owned synthetic progress retrieved.')}catch(e){show(e.message)}};
 document.getElementById('saveSync').onclick=async()=>{
  if(!token||!signedUserId){show('Sign in first');return}
