@@ -1481,6 +1481,9 @@ function resetPracticeSetup(){
 }
 
 function renderPracticeResults(summary){
+  if(new URLSearchParams(location.search).get('synthetic_cloud')==='1' && !summary.diagnostic){
+    document.dispatchEvent(new CustomEvent('robo:practice-completed',{detail:{percentage:summary.percentage}}));
+  }
   currentPracticeSummary=summary;practiceSetup.classList.add('hidden');practiceQuestion.classList.add('hidden');practiceResults.classList.remove('hidden');
   const labels=resultCopy[language.value]||resultCopy.English;
   resultPercentage.textContent=`${summary.percentage}%`;resultScore.textContent=labels.score(summary.score,summary.attempted);
