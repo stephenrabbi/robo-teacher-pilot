@@ -25,7 +25,11 @@ document.getElementById('login').onsubmit=async e=>{
   if(!apiKey){const conf=await fetch('/synthetic-auth-config',{cache:'no-store'});if(!conf.ok)throw Error('Staging configuration unavailable');const obj=await conf.json();apiKey=obj.publishable_key;}
   const signed=await fetch(S+'/auth/v1/token?grant_type=password',{method:'POST',headers:{'apikey':apiKey,'Content-Type':'application/json'},body:JSON.stringify({email,password:document.getElementById('password').value}),cache:'no-store'});
   document.getElementById('password').value='';
-  if(!signed.ok)throw Error('Sign-in rejected. Verify synthetic account credentials.');
+  if(!signed.ok){
+   let code='unknown';
+   try{const data=await signed.json();const allowed=new Set(['invalid_credentials','email_not_confirmed','user_banned','over_email_send_rate_limit','over_request_rate_limit','validation_failed','weak_password','unexpected_failure']);if(allowed.has(data.code))code=data.code;}catch(_ignored){}
+   throw Error('Supabase sign-in rejected (HTTP '+signed.status+', code: '+code+').');
+  }
   const auth=await signed.json();token=auth.access_token;
   if(!token||!auth.user||auth.user.email?.toLowerCase()!==email)throw Error('Authenticated identity mismatch');
   const headers={'apikey':apiKey,'Authorization':'Bearer '+token};
