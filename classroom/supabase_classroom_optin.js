@@ -15,7 +15,27 @@ refresh.type='button';
 refresh.textContent='Retrieve saved synthetic scores';
 refresh.hidden=true;
 panel.append(refresh,cloudResults);
-const clearResults=()=>{cloudResults.replaceChildren();refresh.hidden=true};
+// Staging-only authenticated cloud history within the regular Progress screen.
+// Never replace its existing local metrics or its learner identity.
+const progressArea=document.getElementById('progressArea');
+const cloudSection=document.createElement('section');
+cloudSection.id='syntheticProgressCloudHistory';
+cloudSection.setAttribute('aria-label','Synthetic authenticated cloud practice history');
+cloudSection.style.cssText='margin:1rem 0;padding:1rem;border:1px solid #aab6c5;border-radius:10px;';
+const cloudTitle=document.createElement('h4');
+cloudTitle.textContent='Cloud practice history (synthetic test only)';
+const cloudNote=document.createElement('p');
+cloudNote.textContent='Authenticated synthetic account scores only. These do not change the local dashboard totals or learning recommendations.';
+const cloudProgressResults=document.createElement('div');
+cloudProgressResults.setAttribute('aria-live','polite');
+const cloudProgressRefresh=document.createElement('button');
+cloudProgressRefresh.type='button';
+cloudProgressRefresh.textContent='Refresh cloud practice history';
+cloudProgressRefresh.addEventListener('click',()=>{void retrieveScores()});
+cloudSection.append(cloudTitle,cloudNote,cloudProgressRefresh,cloudProgressResults);
+
+
+const clearResults=()=>{cloudResults.replaceChildren();cloudProgressResults.replaceChildren();cloudProgressResults.textContent='Sign in to a synthetic account in the cloud test panel below to see authenticated scores.';refresh.hidden=true};
 async function retrieveScores(){
  if(!enabled||!session){clearResults();return}
  if(expiry&&Date.now()>=expiry*1000){clearSession();setStatus('Session expired. Sign in again.');return}
@@ -36,13 +56,16 @@ async function retrieveScores(){
    list.append(item);
   }
   cloudResults.replaceChildren(list);
-  if(!list.children.length)cloudResults.textContent='No synthetic mathematics scores found for this account.';
- }catch(e){if(activeSession===session)cloudResults.textContent='Unable to retrieve saved scores: '+e.message}
+  cloudProgressResults.replaceChildren(list.cloneNode(true));
+  if(!list.children.length){cloudResults.textContent='No synthetic mathematics scores found for this account.';cloudProgressResults.textContent=cloudResults.textContent;}
+ }catch(e){if(activeSession===session)cloudResults.textContent='Unable to retrieve saved scores: '+e.message;cloudProgressResults.textContent=cloudResults.textContent; if(/401|403/.test(e.message)){clearSession();setStatus('Cloud session expired or access denied. Sign in again.')}}
 }
 refresh.addEventListener('click',()=>{void retrieveScores()});
 function clearSession(){session=null;expiry=0;document.getElementById('syntheticCloudPassword').value='';clearResults();setStatus('Synthetic session cleared.');}
 const enabled=new URLSearchParams(location.search).get('synthetic_cloud')==='1';
-if(enabled)panel.hidden=false;
+if(enabled){panel.hidden=false;progressArea.append(cloudSection);clearResults();}
+// Refresh only on opening the existing Progress screen, not continuously.
+if(enabled){const observer=new MutationObserver(()=>{if(!progressArea.classList.contains('hidden')&&session)void retrieveScores()});observer.observe(progressArea,{attributes:true,attributeFilter:['class']});}
 document.getElementById('syntheticCloudLogout').addEventListener('click',clearSession);
 document.getElementById('syntheticCloudLogin').addEventListener('click',async()=>{
  if(!enabled)return;
