@@ -26,16 +26,19 @@ const cloudTitle=document.createElement('h4');
 cloudTitle.textContent='Cloud practice history (synthetic test only)';
 const cloudNote=document.createElement('p');
 cloudNote.textContent='Authenticated synthetic account scores only. These do not change the local dashboard totals or learning recommendations.';
+const cloudMetrics=document.createElement('div');
+cloudMetrics.id='syntheticCloudMetrics';
+cloudMetrics.setAttribute('aria-live','polite');
 const cloudProgressResults=document.createElement('div');
 cloudProgressResults.setAttribute('aria-live','polite');
 const cloudProgressRefresh=document.createElement('button');
 cloudProgressRefresh.type='button';
 cloudProgressRefresh.textContent='Refresh cloud practice history';
 cloudProgressRefresh.addEventListener('click',()=>{void retrieveScores()});
-cloudSection.append(cloudTitle,cloudNote,cloudProgressRefresh,cloudProgressResults);
+cloudSection.append(cloudTitle,cloudNote,cloudProgressRefresh,cloudMetrics,cloudProgressResults);
 
 
-const clearResults=()=>{cloudResults.replaceChildren();cloudProgressResults.replaceChildren();cloudProgressResults.textContent='Sign in to a synthetic account in the cloud test panel below to see authenticated scores.';refresh.hidden=true};
+const clearResults=()=>{cloudResults.replaceChildren();cloudProgressResults.replaceChildren();cloudMetrics.replaceChildren();cloudProgressResults.textContent='Sign in to a synthetic account in the cloud test panel below to see authenticated scores.';refresh.hidden=true};
 async function retrieveScores(){
  if(!enabled||!session){clearResults();return}
  if(expiry&&Date.now()>=expiry*1000){clearSession();setStatus('Session expired. Sign in again.');return}
@@ -48,17 +51,29 @@ async function retrieveScores(){
   if(activeSession!==session)return;
   if(!Array.isArray(rows))throw Error('Unexpected cloud response.');
   const list=document.createElement('ul');
+  const scores=[];
   for(const row of rows){
    if(row.topic_code!=='synthetic_math_practice'||!Number.isInteger(row.score)||row.score<0||row.score>100)continue;
+   scores.push(row.score);
    const item=document.createElement('li');
    const date=new Date(row.created_at);
    item.textContent='Mathematics practice: '+row.score+'% — '+(Number.isNaN(date.getTime())?'date unavailable':date.toLocaleString());
    list.append(item);
   }
+  cloudMetrics.replaceChildren();
+  if(scores.length){
+   const sum=scores.reduce((total,score)=>total+score,0);
+   const latest=document.createElement('p');
+   const avg=Math.round(sum/scores.length);
+   latest.textContent='Cloud summary (last '+scores.length+' saved records): latest '+scores[0]+'% · average '+avg+'% · '+scores.length+' recorded practices.';
+   const caveat=document.createElement('p');
+   caveat.textContent='These are synthetic score-only records, not verified unique practice sessions. Topic mastery, question counts and personalised recommendations cannot be calculated from them.';
+   cloudMetrics.append(latest,caveat);
+  }
   cloudResults.replaceChildren(list);
   cloudProgressResults.replaceChildren(list.cloneNode(true));
   if(!list.children.length){cloudResults.textContent='No synthetic mathematics scores found for this account.';cloudProgressResults.textContent=cloudResults.textContent;}
- }catch(e){if(activeSession===session)cloudResults.textContent='Unable to retrieve saved scores: '+e.message;cloudProgressResults.textContent=cloudResults.textContent; if(/401|403/.test(e.message)){clearSession();setStatus('Cloud session expired or access denied. Sign in again.')}}
+ }catch(e){if(activeSession===session)cloudResults.textContent='Unable to retrieve saved scores: '+e.message;cloudProgressResults.textContent=cloudResults.textContent; cloudMetrics.replaceChildren(); if(/401|403/.test(e.message)){clearSession();setStatus('Cloud session expired or access denied. Sign in again.')}}
 }
 refresh.addEventListener('click',()=>{void retrieveScores()});
 function clearSession(){session=null;expiry=0;document.getElementById('syntheticCloudPassword').value='';clearResults();setStatus('Synthetic session cleared.');}
