@@ -1969,7 +1969,10 @@ form.addEventListener('submit',async(e)=>{
   const interruptedLesson=recovery?.interruptedLesson||lessonInterruption||(currentLesson?{text:currentLesson.text,index:currentLesson.index,step:currentLesson.steps[currentLesson.index]}:null);
   const interruptedStep=interruptedLesson?.step||currentLesson?.steps?.[interruptedLesson?.index]||interruptedLesson?.text||'';
   const lessonQuestion=interruptedLesson?`The learner paused this lesson step: "${interruptedStep}"\n\nTheir question is: ${text}`:text;
-  const requestText=`${adaptivePromptContext()}\n\n${lessonQuestion}`;
+  // Preserve short arithmetic questions so the server can answer without Gemini.
+  // All teaching requests and interrupted lessons retain their adaptive context.
+  const directArithmetic = !interruptedLesson && /^(?:(?:what is|calculate|compute|solve)\s+)?[0-9\s+\-*/().×÷]+[?!.]?$/i.test(text.trim()) && /\d\s*[+\-*/×÷]\s*\d/.test(text);
+  const requestText=directArithmetic ? text : `${adaptivePromptContext()}\n\n${lessonQuestion}`;
   if(!recovery)addMessage(text,'student');sendButton.disabled=true;sendButton.textContent='Thinking…';setLearningStatus(recovery?'Connection restored — continuing your question':'Working through your question','thinking');
   const thinking=addMessage(recovery?'Your connection is back. I’m continuing from where we stopped…':'Let me work through that with you…','teacher');
   try{
