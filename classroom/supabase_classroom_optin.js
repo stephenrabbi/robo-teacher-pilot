@@ -30,16 +30,18 @@ cloudNote.textContent='Authenticated synthetic account scores only. These do not
 const cloudMetrics=document.createElement('div');
 cloudMetrics.id='syntheticCloudMetrics';
 cloudMetrics.setAttribute('aria-live','polite');
+const topicPerformance=document.createElement('div');
+topicPerformance.id='syntheticTopicPerformance';
 const cloudProgressResults=document.createElement('div');
 cloudProgressResults.setAttribute('aria-live','polite');
 const cloudProgressRefresh=document.createElement('button');
 cloudProgressRefresh.type='button';
 cloudProgressRefresh.textContent='Refresh cloud practice history';
 cloudProgressRefresh.addEventListener('click',()=>{void retrieveScores()});
-cloudSection.append(cloudTitle,cloudNote,cloudProgressRefresh,cloudMetrics,cloudProgressResults);
+cloudSection.append(cloudTitle,cloudNote,cloudProgressRefresh,cloudMetrics,topicPerformance,cloudProgressResults);
 
 
-const clearResults=()=>{cloudResults.replaceChildren();cloudProgressResults.replaceChildren();cloudMetrics.replaceChildren();cloudProgressResults.textContent='Sign in to a synthetic account in the cloud test panel below to see authenticated scores.';refresh.hidden=true};
+const clearResults=()=>{cloudResults.replaceChildren();cloudProgressResults.replaceChildren();cloudMetrics.replaceChildren();topicPerformance.replaceChildren();cloudProgressResults.textContent='Sign in to a synthetic account in the cloud test panel below to see authenticated scores.';refresh.hidden=true};
 async function retrieveScores(){
  if(!enabled||!session){clearResults();return}
  if(expiry&&Date.now()>=expiry*1000){clearSession();setStatus('Session expired. Sign in again.');return}
@@ -54,10 +56,17 @@ async function retrieveScores(){
   const list=document.createElement('ul');
   const scores=[];
   let enrichedCount=0,questions=0,correct=0;
+  const topics=new Map();
   for(const row of rows){
    if(row.topic_code!=='synthetic_math_practice'||!Number.isInteger(row.score)||row.score<0||row.score>100)continue;
    scores.push(row.score);
    if(row.practice_event_id&&Number.isInteger(row.question_count)&&row.question_count>0&&Number.isInteger(row.correct_count)&&row.correct_count>=0&&row.correct_count<=row.question_count){enrichedCount++;questions+=row.question_count;correct+=row.correct_count;}
+   if(row.practice_event_id&&typeof row.topic_label==='string'&&row.topic_label.trim()&&['JSS1','JSS2','JSS3'].includes(row.class_level)&&Number.isInteger(row.question_count)&&row.question_count>0&&Number.isInteger(row.correct_count)&&row.correct_count>=0&&row.correct_count<=row.question_count){
+    const key=row.class_level+' · '+row.topic_label.trim();
+    const aggregate=topics.get(key)||{sessions:0,attempted:0,correct:0};
+    aggregate.sessions++;aggregate.attempted+=row.question_count;aggregate.correct+=row.correct_count;
+    topics.set(key,aggregate);
+   }
    const item=document.createElement('li');
    const date=new Date(row.created_at);
    item.textContent='Mathematics practice'+(row.topic_label?' — '+row.topic_label:'')+(row.class_level?' ('+row.class_level+')':'')+': '+row.score+'%'+(Number.isInteger(row.question_count)&&Number.isInteger(row.correct_count)?' · '+row.correct_count+'/'+row.question_count+' questions':'')+' — '+(Number.isNaN(date.getTime())?'date unavailable':date.toLocaleString());
@@ -73,6 +82,18 @@ async function retrieveScores(){
    caveat.textContent=enrichedCount?'Verified event metadata in '+enrichedCount+' of '+scores.length+' retrieved records: '+correct+'/'+questions+' questions correct. Older percentage-only records are excluded from these question totals. Topic mastery and personalised recommendations remain unavailable.':'These are synthetic score-only records, not verified unique practice sessions. Topic mastery, question counts and personalised recommendations cannot be calculated from them.';
    cloudMetrics.append(latest,caveat);
   }
+  topicPerformance.replaceChildren();
+  if(topics.size){
+   const heading=document.createElement('h5');heading.textContent='Recorded topic performance (synthetic only)';
+   const detail=document.createElement('p');detail.textContent='Based only on enriched cloud records returned for this authenticated account (maximum 20); not a mastery estimate.';
+   const topicList=document.createElement('ul');
+   for(const [topic,metric] of topics){
+    const item=document.createElement('li');
+    item.textContent=topic+': '+metric.correct+'/'+metric.attempted+' correct ('+Math.round(100*metric.correct/metric.attempted)+'%) across '+metric.sessions+' recorded practice'+(metric.sessions===1?'':'s');
+    topicList.append(item);
+   }
+   topicPerformance.append(heading,detail,topicList);
+  }
   cloudResults.replaceChildren(list);
   cloudProgressResults.replaceChildren(list.cloneNode(true));
   if(!list.children.length){cloudResults.textContent='No synthetic mathematics scores found for this account.';cloudProgressResults.textContent=cloudResults.textContent;}
@@ -80,7 +101,7 @@ async function retrieveScores(){
   if(activeSession!==session)return;
   cloudResults.textContent='Unable to retrieve saved scores: '+e.message;
   cloudProgressResults.textContent=cloudResults.textContent;
-  cloudMetrics.replaceChildren();
+  cloudMetrics.replaceChildren();topicPerformance.replaceChildren();
   if(/401|403/.test(e.message)){clearSession();setStatus('Cloud session expired or access denied. Sign in again.')}
  }
 }
