@@ -16,6 +16,10 @@ export async function saveSyntheticClassroomResult({supabaseUrl, publishableKey,
     headers:{apikey:publishableKey,Authorization:'Bearer '+accessToken,'Content-Type':'application/json',Prefer:'return=minimal'},
     body:JSON.stringify({topic_code:topicCode,score,class_level:classLevel,question_count:questionCount,correct_count:correctCount,practice_event_id:eventId,completed_at:completedAt}),cache:'no-store'
   });
-  if(!response.ok)throw Error('Staging-only Supabase sync rejected (HTTP '+response.status+')');
+  if(!response.ok){
+    const error=Error('Staging-only Supabase sync rejected (HTTP '+response.status+')');
+    error.httpStatus=response.status;
+    throw error;
+  }
   return {saved:true,score};
 }
