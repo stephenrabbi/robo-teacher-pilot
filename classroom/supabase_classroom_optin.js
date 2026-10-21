@@ -36,13 +36,20 @@ cloudMetrics.id='syntheticCloudMetrics';
 cloudMetrics.setAttribute('aria-live','polite');
 const topicPerformance=document.createElement('div');
 topicPerformance.id='syntheticTopicPerformance';
+const cloudHistoryDetails=document.createElement('details');
+cloudHistoryDetails.open=!window.matchMedia('(max-width: 600px)').matches;
+const cloudHistorySummary=document.createElement('summary');
+cloudHistorySummary.textContent='Show saved practice entries';
 const cloudProgressResults=document.createElement('div');
 cloudProgressResults.setAttribute('aria-live','polite');
+cloudProgressResults.style.cssText='overflow-wrap:anywhere;max-width:100%;';
+cloudHistoryDetails.append(cloudHistorySummary,cloudProgressResults);
+cloudHistoryDetails.addEventListener('toggle',()=>{const n=cloudProgressResults.querySelectorAll('li').length;cloudHistorySummary.textContent='Saved practice entries ('+n+') — tap to '+(cloudHistoryDetails.open?'hide':'show')});
 const cloudProgressRefresh=document.createElement('button');
 cloudProgressRefresh.type='button';
 cloudProgressRefresh.textContent='Refresh cloud practice history';
 cloudProgressRefresh.addEventListener('click',()=>{void retrieveScores(true)});
-cloudSection.append(cloudTitle,cloudNote,cloudProgressRefresh,cloudRestoreStatus,cloudMetrics,topicPerformance,cloudProgressResults);
+cloudSection.append(cloudTitle,cloudNote,cloudProgressRefresh,cloudRestoreStatus,cloudMetrics,topicPerformance,cloudHistoryDetails);
 
 
 const clearResults=()=>{cloudRestoreStatus.textContent='Sign in to restore a read-only cloud practice snapshot from this synthetic account.';cloudResults.replaceChildren();cloudProgressResults.replaceChildren();cloudMetrics.replaceChildren();topicPerformance.replaceChildren();cloudProgressResults.textContent='Sign in to a synthetic account in the cloud test panel below to see authenticated scores.';refresh.hidden=true};
@@ -110,6 +117,7 @@ async function retrieveScores(manual=false){
   }
   cloudResults.replaceChildren(list);
   cloudProgressResults.replaceChildren(list.cloneNode(true));
+  cloudHistorySummary.textContent='Saved practice entries ('+scores.length+') — tap to '+(cloudHistoryDetails.open?'hide':'show');
   if(!list.children.length){cloudResults.textContent='No synthetic mathematics scores found for this account.';cloudProgressResults.textContent=cloudResults.textContent;}
   if(manual)setStatus('Cloud history refreshed: '+scores.length+' mathematics records retrieved.');
  }catch(e){
