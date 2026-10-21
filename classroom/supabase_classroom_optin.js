@@ -125,7 +125,12 @@ async function saveSummary(summary){
   savedEventIds.add(summary.eventId);
   setStatus('Synthetic practice score '+score+' saved to Supabase. No production learner records changed.');
   await retrieveScores();
- }catch(e){if(activeSession===session)setStatus('Cloud sync skipped: '+e.message)}
+ }catch(e){
+  if(activeSession===session){
+   if(e.httpStatus===401||e.httpStatus===403){clearSession();setStatus('Cloud save authorization expired or was denied. Sign in again before saving new practice results.');}
+   else setStatus('Cloud sync skipped: '+e.message);
+  }
+ }
  finally{savePending=false}
 }
 document.addEventListener('robo:practice-completed',e=>{void saveSummary(e.detail)});
