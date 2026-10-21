@@ -93,11 +93,12 @@ async function retrieveScores(manual=false){
   topicPerformance.replaceChildren();
   if(topics.size){
    const heading=document.createElement('h5');heading.textContent='Recorded topic performance (synthetic only)';
-   const detail=document.createElement('p');detail.textContent='Based only on enriched cloud records returned for this authenticated account (maximum 20); not a mastery estimate.';
+   const detail=document.createElement('p');detail.textContent='Cloud-derived learning evidence from enriched records for this authenticated account (maximum 20). Results are descriptive only: no mastery rating, adaptive placement, or recommendation is inferred.';
    const topicList=document.createElement('ul');
    for(const [topic,metric] of topics){
     const item=document.createElement('li');
-    item.textContent=topic+': '+metric.correct+'/'+metric.attempted+' correct ('+Math.round(100*metric.correct/metric.attempted)+'%) across '+metric.sessions+' recorded practice'+(metric.sessions===1?'':'s');
+    const observed=Math.round(100*metric.correct/metric.attempted);
+    item.textContent=topic+': '+metric.correct+'/'+metric.attempted+' correct ('+observed+'%) across '+metric.sessions+' recorded practice'+(metric.sessions===1?'':'s')+'. Evidence: '+(metric.sessions<3||metric.attempted<15?'limited — more practice needed before assessing a learning trend':'multiple practices recorded — review performance across sessions before drawing conclusions')+'.';
     topicList.append(item);
    }
    topicPerformance.append(heading,detail,topicList);
