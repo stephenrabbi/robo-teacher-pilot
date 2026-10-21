@@ -74,11 +74,11 @@ async function retrieveScores(manual=false){
   const seenEnrichedEvents=new Set();
   for(const row of rows){
    if(row.topic_code!=='synthetic_math_practice'||!Number.isInteger(row.score)||row.score<0||row.score>100)continue;
-   scores.push(row.score);
    if(row.practice_event_id){
     if(seenEnrichedEvents.has(row.practice_event_id))continue;
     seenEnrichedEvents.add(row.practice_event_id);
    }
+   scores.push(row.score);
    if(row.practice_event_id&&Number.isInteger(row.question_count)&&row.question_count>0&&Number.isInteger(row.correct_count)&&row.correct_count>=0&&row.correct_count<=row.question_count){enrichedCount++;questions+=row.question_count;correct+=row.correct_count;}
    if(row.practice_event_id&&typeof row.topic_label==='string'&&row.topic_label.trim()&&['JSS1','JSS2','JSS3'].includes(row.class_level)&&Number.isInteger(row.question_count)&&row.question_count>0&&Number.isInteger(row.correct_count)&&row.correct_count>=0&&row.correct_count<=row.question_count){
     const key=row.class_level+' · '+row.topic_label.trim();
