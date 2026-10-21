@@ -1,0 +1,74 @@
+/* Robo-Teacher Classroom 2.0 — isolated visual enhancement (welcome only).
+   Preserve all existing element IDs, event handlers, image sources and input behavior.
+   Scoped under #welcome to avoid changing the learning classroom or dashboards. */
+#welcome.welcome-screen {
+  gap: clamp(18px, 3.5vw, 48px);
+  align-items: center;
+}
+#welcome .welcome-copy h1 {
+  font-size: clamp(2rem, 4.2vw, 3.65rem);
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+#welcome .speech-card {
+  border: 1px solid #dbe6f2;
+  box-shadow: 0 15px 42px rgba(2, 13, 32, 0.22);
+  padding: clamp(18px, 2.5vw, 28px);
+}
+#welcome .speech-card p {
+  font-size: clamp(15px, 1.5vw, 18px);
+  line-height: 1.6;
+}
+#welcome .primary {
+  min-height: 48px;
+  border-radius: 13px;
+  background: #2364b8;
+  box-shadow: 0 7px 20px rgba(14, 62, 121, 0.24);
+}
+#welcome .primary:hover { background: #184f99; }
+#welcome :is(button, a, input, select):focus-visible {
+  outline: 3px solid #e3ac3f;
+  outline-offset: 3px;
+}
+#welcome .student-welcome-photo img,
+#welcome .founder-avatar {
+  max-width: 100%;
+}
+@media (max-width: 900px) {
+  #welcome.welcome-screen { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  #welcome .speech-card { max-width: 100%; }
+}
+@media (max-width: 480px) {
+  #welcome .welcome-copy h1 { font-size: clamp(1.85rem, 8vw, 2.4rem); }
+  #welcome .speech-card { padding: 18px; border-radius: 18px; }
+  #welcome .primary { width: 100%; min-height: 50px; }
+  #welcome .founder-panel { min-width: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #welcome .primary { transition: none; }
+}
+
+/* Put first-visit privacy choices in the document flow, ahead of the welcome
+   screen, instead of covering onboarding. Do not hide or dismiss the banner. */
+body:has(#welcome:not(.hidden)):has(#privacyConsentBanner) {
+  display: flex;
+  flex-direction: column;
+}
+body:has(#welcome:not(.hidden)) #privacyConsentBanner {
+  position: relative;
+  inset: auto;
+  order: -1;
+  width: min(1100px, calc(100% - 24px));
+  margin: 12px auto 0;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .16);
+  z-index: 1;
+}
+@media (max-width: 700px) {
+  body:has(#welcome:not(.hidden)) #privacyConsentBanner {
+    width: calc(100% - 20px);
+    margin-top: 10px;
+    padding: 12px;
+    gap: 10px;
+  }
+}
