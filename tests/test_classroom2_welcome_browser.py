@@ -64,6 +64,10 @@ class WelcomeBrowserQA(unittest.TestCase):
         page = self.browser.new_page(viewport={"width": 375, "height": 812})
         try:
             page.goto(f"http://127.0.0.1:{self.port}/classroom/index.html", wait_until="domcontentloaded")
+            # Static CI server has no backend: stub only the session endpoint.
+            page.route("**/api/classroom/session", lambda route: route.fulfill(
+                status=200, content_type="application/json",
+                body='{"session_token":"synthetic-ui-test-only"}'))
             page.locator("#generateLearnerCode").click()
             code = page.locator("#learnerCode").input_value()
             self.assertTrue(code.strip(), "Generate a code must populate learner code")
