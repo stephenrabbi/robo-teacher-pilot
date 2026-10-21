@@ -4,6 +4,7 @@ const status=document.getElementById('syntheticCloudStatus');
 const authURL='https://drzaxpofuhqchmpkwhpy.supabase.co';
 const publishableKey='sb_publishable_FXqz6Ky3ypQxNXPlJiT1XA_X5onZmE7';
 let session=null, expiry=0, savePending=false, loginAttempt=0;
+const savedEventIds=new Set();
 // Keep synthetic tokens in memory only; never mix them with classroom learner identity.
 const setStatus=x=>{status.textContent=x};
 const cloudResults=document.createElement('div');
@@ -84,7 +85,7 @@ async function retrieveScores(){
  }
 }
 refresh.addEventListener('click',()=>{void retrieveScores()});
-function clearSession(){loginAttempt++;session=null;expiry=0;document.getElementById('syntheticCloudPassword').value='';clearResults();setStatus('Synthetic session cleared.');}
+function clearSession(){loginAttempt++;savedEventIds.clear();session=null;expiry=0;document.getElementById('syntheticCloudPassword').value='';clearResults();setStatus('Synthetic session cleared.');}
 const enabled=new URLSearchParams(location.search).get('synthetic_cloud')==='1';
 if(enabled){panel.hidden=false;progressArea.append(cloudSection);clearResults();}
 // Refresh only on opening the existing Progress screen, not continuously.
@@ -114,11 +115,14 @@ async function saveSummary(summary){
  if(expiry&&Date.now()>=expiry*1000){clearSession();setStatus('Session expired. Sign in again.');return}
  const score=Number(summary?.percentage);
  if(!Number.isInteger(score)||score<0||score>100){setStatus('Practice percentage unavailable for cloud sync.');return}
+ if(typeof summary?.eventId!=='string')return;
+ if(savedEventIds.has(summary.eventId)){setStatus('This synthetic practice result was already saved. No duplicate was created.');return}
  const activeSession=session;
  savePending=true;
  try {
   await saveSyntheticClassroomResult({supabaseUrl:authURL,publishableKey,accessToken:session.token,topicCode:'synthetic_math_practice',percentage:score,classLevel:summary.classLevel,questionCount:summary.questionCount,correctCount:summary.correctCount,eventId:summary.eventId,completedAt:summary.completedAt});
   if(activeSession!==session)return;
+  savedEventIds.add(summary.eventId);
   setStatus('Synthetic practice score '+score+' saved to Supabase. No production learner records changed.');
   await retrieveScores();
  }catch(e){if(activeSession===session)setStatus('Cloud sync skipped: '+e.message)}
