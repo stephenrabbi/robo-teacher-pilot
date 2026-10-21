@@ -112,9 +112,9 @@ async function retrieveScores(manual=false){
     item.style.cssText='margin:.7rem 0;padding:.8rem;border:1px solid #b8c2ce;border-radius:8px;overflow-wrap:anywhere;max-width:100%;box-sizing:border-box;';
     const topicName=document.createElement('strong');topicName.textContent=topic;
     const observed=Math.round(100*metric.correct/metric.attempted);
-    const scoreLine=document.createElement('p');scoreLine.textContent=metric.correct+'/'+metric.attempted+' correct ('+observed+'%) across '+metric.sessions+' recorded practice'+(metric.sessions===1?'':'s')+'.';
+    const scoreLine=document.createElement('p');scoreLine.textContent='Combined verified questions: '+metric.correct+'/'+metric.attempted+' correct ('+observed+'%) across '+metric.sessions+' recorded practice'+(metric.sessions===1?'':'s')+'.';
     const latest=document.createElement('p');
-    latest.textContent='Latest recorded practice: '+metric.latest.score+'%. '+(metric.sessions===1?'One labelled practice is available.':'Summary combines '+metric.sessions+' labelled practices.');
+    latest.textContent='Latest practice: '+metric.latest.score+'%. '+(metric.sessions===1?'Only one labelled session is available.':'The combined result above includes all labelled sessions in this snapshot.');
     const evidence=document.createElement('p');evidence.textContent='Evidence: '+(metric.sessions<3||metric.attempted<15?'limited — more practice needed before assessing a learning trend':'multiple practices recorded — review performance across sessions before drawing conclusions')+'.';
     const meter=document.createElement('progress');meter.value=metric.correct;meter.max=metric.attempted;meter.setAttribute('aria-label',topic+' observed correct answers');meter.style.cssText='display:block;width:100%;max-width:100%;margin:.6rem 0;';
     item.append(topicName,scoreLine,meter,latest,evidence);
