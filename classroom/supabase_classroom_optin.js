@@ -115,7 +115,7 @@ async function saveSummary(summary){
  const activeSession=session;
  savePending=true;
  try {
-  await saveSyntheticClassroomResult({supabaseUrl:authURL,publishableKey,accessToken:session.token,topicCode:'synthetic_math_practice',percentage:score});
+  await saveSyntheticClassroomResult({supabaseUrl:authURL,publishableKey,accessToken:session.token,topicCode:'synthetic_math_practice',percentage:score,classLevel:summary.classLevel,questionCount:summary.questionCount,correctCount:summary.correctCount,eventId:summary.eventId,completedAt:summary.completedAt});
   if(activeSession!==session)return;
   setStatus('Synthetic practice score '+score+' saved to Supabase. No production learner records changed.');
   await retrieveScores();

@@ -1482,7 +1482,7 @@ function resetPracticeSetup(){
 
 function renderPracticeResults(summary){
   if(new URLSearchParams(location.search).get('synthetic_cloud')==='1' && !summary.diagnostic){
-    document.dispatchEvent(new CustomEvent('robo:practice-completed',{detail:{percentage:summary.percentage}}));
+    document.dispatchEvent(new CustomEvent('robo:practice-completed',{detail:{percentage:summary.percentage,classLevel:learnerClass.value,questionCount:summary.attempted,correctCount:summary.score,eventId:crypto.randomUUID(),completedAt:new Date().toISOString()}}));
   }
   currentPracticeSummary=summary;practiceSetup.classList.add('hidden');practiceQuestion.classList.add('hidden');practiceResults.classList.remove('hidden');
   const labels=resultCopy[language.value]||resultCopy.English;
