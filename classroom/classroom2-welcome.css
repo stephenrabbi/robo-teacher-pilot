@@ -48,3 +48,27 @@
 @media (prefers-reduced-motion: reduce) {
   #welcome .primary { transition: none; }
 }
+
+/* Put first-visit privacy choices in the document flow, ahead of the welcome
+   screen, instead of covering onboarding. Do not hide or dismiss the banner. */
+body:has(#welcome:not(.hidden)):has(#privacyConsentBanner) {
+  display: flex;
+  flex-direction: column;
+}
+body:has(#welcome:not(.hidden)) #privacyConsentBanner {
+  position: relative;
+  inset: auto;
+  order: -1;
+  width: min(1100px, calc(100% - 24px));
+  margin: 12px auto 0;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .16);
+  z-index: 1;
+}
+@media (max-width: 700px) {
+  body:has(#welcome:not(.hidden)) #privacyConsentBanner {
+    width: calc(100% - 20px);
+    margin-top: 10px;
+    padding: 12px;
+    gap: 10px;
+  }
+}
