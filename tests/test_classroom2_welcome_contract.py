@@ -35,7 +35,9 @@ class Classroom2WelcomeContract(unittest.TestCase):
             selector = selector.strip()
             if selector.startswith('@'):
                 continue
-            # A comma inside :is(...) is not a selector-list separator.\n            selector = re.sub(r':is\\([^)]*\\)', ':is(controls)', selector)\n            for part in selector.split(','):
+            # Do not split selector commas inside :is(...).
+            selector = re.sub(r':is\([^)]*\)', ':is(controls)', selector)
+            for part in selector.split(','):
                 part = part.strip()
                 if part.startswith('@') or part in ('from', 'to') or re.fullmatch(r'[\d.]+%', part):
                     continue
