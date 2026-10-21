@@ -1464,7 +1464,7 @@ async function submitPracticeAnswer(event){
     practiceScore.textContent=`Score: ${result.score}/${result.attempted} (${result.percentage}%)`;
     practiceFeedback.textContent=result.correct?`${result.message}\n\n${result.explanation}`:`${result.message}\n\n${result.targeted_tip?`${result.targeted_tip}\n\n`:''}${result.explanation}\n\n${result.correct_answer_label}: ${result.expected_answer}`;
     practiceFeedback.className=`practice-feedback ${result.correct?'correct':'incorrect'}`;nextPracticeButton.classList.remove('hidden');showHintButton.disabled=true;
-    if(result.completed){currentPracticeSummary=result.summary;nextPracticeButton.textContent='View Results →'}setLearningStatus(result.correct?'Correct answer':'Review the explanation',result.correct?'success':'attention')
+    if(result.completed){currentPracticeSummary=result.summary;reportSyntheticPracticeCompletion(result.summary);nextPracticeButton.textContent='View Results →'}setLearningStatus(result.correct?'Correct answer':'Review the explanation',result.correct?'success':'attention')
   }catch(err){practiceFeedback.textContent=err.message;practiceFeedback.className='practice-feedback incorrect';checkButton.disabled=false}
 }
 
@@ -1481,11 +1481,15 @@ function resetPracticeSetup(){
 }
 
 const syntheticPracticeEventIds=new WeakMap();
+const syntheticPracticeDispatched=new WeakSet();
+function reportSyntheticPracticeCompletion(summary){
+  if(new URLSearchParams(location.search).get('synthetic_cloud')!=='1'||!summary||summary.diagnostic||syntheticPracticeDispatched.has(summary))return;
+  if(!syntheticPracticeEventIds.has(summary))syntheticPracticeEventIds.set(summary,{eventId:crypto.randomUUID(),completedAt:new Date().toISOString()});
+  syntheticPracticeDispatched.add(summary);
+  document.dispatchEvent(new CustomEvent('robo:practice-completed',{detail:{percentage:summary.percentage,classLevel:learnerClass.value,questionCount:summary.attempted,correctCount:summary.score,...syntheticPracticeEventIds.get(summary)}}));
+}
 function renderPracticeResults(summary){
-  if(new URLSearchParams(location.search).get('synthetic_cloud')==='1' && !summary.diagnostic){
-    if(!syntheticPracticeEventIds.has(summary))syntheticPracticeEventIds.set(summary,{eventId:crypto.randomUUID(),completedAt:new Date().toISOString()});
-    document.dispatchEvent(new CustomEvent('robo:practice-completed',{detail:{percentage:summary.percentage,classLevel:learnerClass.value,questionCount:summary.attempted,correctCount:summary.score,...syntheticPracticeEventIds.get(summary)}}));
-  }
+  reportSyntheticPracticeCompletion(summary);
   currentPracticeSummary=summary;practiceSetup.classList.add('hidden');practiceQuestion.classList.add('hidden');practiceResults.classList.remove('hidden');
   const labels=resultCopy[language.value]||resultCopy.English;
   resultPercentage.textContent=`${summary.percentage}%`;resultScore.textContent=labels.score(summary.score,summary.attempted);
