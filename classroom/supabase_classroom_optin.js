@@ -3,7 +3,7 @@ const panel=document.getElementById('syntheticCloudSync');
 const status=document.getElementById('syntheticCloudStatus');
 const authURL='https://drzaxpofuhqchmpkwhpy.supabase.co';
 const publishableKey='sb_publishable_FXqz6Ky3ypQxNXPlJiT1XA_X5onZmE7';
-let session=null, expiry=0;
+let session=null, expiry=0, savePending=false, loginAttempt=0;
 // Keep synthetic tokens in memory only; never mix them with classroom learner identity.
 const setStatus=x=>{status.textContent=x};
 const cloudResults=document.createElement('div');
@@ -73,10 +73,16 @@ async function retrieveScores(){
   cloudResults.replaceChildren(list);
   cloudProgressResults.replaceChildren(list.cloneNode(true));
   if(!list.children.length){cloudResults.textContent='No synthetic mathematics scores found for this account.';cloudProgressResults.textContent=cloudResults.textContent;}
- }catch(e){if(activeSession===session)cloudResults.textContent='Unable to retrieve saved scores: '+e.message;cloudProgressResults.textContent=cloudResults.textContent; cloudMetrics.replaceChildren(); if(/401|403/.test(e.message)){clearSession();setStatus('Cloud session expired or access denied. Sign in again.')}}
+ }catch(e){
+  if(activeSession!==session)return;
+  cloudResults.textContent='Unable to retrieve saved scores: '+e.message;
+  cloudProgressResults.textContent=cloudResults.textContent;
+  cloudMetrics.replaceChildren();
+  if(/401|403/.test(e.message)){clearSession();setStatus('Cloud session expired or access denied. Sign in again.')}
+ }
 }
 refresh.addEventListener('click',()=>{void retrieveScores()});
-function clearSession(){session=null;expiry=0;document.getElementById('syntheticCloudPassword').value='';clearResults();setStatus('Synthetic session cleared.');}
+function clearSession(){loginAttempt++;session=null;expiry=0;document.getElementById('syntheticCloudPassword').value='';clearResults();setStatus('Synthetic session cleared.');}
 const enabled=new URLSearchParams(location.search).get('synthetic_cloud')==='1';
 if(enabled){panel.hidden=false;progressArea.append(cloudSection);clearResults();}
 // Refresh only on opening the existing Progress screen, not continuously.
@@ -84,6 +90,7 @@ if(enabled){const observer=new MutationObserver(()=>{if(!progressArea.classList.
 document.getElementById('syntheticCloudLogout').addEventListener('click',clearSession);
 document.getElementById('syntheticCloudLogin').addEventListener('click',async()=>{
  if(!enabled)return;
+ const attempt=++loginAttempt;
  const email=document.getElementById('syntheticCloudEmail').value.trim().toLowerCase();
  const password=document.getElementById('syntheticCloudPassword').value;
  document.getElementById('syntheticCloudPassword').value='';
@@ -92,22 +99,27 @@ document.getElementById('syntheticCloudLogin').addEventListener('click',async()=
   const r=await fetch(authURL+'/auth/v1/token?grant_type=password',{method:'POST',headers:{apikey:publishableKey,'Content-Type':'application/json'},body:JSON.stringify({email,password}),cache:'no-store'});
   if(!r.ok)throw Error('Synthetic sign-in rejected (HTTP '+r.status+').');
   const data=await r.json();
+  if(attempt!==loginAttempt)return;
   if(data.user?.email?.toLowerCase()!==email||!data.access_token)throw Error('Synthetic account mismatch');
   session={token:data.access_token,userId:data.user.id};expiry=Number(data.expires_at||0);
   setStatus('Synthetic cloud session ready. Complete a mathematics practice to test progress saving.');
   refresh.hidden=false;
   await retrieveScores();
- }catch(e){clearSession();setStatus(e.message)}
+ }catch(e){if(attempt===loginAttempt){clearSession();setStatus(e.message)}}
 });
 async function saveSummary(summary){
- if(!enabled||!session)return;
+ if(!enabled||!session||savePending)return;
  if(expiry&&Date.now()>=expiry*1000){clearSession();setStatus('Session expired. Sign in again.');return}
  const score=Number(summary?.percentage);
  if(!Number.isInteger(score)||score<0||score>100){setStatus('Practice percentage unavailable for cloud sync.');return}
+ const activeSession=session;
+ savePending=true;
  try {
   await saveSyntheticClassroomResult({supabaseUrl:authURL,publishableKey,accessToken:session.token,topicCode:'synthetic_math_practice',percentage:score});
+  if(activeSession!==session)return;
   setStatus('Synthetic practice score '+score+' saved to Supabase. No production learner records changed.');
   await retrieveScores();
- }catch(e){setStatus('Cloud sync skipped: '+e.message)}
+ }catch(e){if(activeSession===session)setStatus('Cloud sync skipped: '+e.message)}
+ finally{savePending=false}
 }
 document.addEventListener('robo:practice-completed',e=>{void saveSummary(e.detail)});
