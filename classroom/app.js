@@ -1419,6 +1419,7 @@ async function diagnosticRequest(path,body){
 
 async function startPracticeSession(){
   practiceMode='practice';
+  syntheticActiveTopic=practiceTopic.value;
   startPracticeButton.disabled=true;practiceAgainButton.disabled=true;startPracticeButton.textContent='Preparing…';setLearningStatus('Preparing your practice','thinking');
   try{renderPracticeQuestion(await practiceRequest('start',{topic:practiceTopic.value,difficulty:practiceDifficulty.value,question_count:Number(practiceCount.value),class_level:practiceClass.value,language:language.value}))}
   catch(err){addMessage(err.message,'teacher')}
@@ -1480,13 +1481,14 @@ function resetPracticeSetup(){
   currentPractice=null;currentPracticeSummary=null;practiceQuestion.classList.add('hidden');practiceResults.classList.add('hidden');practiceSetup.classList.remove('hidden');
 }
 
+let syntheticActiveTopic='';
 const syntheticPracticeEventIds=new WeakMap();
 const syntheticPracticeDispatched=new WeakSet();
 function reportSyntheticPracticeCompletion(summary){
   if(new URLSearchParams(location.search).get('synthetic_cloud')!=='1'||!summary||summary.diagnostic||syntheticPracticeDispatched.has(summary))return;
   if(!syntheticPracticeEventIds.has(summary))syntheticPracticeEventIds.set(summary,{eventId:crypto.randomUUID(),completedAt:new Date().toISOString()});
   syntheticPracticeDispatched.add(summary);
-  document.dispatchEvent(new CustomEvent('robo:practice-completed',{detail:{percentage:summary.percentage,classLevel:learnerClass.value,questionCount:summary.attempted,correctCount:summary.score,...syntheticPracticeEventIds.get(summary)}}));
+  document.dispatchEvent(new CustomEvent('robo:practice-completed',{detail:{percentage:summary.percentage,classLevel:learnerClass.value,questionCount:summary.attempted,correctCount:summary.score,topicLabel:syntheticActiveTopic,...syntheticPracticeEventIds.get(summary)}}));
 }
 function renderPracticeResults(summary){
   reportSyntheticPracticeCompletion(summary);
