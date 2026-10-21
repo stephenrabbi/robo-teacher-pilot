@@ -60,5 +60,31 @@ class WelcomeBrowserQA(unittest.TestCase):
         finally:
             page.close()
 
+    def test_generate_learner_code_and_valid_onboarding(self):
+        page = self.browser.new_page(viewport={"width": 375, "height": 812})
+        try:
+            page.goto(f"http://127.0.0.1:{self.port}/classroom/index.html", wait_until="domcontentloaded")
+            page.locator("#generateLearnerCode").click()
+            code = page.locator("#learnerCode").input_value()
+            self.assertTrue(code.strip(), "Generate a code must populate learner code")
+            page.locator("#learnerNickname").fill("Test Learner")
+            page.locator("#learnerConsent").check()
+            page.locator("#startLearning").click()
+            page.locator("#classroom").wait_for(state="visible", timeout=10000)
+            self.assertFalse(page.locator("#welcome").is_visible())
+        finally:
+            page.close()
+
+    def test_hear_herbert_button_interaction(self):
+        page = self.browser.new_page(viewport={"width": 375, "height": 812})
+        try:
+            page.goto(f"http://127.0.0.1:{self.port}/classroom/index.html", wait_until="domcontentloaded")
+            page.locator("#hearFounder").click()
+            self.assertTrue(page.locator("#welcome").is_visible())
+            self.assertTrue(page.locator("#hearFounder").count())
+            # Actual audible output and avatar frame switching require device testing.
+        finally:
+            page.close()
+
 if __name__ == "__main__":
     unittest.main()
