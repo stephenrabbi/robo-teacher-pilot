@@ -37,15 +37,17 @@ cloudProgressResults.setAttribute('aria-live','polite');
 const cloudProgressRefresh=document.createElement('button');
 cloudProgressRefresh.type='button';
 cloudProgressRefresh.textContent='Refresh cloud practice history';
-cloudProgressRefresh.addEventListener('click',()=>{void retrieveScores()});
+cloudProgressRefresh.addEventListener('click',()=>{void retrieveScores(true)});
 cloudSection.append(cloudTitle,cloudNote,cloudProgressRefresh,cloudMetrics,topicPerformance,cloudProgressResults);
 
 
 const clearResults=()=>{cloudResults.replaceChildren();cloudProgressResults.replaceChildren();cloudMetrics.replaceChildren();topicPerformance.replaceChildren();cloudProgressResults.textContent='Sign in to a synthetic account in the cloud test panel below to see authenticated scores.';refresh.hidden=true};
-async function retrieveScores(){
- if(!enabled||!session){clearResults();return}
+async function retrieveScores(manual=false){
+ if(!enabled)return;
+ if(!session){clearResults();if(manual){cloudProgressResults.textContent='Cloud session not connected. Sign in using the Synthetic cloud progress test panel below, then refresh again.';setStatus('Sign in to a synthetic account before refreshing cloud history.')}return}
  if(expiry&&Date.now()>=expiry*1000){clearSession();setStatus('Session expired. Sign in again.');return}
  const activeSession=session;
+ if(manual){cloudProgressRefresh.disabled=true;cloudProgressRefresh.textContent='Refreshing cloud history…';cloudProgressResults.textContent='Checking authenticated cloud practice history…'}
  try{
   const url=authURL+'/rest/v1/robo_synthetic_sync_events?select=topic_code,score,created_at,class_level,question_count,correct_count,practice_event_id,topic_label&order=created_at.desc&limit=20';
   const response=await fetch(url,{headers:{apikey:publishableKey,Authorization:'Bearer '+activeSession.token,Accept:'application/json'},cache:'no-store'});
@@ -97,13 +99,15 @@ async function retrieveScores(){
   cloudResults.replaceChildren(list);
   cloudProgressResults.replaceChildren(list.cloneNode(true));
   if(!list.children.length){cloudResults.textContent='No synthetic mathematics scores found for this account.';cloudProgressResults.textContent=cloudResults.textContent;}
+  if(manual)setStatus('Cloud history refreshed: '+scores.length+' mathematics records retrieved.');
  }catch(e){
   if(activeSession!==session)return;
   cloudResults.textContent='Unable to retrieve saved scores: '+e.message;
   cloudProgressResults.textContent=cloudResults.textContent;
   cloudMetrics.replaceChildren();topicPerformance.replaceChildren();
   if(/401|403/.test(e.message)){clearSession();setStatus('Cloud session expired or access denied. Sign in again.')}
- }
+  else if(manual)setStatus('Cloud history refresh failed: '+e.message);
+ }finally{if(manual){cloudProgressRefresh.disabled=false;cloudProgressRefresh.textContent='Refresh cloud practice history'}}
 }
 refresh.addEventListener('click',()=>{void retrieveScores()});
 function clearSession(){loginAttempt++;savedEventIds.clear();session=null;expiry=0;document.getElementById('syntheticCloudPassword').value='';clearResults();setStatus('Synthetic session cleared.');}
