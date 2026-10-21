@@ -45,7 +45,7 @@ async function retrieveScores(){
  if(expiry&&Date.now()>=expiry*1000){clearSession();setStatus('Session expired. Sign in again.');return}
  const activeSession=session;
  try{
-  const url=authURL+'/rest/v1/robo_synthetic_sync_events?select=topic_code,score,created_at,class_level,question_count,correct_count,practice_event_id&order=created_at.desc&limit=20';
+  const url=authURL+'/rest/v1/robo_synthetic_sync_events?select=topic_code,score,created_at,class_level,question_count,correct_count,practice_event_id,topic_label&order=created_at.desc&limit=20';
   const response=await fetch(url,{headers:{apikey:publishableKey,Authorization:'Bearer '+activeSession.token,Accept:'application/json'},cache:'no-store'});
   if(!response.ok)throw Error('Cloud retrieval rejected (HTTP '+response.status+').');
   const rows=await response.json();
@@ -60,7 +60,7 @@ async function retrieveScores(){
    if(row.practice_event_id&&Number.isInteger(row.question_count)&&row.question_count>0&&Number.isInteger(row.correct_count)&&row.correct_count>=0&&row.correct_count<=row.question_count){enrichedCount++;questions+=row.question_count;correct+=row.correct_count;}
    const item=document.createElement('li');
    const date=new Date(row.created_at);
-   item.textContent='Mathematics practice'+(row.class_level?' ('+row.class_level+')':'')+': '+row.score+'%'+(Number.isInteger(row.question_count)&&Number.isInteger(row.correct_count)?' · '+row.correct_count+'/'+row.question_count+' questions':'')+' — '+(Number.isNaN(date.getTime())?'date unavailable':date.toLocaleString());
+   item.textContent='Mathematics practice'+(row.topic_label?' — '+row.topic_label:'')+(row.class_level?' ('+row.class_level+')':'')+': '+row.score+'%'+(Number.isInteger(row.question_count)&&Number.isInteger(row.correct_count)?' · '+row.correct_count+'/'+row.question_count+' questions':'')+' — '+(Number.isNaN(date.getTime())?'date unavailable':date.toLocaleString());
    list.append(item);
   }
   cloudMetrics.replaceChildren();
@@ -120,7 +120,7 @@ async function saveSummary(summary){
  const activeSession=session;
  savePending=true;
  try {
-  await saveSyntheticClassroomResult({supabaseUrl:authURL,publishableKey,accessToken:session.token,topicCode:'synthetic_math_practice',percentage:score,classLevel:summary.classLevel,questionCount:summary.questionCount,correctCount:summary.correctCount,eventId:summary.eventId,completedAt:summary.completedAt});
+  await saveSyntheticClassroomResult({supabaseUrl:authURL,publishableKey,accessToken:session.token,topicCode:'synthetic_math_practice',percentage:score,classLevel:summary.classLevel,questionCount:summary.questionCount,correctCount:summary.correctCount,eventId:summary.eventId,completedAt:summary.completedAt,topicLabel:summary.topicLabel});
   if(activeSession!==session)return;
   savedEventIds.add(summary.eventId);
   setStatus('Synthetic practice score '+score+' saved to Supabase. No production learner records changed.');
