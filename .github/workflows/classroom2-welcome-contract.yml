@@ -1,0 +1,21 @@
+name: Classroom 2.0 Welcome Contract
+on:
+  pull_request:
+    paths:
+      - "classroom/index.html"
+      - "classroom/classroom2-welcome.css"
+      - "tests/test_classroom2_welcome_contract.py"
+      - ".github/workflows/classroom2-welcome-contract.yml"
+  workflow_dispatch:
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify welcome page structure
+        run: python -m unittest discover -s tests -p 'test_classroom2_welcome_contract.py' -v
