@@ -71,14 +71,19 @@ async function retrieveScores(manual=false){
   const scores=[];
   let enrichedCount=0,questions=0,correct=0;
   const topics=new Map();
+  const seenEnrichedEvents=new Set();
   for(const row of rows){
    if(row.topic_code!=='synthetic_math_practice'||!Number.isInteger(row.score)||row.score<0||row.score>100)continue;
    scores.push(row.score);
+   if(row.practice_event_id){
+    if(seenEnrichedEvents.has(row.practice_event_id))continue;
+    seenEnrichedEvents.add(row.practice_event_id);
+   }
    if(row.practice_event_id&&Number.isInteger(row.question_count)&&row.question_count>0&&Number.isInteger(row.correct_count)&&row.correct_count>=0&&row.correct_count<=row.question_count){enrichedCount++;questions+=row.question_count;correct+=row.correct_count;}
    if(row.practice_event_id&&typeof row.topic_label==='string'&&row.topic_label.trim()&&['JSS1','JSS2','JSS3'].includes(row.class_level)&&Number.isInteger(row.question_count)&&row.question_count>0&&Number.isInteger(row.correct_count)&&row.correct_count>=0&&row.correct_count<=row.question_count){
     const key=row.class_level+' · '+row.topic_label.trim();
     const aggregate=topics.get(key)||{sessions:0,attempted:0,correct:0};
-    aggregate.sessions++;aggregate.attempted+=row.question_count;aggregate.correct+=row.correct_count;
+    aggregate.sessions++;aggregate.attempted+=row.question_count;aggregate.correct+=row.correct_count;aggregate.latest=aggregate.latest??{score:row.score,at:row.created_at};
     topics.set(key,aggregate);
    }
    const item=document.createElement('li');
@@ -108,9 +113,11 @@ async function retrieveScores(manual=false){
     const topicName=document.createElement('strong');topicName.textContent=topic;
     const observed=Math.round(100*metric.correct/metric.attempted);
     const scoreLine=document.createElement('p');scoreLine.textContent=metric.correct+'/'+metric.attempted+' correct ('+observed+'%) across '+metric.sessions+' recorded practice'+(metric.sessions===1?'':'s')+'.';
+    const latest=document.createElement('p');
+    latest.textContent='Latest recorded practice: '+metric.latest.score+'%. '+(metric.sessions===1?'One labelled practice is available.':'Summary combines '+metric.sessions+' labelled practices.');
     const evidence=document.createElement('p');evidence.textContent='Evidence: '+(metric.sessions<3||metric.attempted<15?'limited — more practice needed before assessing a learning trend':'multiple practices recorded — review performance across sessions before drawing conclusions')+'.';
     const meter=document.createElement('progress');meter.value=metric.correct;meter.max=metric.attempted;meter.setAttribute('aria-label',topic+' observed correct answers');meter.style.cssText='display:block;width:100%;max-width:100%;margin:.6rem 0;';
-    item.append(topicName,scoreLine,meter,evidence);
+    item.append(topicName,scoreLine,meter,latest,evidence);
     topicList.append(item);
    }
    topicPerformance.append(heading,detail,topicList);
