@@ -49,6 +49,26 @@ class WelcomeBrowserQA(unittest.TestCase):
                 finally:
                     page.close()
 
+    def test_privacy_banner_does_not_overlap_onboarding(self):
+        for width, height in ((320, 750), (375, 812), (768, 1024), (1366, 900)):
+            with self.subTest(width=width):
+                page = self.browser.new_page(viewport={"width": width, "height": height})
+                try:
+                    page.goto(f"http://127.0.0.1:{self.port}/classroom/index.html", wait_until="domcontentloaded")
+                    banner = page.locator("#privacyConsentBanner")
+                    banner.wait_for(state="visible", timeout=10000)
+                    self.assertTrue(page.locator("[data-choice='essential']").is_visible())
+                    self.assertTrue(page.locator("[data-choice='allow']").is_visible())
+                    self.assertTrue(page.locator("[data-action='clear-device']").is_visible())
+                    positions = page.evaluate("""() => {
+                      const banner = document.querySelector('#privacyConsentBanner').getBoundingClientRect();
+                      const form = document.querySelector('.learner-onboarding').getBoundingClientRect();
+                      return {bannerBottom: banner.bottom, formTop: form.top};
+                    }""")
+                    self.assertLessEqual(positions["bannerBottom"], positions["formTop"] + 2, positions)
+                finally:
+                    page.close()
+
     def test_onboarding_required_permission(self):
         page = self.browser.new_page(viewport={"width": 375, "height": 812})
         try:
