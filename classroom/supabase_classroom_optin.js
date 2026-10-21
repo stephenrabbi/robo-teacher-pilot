@@ -27,6 +27,10 @@ const cloudTitle=document.createElement('h4');
 cloudTitle.textContent='Cloud practice history (synthetic test only)';
 const cloudNote=document.createElement('p');
 cloudNote.textContent='Authenticated synthetic account scores only. These do not change the local dashboard totals or learning recommendations.';
+const cloudRestoreStatus=document.createElement('p');
+cloudRestoreStatus.id='syntheticCloudRestoreStatus';
+cloudRestoreStatus.setAttribute('role','status');
+cloudRestoreStatus.textContent='Sign in to restore a read-only cloud practice snapshot from this synthetic account.';
 const cloudMetrics=document.createElement('div');
 cloudMetrics.id='syntheticCloudMetrics';
 cloudMetrics.setAttribute('aria-live','polite');
@@ -38,15 +42,16 @@ const cloudProgressRefresh=document.createElement('button');
 cloudProgressRefresh.type='button';
 cloudProgressRefresh.textContent='Refresh cloud practice history';
 cloudProgressRefresh.addEventListener('click',()=>{void retrieveScores(true)});
-cloudSection.append(cloudTitle,cloudNote,cloudProgressRefresh,cloudMetrics,topicPerformance,cloudProgressResults);
+cloudSection.append(cloudTitle,cloudNote,cloudProgressRefresh,cloudRestoreStatus,cloudMetrics,topicPerformance,cloudProgressResults);
 
 
-const clearResults=()=>{cloudResults.replaceChildren();cloudProgressResults.replaceChildren();cloudMetrics.replaceChildren();topicPerformance.replaceChildren();cloudProgressResults.textContent='Sign in to a synthetic account in the cloud test panel below to see authenticated scores.';refresh.hidden=true};
+const clearResults=()=>{cloudRestoreStatus.textContent='Sign in to restore a read-only cloud practice snapshot from this synthetic account.';cloudResults.replaceChildren();cloudProgressResults.replaceChildren();cloudMetrics.replaceChildren();topicPerformance.replaceChildren();cloudProgressResults.textContent='Sign in to a synthetic account in the cloud test panel below to see authenticated scores.';refresh.hidden=true};
 async function retrieveScores(manual=false){
  if(!enabled)return;
  if(!session){clearResults();if(manual){cloudProgressResults.textContent='Cloud session not connected. Sign in using the Synthetic cloud progress test panel below, then refresh again.';setStatus('Sign in to a synthetic account before refreshing cloud history.')}return}
  if(expiry&&Date.now()>=expiry*1000){clearSession();setStatus('Session expired. Sign in again.');return}
  const activeSession=session;
+ cloudRestoreStatus.textContent='Loading authenticated cloud practice snapshot…';
  if(manual){cloudProgressRefresh.disabled=true;cloudProgressRefresh.textContent='Refreshing cloud history…';cloudProgressResults.textContent='Checking authenticated cloud practice history…'}
  try{
   const url=authURL+'/rest/v1/robo_synthetic_sync_events?select=topic_code,score,created_at,class_level,question_count,correct_count,practice_event_id,topic_label&order=created_at.desc&limit=20';
@@ -84,6 +89,7 @@ async function retrieveScores(manual=false){
    caveat.textContent=enrichedCount?'Verified event metadata in '+enrichedCount+' of '+scores.length+' retrieved records: '+correct+'/'+questions+' questions correct. Older percentage-only records are excluded from these question totals. Topic mastery and personalised recommendations remain unavailable.':'These are synthetic score-only records, not verified unique practice sessions. Topic mastery, question counts and personalised recommendations cannot be calculated from them.';
    cloudMetrics.append(latest,caveat);
   }
+  cloudRestoreStatus.textContent='Cloud practice snapshot restored (read-only): '+scores.length+' saved records, '+enrichedCount+' enriched practice events, '+topics.size+' recorded topics. Local progress and recommendations were not changed.';
   topicPerformance.replaceChildren();
   if(topics.size){
    const heading=document.createElement('h5');heading.textContent='Recorded topic performance (synthetic only)';
@@ -102,6 +108,7 @@ async function retrieveScores(manual=false){
   if(manual)setStatus('Cloud history refreshed: '+scores.length+' mathematics records retrieved.');
  }catch(e){
   if(activeSession!==session)return;
+  cloudRestoreStatus.textContent='Cloud practice snapshot unavailable: '+e.message;
   cloudResults.textContent='Unable to retrieve saved scores: '+e.message;
   cloudProgressResults.textContent=cloudResults.textContent;
   cloudMetrics.replaceChildren();topicPerformance.replaceChildren();
