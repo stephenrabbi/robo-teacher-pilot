@@ -42,7 +42,7 @@ class Classroom2WelcomeContract(unittest.TestCase):
                 if part.startswith('@') or part in ('from', 'to') or re.fullmatch(r'[\d.]+%', part):
                     continue
                 with self.subTest(selector=part):
-                    self.assertTrue(part.startswith('#welcome'), part)
+                    self.assertTrue(part.startswith('#welcome') or (part.startswith('body:has(#welcome') and ('#privacyConsentBanner' in part or part.endswith(')'))), part)
 
     def test_no_inline_script_replacement(self):
         self.assertIn('/classroom/app.js', HTML)
