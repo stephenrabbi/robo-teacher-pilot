@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Robo-Teacher Classroom</title>
   <link rel="stylesheet" href="/classroom/styles.css?v=20261012-expanded-guide1" />
-  <link rel="stylesheet" href="/classroom/classroom2.css?v=20261023-1" />
+  <link rel="stylesheet" href="/classroom/classroom2.css?v=20261023-2" />
 </head>
 <body>
   <main class="app-shell">
@@ -14,23 +14,24 @@
         <img class="brand-logo" src="/classroom/assets/robo-teacher-logo.png" alt="Robo-Teacher — AI-Powered Learning for Everyone" />
         <div><strong>ROBO-TEACHER</strong><small>AI-POWERED LEARNING FOR EVERYONE</small></div>
       </div>
-      <span class="version">V2.5.2 Practice Mode</span>
+      <span class="version">Your personal AI classroom</span>
     </header>
 
     <section id="welcome" class="screen welcome-screen">
+      <div class="welcome-intro"><p class="eyebrow">YOUR PERSONAL LEARNING SPACE</p><h1>Learn with confidence, at your pace.</h1><p>A familiar classroom, a helpful teacher, and a clear way to begin.</p></div>
       <div class="welcome-visual-column">
       <div id="founderPanel" class="founder-panel avatar-rig student-first-founder-panel">
         <div class="student-welcome-photo" aria-label="Real Robo-Teacher classroom demonstration">
           <img src="/classroom/assets/real-students-classroom-welcome.jpg" alt="Students taking part in a Robo-Teacher classroom demonstration" loading="eager" decoding="async" />
           <span class="student-photo-caption">Real learners. Real classrooms.</span>
         </div>
-        <div class="founder-avatar-stage avatar-stage">
+        <div class="founder-introduction"><div class="founder-avatar-stage avatar-stage">
           <img class="founder-avatar" src="/classroom/assets/herbert-stephen-founder.jpg" alt="Herbert Stephen, founder of Robo-Teacher" />
           <img class="founder-avatar avatar-speaking-frame" src="/classroom/assets/herbert-stephen-founder-speaking.jpg" alt="" aria-hidden="true" />
           <img class="founder-avatar avatar-head-motion founder-head-motion" src="/classroom/assets/herbert-stephen-founder.jpg" alt="" aria-hidden="true" />
           <img class="founder-avatar avatar-head-motion avatar-head-speaking founder-head-motion" src="/classroom/assets/herbert-stephen-founder-speaking.jpg" alt="" aria-hidden="true" />
         </div>
-        <span class="status">Online and ready</span>
+        <div class="founder-introduction-copy"><strong>Welcome to Robo-Teacher</strong><p>I’m Herbert, the founder. Let me help you get started.</p><button id="hearFounder" class="founder-voice" type="button">Hear Herbert</button></div></div>
       </div>
       <aside class="welcome-start-guide" aria-labelledby="welcomeStartGuideTitle">
         <h2 id="welcomeStartGuideTitle">How to get started</h2>
@@ -47,12 +48,10 @@
       </aside>
       </div>
       <div class="welcome-copy">
-        <p class="eyebrow">WELCOME TO YOUR AI CLASSROOM</p>
-        <h1>Welcome to <span>Robo-Teacher</span></h1>
+        <p class="eyebrow">LET’S GET STARTED</p>
         <div class="speech-card">
-          <h2>Hello there!</h2>
-          <p>I’m Herbert, the founder of Robo-Teacher. I’ll help you get started, then introduce you to your AI teacher.</p>
-          <p>Ask questions, show your work, speak naturally and learn step by step.</p>
+          <h2>Ready to learn?</h2>
+          <p>Choose your class and tell your teacher what to call you.</p>
           <div class="learner-onboarding">
             <label for="learnerNickname">What should your teacher call you?</label>
             <input id="learnerNickname" maxlength="30" autocomplete="nickname" placeholder="Nickname, for example Tobi" />
@@ -74,7 +73,7 @@
             <p id="onboardingError" class="onboarding-error hidden" role="alert"></p>
           </div>
         </div>
-        <div class="welcome-actions"><button id="startLearning" class="primary">Start Learning Now →</button><button id="resumeLearning" class="resume-learning hidden" type="button">Continue previous lesson →</button><button id="hearFounder" class="founder-voice" type="button">Hear Herbert</button><button id="showTeacherLogin" class="teacher-entry" type="button">Teacher access</button></div>
+        <div class="welcome-actions"><button id="startLearning" class="primary">Start Learning Now →</button><button id="resumeLearning" class="resume-learning hidden" type="button">Continue previous lesson →</button><button id="showTeacherLogin" class="teacher-entry" type="button">Teacher access</button></div>
         <div id="teacherLogin" class="teacher-login hidden">
           <label for="teacherAccessKey">Private teacher access key</label>
           <div><input id="teacherAccessKey" type="password" autocomplete="current-password" placeholder="Enter private key" /><button id="openTeacherDashboard" type="button">Open Dashboard →</button></div>

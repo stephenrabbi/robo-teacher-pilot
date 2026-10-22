@@ -139,3 +139,65 @@ body:has(#welcome:not(.hidden)) #privacyConsentBanner { position: relative; inse
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; }
 }
+
+/* Layout implementation of the approved photo-led Classroom 2.0 prototype. */
+#welcome .welcome-intro { grid-column: 1 / -1; grid-row: 1; margin: 0 0 2px; }
+#welcome .welcome-intro h1 { margin: 5px 0 8px; color: var(--navy); font-size: clamp(26px, 3vw, 38px); line-height: 1.2; letter-spacing: -.03em; }
+#welcome .welcome-intro > p:last-child { margin: 0; color: #52647a; line-height: 1.5; }
+#welcome .welcome-visual-column { grid-row: 2; }
+#welcome .welcome-copy { grid-row: 2; }
+#welcome .speech-card h2 { margin: 4px 0 10px; font-size: 28px; letter-spacing: -.02em; }
+#welcome .welcome-copy .eyebrow { margin-bottom: 12px; }
+#welcome .student-welcome-photo { height: 565px; }
+#welcome .founder-introduction { position: absolute; left: 18px; right: 18px; bottom: 18px; z-index: 3; display: grid; grid-template-columns: 78px minmax(0, 1fr); gap: 14px; align-items: center; padding: 13px; border-radius: 15px; background: rgb(20 45 78 / 96%); color: #fff; }
+#welcome .student-first-founder-panel .founder-introduction .founder-avatar-stage { position: relative; inset: auto; width: 78px; height: 94px; border: 0; border-radius: 11px; box-shadow: none; }
+#welcome .founder-introduction-copy { min-width: 0; }
+#welcome .founder-introduction-copy strong { font-size: 17px; line-height: 1.35; }
+#welcome .founder-introduction-copy p { margin: 3px 0 9px; color: #e0e8f4; font-size: 13px; line-height: 1.45; }
+#welcome .founder-introduction #hearFounder { min-height: 44px; margin: 0; width: auto; padding: 8px 14px; border: 0; border-radius: 9px; background: #dff5f1; color: #075d57; font-size: 13px; }
+#welcome .welcome-start-guide { padding: 18px 20px; }
+.classroom-screen, .classroom-screen.teacher-min { grid-template-columns: minmax(0, 1fr) 300px; align-items: start; gap: 20px; }
+.teacher-panel { display: flex; flex-direction: column; align-items: stretch; gap: 16px; min-height: 0; padding: 20px; }
+.teacher-panel .teacher-portrait { order: 0; width: 104px; align-self: center; }
+.teacher-panel .teacher-avatar-stage { height: 110px; }
+.teacher-panel .teacher-avatar { height: 110px; }
+.teacher-panel .teacher-toolbar { order: 1; display: flex; flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 14px; min-width: 0; width: 100%; }
+.teacher-panel .teacher-toolbar > strong { display: block; flex: 0 0 auto; font-size: 18px; text-align: center; }
+.teacher-panel .teacher-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; gap: 8px; }
+.teacher-panel .teacher-actions > * { min-width: 0; max-width: 100%; width: 100%; font-size: 12px; }
+.teacher-panel .teacher-actions .teacher-voice-status { grid-column: 1 / -1; font-size: 13px; }
+.teacher-panel .teacher-caption { order: 2; text-align: center; margin: 0; line-height: 1.5; }
+.teacher-panel.minimized { width: 100%; min-height: 0; display: block; }
+.teacher-panel.minimized .teacher-toolbar { margin: 0; }
+.teacher-panel.minimized .teacher-actions { display: flex; flex-wrap: wrap; }
+.teacher-panel.minimized .teacher-actions > * { width: auto; flex: 1 1 100px; }
+@media (max-width: 1100px) {
+  .classroom-screen, .classroom-screen.teacher-min { grid-template-columns: minmax(0, 1fr); }
+  .teacher-panel { display: grid; grid-template-columns: 104px minmax(0, 1fr); gap: 12px 18px; }
+  .teacher-panel .teacher-portrait { grid-column: 1; grid-row: 1 / 3; width: 104px; }
+  .teacher-panel .teacher-toolbar { grid-column: 2; grid-row: 1; }
+  .teacher-panel .teacher-toolbar > strong { text-align: left; }
+  .teacher-panel .teacher-actions { display: flex; flex-wrap: wrap !important; justify-content: flex-start; }
+  .teacher-panel .teacher-actions > * { width: auto; flex: 1 1 100px; }
+  .teacher-panel .teacher-caption { grid-column: 2; text-align: left; }
+}
+@media (max-width: 900px) {
+  #welcome .welcome-visual-column .student-first-founder-panel { grid-row: 2; }
+  #welcome .welcome-copy { grid-row: 3; }
+  #welcome .welcome-visual-column .welcome-start-guide { grid-row: 4; }
+  #welcome .student-welcome-photo { height: 365px; }
+}
+@media (max-width: 600px) {
+  #welcome .welcome-intro h1 { font-size: 27px; }
+  #welcome .welcome-intro > p:last-child { font-size: 14px; }
+  #welcome .student-welcome-photo { height: 320px; }
+  #welcome .founder-introduction { left: 10px; right: 10px; bottom: 10px; padding: 10px; grid-template-columns: 55px minmax(0, 1fr); gap: 10px; }
+  #welcome .student-first-founder-panel .founder-introduction .founder-avatar-stage { width: 55px; height: 78px; }
+  #welcome .founder-introduction-copy strong { font-size: 14px; }
+  #welcome .founder-introduction-copy p { font-size: 11px; }
+  #welcome .founder-introduction #hearFounder { padding: 8px 12px; font-size: 12px; }
+  .teacher-panel { grid-template-columns: 60px minmax(0, 1fr); padding: 14px; gap: 10px; }
+  .teacher-panel .teacher-portrait { width: 60px; }
+  .teacher-panel .teacher-avatar-stage, .teacher-panel .teacher-avatar { height: 68px; }
+  .teacher-panel .teacher-actions > * { font-size: 11px; }
+}
