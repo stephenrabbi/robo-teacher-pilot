@@ -1,0 +1,141 @@
+/* Classroom 2.0 presentation. Existing IDs, scripts and learner state are retained. */
+:root {
+  --navy: #142d4e;
+  --blue: #2364b8;
+  --gold: #d79a23;
+  --muted: #52647a;
+  --line: #dde6ef;
+  --c2-teal: #087f75;
+  --c2-shadow: 0 12px 38px rgb(16 35 64 / 7%);
+}
+body { background: #f5f8fc; color: #334155; }
+.app-shell { width: min(1440px, 100%); padding: 20px 24px 36px; }
+.brandbar { padding: 14px 18px; margin-bottom: 24px; background: #fff; border: 1px solid var(--line); border-radius: 18px; }
+.brandmark { color: var(--navy); }
+.brandmark small { color: #52647a; letter-spacing: .05em; }
+.brand-logo { box-shadow: none; }
+.version { background: #e8f4f3; border-color: #c5e3df; color: #075d57; }
+button, input, select { font-family: inherit; }
+button { touch-action: manipulation; }
+button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible {
+  outline: 3px solid var(--gold); outline-offset: 3px;
+}
+input, select, button { scroll-margin-block: 24px; }
+button:disabled { cursor: not-allowed; }
+.eyebrow, .practice-kicker { color: var(--c2-teal); }
+.primary, .send, .practice-primary, .practice-answer-form button[type="submit"] {
+  background: var(--blue); color: #fff; border-color: var(--blue); min-height: 48px; border-radius: 12px;
+}
+.primary:hover:not(:disabled), .send:hover:not(:disabled) { background: #184f99; }
+#welcome.welcome-screen { grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+#welcome .welcome-copy { background: #fff; padding: clamp(20px, 2.5vw, 32px); border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--c2-shadow); }
+#welcome .welcome-copy h1 { color: var(--navy); font-size: clamp(28px, 3vw, 40px); line-height: 1.15; letter-spacing: -.03em; margin: 12px 0 20px; }
+#welcome .welcome-copy h1 span { color: var(--blue); }
+#welcome .speech-card { padding: 0; border-radius: 0; background: transparent; box-shadow: none; }
+#welcome .speech-card h2 { color: var(--navy); font-size: 23px; }
+#welcome .speech-card p { font-size: 15px; line-height: 1.6; color: #52647a; }
+#welcome .learner-onboarding { grid-template-columns: minmax(0, 1fr); gap: 9px; margin-top: 22px; }
+#welcome .learner-onboarding > * { grid-column: 1 / -1; grid-row: auto; min-width: 0; }
+#welcome .learner-onboarding label[for="learnerClass"] { grid-column: 1 / -1; grid-row: auto; }
+#welcome .learner-onboarding > label { margin-top: 7px; }
+#welcome .learner-onboarding input:not([type="checkbox"]), #welcome .learner-onboarding select { height: 50px; border-color: #ced9e5; border-radius: 11px; background: #fff; color: #334155; font-size: 16px; }
+#welcome .learner-code-row { grid-template-columns: minmax(0, 1fr) auto; }
+#welcome .learner-code-row button { min-height: 44px; }
+#welcome .learner-code-help, #welcome .privacy-helper { color: #52647a; font-size: 12px; line-height: 1.5; }
+#welcome .learner-consent.compact-consent label { font-size: 13px; line-height: 1.5; }
+#welcome .learner-consent input { accent-color: var(--blue); }
+#welcome .welcome-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+#welcome .welcome-actions button { margin: 0; min-height: 44px; border-radius: 12px; }
+#welcome .welcome-actions .primary { width: 100%; padding: 14px 18px; font-size: 17px; }
+#welcome .founder-voice { background: #e8f4f3; color: #075d57; border: 1px solid #c5e3df; }
+#welcome .teacher-entry { padding: 10px 12px; font-size: 14px; }
+#welcome .privacy-note { font-size: 12px; color: #52647a; line-height: 1.5; }
+#welcome .student-welcome-photo { height: 510px; border-radius: 20px; border: 1px solid var(--line); box-shadow: var(--c2-shadow); }
+#welcome .student-photo-caption { top: 18px; bottom: auto; left: 18px; right: auto; max-width: calc(100% - 36px); background: rgb(20 45 78 / 94%); }
+#welcome .welcome-start-guide { border-color: var(--line); border-radius: 20px; background: #fff; box-shadow: var(--c2-shadow); }
+#welcome .welcome-start-guide p, #welcome .welcome-start-guide li { color: #52647a; }
+/* Privacy choices stay visible in normal flow instead of covering the form. */
+body:has(#welcome:not(.hidden)):has(#privacyConsentBanner) { display: flex; flex-direction: column; }
+body:has(#welcome:not(.hidden)) #privacyConsentBanner { position: relative; inset: auto; order: -1; width: min(1392px, calc(100% - 48px)); margin: 16px auto 0; box-shadow: var(--c2-shadow); z-index: 1; }
+.classroom-screen { color: #334155; }
+.teacher-panel, .learning-area { background: #fff; color: #334155; border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--c2-shadow); }
+.learning-area { padding: 24px; }
+.lesson-header { flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
+.lesson-header h2 { color: var(--navy); font-size: clamp(21px, 2.3vw, 30px); letter-spacing: -.02em; }
+.teacher-caption { color: #52647a; }
+.learning-status { background: #eef3fa; color: #1a4c89; border-color: #ced9e5; }
+.learning-status[data-state="thinking"], .learning-status[data-state="success"], .learning-status[data-state="attention"], .learning-status[data-state="listening"], .learning-status[data-state="speaking"] { color: #fff; }
+.lesson-header select, .lesson-actions button, .teacher-speed, .teacher-volume, .icon-button {
+  background: #eef3fa; color: var(--navy); border: 1px solid #ced9e5; min-height: 44px;
+}
+.teacher-toolbar { gap: 12px; }
+.teacher-toolbar > strong { color: var(--navy); }
+.teacher-actions { justify-content: flex-start; gap: 8px; }
+.teacher-actions .teacher-voice-status { color: #075d57; background: #e8f4f3; border-color: #c5e3df; min-height: 44px; }
+.teacher-panel.speaking .teacher-voice-status { background: #075d57; color: #fff; }
+.teaching-canvas { min-height: 420px; padding: clamp(16px, 2.5vw, 32px); background: #fafcff; border: 1px solid var(--line); border-radius: 18px; }
+.canvas-empty strong { color: var(--navy); }
+.canvas-answer { max-height: none; overflow: visible; }
+.canvas-work.voice-avatar-visible { padding-right: 0; padding-bottom: 150px; }
+.canvas-voice-avatar { position: absolute; background: var(--navy); }
+.messages { padding: 16px 0; height: 180px; }
+.message.teacher { background: #eef3fa; color: var(--navy); }
+.message.student { background: var(--blue); color: #fff; }
+.composer { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto auto; background: #fff; padding: 10px 0; gap: 8px; box-shadow: none; }
+.composer input { min-width: 0; background: #fff; color: #334155; border: 1px solid #ced9e5; }
+.tool, .class-tools button { background: #eef3fa; color: #1a4c89; border-color: #ced9e5; min-height: 44px; }
+.class-tools { background: #fff; padding: 10px 0; gap: 8px; box-shadow: none; }
+.class-tools button.active, .class-tools button[aria-current="page"] { background: var(--blue); color: #fff; border-color: var(--blue); }
+.class-tools button:hover:not(.active) { background: #e2ebf7; color: #142d4e; }
+.practice-area { width: min(930px, 100%); padding: clamp(4px, 1vw, 14px); }
+.practice-area h3, .progress-heading h3 { color: var(--navy); }
+.practice-selectors { gap: 16px; }
+.practice-question h3 { font-size: clamp(22px, 2.6vw, 30px); line-height: 1.4; margin-block: 24px; }
+.practice-answer-form { grid-template-columns: minmax(0, 1fr); }
+.practice-actions button, .understanding-choices label { min-height: 44px; }
+.progress-stats article { background: #fff; border-color: var(--line); border-radius: 16px; padding: 20px; }
+.progress-stats strong { color: var(--blue); }
+.progress-track i { background: var(--c2-teal); }
+.progress-columns > section, .learning-path-section { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 16px; }
+.legal-footer { color: #52647a; border-color: var(--line); }
+.legal-footer a, .footer-link-button, .footer-title { color: var(--navy); }
+@media (max-width: 900px) {
+  .app-shell { padding: 16px; }
+  #welcome.welcome-screen { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  #welcome .student-welcome-photo { height: 360px; }
+  .learning-area { padding: 16px; }
+  .teaching-canvas { min-height: 360px; }
+  .composer, .class-tools { position: static; bottom: auto; }
+  .class-tools { display: flex !important; flex-wrap: wrap !important; overflow: visible !important; padding: 10px 0 !important; }
+  .class-tools button { flex: 1 1 120px !important; min-width: 0 !important; white-space: normal !important; }
+}
+@media (max-width: 600px) {
+  .app-shell { padding: 12px; }
+  .brandbar { padding: 12px; margin-bottom: 18px; }
+  .brandmark strong { letter-spacing: .03em; }
+  #welcome .welcome-copy { padding: 20px; text-align: left; }
+  #welcome .student-welcome-photo { height: 285px; }
+  #welcome .learner-code-row { grid-template-columns: minmax(0, 1fr); }
+  #welcome .welcome-actions { display: flex; }
+  #welcome .welcome-actions button { flex: 1 1 auto; width: auto; }
+  #welcome .welcome-actions .primary { flex-basis: 100%; }
+  #welcome .student-photo-caption { left: 10px; top: 10px; max-width: calc(100% - 20px); }
+  body:has(#welcome:not(.hidden)) #privacyConsentBanner { width: calc(100% - 24px); margin-top: 12px; }
+  .learning-area { padding: 12px; }
+  .teaching-canvas { min-height: 340px; padding: 14px; }
+  .lesson-actions { flex-direction: row; flex-wrap: wrap; }
+  .lesson-header select { max-width: 100%; }
+  .teacher-panel { overflow: visible; }
+  .teacher-toolbar { min-width: 0; }
+  .teacher-actions .teacher-voice-status { min-height: 44px; }
+  .composer { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .composer #question { grid-column: 1 / -1; grid-row: 1; min-height: 50px; }
+  .composer .tool, .composer .send { font-size: 12px; padding: 10px 4px; }
+  .messages { min-height: 120px; height: 160px; }
+  .progress-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .progress-stats article { padding: 12px; }
+  .canvas-work.voice-avatar-visible { padding-bottom: 120px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; }
+}
