@@ -65,7 +65,7 @@
     inputTools.className = 'input-tools-more';
 
     const inputSummary = document.createElement('summary');
-    inputSummary.textContent = '+';
+    inputSummary.textContent = 'Add';
     inputSummary.setAttribute('aria-label', 'Add image or use whiteboard');
     inputSummary.setAttribute('title', 'Add image or use whiteboard');
 
