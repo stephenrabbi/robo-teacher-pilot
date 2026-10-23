@@ -72,6 +72,7 @@
 
     const add = document.querySelector('.input-tools-more > summary');
     if (add) {
+      setText(add, ({English:'Add', Yoruba:'Fi kun', Igbo:'Tinye', Hausa:'Ƙara'})[language.value] || 'Add');
       setAttr(add, 'aria-label', t.addTools);
       setAttr(add, 'title', t.addTools);
     }

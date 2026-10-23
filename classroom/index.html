@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Robo-Teacher Classroom</title>
   <link rel="stylesheet" href="/classroom/styles.css?v=20261012-expanded-guide1" />
-  <link rel="stylesheet" href="/classroom/classroom2.css?v=20261023-2" />
+  <link rel="stylesheet" href="/classroom/classroom2.css?v=20261023-3" />
 </head>
 <body>
   <main class="app-shell">
@@ -90,12 +90,14 @@
           <strong>Your AI Teacher</strong>
           <div class="teacher-actions">
             <span id="teacherVoiceStatus" class="teacher-voice-status" aria-live="polite">Ready</span>
+            <details class="voice-settings"><summary>Voice settings</summary><div class="voice-settings-options">
             <select id="teacherSpeed" class="teacher-speed" aria-label="Teacher speaking speed"><option value="slower">Slower</option><option value="normal" selected>Normal speed</option><option value="faster">Faster</option></select>
             <select id="teacherVolume" class="teacher-volume" aria-label="Teacher volume"><option value="mute">Mute</option><option value="low">Low volume</option><option value="normal" selected>Normal volume</option><option value="high">High volume</option></select>
             <button id="voiceHelpToggle" class="icon-button voice-help-toggle" type="button" aria-label="Show voice commands" aria-expanded="false">Commands</button>
             <button id="handsFreeToggle" class="icon-button hands-free-toggle" type="button" aria-label="Enable wake-word teaching" aria-pressed="false">Wake-word</button>
+            </div></details>
             <button id="readAnswer" class="icon-button read-answer" type="button" aria-label="Read the current answer aloud" disabled><span>Read answer</span></button>
-            <button id="toggleTeacher" class="icon-button" type="button" aria-label="Minimize teacher" aria-expanded="true">Hide</button>
+            <button id="toggleTeacher" class="icon-button" type="button" aria-label="Minimize teacher" aria-expanded="true">Hide teacher</button>
           </div>
           <p id="handsFreeHeard" class="hands-free-heard hidden" aria-live="polite"></p>
           <section id="handsFreeHelp" class="hands-free-help hidden" aria-labelledby="handsFreeHelpTitle"><strong id="handsFreeHelpTitle">Voice commands</strong><ul id="handsFreeHelpList"></ul></section>
@@ -117,7 +119,7 @@
           <div class="lesson-actions"><select id="language" aria-label="Teaching language"><option value="English">English</option><option value="Yoruba">Yorùbá</option><option value="Igbo">Igbo</option><option value="Hausa">Hausa</option></select><button id="changeLearner" type="button">Change learner</button></div>
         </div>
         <div id="canvas" class="teaching-canvas">
-          <div id="canvasEmpty" class="canvas-empty"><strong>Teaching Canvas</strong><p>Upload or photograph a Maths problem. Your image and Robo-Teacher’s guidance will appear here.</p></div>
+          <div id="canvasEmpty" class="canvas-empty"><strong>Let’s work through it together</strong><p>Start your lesson above, or type, speak, or upload a Maths problem.</p><div class="canvas-entry-actions"><button type="button" data-classroom-action="question">Type a question</button><button type="button" data-classroom-action="micButton">Speak a question</button><button type="button" data-classroom-action="uploadButton">Upload a problem</button></div></div>
           <div id="canvasWork" class="canvas-work hidden">
             <img id="problemPreview" alt="Learner's Maths problem" />
             <div><div class="canvas-result-toolbar"><span id="canvasStatus" class="canvas-status">Image ready</span><span id="teachingStageMode" class="teaching-stage-mode">Lesson</span><span id="teachingMemoryStatus" class="teaching-memory-status">Learning your pace</span><button id="autoTeachToggle" type="button" class="auto-teach-toggle" aria-pressed="false">Auto Teach: Off</button><button id="backToWhiteboard" type="button" class="back-to-board hidden">← Back to Whiteboard</button></div><div id="canvasAnswer" class="canvas-answer"></div><nav id="lessonDirector" class="lesson-director hidden" aria-label="Lesson steps"><div class="lesson-progress"><strong id="lessonStepLabel">Step 1 of 1</strong><div id="lessonStepTrack" class="lesson-step-track" aria-hidden="true"></div></div><p id="lessonChoreographyHint" class="lesson-choreography-hint" aria-live="polite"></p><p id="lessonPauseNotice" class="lesson-pause-notice hidden" aria-live="polite"></p><div class="lesson-stage-actions" aria-label="Teaching options for this step"><button id="showStepVisual" type="button">Show step visual</button><button id="watchStepExample" type="button">Watch step example</button><button id="checkStepUnderstanding" type="button">Check this step</button></div><div class="lesson-controls"><button id="previousLessonStep" type="button">← Previous</button><button id="nextLessonStep" type="button" class="lesson-primary">Next →</button><button id="replayLessonStep" type="button">Replay step</button><button id="askLessonQuestion" type="button" class="lesson-question">Ask about this step</button><button id="returnToLesson" type="button" class="hidden">Return to previous lesson</button><button id="endLesson" type="button">End lesson</button></div></nav></div>
@@ -221,7 +223,7 @@
     </section>
   </main>
   <footer class="legal-footer" aria-label="Legal and privacy information">
-    <div class="legal-footer-grid">
+    <details id="businessDetails" class="business-details" open><summary>About Robo-Teacher and business details</summary><div class="legal-footer-grid">
       <section aria-labelledby="footerProductTitle">
         <strong id="footerProductTitle" class="footer-title">Robo-Teacher</strong>
         <p>An educational technology product of <strong>Earlyon-Tech Brainery</strong>.</p>
@@ -234,6 +236,7 @@
         <p><a href="mailto:oluwafemiherbert@gmail.com">oluwafemiherbert@gmail.com</a> · <a href="https://earlyon-tech-brainery.lovable.app" target="_blank" rel="noopener">Business website</a></p>
       </section>
     </div>
+    </details>
     <nav class="legal-footer-links" aria-label="Legal links">
       <a href="/classroom/privacy.html">Privacy Policy</a>
       <a href="/classroom/terms-of-use.html">Terms of Use</a>
@@ -245,5 +248,6 @@
   </footer>
   <script src="/classroom/compliance.js?v=20261006-privacy1"></script>
   <script src="/classroom/app.js?v=20261006-privacy1"></script>
+  <script src="/classroom/classroom2-workspace.js?v=20261023-1"></script>
 </body>
 </html>

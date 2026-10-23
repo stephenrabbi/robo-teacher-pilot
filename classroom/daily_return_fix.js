@@ -120,7 +120,7 @@
   if(document.getElementById('roboTeacherNavigationRedesignScript'))return;
   const script=document.createElement('script');
   script.id='roboTeacherNavigationRedesignScript';
-  script.src='/classroom/navigation_redesign.js?v=20260911-nav-p0-4';
+  script.src='/classroom/navigation_redesign.js?v=20261023-nav-usability1';
   document.body.appendChild(script);
 })();
 
@@ -216,7 +216,7 @@
   if(document.getElementById('roboTeacherUiLocalizationScript'))return;
   const script=document.createElement('script');
   script.id='roboTeacherUiLocalizationScript';
-  script.src='/classroom/ui_localization.js?v=20260911-ui-l10n-p2-2';
+  script.src='/classroom/ui_localization.js?v=20261023-add-label1';
   document.body.appendChild(script);
 })();
 
