@@ -23,7 +23,10 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install -r requirements.txt pytest
+        run: pip install -r requirements-dev.txt
+
+      - name: Run complete offline regression suite
+        run: python -m pytest -q
 
       - name: Run pilot sanity tests
         run: python test_webhook.py
