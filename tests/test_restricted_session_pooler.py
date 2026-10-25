@@ -5,9 +5,15 @@ from test_staging_db_configuration import validate_test_db_configuration
 
 class TestRestrictedSessionPooler(unittest.TestCase):
     def test_scoped_session_pooler(self):
-        dsn = ("postgresql://robo_test_staging_login:placeholder@"
+        dsn = ("postgresql://robo_test_staging_login.drzaxpofuhqchmpkwhpy:placeholder@"
                "aws-1-eu-west-1.pooler.supabase.com:5432/postgres?sslmode=verify-full")
         self.assertTrue(validate_test_db_configuration(dsn))
+
+    def test_reject_pooler_user_without_project_suffix(self):
+        dsn = ("postgresql://robo_test_staging_login:placeholder@"
+               "aws-1-eu-west-1.pooler.supabase.com:5432/postgres?sslmode=verify-full")
+        with self.assertRaises(ValueError):
+            validate_test_db_configuration(dsn)
 
     def test_reject_wrong_project_user(self):
         dsn = ("postgresql://robo_test_staging_login.otherproject:placeholder@"

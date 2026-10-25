@@ -40,13 +40,13 @@ with patch.dict(os.environ, {
     "ALLOW_AUTO_ENROLL": "true",
     "WHATSAPP_MIGRATION_MODE": "false",
 }, clear=False), \
-     patch("tutor.get_tutor_reply", return_value=("2 + 2 = 4. Want to try a harder one?", 0.42)), \
-     patch("sheet_logger.log_interaction", return_value=None), \
-     patch("telegram_adapter.send_telegram_message", new=_fake_send_telegram_message), \
-     patch("roster_sheet.lookup_student", side_effect=_fake_lookup), \
-     patch("roster_sheet.register_student", side_effect=_fake_register), \
-     patch("roster_sheet.is_awaiting_school_choice", side_effect=_fake_awaiting), \
-     patch("roster_sheet.mark_awaiting_school_choice", side_effect=_fake_mark_awaiting):
+     patch("main.get_tutor_reply", return_value=("2 + 2 = 4. Want to try a harder one?", 0.42)), \
+     patch("main.log_interaction", return_value=None), \
+     patch("main.send_telegram_message", new=_fake_send_telegram_message), \
+     patch("main.lookup_student", side_effect=_fake_lookup), \
+     patch("main.register_student", side_effect=_fake_register), \
+     patch("main.is_awaiting_school_choice", side_effect=_fake_awaiting), \
+     patch("main.mark_awaiting_school_choice", side_effect=_fake_mark_awaiting):
     import main
     from roster_sheet import ONBOARDING_PROMPT, ENROLLMENT_CLOSED_PROMPT
     from tutor import _simple_arithmetic_answer, _simple_fraction_teaching_answer

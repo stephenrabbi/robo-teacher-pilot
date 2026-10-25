@@ -8,7 +8,7 @@ from uuid import uuid4
 from private_test_enrollment_store import PrivateTestEnrollmentStore
 from staging_role_scoped_connection import build_test_connection_factory
 
-DSN=("postgresql://robo_test_staging_login:placeholder@"
+DSN=("postgresql://robo_test_staging_login.drzaxpofuhqchmpkwhpy:placeholder@"
      "aws-1-eu-west-1.pooler.supabase.com:5432/postgres?sslmode=verify-full")
 
 
