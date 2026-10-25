@@ -156,7 +156,20 @@ def _verify_teacher(request: TeacherDashboardRequest) -> None:
 
 def _new_session(learner_key: str | None = None, learner_code: str = "") -> tuple[str, str]:
     learner_code = learner_code.strip().upper()
-    if learner_code:
+    identity_mode = os.getenv("CLASSROOM_IDENTITY_MODE", "legacy").strip()
+    if identity_mode not in {"legacy", "device-key-v2"}:
+        raise HTTPException(status_code=503, detail="Classroom identity configuration requires attention")
+    if identity_mode == "device-key-v2":
+        # Device possession, not a public school/IND code, owns this identity.
+        # Domain separation keeps it outside the legacy learner-ID namespace.
+        # Token signing may rotate without changing saved-progress ownership.
+        if learner_key:
+            identity = f"robo-teacher:device-key-v2:{learner_code}:{learner_key}"
+            student_id = f"WEB-V2-{hashlib.sha256(identity.encode()).hexdigest()[:32]}"
+        else:
+            # A code alone must never retrieve an existing learner's history.
+            student_id = f"WEB-V2-{secrets.token_hex(16)}"
+    elif learner_code:
         student_id = f"WEB-{hmac.new(_SESSION_KEY, learner_code.encode(), hashlib.sha256).hexdigest()[:16]}"
     elif learner_key:
         student_id = f"WEB-{hashlib.sha256(learner_key.encode()).hexdigest()[:16]}"
