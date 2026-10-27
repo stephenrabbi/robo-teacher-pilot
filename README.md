@@ -4,6 +4,15 @@
 
 # Robo-Teacher
 
+## Learner identity integration — release status (11 October 2026)
+
+The live classroom remains separate from experimental identity and progress work. [Draft PR #92](https://github.com/stephenrabbi/robo-teacher-pilot/pull/92) is an **isolated synthetic-only transaction prototype** that redeems an external authorization proof and records test account activation in one SQLite transaction, with replay, failure rollback and two-connection tests. This is not a login service and is not mounted in the production or staging app.
+
+A PostgreSQL schema and an injected-connection transaction adapter are now included for **isolated, synthetic-only integration research**. The adapter unit tests use a fake connection; in addition, a dedicated GitHub Actions PostgreSQL 16 service now verifies actual database transactions, failure rollback and concurrent replay rejection with **synthetic fixtures only**. This CI database is disposable; it is not managed Render PostgreSQL, not connected to the live app, and does not establish real institutional authorization. No production database was created or modified.\n\nA free, isolated PostgreSQL 16 database has been provisioned on Render for synthetic staging research (database ID `dpg-db5s7acs728c738s84eg-a`; expires 10 November 2026); it is **not** a persistent production database, and the identity branch remains unmerged. See [the deployment runbook](docs/architecture/identity-deployment-runbook-2026-10-11.md) for verified prerequisites and remaining authorization requirements.
+
+The supplied test verifier does **not** independently establish school or guardian permission. Real institutional identity verification, managed database integration, privacy/safeguarding approval, and protected staging validation are mandatory before an actual learner-account release. [Draft PR #91](https://github.com/stephenrabbi/robo-teacher-pilot/pull/91) and [draft PR #85](https://github.com/stephenrabbi/robo-teacher-pilot/pull/85) remain unmerged research branches.
+
+
 <p align="center"><strong>Every learner. Their own AI teacher.</strong></p>
 
 Robo-Teacher is a **working, deployed AI teaching and learning platform** developed by **Earlyon-Tech Brainery** to expand access to personalised education across subjects and grade levels in Africa. It is designed to complement human teachers, not replace them.
