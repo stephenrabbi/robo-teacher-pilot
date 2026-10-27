@@ -28,6 +28,36 @@ jobs:
       - name: Run complete offline regression suite
         run: python -m pytest -q
 
+      - name: Test synthetic enrollment authorization boundary
+        run: python -m unittest discover -s tests -p test_synthetic_enrollment_gate.py -v
+
+      - name: Test synthetic provisioning authorization boundary
+        run: python -m unittest discover -s tests -p test_synthetic_provisioning_gate.py -v
+
+      - name: Test isolated synthetic credentials and lockout
+        run: python -m unittest discover -s tests -p test_synthetic_credential_lab.py -v
+
+      - name: Test durable synthetic credential revocation and lockout
+        run: python -m unittest discover -s tests -p test_synthetic_durable_credential_lab.py -v
+
+      - name: Test synthetic recovery authorization and old-session revocation
+        run: python -m unittest discover -s tests -p test_synthetic_recovery_gate.py -v
+
+      - name: Test signed synthetic operator and reviewer roles
+        run: python -m unittest discover -s tests -p test_synthetic_role_verifier.py -v
+
+      - name: Verify synthetic signed assertion replay protection
+        run: python -m unittest discover -s tests -p test_synthetic_role_replay_guard.py -v
+
+      - name: Test complete synthetic identity authorization journey
+        run: python -m unittest discover -s tests -p test_synthetic_identity_journey.py -v
+
+      - name: Test synthetic-only HTTP readiness boundary
+        run: python -m unittest discover -s tests -p test_synthetic_identity_smoke.py -v
+
+      - name: Verify synthetic staging exposure and live-entry isolation
+        run: PYTHONPATH=. python tests/synthetic_staging_preflight.py
+
       - name: Run pilot sanity tests
         run: python test_webhook.py
 

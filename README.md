@@ -4,6 +4,15 @@
 
 # Robo-Teacher
 
+## Secure learner accounts — development status (11 October 2026)
+
+The **existing live Robo-Teacher classroom** is separate from the account-security research. [Draft PR #85](https://github.com/stephenrabbi/robo-teacher-pilot/pull/85) contains a synthetic PostgreSQL progress-storage prototype and remains **unmerged**. [Draft PR #91](https://github.com/stephenrabbi/robo-teacher-pilot/pull/91) contains the proposed school/guardian enrollment process and a **synthetic-only** credential laboratory.
+
+PR #91 currently provides test-only school and guardian decision checks, independent operator-verification injection, and in-memory credential hashing (scrypt), login failure lockout and revocation-epoch simulation, and a separate test-only HMAC-signed operator/reviewer role verifier (not a real identity provider), plus a **disposable SQLite synthetic laboratory** testing restart-persistent credential hashes, failed-login lockout and epoch checks. **It does not create real learner accounts, authenticate real school or guardian approvals, issue production sessions, or persist learner credentials.** These modules are not mounted into the live app. The school's reported approval covers planning and synthetic-data tests only.
+
+An additional disposable SQLite replay guard rejects a second redemption of the same signed role assertion even after a test database restart. This only applies when the new guard is explicitly called: **the earlier verifier alone remains reusable**, and no production route consumes these assertions.\n\nAn isolated, disabled-by-default HTTP readiness test endpoint is available for synthetic-only validation. It does **not** expose learner registration, recovery or login routes and is not mounted in production or Render staging. The existing Render synthetic-lab service deploys a different branch, so this work is **not live in that lab**.\n\nReal learner identity and persistent progress features remain **NO-GO for production** pending independently verified approvals, protected managed staging, a durable authenticated account system, shared-device safeguards, data governance and security review. Do not merge these draft PRs or configure Render to deploy either branch as production.
+
+
 <p align="center"><strong>Every learner. Their own AI teacher.</strong></p>
 
 Robo-Teacher is a **working, deployed AI teaching and learning platform** developed by **Earlyon-Tech Brainery** to expand access to personalised education across subjects and grade levels in Africa. It is designed to complement human teachers, not replace them.
