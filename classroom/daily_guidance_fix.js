@@ -112,7 +112,7 @@
   function loadRecheck(){
     if(document.querySelector('script[data-mastery-recheck]'))return;
     const script=document.createElement('script');
-    script.src='/classroom/mastery_recheck.js?v=20260915-mastery-recheck3-new-check-reset1';
+    script.src='/classroom/mastery_recheck.js?v=20260915-mastery-recheck3-targeted-support2';
     script.dataset.masteryRecheck='true';
     document.head.appendChild(script);
   }
