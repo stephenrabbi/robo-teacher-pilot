@@ -81,3 +81,47 @@ input,select,textarea{border-radius:12px;max-width:100%;font-size:16px}
  input,select,textarea{width:auto;max-width:100%}
 }
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}button{transition:none}}
+
+/* Pitch Edition v2 — visibly different, learner-first landing flow. */
+#welcome{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.94fr);grid-template-areas:"hero visual" "signup visual";align-items:start;column-gap:clamp(20px,4vw,56px);row-gap:18px}
+#welcome .welcome-intro{grid-area:hero;position:relative;padding:clamp(26px,4vw,62px) clamp(24px,3.5vw,48px);background:linear-gradient(132deg,#103978 0%,#1953ad 63%,#087e87 140%);border-radius:30px;box-shadow:0 24px 60px rgba(13,58,122,.2);overflow:hidden;isolation:isolate}
+#welcome .welcome-intro::after{content:"";position:absolute;z-index:-1;right:-56px;bottom:-110px;width:270px;height:270px;border:40px solid rgba(255,255,255,.08);border-radius:50%}
+#welcome .welcome-intro .eyebrow{color:#a7f9dd;font-size:12px;letter-spacing:.12em;margin-bottom:16px}
+#welcome .welcome-intro h1{color:#fff;font-size:clamp(34px,3.6vw,60px);max-width:18ch;margin:0 0 20px;letter-spacing:-.05em;line-height:1.12}
+#welcome .welcome-intro h1 .pitch-highlight{color:#a8f5df}
+#welcome .welcome-intro>p:last-of-type{color:#dceaff;font-size:clamp(15px,1.5vw,19px);max-width:40ch;margin:0}
+.pitch-feature-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+.pitch-feature-chips span{padding:8px 11px;border-radius:999px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);color:#fff;font-size:12px;font-weight:700}
+#welcome .welcome-copy{grid-area:signup;margin:0;border:1px solid #c9e2fc;box-shadow:0 14px 36px rgba(25,56,105,.08);border-radius:24px}
+#welcome .welcome-copy>.eyebrow{color:#116d84}
+#welcome .welcome-copy .speech-card{background:transparent;border:0;box-shadow:none}
+#welcome .welcome-copy .speech-card h2{color:#15396d}
+#welcome .welcome-copy .learner-onboarding{gap:10px}
+#welcome .welcome-copy .learner-onboarding label{font-weight:750;color:#294665}
+#welcome .welcome-copy #startLearning{min-height:54px;font-size:17px;padding:12px 22px}
+#welcome .welcome-visual-column{grid-area:visual;display:flex;flex-direction:column;gap:18px;min-width:0}
+#welcome .student-first-founder-panel{box-shadow:0 22px 50px rgba(27,71,116,.12)}
+#welcome .student-welcome-photo{height:clamp(340px,39vw,550px)}
+#welcome .founder-introduction{border-radius:20px}
+#welcome .welcome-start-guide{border-left:4px solid #23a6a0}
+@media(max-width:900px){
+ #welcome{grid-template-columns:minmax(0,1fr);grid-template-areas:"hero" "signup" "visual";gap:16px}
+ #welcome .welcome-intro{padding:26px 24px;border-radius:23px}
+ #welcome .welcome-intro h1{font-size:clamp(32px,7vw,50px);max-width:19ch}
+ #welcome .welcome-copy{grid-row:auto}
+ #welcome .welcome-visual-column{display:flex;grid-area:visual}
+}
+@media(max-width:600px){
+ #welcome{display:flex;flex-direction:column;gap:14px}
+ #welcome .welcome-intro,#welcome .welcome-copy,#welcome .welcome-visual-column{width:100%;min-width:0}
+ #welcome .welcome-intro{padding:26px 20px 24px;border-radius:22px}
+ #welcome .welcome-intro h1{font-size:clamp(30px,8vw,43px);line-height:1.12;max-width:18ch}
+ #welcome .welcome-intro .eyebrow{font-size:11px}
+ #welcome .welcome-intro>p:last-of-type{font-size:15px}
+ .pitch-feature-chips{margin-top:16px;gap:6px}
+ .pitch-feature-chips span{font-size:11px;padding:7px 9px}
+ #welcome .welcome-copy{padding:18px 16px;border-radius:20px}
+ #welcome .welcome-visual-column{display:flex;flex-direction:column;gap:14px}
+ #welcome .student-welcome-photo{height:330px}
+ #welcome .welcome-start-guide{padding:18px}
+}
