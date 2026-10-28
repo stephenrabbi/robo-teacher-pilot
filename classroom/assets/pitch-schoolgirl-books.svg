@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 590" role="img" aria-labelledby="title desc">
+<title id="title">Smiling student carrying books</title><desc id="desc">A cheerful schoolgirl in blue uniform carries colourful books while standing in a playful learning illustration.</desc>
+<defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#e8faff"/><stop offset="1" stop-color="#d7e7ff"/></linearGradient><linearGradient id="shirt" x2=".9" y2="1"><stop stop-color="#3f7bda"/><stop offset="1" stop-color="#143e86"/></linearGradient></defs>
+<rect x="9" y="9" width="522" height="572" rx="40" fill="url(#bg)"/>
+<circle cx="426" cy="113" r="67" fill="#a1eee2" opacity=".8"/><circle cx="89" cy="388" r="60" fill="#bed5fc"/>
+<g fill="none" stroke="#82a7df" stroke-width="6" stroke-linecap="round"><path d="M78 122v26m-13-13h26M438 393v24m-12-12h24"/></g>
+<g transform="translate(55 63)"><rect width="115" height="51" rx="20" fill="#fff" opacity=".93"/><text x="57" y="34" font-family="Arial,sans-serif" font-weight="bold" font-size="24" fill="#1950a4" text-anchor="middle">1 + 1 = 2</text></g>
+<g transform="translate(381 247)"><circle r="30" fill="#fff"/><text x="0" y="10" text-anchor="middle" font-family="Arial,sans-serif" font-weight="bold" font-size="30" fill="#e6a32d">★</text></g>
+<!-- backpack, legs and shoes -->
+<path d="M196 301q-79 16-63 110l31 68 67-32-8-122z" fill="#1f9f93"/><path d="M221 423l-16 116h52l33-109zm97 2 20 114h49l-12-133z" fill="#24385c"/>
+<path d="M196 525h67v22q-2 10-13 10h-83q-7-17 29-32zm138 0h57q25 7 25 29h-87z" fill="#19355d"/>
+<!-- school uniform body -->
+<path d="M198 260q33-37 77-39 63-3 99 38l29 166q-94 53-221 0z" fill="url(#shirt)"/>
+<path d="M248 233l32 53 41-54-12-20h-49z" fill="#f6fafc"/>
+<path d="M278 282l-13 85 24 27 21-27-16-85z" fill="#16498b" opacity=".55"/>
+<!-- arms -->
+<path d="M207 277q-38 17-48 71-5 29 11 37t29-8l39-53z" fill="#8b4e33"/>
+<path d="M358 266q33 2 57 49l19 69q8 30-13 36-16 5-29-26l-31-54z" fill="#965a3c"/>
+<!-- neck and head -->
+<rect x="265" y="195" width="46" height="48" rx="20" fill="#a96b4c"/>
+<ellipse cx="286" cy="153" rx="74" ry="88" fill="#ad6d4d"/>
+<!-- hair -->
+<path d="M213 154q-15-96 72-109 101 5 80 131l-18-15-9-42q-16 17-59 5-43 11-61 40z" fill="#1d2435"/>
+<circle cx="209" cy="160" r="24" fill="#20273b"/><circle cx="352" cy="155" r="27" fill="#20273b"/>
+<g fill="#20273b"><circle cx="258" cy="159" r="5"/><circle cx="309" cy="159" r="5"/></g>
+<path d="M262 189q22 24 47 0" fill="none" stroke="#6d342e" stroke-width="6" stroke-linecap="round"/>
+<!-- book stack carried at chest -->
+<g transform="rotate(-9 272 351)">
+<rect x="187" y="322" width="193" height="39" rx="8" fill="#f39f41"/><rect x="197" y="329" width="170" height="26" rx="4" fill="#ffeed5"/>
+<rect x="175" y="361" width="207" height="40" rx="8" fill="#30b5a2"/><rect x="186" y="368" width="184" height="26" rx="4" fill="#e4faf6"/>
+<rect x="191" y="399" width="185" height="35" rx="8" fill="#e66575"/><rect x="200" y="406" width="165" height="22" rx="4" fill="#fff0f0"/>
+</g>
+<path d="M173 366q25-12 50 5" stroke="#985d3d" stroke-width="18" stroke-linecap="round" fill="none"/><path d="M413 385q-24 21-54 14" stroke="#985d3d" stroke-width="18" stroke-linecap="round" fill="none"/>
+<path d="M133 505q141 57 297 2" fill="none" stroke="#7ca6ce" stroke-width="8" stroke-linecap="round" opacity=".5"/>
+</svg>
