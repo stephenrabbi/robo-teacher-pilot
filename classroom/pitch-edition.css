@@ -403,3 +403,12 @@ body:has(#welcome:not(.hidden)) .brandbar{display:none!important}
  #welcome .welcome-start-guide ol{display:grid;gap:7px}
  #welcome .pitch-left-column .welcome-copy{margin-top:0!important}
 }
+
+/* 2026-10-28 layout hard reset: remove legacy grid-row placement from registration. */
+@media(min-width:761px){
+ #welcome{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;grid-template-rows:auto auto!important;grid-template-areas:"hero hero" "left guide"!important;align-items:start!important}
+ #welcome .pitch-left-column{display:flex!important;flex-direction:column!important;gap:12px!important;height:auto!important;min-height:0!important;justify-content:flex-start!important;align-self:start!important;grid-area:left!important}
+ #welcome .pitch-left-column > #founderPanel{display:block!important;flex:0 0 auto!important;align-self:stretch!important;grid-row:auto!important;grid-column:auto!important}
+ #welcome .pitch-left-column > .welcome-copy{position:static!important;display:block!important;flex:0 0 auto!important;grid-row:auto!important;grid-column:auto!important;grid-area:auto!important;align-self:stretch!important;margin:0!important;transform:none!important;float:none!important;clear:none!important}
+ #welcome > .welcome-start-guide{grid-area:guide!important;grid-row:2!important;grid-column:2!important;height:auto!important;min-height:0!important;align-self:start!important}
+}
