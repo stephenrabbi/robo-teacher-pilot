@@ -130,3 +130,59 @@ body:has(#welcome:not(.hidden)) .app-shell{max-width:1160px!important;padding:8p
  #welcome .pitch-left-column{display:flex!important;flex-direction:column!important;gap:10px!important}
  #welcome .subject-tile{min-height:86px!important}
 }
+
+/* Final approved mockup: compact cards and preserved live classroom controls. */
+#welcome .new-brand{background:var(--navy)!important;color:white!important;border-radius:11px!important;padding:7px 12px!important;letter-spacing:.025em}
+#welcome .new-brand img{width:28px!important;height:28px!important;object-fit:contain}
+#welcome .welcome-intro{border-radius:24px!important;background:linear-gradient(105deg,#ffe0d0 0%,#fff5e9 58%,#e9ddff)!important}
+#welcome .pitch-hero-text{padding-left:26px!important}
+#welcome .pitch-hero-text h1 span{text-decoration:underline;text-decoration-color:var(--sun);text-decoration-thickness:6px;text-underline-offset:7px;border-bottom:0!important}
+#welcome .pitch-hero-text p{max-width:52ch}
+#welcome .impact-proof{background:white;color:var(--navy)!important}
+#welcome .pitch-left-column{gap:8px!important}
+#welcome #founderPanel .founder-introduction{border-radius:20px!important}
+#welcome .pitch-left-column .welcome-copy{background:var(--violet)!important;border-radius:20px!important;padding:20px 24px!important}
+#welcome .pitch-form-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}
+#welcome .pitch-form-heading h2{margin:0!important;font-size:clamp(26px,3vw,34px)!important;color:white!important}
+#welcome #pitchClearButton{color:white;background:transparent;border:0;text-decoration:underline;font-size:13px;font-weight:750;min-height:44px}
+#welcome .learner-onboarding .secondary-clear{display:none!important}
+#welcome .welcome-copy .learner-onboarding{gap:8px!important}
+#welcome .welcome-copy label{color:white!important}
+#welcome .welcome-copy .learner-code-help,#welcome .welcome-copy .privacy-helper,#welcome .welcome-copy .privacy-note{color:white!important;opacity:1!important}
+#welcome .welcome-copy .learner-onboarding input:not([type=checkbox]){min-height:44px!important;color:var(--navy)!important}
+#welcome .pitch-class-choices button.selected{border:3px solid var(--sun)!important;background:var(--violet-tint)!important}
+#welcome #startLearning{background:var(--sun)!important;color:var(--navy)!important}
+#welcome .new-right-column{gap:8px!important}
+#welcome .peek-heading{display:flex;justify-content:space-between;align-items:center;gap:10px}
+#welcome .peek-heading h2{margin-bottom:14px!important}
+#welcome .peek-window-dots{display:flex;gap:6px}
+#welcome .peek-window-dots i{display:block;width:10px;height:10px;border-radius:50%;background:var(--coral)}
+#welcome .peek-window-dots i:nth-child(2){background:var(--sun)}
+#welcome .peek-window-dots i:nth-child(3){background:var(--violet-tint);border:1px solid var(--violet-dark)}
+#welcome .peek-chat-line{display:flex;align-items:flex-start;gap:10px;margin-bottom:12px}
+#welcome .peek-avatar{display:grid;place-items:center;width:34px;height:34px;flex:0 0 34px;background:var(--violet-tint);border-radius:50%;color:var(--violet-dark)}
+#welcome .peek-robot{background:white;border:1px solid var(--violet-tint);color:var(--navy)}
+#welcome .peek-question{margin:0!important;margin-left:auto!important}
+#welcome .peek-answer{flex:1}
+#welcome .how-compact{background:var(--violet-tint)!important;border-radius:20px!important}
+#welcome .how-cards>div{border-radius:14px!important;padding:14px!important}
+#welcome .how-cards strong{font-size:13px!important}
+#welcome .how-cards p{font-size:11px!important}
+#welcome .subject-legend{float:right;display:inline-flex;gap:12px;font-size:11px;color:var(--navy)}
+#welcome .subject-legend span:first-child{color:#0b6b59}
+#welcome .subject-legend span:last-child{color:#5f5c6d}
+#welcome .trust-row{border-radius:20px!important}
+@media(max-width:900px){
+ #welcome.welcome-screen{grid-template-columns:1fr!important;grid-template-areas:"nav" "hero" "impact" "left" "right" "subjects" "trust"!important}
+ #welcome .pitch-left-column{width:100%!important}
+}
+@media(max-width:767px){
+ #welcome .new-brand{padding:5px 9px!important}
+ #welcome .pitch-left-column .welcome-copy{padding:18px!important}
+ #welcome .new-links{overflow-x:auto;flex-wrap:nowrap;scrollbar-width:thin}
+ #welcome .subject-legend{float:none;display:flex;margin-top:5px}
+ #welcome .how-cards{grid-template-columns:1fr!important}
+ #welcome .how-cards>div{min-height:0!important}
+ #welcome .peek-actions{gap:5px}
+ #welcome .peek-actions button{font-size:11px}
+}
