@@ -349,3 +349,28 @@ body:has(#welcome:not(.hidden)) .brandbar .version{display:none}
  #classroom .canvas-entry-actions button{width:100%}
  #classroom .practice-area,#classroom .progress-area,#classroom .daily-plan-area,#classroom .my-lessons-area{padding:14px;border-radius:17px}
 }
+
+/* Option 1 alignment repair: actual grouped columns, no implicit grid rows. */
+body:has(#welcome:not(.hidden)) .brandbar{display:none!important}
+#welcome{align-content:start!important;align-items:start!important}
+#welcome .pitch-left-column{min-width:0;display:flex;flex-direction:column;gap:16px;align-self:start}
+#welcome .pitch-left-column #founderPanel{display:block!important;position:relative;min-width:0;margin:0;box-shadow:none;border:0;background:transparent}
+#welcome .pitch-left-column #founderPanel .student-welcome-photo{display:none!important}
+#welcome .pitch-left-column .founder-introduction{position:relative!important;inset:auto!important;margin:0!important;width:100%!important;display:grid!important;grid-template-columns:68px minmax(0,1fr);min-height:88px}
+#welcome .pitch-left-column .welcome-copy{width:100%!important;margin:0!important;min-width:0;align-self:stretch}
+#welcome .welcome-start-guide{margin:0!important;align-self:start;min-width:0}
+@media(min-width:761px){
+ #welcome{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;grid-template-rows:auto auto!important;grid-template-areas:"hero hero" "left guide"!important;column-gap:20px;row-gap:16px}
+ #welcome .welcome-intro{grid-area:hero!important}
+ #welcome .pitch-left-column{grid-area:left!important}
+ #welcome .welcome-start-guide{grid-area:guide!important;grid-row:auto!important}
+}
+@media(max-width:760px){
+ #welcome{display:flex!important;flex-direction:column;gap:12px}
+ #welcome .welcome-intro{order:1}
+ #welcome .pitch-left-column{display:contents}
+ #welcome .pitch-left-column #founderPanel{order:2;width:calc(100% - 24px);margin:0 12px!important}
+ #welcome .welcome-start-guide{order:3;width:calc(100% - 24px);margin:0 12px!important}
+ #welcome .pitch-left-column .welcome-copy{order:4;width:calc(100% - 24px)!important;margin:0 12px!important}
+ #welcome .pitch-left-column .founder-introduction{grid-template-columns:58px minmax(0,1fr);min-height:78px}
+}
