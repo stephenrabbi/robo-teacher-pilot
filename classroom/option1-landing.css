@@ -186,3 +186,14 @@ body:has(#welcome:not(.hidden)) .app-shell{max-width:1160px!important;padding:8p
  #welcome .peek-actions{gap:5px}
  #welcome .peek-actions button{font-size:11px}
 }
+
+/* Responsive picture: real optimized assets activate only once uploaded. */
+#welcome .pitch-illustration picture{display:block;width:100%;height:100%;position:relative}
+#welcome .pitch-illustration.hero-ready{position:absolute!important;inset:0!important;grid-column:1 / -1!important;width:100%!important;height:100%!important;z-index:0!important;pointer-events:none}
+#welcome .pitch-illustration.hero-ready picture{width:100%;height:100%}
+#welcome .pitch-illustration.hero-ready picture img{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:none!important;transform:none!important;object-fit:cover!important;object-position:right center!important}
+#welcome .welcome-intro:has(.hero-ready)::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(255,248,239,.96) 0%,rgba(255,248,239,.83) 34%,rgba(255,248,239,0) 70%);z-index:1;pointer-events:none}
+#welcome .welcome-intro:has(.hero-ready) .pitch-hero-text{position:relative!important;z-index:2!important}
+@media(max-width:767px){
+ #welcome .welcome-intro:has(.hero-ready)::after{background:linear-gradient(90deg,rgba(255,248,239,.98) 0%,rgba(255,248,239,.91) 48%,rgba(255,248,239,.12) 94%)}
+}
