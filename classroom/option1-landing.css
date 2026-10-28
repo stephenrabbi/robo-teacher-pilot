@@ -227,3 +227,39 @@ body:has(#welcome:not(.hidden)) .app-shell{max-width:1160px!important;padding:8p
    width:100%!important;object-fit:cover!important;object-position:83% center!important;
  }
 }
+
+/* Target reference v4 — compact hero, non-distorting art and aligned sections. */
+body:has(#welcome:not(.hidden)) .app-shell{max-width:1160px!important;padding:8px 16px 16px!important}
+#welcome.welcome-screen{grid-template-columns:minmax(0,48fr) minmax(0,52fr)!important;gap:12px 20px!important;align-items:start!important}
+#welcome .new-nav{min-height:42px!important}
+#welcome .welcome-intro{height:233px!important;max-height:233px!important;grid-template-columns:55% 45%!important;border-radius:24px!important}
+#welcome .pitch-hero-text{padding:12px 8px 12px 24px!important;min-width:0!important}
+#welcome .pitch-hero-text h1{font-size:clamp(28px,3.6vw,47px)!important;line-height:1.08!important;letter-spacing:-.045em!important;margin:12px 0!important}
+#welcome .hero-pill{font-size:11px!important;background:white!important;padding:8px 13px!important}
+#welcome .pitch-hero-text p{font-size:clamp(12px,1.26vw,16px)!important;font-weight:600!important}
+#welcome .hero-subject-chips{font-size:11px!important;line-height:1.5!important}
+#welcome .impact-proof{margin:0!important;min-height:34px!important}
+#welcome .pitch-left-column{gap:8px!important}
+#welcome #founderPanel .founder-introduction{min-height:74px!important;padding:9px 12px!important}
+#welcome .pitch-left-column .welcome-copy{padding:18px 20px!important}
+#welcome .new-right-column{gap:10px!important}
+#welcome .lesson-peek{padding:17px!important}
+#welcome .how-compact{padding:16px!important}
+#welcome .how-cards>div{min-height:128px!important}
+#welcome .subject-tile{min-height:88px!important}
+#welcome .trust-row{padding:12px!important}
+#welcome .welcome-intro:not(:has(.hero-ready)) .pitch-illustration picture img{
+ width:100%!important;height:100%!important;object-fit:cover!important;
+ object-position:80% 45%!important;transform:none!important;
+}
+@media(max-width:900px){
+ #welcome.welcome-screen{grid-template-columns:1fr!important}
+}
+@media(max-width:767px){
+ #welcome .welcome-intro{height:180px!important;max-height:180px!important;grid-template-columns:58% 42%!important}
+ #welcome .pitch-hero-text{padding:9px!important}
+ #welcome .pitch-hero-text h1{font-size:clamp(19px,5vw,30px)!important}
+ #welcome .hero-pill{font-size:9px!important;padding:5px 7px!important}
+ #welcome .pitch-left-column .welcome-copy{padding:16px!important}
+ #welcome .how-cards>div{min-height:0!important}
+}
