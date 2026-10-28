@@ -263,3 +263,63 @@ body:has(#welcome:not(.hidden)) .app-shell{max-width:1160px!important;padding:8p
  #welcome .pitch-left-column .welcome-copy{padding:16px!important}
  #welcome .how-cards>div{min-height:0!important}
 }
+
+/* ROUND 1 final styling. Overrides older split-hero layers. */
+body:has(#welcome:not(.hidden)) .app-shell{max-width:1160px!important;padding:8px 24px 16px!important}
+#welcome.welcome-screen{grid-template-columns:minmax(0,48fr) minmax(0,52fr)!important;column-gap:24px!important;row-gap:8px!important}
+#welcome .new-nav{grid-area:nav!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:14px!important;min-height:44px!important;width:100%!important}
+#welcome .r1-nav-left{display:flex;align-items:center;gap:32px;min-width:0}
+#welcome .new-brand{display:inline-flex!important;align-items:center!important;gap:9px!important;padding:9px 13px!important;background:var(--navy)!important;color:white!important;border-radius:11px!important;font-weight:800!important;font-size:14px!important;letter-spacing:.02em!important;white-space:nowrap!important}
+#welcome .new-brand svg{width:23px;height:23px}
+#welcome .new-links{display:flex!important;gap:28px!important;align-items:center!important;flex-wrap:wrap!important}
+#welcome .new-links a{white-space:nowrap;color:var(--navy)!important;font-weight:750!important}
+#welcome #newTeacherAccess{border:2px solid var(--violet)!important;color:var(--violet-dark)!important;background:white!important;border-radius:999px!important;padding:9px 16px!important;white-space:nowrap!important;min-height:44px!important;font-weight:800!important}
+#welcome .welcome-intro{grid-area:hero!important;position:relative!important;display:block!important;isolation:isolate!important;width:100%!important;height:235px!important;max-height:235px!important;overflow:hidden!important;border-radius:24px!important;background:var(--cream)!important}
+#welcome .welcome-intro .pitch-illustration,#welcome .welcome-intro .pitch-illustration.hero-ready{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;z-index:0!important;pointer-events:none!important}
+#welcome .welcome-intro .pitch-illustration picture,#welcome .welcome-intro .pitch-illustration picture img{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:none!important;min-width:0!important;max-height:none!important;object-fit:cover!important;object-position:center center!important;transform:none!important}
+#welcome .welcome-intro::after,#welcome .welcome-intro:has(.hero-ready)::after{content:""!important;position:absolute!important;inset:0!important;background:linear-gradient(90deg,rgba(255,248,239,.65),rgba(255,248,239,.32) 34%,transparent 64%)!important;z-index:1!important;pointer-events:none!important}
+#welcome .welcome-intro .pitch-hero-text{display:flex!important;position:relative!important;z-index:2!important;inset:auto!important;grid-column:auto!important;grid-row:auto!important;width:74%!important;max-width:800px!important;height:100%!important;margin:0!important;padding:15px 24px!important;justify-content:center!important;align-items:flex-start!important;clip-path:none!important;overflow:visible!important}
+#welcome .hero-pill{color:var(--violet-dark)!important;background:white!important;border-radius:999px!important;padding:8px 13px!important;font-size:11px!important;font-weight:700!important}
+#welcome .pitch-hero-text h1{color:var(--navy)!important;font-size:clamp(29px,4vw,52px)!important;font-weight:800!important;line-height:1.05!important;letter-spacing:-.045em!important;margin:12px 0!important;white-space:normal!important}
+#welcome .pitch-hero-text h1 span{border:0!important;text-decoration:none!important;white-space:nowrap!important}
+#welcome .r1-ideas{display:inline-block;position:relative}
+#welcome .r1-ideas svg{position:absolute;left:0;bottom:-9px;width:100%;height:14px}
+#welcome .pitch-hero-text p{font-size:15px!important;color:var(--navy)!important;font-weight:600!important;margin:0 0 12px!important}
+#welcome .hero-subject-chips{display:flex!important;flex-wrap:wrap!important;gap:6px!important;font-size:11px!important}
+#welcome .r1-chip{display:inline-flex;align-items:center;gap:5px;padding:7px 10px;border-radius:999px;font-size:11px;font-weight:800;white-space:nowrap}
+#welcome .r1-chip svg{width:14px;height:14px;flex:0 0 14px}
+#welcome .r1-maths{background:#EFE9FF;color:#3A25A0}
+#welcome .r1-english{background:#FFE3EC;color:#9B1F4B}
+#welcome .r1-science{background:#D6F6EF;color:#0B6B59}
+#welcome .r1-coding{background:#DCEBFF;color:#1B58A8}
+#welcome .r1-social{background:#FFE5DD;color:#A8381C}
+#welcome .r1-exam{background:#FFF3C2;color:#7A5A00}
+#welcome .impact-proof{grid-area:impact!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:10px!important;background:white!important;color:var(--navy)!important;margin:0!important;min-height:36px!important;padding:8px 14px!important;font-size:12px!important;font-weight:700!important}
+#welcome .impact-proof svg{width:19px;height:19px;color:var(--violet);flex:0 0 19px}
+#welcome #founderPanel .founder-introduction{display:flex!important;align-items:center!important;gap:12px!important;min-height:75px!important;padding:8px 12px!important}
+#welcome #founderPanel .founder-avatar-stage{width:64px!important;height:64px!important;flex:0 0 64px!important}
+#welcome #founderPanel .founder-introduction-copy{min-width:0}
+#welcome #hearFounder{display:inline-flex!important;gap:7px!important;align-items:center!important;justify-content:center!important;background:var(--violet-tint)!important;color:var(--violet-dark)!important;border-radius:999px!important;white-space:nowrap!important}
+#welcome #hearFounder svg{width:17px;height:17px;flex:0 0 17px}
+@media(max-width:900px){
+ #welcome.welcome-screen{grid-template-columns:1fr!important;grid-template-areas:"nav" "hero" "impact" "left" "right" "subjects" "trust"!important}
+ #welcome .r1-nav-left{gap:12px}
+ #welcome .new-links{gap:12px!important}
+}
+@media(max-width:767px){
+ body:has(#welcome:not(.hidden)) .app-shell{padding:8px 16px 96px!important}
+ #welcome .welcome-intro{height:170px!important;max-height:170px!important}
+ #welcome .welcome-intro .pitch-illustration picture img{object-position:right center!important}
+ #welcome .welcome-intro::after,#welcome .welcome-intro:has(.hero-ready)::after{background:linear-gradient(90deg,rgba(255,248,239,.88) 0%,rgba(255,248,239,.54) 49%,transparent 90%)!important}
+ #welcome .welcome-intro .pitch-hero-text{width:81%!important;padding:8px 10px!important}
+ #welcome .pitch-hero-text h1{font-size:clamp(20px,5.1vw,32px)!important;margin:8px 0!important}
+ #welcome .pitch-hero-text p{font-size:11px!important;margin-bottom:6px!important}
+ #welcome .hero-pill{font-size:9px!important;padding:4px 7px!important}
+ #welcome .hero-subject-chips{gap:3px!important}
+ #welcome .r1-chip{font-size:9px;padding:4px 6px;gap:3px}
+ #welcome .r1-chip svg{width:11px;height:11px;flex-basis:11px}
+ #welcome .r1-nav-left{flex:1;flex-wrap:wrap}
+ #welcome .new-links{overflow-x:auto;flex-wrap:nowrap!important;width:100%}
+ #welcome #newTeacherAccess{padding:7px 9px!important;font-size:11px!important}
+ #welcome .new-brand{font-size:12px!important;padding:6px 9px!important}
+}
