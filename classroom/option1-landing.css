@@ -197,3 +197,33 @@ body:has(#welcome:not(.hidden)) .app-shell{max-width:1160px!important;padding:8p
 @media(max-width:767px){
  #welcome .welcome-intro:has(.hero-ready)::after{background:linear-gradient(90deg,rgba(255,248,239,.98) 0%,rgba(255,248,239,.91) 48%,rgba(255,248,239,.12) 94%)}
 }
+
+/* 2026-10-28 hero hotfix: previous width:205% + object-fit:fill
+   squashed the student's proportions and exposed embedded old text.
+   Crop the original image to the right section without distortion. */
+#welcome .welcome-intro:not(:has(.hero-ready)) .pitch-illustration{
+  grid-column:2!important;grid-row:1!important;
+  position:relative!important;inset:auto!important;
+  width:100%!important;height:100%!important;
+  overflow:hidden!important;z-index:1!important;
+}
+#welcome .welcome-intro:not(:has(.hero-ready)) .pitch-illustration picture{
+  display:block!important;position:relative!important;
+  width:100%!important;height:100%!important;overflow:hidden!important;
+}
+#welcome .welcome-intro:not(:has(.hero-ready)) .pitch-illustration picture img{
+  position:absolute!important;top:0!important;left:0!important;right:auto!important;
+  display:block!important;width:100%!important;height:100%!important;
+  min-width:0!important;max-width:none!important;max-height:none!important;
+  object-fit:cover!important;object-position:82% 45%!important;
+  transform:none!important;scale:none!important;
+}
+#welcome .welcome-intro:not(:has(.hero-ready)) .pitch-hero-text{
+  grid-column:1!important;grid-row:1!important;z-index:3!important;
+  overflow:visible!important;
+}
+@media(max-width:767px){
+ #welcome .welcome-intro:not(:has(.hero-ready)) .pitch-illustration picture img{
+   width:100%!important;object-fit:cover!important;object-position:83% center!important;
+ }
+}
