@@ -382,3 +382,41 @@ body:has(#welcome:not(.hidden)) .app-shell{max-width:1160px!important;padding:8p
  #welcome .how-cards>div{min-height:0!important}
  #welcome .peek-actions button{gap:4px!important;font-size:11px!important}
 }
+
+/* ROUND 3: aligned footer, subject availability and mobile polish. */
+body:has(#welcome:not(.hidden)){font-family:"Plus Jakarta Sans","Segoe UI",Arial,sans-serif!important}
+body:has(#welcome:not(.hidden)) .app-shell{width:100%!important;max-width:1160px!important;padding:8px 24px 0!important;margin-inline:auto!important}
+body:has(#welcome:not(.hidden)) .legal-footer{width:calc(100% - 48px)!important;max-width:1112px!important;margin:8px auto 24px!important;padding:24px!important;border-radius:20px!important;background:#E3EEFF!important;font-family:"Plus Jakarta Sans","Segoe UI",Arial,sans-serif!important;font-size:14px!important;line-height:1.5!important}
+body:has(#welcome:not(.hidden)) .legal-footer .legal-footer-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:24px!important}
+body:has(#welcome:not(.hidden)) .legal-footer p{font-size:14px!important;line-height:1.5!important;margin:4px 0!important}
+body:has(#welcome:not(.hidden)) .legal-footer-links{display:flex!important;flex-wrap:wrap!important;gap:12px 16px!important;border-top:1px solid #bccde9!important;padding-top:16px!important;margin-top:16px!important}
+body:has(#welcome:not(.hidden)) .legal-footer-links a,body:has(#welcome:not(.hidden)) .legal-footer-links button{font-size:13px!important;font-family:inherit!important;text-decoration:underline!important}
+#welcome .subject-section{grid-area:subjects!important;min-width:0!important}
+#welcome .subject-grid{display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:8px!important}
+#welcome .subject-tile{position:relative!important;display:flex!important;align-items:center!important;justify-content:center!important;flex-direction:column!important;gap:6px!important;min-width:0!important;min-height:112px!important;border:2px solid transparent!important;border-radius:16px!important;transition:transform .2s ease,box-shadow .2s ease}
+#welcome .subject-tile:not(:disabled):hover{transform:translateY(-3px)!important;box-shadow:0 6px 18px #1b17401a!important}
+#welcome .subject-status-dot{position:absolute;right:10px;top:10px;width:9px;height:9px;border-radius:50%;background:#858295}
+#welcome .subject-status-dot.is-available{background:#0B806D}
+#welcome .subject-tile .subject-symbol{display:block!important;line-height:1!important}
+#welcome .subject-tile .subject-symbol svg{width:26px;height:26px;display:block}
+#welcome .subject-coming-soon{display:inline-block!important;background:white!important;color:var(--navy)!important;border-radius:999px!important;padding:3px 8px!important;font-size:10px!important}
+#welcome .subject-legend{display:inline-flex!important;gap:12px!important;font-size:11px!important}
+#welcome .trust-row{grid-area:trust!important;display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:0!important;background:#E3EEFF!important;padding:14px 16px!important;border-radius:20px!important}
+#welcome .trust-item{display:flex!important;align-items:center!important;gap:12px!important;min-width:0!important;padding:0 12px!important}
+#welcome .trust-item:first-child{padding-left:0!important}
+#welcome .trust-item+.trust-item{border-left:1px solid #b8cee8!important}
+#welcome .trust-item svg{width:24px;height:24px;flex:0 0 24px;color:#1B58A8}
+#welcome .trust-item strong{font-size:12px!important;color:var(--navy)!important}
+#welcome .trust-item p{font-size:11px!important;color:var(--navy)!important;opacity:.85!important}
+#welcome a:focus-visible,#welcome button:focus-visible{outline:3px solid var(--violet)!important;outline-offset:2px!important}
+@media(max-width:767px){
+ body:has(#welcome:not(.hidden)) .app-shell{padding:8px 16px 104px!important}
+ body:has(#welcome:not(.hidden)) .legal-footer{width:calc(100% - 32px)!important;margin:8px auto 92px!important;padding:16px!important}
+ body:has(#welcome:not(.hidden)) .legal-footer .legal-footer-grid{grid-template-columns:1fr!important;gap:12px!important}
+ #welcome .subject-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ #welcome .trust-row{grid-template-columns:1fr!important}
+ #welcome .trust-item{padding:10px 0!important}
+ #welcome .trust-item+.trust-item{border-left:0!important;border-top:1px solid #b8cee8!important}
+ #welcome .mobile-start-bar{display:block!important;padding-bottom:calc(10px + env(safe-area-inset-bottom))!important}
+}
+@media(prefers-reduced-motion:reduce){#welcome .subject-tile{transition:none!important}}
