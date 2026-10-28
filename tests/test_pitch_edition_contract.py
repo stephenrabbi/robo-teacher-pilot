@@ -68,7 +68,7 @@ class PitchEditionContractTest(unittest.TestCase):
 
     def test_landing_layout_loaded_last(self):
         import re
-        styles = re.findall(r'<link\\s+rel="stylesheet"\\s+href="([^"]+)"', self.html)
+        styles = re.findall(r'<link\s+rel="stylesheet"\s+href="([^"]+)"', self.html)
         self.assertTrue(styles[-1].startswith("/classroom/option1-landing.css"))
         landing = (ROOT / "classroom" / "option1-landing.css").read_text(encoding="utf-8")
         self.assertIn("height:224px", landing)
