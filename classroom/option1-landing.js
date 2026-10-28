@@ -15,31 +15,34 @@ const palette={
  science:["#D6F6EF","#0B6B59"],coding:["#DCEBFF","#1B58A8"],
  social:["#FFE5DD","#A8381C"],exams:["#FFF3C2","#7A5A00"]
 };
+let selectedSubject="maths";
 const grid=document.getElementById("subjectGrid");
 const nickname=document.getElementById("learnerNickname");
 const form=document.querySelector("#welcome .welcome-copy");
 if(!grid||!form)return;
 for(const item of ROBO_SUBJECTS){
  const btn=document.createElement("button");btn.type="button";btn.className="subject-tile";
- const colors=palette[item.colorKey];btn.style.background=colors[0];btn.style.color=colors[1];
+ const colors=palette[item.colorKey];btn.setAttribute("aria-disabled",String(!item.available));btn.style.background=colors[0];btn.style.color=colors[1];
  const symbol=document.createElement("span");symbol.className="subject-symbol";symbol.textContent=item.icon;
  const title=document.createElement("span");title.textContent=item.name;
  btn.append(symbol,title);
  if(!item.available){btn.disabled=true;const soon=document.createElement("small");soon.textContent="Coming soon";btn.append(soon)}
  else btn.addEventListener("click",()=>{
-  const u=new URL(location.href);u.searchParams.set("subject",item.name.toLowerCase());
+  selectedSubject=item.name.toLowerCase();const u=new URL(location.href);u.searchParams.set("subject",selectedSubject);
   history.replaceState(history.state,"",u);
   nickname?.focus({preventScroll:true});form.scrollIntoView({behavior:"smooth",block:"start"});
  });
  grid.append(btn);
 }
+document.getElementById("pitchClearButton")?.addEventListener("click",()=>document.getElementById("clearOnboarding")?.click());
 const teacher=document.getElementById("newTeacherAccess");
+const peekStatus=document.getElementById("peekStatus");
 teacher?.addEventListener("click",()=>{document.getElementById("showTeacherLogin")?.click();form.scrollIntoView({behavior:"smooth",block:"center"})});
 for(const button of document.querySelectorAll("[data-lesson-action]")){
  button.addEventListener("click",()=>{
   const mode=button.dataset.lessonAction;
-  if(mode==="speak"&&"speechSynthesis" in window){speechSynthesis.speak(new SpeechSynthesisUtterance("Sunlight contains many colours. As it travels through the air, blue light scatters more than most other colours, making the sky appear blue."));return}
-  if(mode==="snap"){document.getElementById("uploadButton")?.click();return}
+  if(mode==="speak"){if("speechSynthesis" in window){speechSynthesis.cancel();speechSynthesis.speak(new SpeechSynthesisUtterance("Sunlight contains many colours. As it travels through the air, blue light scatters more than most other colours, making the sky appear blue."));if(peekStatus)peekStatus.textContent="Reading the sample lesson aloud.";}else if(peekStatus)peekStatus.textContent="Speech is unavailable in this browser.";return}
+  if(mode==="snap"){if(peekStatus)peekStatus.textContent="Start learning to use the classroom camera.";form.scrollIntoView({behavior:"smooth",block:"start"});return}
   nickname?.focus({preventScroll:false});form.scrollIntoView({behavior:"smooth",block:"center"});
  });
 }
