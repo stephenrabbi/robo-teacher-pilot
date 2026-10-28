@@ -16,7 +16,7 @@ body:has(#welcome:not(.hidden)) .app-shell{
 }
 body:has(#welcome:not(.hidden)) .brandbar{display:none!important}
 body:has(#welcome:not(.hidden)) .legal-footer{
-  box-sizing:border-box;width:min(calc(100% - 40px),var(--landing-max) - 40px);
+  box-sizing:border-box;width:calc(100% - 40px);
   max-width:1160px;margin:8px auto 22px;
 }
 #welcome.welcome-screen{
