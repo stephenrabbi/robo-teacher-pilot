@@ -41,6 +41,31 @@ class PitchEditionContractTest(unittest.TestCase):
             self.assertTrue((ROOT / "classroom" / "assets" / filename).is_file(),
                             msg="Missing classroom asset: " + filename)
 
+    def test_approved_option_one_copy_and_layout(self):
+        """Stop accidental regressions back to the rejected old welcome screen."""
+        self.assertIn("Big ideas.", self.html)
+        self.assertIn("Small steps.", self.html)
+        self.assertIn("Your kind of learning.", self.html)
+        self.assertIn('id="welcomeStartGuideTitle"', self.html)
+        self.assertIn("How to get started", self.html)
+        self.assertIn('id="hearFounder"', self.html)
+        self.assertIn('id="startLearning"', self.html)
+        self.assertIn('data-class-choice="JSS1"', self.html)
+        self.assertIn('data-class-choice="JSS2"', self.html)
+        self.assertIn('data-class-choice="JSS3"', self.html)
+        self.assertIn("background:#e8e2ff", self.css)
+        self.assertIn("background:#fff744", self.css)
+
+    def test_pitch_controls_preserve_native_onboarding(self):
+        """The visual class choices must keep the native control usable by app.js."""
+        js = (ROOT / "classroom" / "pitch-edition.js").read_text(encoding="utf-8")
+        self.assertIn('id="learnerClass"', self.html)
+        self.assertIn('id="learnerNickname"', self.html)
+        self.assertIn('id="learnerConsent"', self.html)
+        self.assertIn('id="generateLearnerCode"', self.html)
+        self.assertIn('select.dispatchEvent(new Event("change"', js)
+        self.assertIn("pitch-edition.js", self.html)
+
     def test_mobile_breakpoints_and_accessibility(self):
         self.assertRegex(self.html, r'name="viewport"')
         for width in ("900px", "600px"):
