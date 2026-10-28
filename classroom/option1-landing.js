@@ -79,3 +79,13 @@ sticky?.addEventListener("click",()=>{
    probe.src=base+founder.dataset.founderSrc;
  }
 })();
+
+/* Round 1: If the mobile WebP has not yet been uploaded, avoid a broken picture. */
+(()=>{
+ const pic=document.getElementById("roboHeroPicture");
+ const source=pic?.querySelector("source");
+ if(!source)return;
+ const probe=new Image();
+ probe.onerror=()=>{source.srcset="/classroom/assets/robo_teacher_approved_option1_hero.png";source.type="image/png"};
+ probe.src="/classroom/images/hero-mobile.webp";
+})();
