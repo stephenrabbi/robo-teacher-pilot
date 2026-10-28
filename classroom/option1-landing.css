@@ -1,0 +1,91 @@
+/* Option 1 landing redesign — only active on welcome screen. */
+:root{--violet:#5B3FD9;--violet-dark:#3A25A0;--violet-tint:#EFE9FF;--sun:#FFD60A;--coral:#FF6B4A;--mint:#17C3A5;--sky:#4DA3FF;--pink:#FF5C8A;--cream:#FFF8EF;--navy:#1B1740}
+body:has(#welcome:not(.hidden)){background:var(--cream);color:var(--navy)}
+body:has(#welcome:not(.hidden)) .app-shell{max-width:1200px;padding:12px 16px 16px}
+body:has(#welcome:not(.hidden)) .legal-footer{max-width:1168px;width:calc(100% - 32px);margin:0 auto 20px}
+#welcome.welcome-screen{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;grid-template-areas:"nav nav" "hero hero" "impact impact" "left right" "subjects subjects" "trust trust"!important;grid-template-rows:auto!important;align-items:start!important;gap:16px!important;min-height:0!important}
+#welcome .new-nav{grid-area:nav;display:flex;align-items:center;justify-content:space-between;gap:14px;min-height:46px}
+#welcome .new-brand{display:flex;align-items:center;gap:10px;color:var(--navy);font-weight:850;font-size:17px;text-decoration:none}
+#welcome .new-brand img{width:40px;height:40px;object-fit:contain;border-radius:10px}
+#welcome .new-links{display:flex;align-items:center;gap:clamp(12px,2.5vw,28px);flex-wrap:wrap}
+#welcome .new-links a{color:var(--navy);font-size:13px;font-weight:750;text-decoration:none}
+#welcome .new-links button{border:2px solid var(--violet);background:white;color:var(--violet-dark);border-radius:999px;padding:9px 14px;font-weight:800}
+#welcome .welcome-intro{grid-area:hero!important;display:grid!important;grid-template-columns:56% 44%!important;position:relative!important;height:224px!important;max-height:none!important;min-height:0!important;border-radius:16px!important;overflow:hidden!important;background:linear-gradient(100deg,#ffe1d3,var(--cream) 58%,#ece4ff)!important}
+#welcome .pitch-hero-text{display:flex!important;position:relative!important;z-index:2!important;flex-direction:column!important;align-items:flex-start!important;justify-content:center!important;width:auto!important;height:auto!important;clip-path:none!important;overflow:visible!important;white-space:normal!important;margin:0!important;padding:16px 8px 16px 24px!important;grid-column:1!important}
+#welcome .hero-pill{display:inline-block;background:white;color:var(--violet-dark);font-size:11px;font-weight:750;padding:7px 12px;border-radius:999px}
+#welcome .pitch-hero-text h1{font-size:clamp(26px,3.5vw,47px)!important;line-height:1.04!important;letter-spacing:-.045em!important;color:var(--navy)!important;margin:14px 0 10px!important;max-width:none!important}
+#welcome .pitch-hero-text h1 span{white-space:nowrap;border-bottom:5px solid var(--sun)}
+#welcome .pitch-hero-text p{font-size:clamp(12px,1.3vw,17px)!important;color:var(--navy)!important;margin:0 0 13px!important}
+#welcome .hero-subject-chips{font-size:11px;color:var(--violet-dark);font-weight:750}
+#welcome .pitch-illustration{grid-column:2!important;grid-row:1!important;height:100%!important;width:100%!important;overflow:hidden!important}
+#welcome .pitch-illustration img{position:relative!important;width:190%!important;max-width:none!important;height:100%!important;object-fit:cover!important;object-position:right center!important;transform:translateX(-45%)!important}
+#welcome .impact-proof{grid-area:impact;text-align:center;background:white;border-radius:999px;margin:0;padding:10px 16px;font-weight:750;font-size:13px;color:var(--violet-dark)}
+#welcome .pitch-left-column{grid-area:left!important;display:flex!important;flex-direction:column!important;gap:12px!important;align-self:start!important;height:auto!important;min-width:0!important}
+#welcome .pitch-left-column #founderPanel{min-height:0!important;height:auto!important;width:100%!important;margin:0!important}
+#welcome #founderPanel .founder-introduction{min-height:76px!important;padding:10px!important;border-radius:16px!important}
+#welcome .pitch-left-column .welcome-copy{display:block!important;min-height:0!important;height:auto!important;width:100%!important;margin:0!important;padding:18px 20px!important;background:linear-gradient(135deg,var(--violet),var(--violet-dark))!important;border-radius:16px!important;grid-area:auto!important}
+#welcome .welcome-copy .speech-card h2{margin:0 0 15px!important;font-size:31px!important}
+#welcome .welcome-copy .learner-onboarding{gap:8px!important}
+#welcome .welcome-copy .learner-onboarding input:not([type="checkbox"]){min-height:44px!important}
+#welcome .welcome-copy .learner-code-help,#welcome .welcome-copy .privacy-helper,#welcome .welcome-copy .privacy-note{color:white!important;font-size:12px!important}
+#welcome .welcome-copy #startLearning{background:var(--sun)!important;color:var(--navy)!important;min-height:48px!important;margin-top:8px!important}
+#welcome .welcome-copy .secondary-clear{float:right;color:white!important;margin-top:0!important;font-weight:750}
+#welcome .welcome-copy .parent-link{text-align:center;margin:10px 0 0;font-size:12px}
+#welcome .welcome-copy .parent-link a{color:white;text-decoration:underline}
+#welcome .new-right-column{grid-area:right;min-width:0;display:flex;flex-direction:column;gap:12px}
+#welcome .lesson-peek{background:#fff;padding:18px;border-radius:16px;box-shadow:0 6px 24px #3524770b}
+#welcome .lesson-peek h2,#welcome .how-compact h2,#welcome .subject-section h2{font-size:21px;color:var(--navy);margin:0 0 14px}
+#welcome .peek-question{display:table;margin:0 0 10px auto;background:#dceaff;color:var(--navy);padding:11px 14px;border-radius:16px;font-weight:700;font-size:14px}
+#welcome .peek-answer{background:#eef1ff;color:var(--navy);padding:14px;border-radius:16px;font-size:14px;line-height:1.45}
+#welcome .peek-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:14px}
+#welcome .peek-actions button{min-height:44px;border:0;border-radius:999px;background:var(--violet-tint);color:var(--violet-dark);font-weight:800;font-size:12px}
+#welcome .peek-actions button:nth-child(2){background:#dceaff;color:#1b58a8}
+#welcome .peek-actions button:nth-child(3){background:#ffe3ec;color:#9b1f4b}
+#welcome .how-compact{padding:16px;background:var(--violet-tint);border-radius:16px}
+#welcome .how-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+#welcome .how-cards>div{background:white;border-radius:12px;padding:12px;min-width:0}
+#welcome .how-cards b{display:grid;place-items:center;border-radius:50%;background:#ffe3ec;color:#9b1f4b;width:26px;height:26px;margin-bottom:10px}
+#welcome .how-cards strong{display:block;color:var(--navy);font-size:12px}
+#welcome .how-cards p{color:var(--navy);font-size:11px;line-height:1.4;margin:5px 0}
+#welcome .how-tip{background:#e3efff;padding:11px 12px;border-radius:12px;font-size:12px;color:var(--navy);margin:10px 0 0}
+#welcome .subject-section{grid-area:subjects;min-width:0}
+#welcome .subject-section h2{margin-bottom:2px}
+#welcome .subject-section>p{font-size:13px;margin:0 0 12px}
+#welcome .subject-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+#welcome .subject-tile{min-height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;border:2px solid transparent;border-radius:16px;padding:12px 7px;text-align:center;font-weight:800;cursor:pointer}
+#welcome .subject-tile .subject-symbol{font-size:25px;line-height:1.1}
+#welcome .subject-tile small{font-size:10px;font-weight:750}
+#welcome .subject-tile:disabled{opacity:.8;cursor:not-allowed}
+#welcome .subject-tile:not(:disabled):hover{border-color:var(--violet)}
+#welcome .trust-row{grid-area:trust;background:#e5f0ff;border-radius:16px;padding:14px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+#welcome .trust-row div+div{border-left:1px solid #b8cee8;padding-left:12px}
+#welcome .trust-row strong{display:block;font-size:12px;color:var(--navy)}
+#welcome .trust-row p{font-size:11px;color:var(--navy);margin:4px 0 0}
+#welcome button:focus-visible,#welcome a:focus-visible{outline:3px solid var(--violet)!important;outline-offset:3px}
+#welcome .mobile-start-bar{display:none}
+@media(max-width:767px){
+ body:has(#welcome:not(.hidden)) .app-shell{padding:8px 12px 100px!important}
+ #welcome.welcome-screen{display:flex!important;flex-direction:column!important;gap:12px!important}
+ #welcome .new-nav{order:1;width:100%;flex-wrap:wrap}
+ #welcome .new-links{width:100%;gap:10px;justify-content:space-between}
+ #welcome .new-links a{font-size:11px}
+ #welcome .new-links button{font-size:11px;padding:7px}
+ #welcome .welcome-intro{order:2!important;display:grid!important;grid-template-columns:57% 43%!important;width:100%!important;height:176px!important}
+ #welcome .pitch-hero-text{padding:10px!important}
+ #welcome .hero-pill{font-size:9px;padding:5px}
+ #welcome .pitch-hero-text h1{font-size:clamp(19px,5.8vw,28px)!important;margin:8px 0!important}
+ #welcome .pitch-hero-text p{font-size:11px!important}
+ #welcome .hero-subject-chips{display:none}
+ #welcome .impact-proof{order:3;width:100%;font-size:11px}
+ #welcome .pitch-left-column{display:flex!important;flex-direction:column!important;order:4!important;width:100%!important;gap:10px!important}
+ #welcome .pitch-left-column #founderPanel{width:100%!important}
+ #welcome .pitch-left-column .welcome-copy{width:100%!important;padding:18px!important}
+ #welcome .new-right-column{order:5;width:100%}
+ #welcome .subject-section{order:6;width:100%}
+ #welcome .subject-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #welcome .trust-row{order:7;width:100%;grid-template-columns:1fr}
+ #welcome .trust-row div+div{border-left:0;border-top:1px solid #b8cee8;padding:10px 0 0}
+ #welcome .mobile-start-bar{display:block;position:fixed;bottom:0;left:0;right:0;padding:10px 14px calc(10px + env(safe-area-inset-bottom));background:#fff8eff2;z-index:50;box-shadow:0 -6px 20px #1b174021}
+ #welcome .mobile-start-bar button{display:block;width:100%;min-height:48px;border:0;border-radius:999px;background:var(--sun);color:var(--navy);font-weight:900}
+}
+@media(prefers-reduced-motion:reduce){#welcome *,#welcome *::before,#welcome *::after{animation:none!important;transition:none!important}}
