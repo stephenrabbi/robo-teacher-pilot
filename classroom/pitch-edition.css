@@ -211,3 +211,48 @@ body:has(#welcome:not(.hidden)) .brandbar .version{display:none}
  #welcome .welcome-start-guide li strong{font-size:13px}
  #welcome .welcome-copy{order:4;grid-area:auto;width:calc(100% - 22px);margin:10px 11px 0}
 }
+
+/* Option 1 restoration: approved purple registration and colourful instruction cards. */
+#welcome .welcome-start-guide{background:#e8e2ff}
+#welcome .welcome-start-guide li{border-radius:17px;border:1px solid #f7f4ff;box-shadow:0 1px 0 #fff;min-height:75px}
+#welcome .welcome-start-guide li::after{position:absolute;right:13px;top:50%;transform:translateY(-50%);border-radius:50%;width:31px;height:31px;display:grid;place-items:center;font-size:18px;font-weight:700}
+#welcome .welcome-start-guide li:nth-child(1)::after{content:"♙";color:#c65a70;background:#ffe7ea}
+#welcome .welcome-start-guide li:nth-child(2)::after{content:"▤";color:#6f4ecc;background:#eee4ff}
+#welcome .welcome-start-guide li:nth-child(3)::after{content:"⚑";color:#a16f10;background:#fff4cf}
+#welcome .welcome-start-guide li:nth-child(4)::after{content:"☷";color:#168a68;background:#d9fbef}
+#welcome .welcome-start-guide li:nth-child(5)::after{content:"♧";color:#2879b6;background:#e4f5ff}
+#welcome .welcome-start-guide li:nth-child(6)::after{content:"▥";color:#745ac8;background:#eee8ff}
+#welcome .welcome-copy{background:linear-gradient(145deg,#382187,#5438ad 65%,#392080);border:0;color:#fff;padding:clamp(20px,3.5vw,34px);box-shadow:0 12px 30px #2a1d7430;border-radius:25px}
+#welcome .welcome-copy>.pitch-onboarding-kicker{display:none}
+#welcome .welcome-copy .speech-card{background:transparent!important;color:#fff!important;border:0!important;padding:0!important}
+#welcome .welcome-copy .speech-card h2{color:#fff!important;font-size:clamp(30px,4vw,43px);font-weight:900;letter-spacing:-.045em;line-height:1.05;margin:0 0 22px}
+#welcome .welcome-copy .learner-onboarding label{color:#fff;font-size:14px;font-weight:730}
+#welcome .welcome-copy .learner-onboarding input:not([type="checkbox"]),#welcome .welcome-copy .learner-onboarding select{background:#fff!important;border:1px solid #e9defd!important;border-radius:12px!important;color:#1e2250!important;min-height:46px;padding:11px 13px}
+#welcome .welcome-copy .learner-onboarding input::placeholder{color:#9b93bb}
+#welcome .welcome-copy .learner-code-row{gap:10px}
+#welcome .welcome-copy #generateLearnerCode{background:#ded1ff;color:#2b1d5d;border:0;border-radius:28px;min-height:44px;font-weight:750;padding:10px 13px}
+#welcome .pitch-class-choices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+#welcome .pitch-class-choices button{display:flex;align-items:center;justify-content:center;gap:10px;background:#fff!important;color:#252050!important;border:2px solid transparent;border-radius:12px;min-height:49px;font-weight:800;box-shadow:none}
+#welcome .pitch-class-choices button::before{content:"";width:17px;height:17px;border:2px solid #32256a;border-radius:50%}
+#welcome .pitch-class-choices button.selected{background:#f9f4ff!important;border-color:#ffeb49}
+#welcome .pitch-class-choices button.selected::before{box-shadow:inset 0 0 0 4px #fff;background:#4b31a4}
+#welcome #learnerClass{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none}
+#welcome .learner-consent{color:#fff}
+#welcome .learner-consent label,#welcome .learner-consent a{color:#fff!important}
+#welcome .learner-code-help,#welcome .privacy-helper,#welcome .privacy-note{color:#e0d7ff!important}
+#welcome .privacy-note{margin-top:13px}
+#welcome .welcome-actions{display:flex;flex-direction:column;gap:8px}
+#welcome #startLearning{background:#fff744!important;color:#171748!important;border:0!important;border-radius:100px!important;font-size:clamp(17px,2vw,23px)!important;font-weight:900;min-height:58px;width:100%;box-shadow:none}
+#welcome #startLearning:hover{background:#fff967!important}
+#welcome #showTeacherLogin{background:transparent;color:#f5edff;border:0;text-decoration:underline;box-shadow:none;align-self:center}
+#welcome .secondary-clear{color:#ded2ff;background:transparent}
+#welcome .learner-consent input{accent-color:#fff344}
+@media(max-width:760px){
+ #welcome .welcome-copy{width:calc(100% - 22px);padding:19px 16px 24px;border-radius:23px}
+ #welcome .welcome-start-guide li{min-height:66px;padding-right:44px}
+ #welcome .welcome-copy .speech-card h2{font-size:31px;margin-bottom:20px}
+ #welcome .pitch-class-choices{gap:7px}
+ #welcome .pitch-class-choices button{font-size:13px}
+ #welcome .learner-code-row{flex-wrap:wrap}
+ #welcome .learner-code-row input{flex:1 1 165px}
+}
