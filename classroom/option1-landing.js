@@ -53,3 +53,29 @@ sticky?.addEventListener("click",()=>{
  document.getElementById("startLearning")?.click();
 });
 })();
+
+/* Staged asset upgrade: only switch after the optimized files actually load.
+   Files belong in classroom/images/ (requested names: images/hero.webp,
+   images/hero-mobile.webp and images/herbert.webp). */
+(()=>{
+ const base="/classroom/";
+ const hero=document.querySelector("#roboHeroPicture img[data-hero-src]");
+ if(hero){
+   const desktop=base+hero.dataset.heroSrc;
+   const mobile=base+"images/hero-mobile.webp";
+   const probe=new Image();
+   probe.onload=()=>{
+     const source=document.querySelector("#roboHeroPicture source");
+     if(source)source.srcset=mobile;
+     hero.src=desktop;
+     hero.closest(".pitch-illustration")?.classList.add("hero-ready");
+   };
+   probe.src=desktop;
+ }
+ const founder=document.querySelector("img[data-founder-src]");
+ if(founder){
+   const probe=new Image();
+   probe.onload=()=>{founder.src=base+founder.dataset.founderSrc;};
+   probe.src=base+founder.dataset.founderSrc;
+ }
+})();
