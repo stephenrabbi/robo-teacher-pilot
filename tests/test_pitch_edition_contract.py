@@ -20,7 +20,7 @@ class PitchEditionContractTest(unittest.TestCase):
     def test_stylesheet_link_is_after_legacy_css(self):
         links = re.findall(r'<link\s+rel="stylesheet"\s+href="([^"]+)"', self.html)
         self.assertGreaterEqual(len(links), 3)
-        self.assertEqual(links[-1].split("?")[0], "/classroom/landing-layout.css")
+        self.assertEqual(links[-1].split("?")[0], "/classroom/option1-landing.css")
         self.assertTrue(CSS.is_file())
 
     def test_expected_screen_anchors_are_preserved(self):
@@ -45,16 +45,16 @@ class PitchEditionContractTest(unittest.TestCase):
         """Stop accidental regressions back to the rejected old welcome screen."""
         self.assertIn("Big ideas.", self.html)
         self.assertIn("Small steps.", self.html)
-        self.assertIn("Your kind of learning.", self.html)
-        self.assertIn('id="welcomeStartGuideTitle"', self.html)
-        self.assertIn("How to get started", self.html)
+        self.assertIn("Ask anything, in your own words", self.html)
+        self.assertIn('id="how-it-works"', self.html)
+        self.assertIn("How it works", self.html)
         self.assertIn('id="hearFounder"', self.html)
         self.assertIn('id="startLearning"', self.html)
         self.assertIn('data-class-choice="JSS1"', self.html)
         self.assertIn('data-class-choice="JSS2"', self.html)
         self.assertIn('data-class-choice="JSS3"', self.html)
-        self.assertIn("background:#e8e2ff", self.css)
-        self.assertIn("background:#fff744", self.css)
+        self.assertIn("background:var(--violet-tint)", (ROOT / "classroom" / "option1-landing.css").read_text())
+        self.assertIn("background:var(--sun)", (ROOT / "classroom" / "option1-landing.css").read_text())
 
     def test_pitch_controls_preserve_native_onboarding(self):
         """The visual class choices must keep the native control usable by app.js."""
@@ -69,14 +69,14 @@ class PitchEditionContractTest(unittest.TestCase):
     def test_landing_layout_loaded_last(self):
         import re
         styles = re.findall(r'<link\\s+rel="stylesheet"\\s+href="([^"]+)"', self.html)
-        self.assertTrue(styles[-1].startswith("/classroom/landing-layout.css"))
-        landing = (ROOT / "classroom" / "landing-layout.css").read_text(encoding="utf-8")
-        self.assertIn("height:210px", landing)
-        self.assertIn("height:155px", landing)
+        self.assertTrue(styles[-1].startswith("/classroom/option1-landing.css"))
+        landing = (ROOT / "classroom" / "option1-landing.css").read_text(encoding="utf-8")
+        self.assertIn("height:224px", landing)
+        self.assertIn("height:176px", landing)
         self.assertIn("object-fit:cover", landing)
-        self.assertIn('grid-template-areas:"hero hero" "left guide"', landing)
-        self.assertIn("min-height:72px", landing)
-        self.assertIn("display:inline", landing)
+        self.assertIn("left right", landing)
+        self.assertIn("subject-grid", landing)
+        self.assertIn("mobile-start-bar", landing)
 
     def test_mobile_breakpoints_and_accessibility(self):
         self.assertRegex(self.html, r'name="viewport"')
