@@ -281,3 +281,23 @@ body:has(#welcome:not(.hidden)) .brandbar .version{display:none}
  #welcome .welcome-start-guide{order:3}
  #welcome .welcome-copy{order:4}
 }
+
+/* Original approved artwork contains its own logo, headline, illustration and skyline.
+   Present it as a single intact image; never overlay duplicate heading text. */
+#welcome .welcome-intro{display:block!important;position:relative;padding:0!important;min-height:0!important;max-height:none!important;background:#fff0e3!important;border-radius:18px!important;overflow:hidden}
+#welcome .welcome-intro::before,#welcome .welcome-intro::after,#welcome .pitch-hero-orbit{display:none!important}
+#welcome .pitch-hero-text{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip-path:inset(50%)!important;white-space:nowrap!important}
+#welcome .pitch-illustration{display:block!important;width:100%!important;height:auto!important;max-height:none!important;margin:0!important;min-width:0!important}
+#welcome .pitch-illustration img{display:block!important;width:100%!important;max-width:100%!important;height:auto!important;max-height:none!important;object-fit:contain!important;object-position:center!important;filter:none!important;border-radius:0}
+#welcome .welcome-copy .secondary-clear{color:#fff!important;font-weight:750;text-decoration:underline}
+#welcome .welcome-copy .learner-code-help,#welcome .welcome-copy .privacy-helper,#welcome .welcome-copy .privacy-note{color:#f6efff!important;font-size:12px;line-height:1.55}
+#welcome .welcome-copy .onboarding-error{color:#fff5be!important;font-weight:700}
+#welcome .welcome-copy button:focus-visible,#welcome .welcome-copy input:focus-visible{outline:3px solid #fff744;outline-offset:3px}
+@media(min-width:761px){
+ #welcome .welcome-intro{grid-area:hero}
+ #welcome .welcome-copy{align-self:start}
+}
+@media(max-width:760px){
+ #welcome .welcome-intro{border-radius:0!important}
+ #welcome .pitch-illustration img{width:100%!important;height:auto!important}
+}
