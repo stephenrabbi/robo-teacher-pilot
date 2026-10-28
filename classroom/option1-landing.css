@@ -323,3 +323,62 @@ body:has(#welcome:not(.hidden)) .app-shell{max-width:1160px!important;padding:8p
  #welcome #newTeacherAccess{padding:7px 9px!important;font-size:11px!important}
  #welcome .new-brand{font-size:12px!important;padding:6px 9px!important}
 }
+
+/* ROUND 2: compact form, readable error and accessible lesson cards. */
+#welcome .pitch-left-column .welcome-copy{background:linear-gradient(135deg,#4A2EC2 0%,var(--violet) 100%)!important;padding:24px!important;border-radius:20px!important}
+#welcome .pitch-onboarding-kicker{display:none!important}
+#welcome .welcome-copy .speech-card{border:0!important;box-shadow:none!important;padding:0!important;background:transparent!important}
+#welcome .welcome-copy .speech-card::before,#welcome .welcome-copy .speech-card::after{display:none!important;content:none!important}
+#welcome .pitch-form-heading{padding:0!important;margin:0 0 12px!important;border:0!important}
+#welcome .pitch-form-heading::after{display:none!important}
+#welcome .pitch-form-heading h2{margin:0!important;border:0!important;padding:0!important;color:white!important;font-size:clamp(27px,3vw,34px)!important}
+#welcome .welcome-copy .learner-onboarding{gap:8px!important;margin:0!important;padding:0!important}
+#welcome .welcome-copy .learner-onboarding label{font-size:12px!important;margin:0!important}
+#welcome #learnerNickname,#welcome #learnerCode{height:48px!important;min-height:48px!important;max-height:48px!important;border-radius:10px!important}
+#welcome #generateLearnerCode{min-height:44px!important;white-space:nowrap!important;border-radius:999px!important}
+#welcome .learner-code-help{margin:0!important;line-height:1.45!important}
+#welcome .pitch-class-choices{gap:8px!important;margin:0!important}
+#welcome .pitch-class-choices button{min-height:44px!important;height:44px!important;border-radius:10px!important}
+#welcome .learner-consent{margin:0!important;padding:0!important}
+#welcome .privacy-helper{margin:0!important}
+#welcome #onboardingError{background:white!important;color:var(--navy)!important;border:0!important;border-left:5px solid var(--coral)!important;border-radius:10px!important;font-size:13px!important;padding:10px 12px!important;margin:9px 0!important;line-height:1.4!important}
+#welcome #onboardingError.hidden{display:none!important}
+#welcome #startLearning{height:48px!important;min-height:48px!important;margin:10px 0 0!important;font-size:18px!important}
+#welcome .welcome-actions{gap:0!important;padding:0!important}
+#welcome #showTeacherLogin{display:block!important;min-height:44px!important;margin:2px auto 0!important;text-align:center!important}
+#welcome .parent-link{margin:0!important;text-align:center!important}
+#welcome .parent-link a{color:white!important;text-decoration:underline!important;font-size:12px!important}
+#welcome .privacy-note{display:none!important}
+#welcome .lesson-peek{border-radius:20px!important;padding:20px!important}
+#welcome .peek-chat-line{display:flex!important;align-items:flex-start!important;gap:10px!important;margin:0 0 12px!important}
+#welcome .peek-chat-line .peek-avatar{display:grid!important;place-items:center!important;flex:0 0 38px!important;width:38px!important;height:38px!important;border-radius:50%!important}
+#welcome .peek-student{background:var(--violet-tint)!important;color:var(--violet-dark)!important}
+#welcome .peek-robot{background:white!important;color:var(--navy)!important;border:1px solid var(--violet-tint)!important}
+#welcome .peek-chat-line .peek-question{margin:0!important;width:fit-content!important;max-width:calc(100% - 48px)!important;background:var(--violet-tint)!important;color:var(--navy)!important}
+#welcome .peek-chat-line .peek-answer{background:#E3EEFF!important;color:var(--navy)!important;flex:1!important;margin:0!important}
+#welcome .peek-actions{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important}
+#welcome .peek-actions button{display:flex!important;align-items:center!important;justify-content:center!important;gap:7px!important;min-width:0!important;border:0!important;border-radius:999px!important;min-height:44px!important;white-space:normal!important}
+#welcome .peek-actions button svg{flex:0 0 17px!important;width:17px!important;height:17px!important}
+#welcome .how-compact{border-radius:20px!important;padding:20px!important;background:var(--violet-tint)!important}
+#welcome .how-cards{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important}
+#welcome .how-cards>div{background:white!important;border-radius:14px!important;min-height:157px!important;padding:12px!important}
+#welcome .how-step-icons{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;margin-bottom:10px!important}
+#welcome .how-step-icons b{display:grid!important;place-items:center!important;width:29px!important;height:29px!important;border-radius:50%!important;margin:0!important;flex:0 0 29px!important}
+#welcome .how-step-icons svg{width:22px!important;height:22px!important;flex:0 0 22px!important}
+#welcome .how-cards>div:nth-child(1) .how-step-icons b{background:#FFE3EC!important;color:#9B1F4B!important}
+#welcome .how-cards>div:nth-child(2) .how-step-icons b{background:#DCEBFF!important;color:#1B58A8!important}
+#welcome .how-cards>div:nth-child(3) .how-step-icons b{background:#FFF3C2!important;color:#7A5A00!important}
+#welcome .how-cards>div:nth-child(1) .how-step-icons svg{color:#9B1F4B!important}
+#welcome .how-cards>div:nth-child(2) .how-step-icons svg{color:#1B58A8!important}
+#welcome .how-cards>div:nth-child(3) .how-step-icons svg{color:#7A5A00!important}
+#welcome .how-cards strong{font-size:12px!important;line-height:1.3!important}
+#welcome .how-cards p{font-size:11px!important;line-height:1.45!important;margin:5px 0 0!important}
+#welcome .how-tip{display:flex!important;align-items:center!important;gap:10px!important;background:#E3EEFF!important;color:var(--navy)!important;line-height:1.5!important;padding:10px!important}
+#welcome .how-bulb{display:grid;place-items:center;flex:0 0 30px;width:30px;height:30px;border-radius:50%;background:white;color:#7A5A00}
+#welcome .how-bulb svg{width:19px;height:19px}
+@media(max-width:767px){
+ #welcome .pitch-left-column .welcome-copy{padding:16px!important}
+ #welcome .how-cards{grid-template-columns:1fr!important}
+ #welcome .how-cards>div{min-height:0!important}
+ #welcome .peek-actions button{gap:4px!important;font-size:11px!important}
+}
