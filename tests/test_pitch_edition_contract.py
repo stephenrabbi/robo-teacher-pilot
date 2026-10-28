@@ -43,7 +43,7 @@ class PitchEditionContractTest(unittest.TestCase):
 
     def test_approved_option_one_copy_and_layout(self):
         """Stop accidental regressions back to the rejected old welcome screen."""
-        self.assertIn("Big ideas.", self.html)
+        self.assertRegex(self.html, r"<h1>Big\\s+<span[^>]*>ideas\\.")
         self.assertIn("Small steps.", self.html)
         self.assertIn("Ask anything, in your own words", self.html)
         self.assertIn('id="how-it-works"', self.html)
