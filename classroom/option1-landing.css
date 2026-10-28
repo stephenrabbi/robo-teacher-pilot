@@ -89,3 +89,44 @@ body:has(#welcome:not(.hidden)) .legal-footer{max-width:1168px;width:calc(100% -
  #welcome .mobile-start-bar button{display:block;width:100%;min-height:48px;border:0;border-radius:999px;background:var(--sun);color:var(--navy);font-weight:900}
 }
 @media(prefers-reduced-motion:reduce){#welcome *,#welcome *::before,#welcome *::after{animation:none!important;transition:none!important}}
+
+/* Visual fidelity pass against approved 1279px reference screenshot (28 Oct).
+   This is the final override; do not enlarge the original text-bearing hero. */
+body:has(#welcome:not(.hidden)) .app-shell{max-width:1160px!important;padding:8px 16px 12px!important}
+#welcome.welcome-screen{column-gap:20px!important;row-gap:10px!important}
+#welcome .new-nav{min-height:44px!important}
+#welcome .welcome-intro{height:228px!important;max-height:228px!important;background:linear-gradient(115deg,#ffe2d0 0%,#fff4e8 58%,#e7dcff 100%)!important;isolation:isolate}
+#welcome .pitch-hero-text{grid-column:1!important;padding:14px 4px 14px 25px!important;z-index:3!important;justify-content:center!important}
+#welcome .pitch-hero-text h1{font-size:clamp(28px,3.45vw,44px)!important;max-width:100%!important;line-height:1.05!important}
+#welcome .pitch-illustration{position:relative!important;grid-column:2!important;overflow:hidden!important;isolation:isolate}
+#welcome .pitch-illustration img{position:absolute!important;top:0!important;left:auto!important;right:0!important;width:205%!important;height:100%!important;max-width:none!important;max-height:none!important;transform:none!important;object-fit:fill!important;object-position:right center!important}
+#welcome .pitch-left-column{gap:10px!important;height:auto!important;min-height:0!important}
+#welcome .pitch-left-column #founderPanel{height:auto!important;min-height:0!important}
+#welcome #founderPanel .founder-introduction{min-height:75px!important}
+#welcome .pitch-left-column .welcome-copy{height:auto!important;min-height:0!important}
+#welcome .new-right-column{gap:10px!important}
+#welcome .lesson-peek{padding:16px!important}
+#welcome .how-compact{padding:15px!important}
+#welcome .how-cards>div{min-height:130px}
+#welcome .subject-grid{gap:10px!important}
+#welcome .subject-tile{min-height:86px!important}
+#welcome .trust-row{padding:12px!important}
+#welcome .impact-proof{padding:8px 14px!important}
+#welcome .welcome-copy .secondary-clear{float:none!important;order:2!important;margin:0!important}
+#welcome .welcome-copy .welcome-actions{display:flex!important;flex-wrap:wrap!important;flex-direction:row!important;align-items:center!important;justify-content:center!important;gap:10px!important}
+#welcome .welcome-copy .welcome-actions #startLearning{flex-basis:100%!important}
+#welcome .welcome-copy .welcome-actions #showTeacherLogin{margin:0!important}
+#welcome .welcome-copy .learner-onboarding{gap:7px!important}
+#welcome .welcome-copy .learner-onboarding .secondary-clear{margin:0 0 0 auto!important}
+#welcome .peek-actions button{cursor:pointer}
+#welcome a:focus-visible,#welcome button:focus-visible{outline:3px solid var(--violet)!important;outline-offset:3px}
+@media(max-width:767px){
+ body:has(#welcome:not(.hidden)) .app-shell{padding:8px 12px 100px!important}
+ #welcome.welcome-screen{gap:12px!important}
+ #welcome .welcome-intro{height:176px!important;max-height:176px!important;grid-template-columns:59% 41%!important}
+ #welcome .pitch-hero-text{padding:8px 3px 8px 10px!important}
+ #welcome .pitch-hero-text h1{font-size:clamp(19px,5.5vw,28px)!important}
+ #welcome .pitch-illustration img{width:220%!important}
+ #welcome .pitch-left-column{display:flex!important;flex-direction:column!important;gap:10px!important}
+ #welcome .subject-tile{min-height:86px!important}
+}
