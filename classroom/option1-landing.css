@@ -420,3 +420,18 @@ body:has(#welcome:not(.hidden)) .legal-footer-links a,body:has(#welcome:not(.hid
  #welcome .mobile-start-bar{display:block!important;padding-bottom:calc(10px + env(safe-area-inset-bottom))!important}
 }
 @media(prefers-reduced-motion:reduce){#welcome .subject-tile{transition:none!important}}
+
+/* Founder moved to right column after the how-to card. */
+#welcome .pitch-left-column{grid-area:left!important;display:flex!important;flex-direction:column!important;gap:0!important;align-self:start!important}
+#welcome .pitch-left-column .welcome-copy{margin:0!important;width:100%!important}
+#welcome .new-right-column{grid-area:right!important;display:flex!important;flex-direction:column!important;gap:8px!important;align-self:stretch!important;min-height:0!important}
+#welcome .new-right-column .how-compact{flex:1 1 auto!important}
+#welcome .new-right-column #founderPanel{display:block!important;width:100%!important;min-height:0!important;height:auto!important;margin:0!important;flex:0 0 auto!important}
+#welcome .new-right-column #founderPanel .founder-introduction{display:flex!important;align-items:center!important;gap:12px!important;min-height:76px!important;padding:8px 12px!important;border-radius:20px!important;background:white!important}
+#welcome .new-right-column #founderPanel .founder-introduction-copy{flex:1 1 auto!important;min-width:0!important}
+#welcome .new-right-column #founderPanel .founder-avatar-stage{width:64px!important;height:64px!important;flex:0 0 64px!important}
+#welcome .new-right-column #hearFounder{margin-left:auto!important;min-height:44px!important}
+@media(max-width:900px){
+ #welcome .new-right-column{align-self:start!important;width:100%!important}
+ #welcome .new-right-column .how-compact{flex:none!important}
+}
