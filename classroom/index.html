@@ -6,7 +6,7 @@
   <title>Robo-Teacher Classroom</title>
   <link rel="stylesheet" href="/classroom/styles.css?v=20261012-expanded-guide1" />
   <link rel="stylesheet" href="/classroom/classroom2.css?v=20261023-3" />
-  <link rel="stylesheet" href="/classroom/pitch-edition.css?v=20261028-4" />
+  <link rel="stylesheet" href="/classroom/pitch-edition.css?v=20261028-5" />
 </head>
 <body>
   <main class="app-shell">
@@ -53,15 +53,15 @@
       </aside>
       </div>
       <div class="welcome-copy">
-        <p class="eyebrow">LET’S GET STARTED</p>
+        <p class="eyebrow pitch-onboarding-kicker">LET’S GET STARTED</p>
         <div class="speech-card">
           <h2>Ready to learn?</h2>
-          <p>Choose your class and tell your teacher what to call you.</p>
+
           <div class="learner-onboarding">
             <label for="learnerNickname">What should your teacher call you?</label>
-            <input id="learnerNickname" maxlength="30" autocomplete="nickname" placeholder="Nickname, for example Tobi" />
+            <input id="learnerNickname" maxlength="30" autocomplete="nickname" placeholder="e.g. BrightStar" />
             <label for="learnerCode">Learner code (optional)</label>
-            <div class="learner-code-row"><input id="learnerCode" maxlength="24" autocomplete="off" autocapitalize="characters" placeholder="Optional: school code, e.g. ISE-JSS2-014" /><button id="generateLearnerCode" type="button">Generate a code now</button></div>
+            <div class="learner-code-row"><input id="learnerCode" maxlength="24" autocomplete="off" autocapitalize="characters" placeholder="e.g. ABC123" /><button id="generateLearnerCode" type="button">Generate a code now</button></div>
             <small class="learner-code-help">Joining independently? Leave this blank and we will create a code for this device. School learner? Enter your assigned code. A code alone does not securely recover learning on another device.</small>
             <label for="learnerClass">Choose your class</label>
             <select id="learnerClass">
@@ -69,6 +69,7 @@
               <option value="JSS2" selected>JSS2</option>
               <option value="JSS3">JSS3</option>
             </select>
+            <div class="pitch-class-choices" role="group" aria-label="Choose your class"><button type="button" data-class-choice="JSS1">JSS1</button><button type="button" data-class-choice="JSS2">JSS2</button><button type="button" data-class-choice="JSS3">JSS3</button></div>
             <div class="learner-consent compact-consent">
               <input id="learnerConsent" type="checkbox" />
               <label for="learnerConsent">I have permission to use Robo-Teacher and agree to the <a href="/classroom/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</label>
@@ -254,5 +255,6 @@
   <script src="/classroom/compliance.js?v=20261006-privacy1"></script>
   <script src="/classroom/app.js?v=20261006-privacy1"></script>
   <script src="/classroom/classroom2-workspace.js?v=20261023-1"></script>
+  <script src="/classroom/pitch-edition.js?v=20261028-1" defer></script>
 </body>
 </html>
