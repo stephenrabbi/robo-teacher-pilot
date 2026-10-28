@@ -301,3 +301,51 @@ body:has(#welcome:not(.hidden)) .brandbar .version{display:none}
  #welcome .welcome-intro{border-radius:0!important}
  #welcome .pitch-illustration img{width:100%!important;height:auto!important}
 }
+
+/* Option 1 application-wide visual system — scoped to active classroom, not welcome. */
+#classroom{--rt-purple:#4a328f;--rt-lavender:#eee8ff;--rt-peach:#fff3e9;--rt-yellow:#fff44a;--rt-ink:#17254a;color:var(--rt-ink)}
+#classroom .lesson-header{background:linear-gradient(120deg,#fff1e1,#f5efff);padding:clamp(16px,2.5vw,28px);border:1px solid #eadffa;border-radius:22px;box-shadow:0 9px 26px rgba(46,32,105,.07);gap:12px}
+#classroom .lesson-header h2{font-weight:850;letter-spacing:-.035em;color:#1b2451;font-size:clamp(22px,2.6vw,34px);line-height:1.17}
+#classroom .lesson-header .eyebrow{color:#6850a8}
+#classroom .lesson-actions{flex-wrap:wrap;gap:10px}
+#classroom .lesson-actions select,#classroom .lesson-actions button{min-height:44px;border-radius:12px;border:1px solid #dfd4f2;background:#fff;color:#2d2857}
+#classroom .teacher-panel{background:linear-gradient(145deg,#45308a,#6e51b3);color:#fff;border:0;border-radius:22px;box-shadow:0 14px 32px rgba(50,31,117,.13)}
+#classroom .teacher-panel .teacher-toolbar strong,#classroom .teacher-panel .teacher-caption{color:#fff}
+#classroom .teacher-panel .teacher-voice-status{color:#e8fbef}
+#classroom .teacher-panel button,#classroom .teacher-panel summary{border-radius:12px}
+#classroom .teacher-panel .teacher-avatar-stage{border:3px solid #fff9c4;border-radius:20px;overflow:hidden}
+#classroom .learning-area{min-width:0}
+#classroom .teaching-canvas{background:#fff;border:1px solid #e6dff7;border-radius:23px;box-shadow:0 11px 30px rgba(48,34,103,.06);min-width:0}
+#classroom .canvas-empty{background:radial-gradient(circle at 90% 12%,#fff2cb,transparent 36%),linear-gradient(140deg,#fff9f5,#f6efff);border-radius:20px;padding:clamp(20px,3vw,38px)}
+#classroom .canvas-empty strong{color:#2b225c;font-size:clamp(20px,2.4vw,29px);letter-spacing:-.025em}
+#classroom .canvas-entry-actions{display:flex;gap:10px;flex-wrap:wrap}
+#classroom .canvas-entry-actions button{background:#fff;border:2px solid #e1d6f5;color:#432e8a;border-radius:14px;min-height:48px;font-weight:750}
+#classroom .canvas-entry-actions button:hover{background:#eee8ff}
+#classroom .class-tools{background:#fff;border:1px solid #e4dbf5;border-radius:18px}
+#classroom .class-tools button{color:#3c3477;border-radius:12px}
+#classroom .class-tools button.active,#classroom .class-tools button[aria-selected="true"],#classroom .class-tools button[aria-current="page"]{background:#eee8ff;color:#3e258f}
+#classroom .practice-area,#classroom .progress-area,#classroom .revision-panel,#classroom .my-lessons-area,#classroom .daily-plan-area{background:#fff;border:1px solid #e5def6;border-radius:22px;box-shadow:0 10px 26px rgba(45,32,97,.05)}
+#classroom .practice-area h2,#classroom .progress-area h2,#classroom .revision-panel h2{color:#282058;letter-spacing:-.03em}
+#classroom .practice-question,#classroom .practice-setup,#classroom .practice-results{background:#f8f4ff;border:1px solid #ebe2ff;border-radius:18px}
+#classroom .practice-primary,#classroom .practice-answer-form button[type="submit"]{background:#4b329b;border:0;color:#fff;border-radius:14px;min-height:48px;box-shadow:none}
+#classroom .practice-primary:hover,#classroom .practice-answer-form button[type="submit"]:hover{background:#352276}
+#classroom .progress-stats>*,#classroom .progress-recommendation,#classroom .topic-progress{border-radius:18px;border:1px solid #e7ddf8;background:#fcfaff}
+#classroom .progress-recommendation{background:#e9f9f2;border-color:#c5ebde}
+#classroom .teacher-dashboard-content{border:1px solid #e9def8;border-radius:20px;background:#fff}
+#classroom .message.teacher{background:#f1ecff;color:#2d225d;border:1px solid #e0d5f9}
+#classroom input:focus-visible,#classroom select:focus-visible,#classroom button:focus-visible{outline:3px solid #ffc72f;outline-offset:3px}
+@media(max-width:900px){
+ #classroom .lesson-header{padding:16px}
+ #classroom .teacher-panel{border-radius:18px}
+ #classroom .teaching-canvas{border-radius:18px}
+ #classroom .class-tools{display:flex;overflow-x:auto;max-width:100%;scrollbar-width:thin}
+ #classroom .class-tools button{flex:0 0 auto;min-height:44px}
+}
+@media(max-width:600px){
+ #classroom .lesson-header{padding:14px;border-radius:17px}
+ #classroom .lesson-header h2{font-size:24px}
+ #classroom .teacher-panel{padding:13px}
+ #classroom .canvas-entry-actions{flex-direction:column}
+ #classroom .canvas-entry-actions button{width:100%}
+ #classroom .practice-area,#classroom .progress-area,#classroom .daily-plan-area,#classroom .my-lessons-area{padding:14px;border-radius:17px}
+}
