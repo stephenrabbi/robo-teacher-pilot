@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="/classroom/classroom2.css?v=20261023-3" />
   <link rel="stylesheet" href="/classroom/pitch-edition.css?v=20261028-12" />
   <link rel="stylesheet" href="/classroom/landing-layout.css?v=20261028-a1" />
+  <link rel="stylesheet" href="/classroom/option1-landing.css?v=20261028-b1" />
 </head>
 <body>
   <main class="app-shell">
@@ -20,11 +21,13 @@
     </header>
 
     <section id="welcome" class="screen welcome-screen">
+      <nav class="new-nav" aria-label="Main navigation"><a class="new-brand" href="#welcome"><img src="/classroom/assets/robo-teacher-logo.png" alt="" width="40" height="40" /> Robo-Teacher</a><div class="new-links"><a href="#subjects">Subjects</a><a href="#how-it-works">How it works</a><a href="#family-safety">For parents and schools</a><button type="button" id="newTeacherAccess">Teacher access</button></div></nav>
       <div class="welcome-intro">
-        <div class="pitch-hero-text"><h1>Big ideas.<br>Small steps.</h1><p>Your kind of learning.</p></div>
-        <div class="pitch-illustration"><img src="/classroom/assets/robo_teacher_approved_option1_hero.png" data-fallback-src="/classroom/assets/pitch-schoolgirl-books.svg" alt="A girl in a yellow hoodie holding books against the colourful approved learning illustration" width="540" height="590" /></div>
+        <div class="pitch-hero-text"><span class="hero-pill">Welcome · Ẹ káàbọ̀ · AI teacher for JSS1 to JSS3</span><h1>Big ideas. <span>Small steps.</span></h1><p>Ask anything, in your own words, and learn at your own pace.</p><div class="hero-subject-chips" aria-label="Subjects">Maths · English · Science · Coding · Social studies · Exam prep</div></div>
+        <div class="pitch-illustration"><img src="/classroom/assets/robo_teacher_approved_option1_hero.png" data-fallback-src="/classroom/assets/pitch-schoolgirl-books.svg" alt="A girl in a yellow hoodie holding books against the colourful approved learning illustration" width="802" height="570" loading="eager" fetchpriority="high" /></div>
         <span class="pitch-hero-orbit" aria-hidden="true">✦</span>
       </div>
+      <p class="impact-proof">331 students onboarded across two public secondary schools in Lagos, Nigeria.</p>
       <div class="pitch-left-column">
       <div id="founderPanel" class="founder-panel avatar-rig student-first-founder-panel">
         <div class="student-welcome-photo" aria-label="Real Robo-Teacher classroom demonstration">
@@ -37,7 +40,7 @@
           <img class="founder-avatar avatar-head-motion founder-head-motion" src="/classroom/assets/herbert-stephen-founder.jpg" alt="" aria-hidden="true" />
           <img class="founder-avatar avatar-head-motion avatar-head-speaking founder-head-motion" src="/classroom/assets/herbert-stephen-founder-speaking.jpg" alt="" aria-hidden="true" />
         </div>
-        <div class="founder-introduction-copy"><strong>Welcome to Robo-Teacher</strong><p>I’m Herbert, the founder. Let me help you get started.</p><button id="hearFounder" class="founder-voice" type="button">Hear Herbert</button></div></div>
+        <div class="founder-introduction-copy"><strong>Hi, I’m Herbert, the founder.</strong><p>I’m Herbert, the founder. Let me help you get started.</p><button id="hearFounder" class="founder-voice" type="button">Hear Herbert</button></div></div>
       </div>
       <div class="welcome-copy">
         <p class="eyebrow pitch-onboarding-kicker">LET’S GET STARTED</p>
@@ -72,22 +75,14 @@
           <div><input id="teacherAccessKey" type="password" autocomplete="current-password" placeholder="Enter private key" /><button id="openTeacherDashboard" type="button">Open Dashboard →</button></div>
           <p id="teacherLoginError" class="onboarding-error hidden" role="alert"></p>
         </div>
-        <p class="privacy-note">Your learning experience is designed with privacy and safety in mind.</p>
+        <p class="privacy-note">Your learning experience is designed with privacy and safety in mind.</p><p class="parent-link"><a href="/classroom/privacy.html">Parent or teacher? See how we keep learners safe.</a></p>
       </div>
       </div>
-      <aside class="welcome-start-guide" aria-labelledby="welcomeStartGuideTitle">
-        <h2 id="welcomeStartGuideTitle">How to get started</h2>
-        <p class="welcome-guide-intro">Getting ready is simple. Follow these steps and learn at your own pace.</p>
-        <ol>
-          <li><strong>Tell us what to call you.</strong> Use a nickname rather than your full name.</li>
-          <li><strong>Enter your learner code.</strong> Use the one your teacher gave you, or select <em>Generate my code</em> if you're learning independently. Keep your code safe.</li>
-          <li><strong>Choose your class.</strong> Select JSS1, JSS2 or JSS3 so the activities match your level.</li>
-          <li><strong>Confirm your permission.</strong> Read the privacy notice and tick the permission box before continuing.</li>
-          <li><strong>Meet your AI teacher.</strong> Select <em>Start Learning Now</em>. You can type questions, use your voice or share a photo of a Maths problem.</li>
-          <li><strong>Practise and improve.</strong> Work through examples step by step, check what you understand, and use the practice activities to revise.</li>
-        </ol>
-        <p class="welcome-guide-note"><strong>Tip:</strong> Make a mistake? That is part of learning. Ask your teacher to explain the step again.</p>
-      </aside>
+      <div class="new-right-column"><section class="lesson-peek" aria-labelledby="peekTitle"><h2 id="peekTitle">A peek inside a lesson</h2><div class="peek-question">Why is the sky blue?</div><div class="peek-answer">Sunlight contains many colours. As it travels through the air, blue light scatters more than most other colours, making the sky appear blue.</div><div class="peek-actions"><button type="button" data-lesson-action="speak">Speak</button><button type="button" data-lesson-action="snap">Snap a question</button><button type="button" data-lesson-action="type">Type</button></div></section>
+      <section class="how-compact" id="how-it-works" aria-labelledby="howTitle"><h2 id="howTitle">How it works</h2><div class="how-cards"><div><b>1</b><strong>Pick a nickname</strong><p>Use a nickname rather than your full name.</p></div><div><b>2</b><strong>Choose your class</strong><p>Select JSS1, JSS2 or JSS3.</p></div><div><b>3</b><strong>Ask and practise</strong><p>Ask questions and learn step by step.</p></div></div><p class="how-tip">Mistakes are part of learning. Ask for the step again.</p></section></div>
+      <section id="subjects" class="subject-section" aria-labelledby="subjectTitle"><h2 id="subjectTitle">Pick a subject to start</h2><p>Tap a tile to begin.</p><div class="subject-grid" id="subjectGrid"></div></section>
+      <section id="family-safety" class="trust-row"><div><strong>Nickname only, no private details</strong><p>Your privacy and safety come first.</p></div><div><strong>Works with your school and teacher</strong><p>Learn at school or at home.</p></div><div><strong>Designed for mobile learning</strong><p>Friendly for smaller screens.</p></div></section>
+      <div class="mobile-start-bar"><button type="button" id="mobileStartButton">Start Learning Now →</button></div>
 
     </section>
 
@@ -257,5 +252,6 @@
   <script src="/classroom/app.js?v=20261006-privacy1"></script>
   <script src="/classroom/classroom2-workspace.js?v=20261023-1"></script>
   <script src="/classroom/pitch-edition.js?v=20261028-2" defer></script>
+  <script src="/classroom/option1-landing.js?v=20261028-b1" defer></script>
 </body>
 </html>
