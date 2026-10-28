@@ -20,7 +20,7 @@ class PitchEditionContractTest(unittest.TestCase):
     def test_stylesheet_link_is_after_legacy_css(self):
         links = re.findall(r'<link\s+rel="stylesheet"\s+href="([^"]+)"', self.html)
         self.assertGreaterEqual(len(links), 3)
-        self.assertEqual(links[-1].split("?")[0], "/classroom/pitch-edition.css")
+        self.assertEqual(links[-1].split("?")[0], "/classroom/landing-layout.css")
         self.assertTrue(CSS.is_file())
 
     def test_expected_screen_anchors_are_preserved(self):
@@ -65,6 +65,18 @@ class PitchEditionContractTest(unittest.TestCase):
         self.assertIn('id="generateLearnerCode"', self.html)
         self.assertIn('select.dispatchEvent(new Event("change"', js)
         self.assertIn("pitch-edition.js", self.html)
+
+    def test_landing_layout_loaded_last(self):
+        import re
+        styles = re.findall(r'<link\\s+rel="stylesheet"\\s+href="([^"]+)"', self.html)
+        self.assertTrue(styles[-1].startswith("/classroom/landing-layout.css"))
+        landing = (ROOT / "classroom" / "landing-layout.css").read_text(encoding="utf-8")
+        self.assertIn("height:210px", landing)
+        self.assertIn("height:155px", landing)
+        self.assertIn("object-fit:cover", landing)
+        self.assertIn('grid-template-areas:"hero hero" "left guide"', landing)
+        self.assertIn("min-height:72px", landing)
+        self.assertIn("display:inline", landing)
 
     def test_mobile_breakpoints_and_accessibility(self):
         self.assertRegex(self.html, r'name="viewport"')
