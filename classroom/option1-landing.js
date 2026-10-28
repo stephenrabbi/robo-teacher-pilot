@@ -8,6 +8,7 @@ const ROBO_SUBJECTS = [
   {name:"Social studies", icon:"◎", colorKey:"social", available:false},
   {name:"Exam prep", icon:"✧", colorKey:"exams", available:false}
 ];
+const SUBJECT_SVG = {"maths":"<rect x=\"5\" y=\"2\" width=\"14\" height=\"20\" rx=\"2\"/><path d=\"M8 6h8M8 11h2m4 0h2M8 15h2m4 0h2M8 19h2m4 0h2\"/>","english":"<path d=\"M12 7c-3-2-6-2-9-1v14c3-1 6-1 9 1 3-2 6-2 9-1V6c-3-1-6-1-9 1Zm0 0v14\"/>","science":"<path d=\"M9 3h6m-5 0v7L5 19a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3M8 16h8\"/>","coding":"<path d=\"m8 8-4 4 4 4m8-8 4 4-4 4m-3-12-2 16\"/>","social":"<path d=\"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m7-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8m13 10v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75\"/>","exams":"<path d=\"m2 10 10-5 10 5-10 5-10-5Zm4 3v5c3 3 9 3 12 0v-5m4-3v7\"/>"};
 (()=>{
 "use strict";
 const palette={
@@ -23,10 +24,11 @@ if(!grid||!form)return;
 for(const item of ROBO_SUBJECTS){
  const btn=document.createElement("button");btn.type="button";btn.className="subject-tile";
  const colors=palette[item.colorKey];btn.setAttribute("aria-disabled",String(!item.available));btn.style.background=colors[0];btn.style.color=colors[1];
- const symbol=document.createElement("span");symbol.className="subject-symbol";symbol.textContent=item.icon;
+ const dot=document.createElement("span");dot.className="subject-status-dot";dot.setAttribute("aria-hidden","true");dot.classList.add(item.available?"is-available":"is-upcoming");btn.append(dot);
+ const symbol=document.createElement("span");symbol.className="subject-symbol";symbol.innerHTML='<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+SUBJECT_SVG[item.colorKey]+'</svg>';
  const title=document.createElement("span");title.textContent=item.name;
  btn.append(symbol,title);
- if(!item.available){btn.disabled=true;const soon=document.createElement("small");soon.textContent="Coming soon";btn.append(soon)}
+ if(!item.available){btn.disabled=true;const soon=document.createElement("small");soon.className="subject-coming-soon";soon.textContent="Coming soon";btn.append(soon)}
  else btn.addEventListener("click",()=>{
   selectedSubject=item.name.toLowerCase();const u=new URL(location.href);u.searchParams.set("subject",selectedSubject);
   history.replaceState(history.state,"",u);
