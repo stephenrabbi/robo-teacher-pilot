@@ -435,3 +435,19 @@ body:has(#welcome:not(.hidden)) .legal-footer-links a,body:has(#welcome:not(.hid
  #welcome .new-right-column{align-self:start!important;width:100%!important}
  #welcome .new-right-column .how-compact{flex:none!important}
 }
+
+/* Safe approved-art fallback only: the former blue-uniform placeholder
+   was incorrect. Keep the old image's baked headline outside the visible crop.
+   The true clean WebP still takes precedence once uploaded. */
+#welcome .welcome-intro .pitch-illustration:has(img[src*="robo_teacher_approved_option1_hero.png"]){background:linear-gradient(100deg,#ffe5d5,#fff1e8 60%,#eadcff)!important}
+#welcome .welcome-intro .pitch-illustration picture img[src*="robo_teacher_approved_option1_hero.png"]{
+ position:absolute!important;left:auto!important;right:0!important;top:0!important;
+ width:54%!important;height:100%!important;min-width:0!important;max-width:none!important;
+ object-fit:cover!important;object-position:89% 46%!important;transform:none!important;
+ -webkit-mask-image:linear-gradient(90deg,transparent 0%,black 17%)!important;
+ mask-image:linear-gradient(90deg,transparent 0%,black 17%)!important;
+}
+#welcome .welcome-intro:has(img[src*="robo_teacher_approved_option1_hero.png"])::after{background:linear-gradient(90deg,rgba(255,248,239,.64) 0%,rgba(255,248,239,.34) 40%,transparent 64%)!important}
+@media(max-width:767px){
+ #welcome .welcome-intro .pitch-illustration picture img[src*="robo_teacher_approved_option1_hero.png"]{width:51%!important;object-position:86% center!important}
+}
