@@ -88,6 +88,6 @@ sticky?.addEventListener("click",()=>{
  const source=pic?.querySelector("source");
  if(!source)return;
  const probe=new Image();
- probe.onerror=()=>{source.srcset="/classroom/assets/pitch-schoolgirl-books.svg";source.type="image/svg+xml"};
+ probe.onerror=()=>{source.srcset="/classroom/assets/robo_teacher_approved_option1_hero.png";source.type="image/png"};
  probe.src="/classroom/images/hero-mobile.webp";
 })();
