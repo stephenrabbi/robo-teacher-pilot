@@ -4,8 +4,8 @@
   gap: clamp(18px, 2.3vw, 32px);
   align-items: start;
 }
-body { background: radial-gradient(circle at 90% 10%, #e7efff 0, transparent 28%), #f5f8fc; }
-.brandbar { box-shadow: 0 10px 26px rgb(16 35 64 / 5%); }
+/* Background styling stays inside onboarding; classroom screens remain untouched. */
+
 #welcome .welcome-intro {
   padding: 25px 30px 22px;
   border: 1px solid #dbe7f6;
