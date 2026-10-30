@@ -14,10 +14,19 @@ const path = require('node:path');
     for (const width of [375, 768, 1280]) {
       const page = await browser.newPage({ viewport: { width, height: 850 }, deviceScaleFactor: 1 });
       await page.goto('http://127.0.0.1:8765/classroom/index.html', { waitUntil: 'domcontentloaded' });
-      await page.locator('#classroom').evaluate(el => {
-        document.querySelector('#welcome')?.classList.add('hidden');
-        el.classList.remove('hidden');
+      await page.evaluate(() => {
+        window.scrollTo(0, document.body.scrollHeight);
+        window.eval('enterClassroomView()');
       });
+      const transition = await page.evaluate(() => ({
+        scrollY: window.scrollY,
+        landingHidden: getComputedStyle(document.getElementById('welcome')).display === 'none',
+        classroomVisible: getComputedStyle(document.getElementById('classroom')).display !== 'none',
+        footerHidden: getComputedStyle(document.querySelector('.legal-footer')).display === 'none',
+      }));
+      assert(transition.landingHidden && transition.classroomVisible && transition.footerHidden,
+        'Onboarding did not switch to a dedicated classroom view');
+      assert(transition.scrollY <= 2, 'Classroom view did not reset scroll position');
       await page.evaluate(() => document.fonts.ready);
       const result = await page.evaluate(() => {
         const screen = document.querySelector('#classroom');
