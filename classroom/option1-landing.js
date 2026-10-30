@@ -56,25 +56,18 @@ sticky?.addEventListener("click",()=>{
 });
 })();
 
-/* Approved multilingual banner: avoid duplicated copy in the image.
-   Fall back to HTML text and a light gradient until optimized images are uploaded. */
+/* Banner loading: independently resolve the active picture source.
+   Never hide a working desktop image because the mobile image fails. */
 (()=>{
  const hero=document.querySelector("#roboHeroPicture img");
  const picture=document.getElementById("roboHeroPicture");
  if(!hero||!picture)return;
- const banner=hero.closest(".welcome-intro");
- const desktop="/classroom/images/hero.webp";
- const mobile="/classroom/images/hero-mobile.webp";
- Promise.all([desktop,mobile].map(url=>new Promise((ok,fail)=>{
-   const image=new Image();image.onload=ok;image.onerror=fail;image.src=url;
- }))).then(()=>{
-   banner?.classList.add("multilingual-hero-loaded");
- }).catch(()=>{
-   const source=picture.querySelector("source");
-   if(source)source.remove();
-   hero.removeAttribute("srcset");hero.removeAttribute("src");
-   banner?.classList.add("multilingual-hero-unavailable");
- });
+ const banner=picture.closest(".welcome-intro");
+ function showLoaded(){banner?.classList.remove("multilingual-hero-unavailable");banner?.classList.add("multilingual-hero-loaded");}
+ function showUnavailable(){banner?.classList.remove("multilingual-hero-loaded");banner?.classList.add("multilingual-hero-unavailable");}
+ hero.addEventListener("load",()=>{if(hero.naturalWidth>0)showLoaded();else showUnavailable();});
+ hero.addEventListener("error",showUnavailable);
+ if(hero.complete){if(hero.naturalWidth>0)showLoaded();else showUnavailable();}
  const founder=document.querySelector("img[data-founder-src]");
  if(founder){const p=new Image();p.onload=()=>{founder.src="/classroom/"+founder.dataset.founderSrc};p.src="/classroom/"+founder.dataset.founderSrc}
 })();
