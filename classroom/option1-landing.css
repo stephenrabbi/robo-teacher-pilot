@@ -678,3 +678,7 @@ body .legal-footer #businessDetails[open] > .legal-footer-grid{
 /* Dedicated in-app classroom view: landing/footer content must not follow learner login. */
 body.classroom-view-active .legal-footer{display:none!important}
 body.classroom-view-active #classroom:not(.hidden){min-height:calc(100dvh - 115px)}
+
+/* Screen-switch invariant: override older high-specificity welcome display rules. */
+body.classroom-view-active #welcome.screen.welcome-screen.hidden{display:none!important}
+body:not(.classroom-view-active) #classroom.screen.classroom-screen.hidden{display:none!important}
