@@ -7,6 +7,7 @@ const assert = require('node:assert/strict');
     const page = await browser.newPage();
     await page.goto('http://127.0.0.1:8765/classroom/index.html',{waitUntil:'domcontentloaded'});
     await page.locator('#classroom').evaluate(el => { document.querySelector('#welcome')?.classList.add('hidden'); el.classList.remove('hidden'); });
+    await page.evaluate(() => {const el=document.getElementById('privacyConsentBanner'); if(el)el.style.display='none';});
     const result = await page.evaluate(async () => {
       const bytes=new Uint8Array(24000*8), view=new DataView(bytes.buffer);
       for(let i=0;i<24000*4;i++)view.setInt16(i*2,Math.round(900*Math.sin(2*Math.PI*220*i/24000)),true);
