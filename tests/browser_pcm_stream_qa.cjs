@@ -31,6 +31,30 @@ const assert = require('node:assert/strict');
     console.log('Robo-Teacher PCM stream:',JSON.stringify(result));
     assert.equal(result.sampleRate,24000);
     assert.equal(result.completed,true);
+    // Test the real app's Read Answer handler against the actual Web Audio context.
+    await page.locator('#readAnswer').click();
+    const paused = await page.evaluate(() => window.eval(`({
+      paused: teacherSpeechPaused,
+      state: teacherAudioContext.state,
+      label: readAnswerButton.getAttribute('aria-label'),
+      currentTime: teacherAudioContext.currentTime
+    })`));
+    assert.equal(paused.paused, true);
+    assert.equal(paused.state, 'suspended');
+    assert.equal(paused.label, 'Continue reading the answer');
+    await page.waitForTimeout(150);
+    const whilePaused = await page.evaluate(() => window.eval('teacherAudioContext.currentTime'));
+    assert(Math.abs(whilePaused - paused.currentTime) < 0.01, 'Audio advanced while paused');
+    await page.locator('#readAnswer').click();
+    const resumed = await page.evaluate(() => window.eval(`({
+      paused: teacherSpeechPaused,
+      state: teacherAudioContext.state,
+      label: readAnswerButton.getAttribute('aria-label')
+    })`));
+    assert.equal(resumed.paused, false);
+    assert.equal(resumed.state, 'running');
+    assert.equal(resumed.label, 'Pause reading the answer');
+    console.log('App PCM stream Read Answer Pause/Continue on real Web Audio: PASS');
     console.log('App PCM stream browser test: PASS');
   } finally { await browser.close(); }
 })().catch(err=>{console.error(err);process.exitCode=1});
