@@ -24,6 +24,7 @@ const path = require('node:path');
         classroomVisible: getComputedStyle(document.getElementById('classroom')).display !== 'none',
         footerHidden: getComputedStyle(document.querySelector('.legal-footer')).display === 'none',
       }));
+      console.log('Classroom screen transition:', JSON.stringify(transition));
       assert(transition.landingHidden && transition.classroomVisible && transition.footerHidden,
         'Onboarding did not switch to a dedicated classroom view');
       assert(transition.scrollY <= 2, 'Classroom view did not reset scroll position');
