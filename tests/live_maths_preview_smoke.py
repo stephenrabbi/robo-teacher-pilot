@@ -32,8 +32,8 @@ def main():
         print("Reply received:", bool(reply.strip()))
         print("Reply length:", len(reply))
         print("Reported latency (seconds):", answer.get("latency_seconds"))
-        correct = bool(re.search(r"(?<!\\d)7\\s*/\\s*8(?!\\d)", reply)
-                       or re.search(r"(?<!\\d)0\\.875(?!\\d)", reply))
+        correct = bool(re.search(r"(?<!\d)7\s*/\s*8(?!\d)", reply)
+                       or re.search(r"(?<!\d)0\.875(?!\d)", reply))
         print("Contains correct answer 7/8 or 0.875:", correct)
         print("Explains equivalent eighths:", any(x in reply.replace(" ", "") for x in ("6/8", "6⁄8")))
         if status != 200 or not reply.strip() or not correct:
