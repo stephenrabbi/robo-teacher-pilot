@@ -451,3 +451,17 @@ body:has(#welcome:not(.hidden)) .legal-footer-links a,body:has(#welcome:not(.hid
 @media(max-width:767px){
  #welcome .welcome-intro .pitch-illustration picture img[src*="robo_teacher_approved_option1_hero.png"]{width:51%!important;object-position:86% center!important}
 }
+
+/* 30 Oct: stable approved-hero fallback. No distortion, clipping or old text on left. */
+#welcome .welcome-intro .pitch-illustration picture img[src*="robo_teacher_approved_option1_hero.png"]{
+ position:absolute!important;top:0!important;right:0!important;left:auto!important;
+ height:100%!important;width:42%!important;max-width:none!important;min-width:0!important;
+ object-fit:cover!important;object-position:76% 37%!important;transform:none!important;
+ mask-image:linear-gradient(90deg,transparent,black 22%)!important;
+ -webkit-mask-image:linear-gradient(90deg,transparent,black 22%)!important;
+}
+#welcome .welcome-intro:has(img[src*="robo_teacher_approved_option1_hero.png"]){background:linear-gradient(105deg,#ffe1d0 0%,#fff4ec 50%,#e9dcff 100%)!important}
+#welcome .welcome-intro:has(img[src*="robo_teacher_approved_option1_hero.png"]) .pitch-hero-text{z-index:3!important}
+@media(max-width:767px){
+ #welcome .welcome-intro .pitch-illustration picture img[src*="robo_teacher_approved_option1_hero.png"]{width:44%!important;object-position:78% 38%!important}
+}
