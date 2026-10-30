@@ -46,6 +46,7 @@ def test_refresh_does_not_override_global_classroom_brandbar_or_body():
         stripped = line.strip()
         assert not stripped.startswith("body {"), "Global body rule changes classroom styling"
         assert not stripped.startswith(".brandbar {"), "Global header rule changes classroom styling"
+        assert not stripped.startswith(".app-shell {"), "Global shell rule changes classroom styling"
 
 
 def test_welcome_guide_and_consent_remain_accessible():
