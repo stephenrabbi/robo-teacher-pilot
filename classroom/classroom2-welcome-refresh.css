@@ -1,0 +1,81 @@
+/* Welcome refresh candidate — presentation only. Existing learner IDs, app logic, consent, assets unchanged. */
+#welcome.welcome-screen {
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: clamp(18px, 2.3vw, 32px);
+  align-items: start;
+}
+body { background: radial-gradient(circle at 90% 10%, #e7efff 0, transparent 28%), #f5f8fc; }
+.brandbar { box-shadow: 0 10px 26px rgb(16 35 64 / 5%); }
+#welcome .welcome-intro {
+  padding: 25px 30px 22px;
+  border: 1px solid #dbe7f6;
+  border-radius: 22px;
+  background: linear-gradient(110deg,#e8f7fb 0%,#f1f5ff 65%,#fff5e5 100%);
+  box-shadow: 0 12px 34px rgb(20 45 78 / 6%);
+}
+#welcome .welcome-intro h1 {
+  font-size: clamp(29px,3.1vw,45px);
+  letter-spacing: -.035em;
+  line-height: 1.12;
+  color: #123d67;
+}
+#welcome .welcome-intro > p:last-child { color:#38556d; font-size: clamp(15px,1.35vw,18px); }
+#welcome .welcome-visual-column { gap: 16px; }
+#welcome .student-first-founder-panel { overflow: hidden; border-radius: 24px; box-shadow: 0 18px 36px rgb(16 35 64 / 12%); }
+#welcome .student-photo-caption { background: #123d67; border-radius: 12px; }
+#welcome .welcome-copy {
+  border-radius: 24px;
+  border: 1px solid #dbe7f6;
+  box-shadow: 0 16px 34px rgb(20 45 78 / 8%);
+  background: #fff;
+}
+#welcome .welcome-copy h2 { font-size: clamp(25px,2.1vw,31px); }
+#welcome .learner-onboarding input:not([type="checkbox"]):focus-visible,
+#welcome .learner-onboarding select:focus-visible { border-color:#1c70ca; box-shadow:0 0 0 4px rgb(35 100 184 / 12%); }
+#welcome .welcome-actions .primary {
+  background: linear-gradient(100deg,#1460bf,#287bd8);
+  box-shadow: 0 9px 20px rgb(35 100 184 / 22%);
+  border-radius: 14px;
+  transition: transform 150ms ease,box-shadow 150ms ease;
+}
+#welcome .welcome-actions .primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 12px 24px rgb(35 100 184 / 30%); }
+#welcome .welcome-start-guide {
+  border: 1px solid #dce7f6;
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 10px 25px rgb(20 45 78 / 5%);
+}
+#welcome .welcome-start-guide ol { list-style:none; counter-reset:welcome-step; padding-left:0; }
+#welcome .welcome-start-guide ol li {
+  counter-increment: welcome-step; position:relative;
+  padding: 12px 12px 12px 57px;
+  min-height: 48px; margin: 0 0 8px;
+  border:1px solid #e4ecf5; border-radius: 15px;
+  background:#f8fbff;
+}
+#welcome .welcome-start-guide ol li::before {
+  content:counter(welcome-step);
+  display:grid;place-items:center;position:absolute;left:12px;top:10px;
+  width:30px;height:30px; border-radius:50%;
+  color:#fff;background:#186bb9;font-weight:800;
+}
+#welcome .welcome-start-guide ol li:nth-child(2n)::before { background:#07877d; }
+#welcome .welcome-guide-note { background:#e9f8ef; border-radius:12px; }
+@media(max-width:900px) {
+  #welcome.welcome-screen { grid-template-columns:1fr; }
+  #welcome .welcome-intro { padding:20px; }
+  #welcome .student-welcome-photo { height:clamp(260px,45vw,390px); }
+}
+@media(max-width:600px) {
+  .app-shell { padding-inline:12px; }
+  #welcome .welcome-intro { padding:18px 16px; border-radius:18px; }
+  #welcome .welcome-copy { padding:20px 16px; }
+  #welcome .welcome-start-guide ol li { padding-left:48px; }
+  #welcome .learner-code-row { grid-template-columns:1fr; }
+  #welcome .learner-code-row button { width:100%; }
+  #welcome .founder-introduction { border-radius:14px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  #welcome .welcome-actions .primary { transition:none; }
+  #welcome .welcome-actions .primary:hover:not(:disabled) { transform:none; }
+}
