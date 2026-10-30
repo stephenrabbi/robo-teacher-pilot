@@ -43,7 +43,8 @@ const path = require('node:path');
               resume: async function () { this.state = 'running'; },
             };
             teacherSpeechPaused = false;
-            teacherPanel.classList.add('speaking');`);
+            teacherPanel.classList.add('speaking');
+            readAnswerButton.disabled = false;`);
             return true;
           } catch (err) { return String(err); }
         });
