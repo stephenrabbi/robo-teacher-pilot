@@ -38,3 +38,20 @@ def test_refresh_scopes_most_rules_to_welcome_and_supports_accessibility():
     assert "focus-visible" in css
     assert "@media(max-width:600px)" in css
     assert "@media(max-width:900px)" in css
+
+
+def test_refresh_does_not_override_global_classroom_brandbar_or_body():
+    css = (ROOT / "classroom2-welcome-refresh.css").read_text(encoding="utf-8")
+    for line in css.splitlines():
+        stripped = line.strip()
+        assert not stripped.startswith("body {"), "Global body rule changes classroom styling"
+        assert not stripped.startswith(".brandbar {"), "Global header rule changes classroom styling"
+
+
+def test_welcome_guide_and_consent_remain_accessible():
+    html = (ROOT / "index.html").read_text(encoding="utf-8")
+    assert 'aria-labelledby="welcomeStartGuideTitle"' in html
+    assert 'id="onboardingError"' in html
+    assert 'role="alert"' in html
+    assert '<label for="learnerConsent">' in html
+    assert '/classroom/privacy.html' in html
