@@ -56,19 +56,25 @@ sticky?.addEventListener("click",()=>{
 });
 })();
 
-/* Hero image upgrade: keep approved artwork until BOTH webp assets load. */
+/* Approved multilingual banner: avoid duplicated copy in the image.
+   Fall back to HTML text and a light gradient until optimized images are uploaded. */
 (()=>{
- const pic=document.getElementById("roboHeroPicture");
- const hero=pic?.querySelector("img[data-optimized-src]");
- const source=pic?.querySelector("source[data-optimized-srcset]");
- if(!hero||!source)return;
- const files=[hero.dataset.optimizedSrc,source.dataset.optimizedSrcset];
- Promise.all(files.map(url=>new Promise((resolve,reject)=>{
-   const probe=new Image();probe.onload=()=>resolve(url);probe.onerror=reject;probe.src=url;
+ const hero=document.querySelector("#roboHeroPicture img");
+ const picture=document.getElementById("roboHeroPicture");
+ if(!hero||!picture)return;
+ const banner=hero.closest(".welcome-intro");
+ const desktop="/classroom/images/hero.webp";
+ const mobile="/classroom/images/hero-mobile.webp";
+ Promise.all([desktop,mobile].map(url=>new Promise((ok,fail)=>{
+   const image=new Image();image.onload=ok;image.onerror=fail;image.src=url;
  }))).then(()=>{
-   source.srcset=files[1];source.type="image/webp";hero.src=files[0];
-   pic.closest(".pitch-illustration")?.classList.add("hero-ready");
- }).catch(()=>{/* Missing images: retain the approved asset, never the blue placeholder. */});
+   banner?.classList.add("multilingual-hero-loaded");
+ }).catch(()=>{
+   const source=picture.querySelector("source");
+   if(source)source.remove();
+   hero.removeAttribute("srcset");hero.removeAttribute("src");
+   banner?.classList.add("multilingual-hero-unavailable");
+ });
  const founder=document.querySelector("img[data-founder-src]");
  if(founder){const p=new Image();p.onload=()=>{founder.src="/classroom/"+founder.dataset.founderSrc};p.src="/classroom/"+founder.dataset.founderSrc}
 })();
