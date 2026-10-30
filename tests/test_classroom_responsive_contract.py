@@ -20,7 +20,7 @@ class ResponsiveClassroomContract(unittest.TestCase):
         for control in controls:
             with self.subTest(control=control):
                 self.assertEqual(
-                    len(re.findall(r'\\bid="' + re.escape(control) + r'"', HTML)), 1,
+                    len(re.findall(r'\bid="' + re.escape(control) + r'"', HTML)), 1,
                     "Missing or duplicated interactive control: " + control)
 
     def test_image_capture_remains_user_controlled(self):
