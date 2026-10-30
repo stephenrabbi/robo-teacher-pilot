@@ -39,7 +39,7 @@ for(const item of ROBO_SUBJECTS){
 document.getElementById("pitchClearButton")?.addEventListener("click",()=>document.getElementById("clearOnboarding")?.click());
 const teacher=document.getElementById("newTeacherAccess");
 const peekStatus=document.getElementById("peekStatus");
-teacher?.addEventListener("click",()=>{document.getElementById("showTeacherLogin")?.click();form.scrollIntoView({behavior:"smooth",block:"center"})});
+teacher?.addEventListener("click",()=>{const panel=document.getElementById("teacherLogin");const trigger=document.getElementById("showTeacherLogin");if(!panel||!trigger)return;if(panel.classList.contains("hidden"))trigger.click();panel.scrollIntoView({behavior:"smooth",block:"center"});document.getElementById("teacherAccessKey")?.focus({preventScroll:true});});
 for(const button of document.querySelectorAll("[data-lesson-action]")){
  button.addEventListener("click",()=>{
   const mode=button.dataset.lessonAction;
