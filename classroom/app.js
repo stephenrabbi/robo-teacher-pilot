@@ -1,5 +1,20 @@
 const welcome=document.getElementById('welcome');
 const classroom=document.getElementById('classroom');
+/* Treat onboarding and the classroom as distinct screens, not sections of a
+   scrolling landing page. Preserve existing tutor/session state. */
+function enterClassroomView(){
+  welcome.classList.add('hidden');
+  classroom.classList.remove('hidden');
+  document.body.classList.add('classroom-view-active');
+  window.scrollTo({top:0,left:0,behavior:'instant'});
+}
+function leaveClassroomView(){
+  classroom.classList.add('hidden');
+  welcome.classList.remove('hidden');
+  document.body.classList.remove('classroom-view-active');
+  window.scrollTo({top:0,left:0,behavior:'instant'});
+}
+
 const start=document.getElementById('startLearning');
 const resumeLearningButton=document.getElementById('resumeLearning');
 const founderPanel=document.getElementById('founderPanel');
@@ -740,7 +755,7 @@ start.addEventListener('click',async()=>{
   try{
     stopFounderSpeech();
     await ensureSession();learnerIdentity.textContent=`${nickname.toUpperCase()} · ${code} · ${learnerClass.value} CLASSROOM`;
-    welcome.classList.add('hidden');classroom.classList.remove('hidden');
+    enterClassroomView();
     addMessage(`Welcome, ${nickname}! I’ll explain each lesson at ${learnerClass.value} level.`,'teacher');question.focus();
     if(pendingChatRecovery)setTimeout(retryPendingChat,300);
   }catch(_){onboardingError.textContent='I could not start the classroom connection. Please try again.';onboardingError.classList.remove('hidden')}
@@ -758,7 +773,7 @@ resumeLearningButton.addEventListener('click',async()=>{
   resumeLearningButton.disabled=true;resumeLearningButton.textContent='Restoring lesson…';
   try{
     learnerNickname.value=snapshot.nickname;learnerCode.value=snapshot.learnerCode||'';learnerClass.value=snapshot.classLevel;practiceClass.value=snapshot.classLevel;language.value=snapshot.language||'English';localStorage.setItem('roboTeacherLanguage',language.value);updatePracticeTopics();
-    if(!learnerCode.value){refreshResumeLearning();return}await ensureSession();learnerIdentity.textContent=`${snapshot.nickname.toUpperCase()} · ${learnerCode.value} · ${snapshot.classLevel} CLASSROOM`;welcome.classList.add('hidden');classroom.classList.remove('hidden');
+    if(!learnerCode.value){refreshResumeLearning();return}await ensureSession();learnerIdentity.textContent=`${snapshot.nickname.toUpperCase()} · ${learnerCode.value} · ${snapshot.classLevel} CLASSROOM`;enterClassroomView();
     dismissLessonOverlays();canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');canvasStatus.textContent=snapshot.canvasStatus||'Previous lesson restored';const autoTeachWasEnabled=lessonChoreography.enabled;lessonChoreography.enabled=false;startLessonDirector(snapshot.answer,snapshot.lessonIndex||0);lessonChoreography.enabled=autoTeachWasEnabled;readAnswerButton.disabled=false;setActiveMode(chatButton);setLearningStatus('Previous lesson restored','success');
     void practiceRequest('progress',{class_level:snapshot.classLevel}).then(data=>{currentProgress=data}).catch(()=>{});
     if(pendingChatRecovery)setTimeout(retryPendingChat,300);keepTeachingCanvasVisible();
@@ -772,14 +787,14 @@ openTeacherDashboardButton.addEventListener('click',async()=>{
   const accessKey=teacherAccessKey.value.trim();
   if(accessKey.length<16){teacherLoginError.textContent='Enter the private teacher access key.';teacherLoginError.classList.remove('hidden');teacherAccessKey.focus();return}
   teacherLoginError.classList.add('hidden');openTeacherDashboardButton.disabled=true;openTeacherDashboardButton.textContent='Opening…';
-  try{teacherClass.value=learnerClass.value;teacherDashboardAccessKey=accessKey;const data=await fetchTeacherDashboard(accessKey);welcome.classList.add('hidden');classroom.classList.remove('hidden');learnerIdentity.textContent=`TEACHER DASHBOARD · ${teacherClass.value}`;showTeacherDashboard(data)}
+  try{teacherClass.value=learnerClass.value;teacherDashboardAccessKey=accessKey;const data=await fetchTeacherDashboard(accessKey);enterClassroomView();learnerIdentity.textContent=`TEACHER DASHBOARD · ${teacherClass.value}`;showTeacherDashboard(data)}
   catch(error){teacherLoginError.textContent=error.message;teacherLoginError.classList.remove('hidden');teacherAccessKey.focus()}
   finally{openTeacherDashboardButton.disabled=false;openTeacherDashboardButton.textContent='Open Dashboard →';teacherAccessKey.value=''}
 });
 teacherAccessKey.addEventListener('keydown',event=>{if(event.key==='Enter')openTeacherDashboardButton.click()});
 
 changeLearnerButton.addEventListener('click',()=>{
-  stopTeacherAudio();handsFree.enabled=false;handsFree.processing=false;stopHandsFreeListening();updateHandsFreeStatus();sessionToken=null;currentProgress=null;clearClassroomSnapshot();learnerNickname.value='';learnerCode.value='';learnerClass.value='JSS2';practiceClass.value='JSS2';updatePracticeTopics();classroom.classList.add('hidden');welcome.classList.remove('hidden');teacherLogin.classList.add('hidden');onboardingError.classList.add('hidden');learnerNickname.focus();
+  stopTeacherAudio();handsFree.enabled=false;handsFree.processing=false;stopHandsFreeListening();updateHandsFreeStatus();sessionToken=null;currentProgress=null;clearClassroomSnapshot();learnerNickname.value='';learnerCode.value='';learnerClass.value='JSS2';practiceClass.value='JSS2';updatePracticeTopics();leaveClassroomView();teacherLogin.classList.add('hidden');onboardingError.classList.add('hidden');learnerNickname.focus();
 });
 
 toggle.addEventListener('click',()=>{
