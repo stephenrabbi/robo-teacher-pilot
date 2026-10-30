@@ -48,6 +48,7 @@ const assert = require('node:assert/strict');
     const whilePaused = await page.evaluate(() => window.eval('teacherAudioContext.currentTime'));
     assert(Math.abs(whilePaused - paused.currentTime) < 0.01, 'Audio advanced while paused');
     await page.locator('#readAnswer').click();
+    await page.waitForFunction(() => window.eval('teacherSpeechPaused === false'), {timeout:3000});
     const resumed = await page.evaluate(() => window.eval(`({
       paused: teacherSpeechPaused,
       state: teacherAudioContext.state,
