@@ -632,3 +632,45 @@ body .legal-footer #businessDetails:not([open]) > .legal-footer-grid{
 body .legal-footer #businessDetails[open] > .legal-footer-grid{
   display:grid!important;
 }
+
+/* Landing polish pass: preserve the approved image and native onboarding. */
+@media (min-width:768px){
+  body:has(#welcome:not(.hidden)) .app-shell{padding-top:8px!important}
+  #welcome .welcome-intro.approved-banner-only{margin-block:0!important}
+}
+#welcome .pitch-form-heading{
+  border-bottom:0!important;
+  padding-bottom:4px!important;
+}
+#welcome .pitch-form-heading h2{
+  border:0!important;
+  box-shadow:none!important;
+  text-decoration:none!important;
+}
+#welcome .welcome-copy .speech-card .learner-onboarding .privacy-helper{
+  color:#fff!important;opacity:1!important;line-height:1.5!important;
+}
+#welcome .welcome-copy #onboardingError:not(.hidden){
+  color:#172043!important;background:#fff7f4!important;
+  border-left:4px solid #ffb09b!important;
+}
+#welcome .welcome-copy .learner-onboarding input:focus-visible,
+#welcome .welcome-copy .learner-onboarding button:focus-visible,
+#welcome .welcome-copy .pitch-class-choices button:focus-visible,
+#welcome #startLearning:focus-visible{
+  outline:3px solid #ffd60a!important;outline-offset:2px!important;
+}
+#welcome .founder-introduction #hearFounder{
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  gap:6px!important;white-space:nowrap!important;
+}
+#welcome .founder-introduction #hearFounder svg{
+  display:inline-block!important;flex:0 0 16px!important;width:16px!important;height:16px!important;
+  visibility:visible!important;opacity:1!important;
+}
+@media(max-width:767px){
+  #welcome .welcome-intro.approved-banner-only{border-radius:14px!important}
+  #welcome .pitch-left-column,#welcome .new-right-column{min-width:0!important}
+  #welcome .pitch-form-heading{gap:12px!important}
+  #welcome .founder-introduction #hearFounder{min-height:44px!important}
+}
