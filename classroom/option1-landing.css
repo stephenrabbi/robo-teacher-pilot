@@ -540,3 +540,25 @@ body:has(#welcome:not(.hidden)) .legal-footer-links a,body:has(#welcome:not(.hid
  #welcome .welcome-intro .pitch-illustration.hero-ready{width:100%!important}
  #welcome .welcome-intro .pitch-illustration.hero-ready picture img{object-position:right center!important}
 }
+
+/* Approved final multilingual banner supplied by founder.
+   The image already contains the headline, subject chips and greetings. */
+#welcome .welcome-intro.multilingual-hero-loaded .pitch-illustration{
+ position:absolute!important;inset:0!important;width:100%!important;height:100%!important;
+ overflow:hidden!important;display:block!important;z-index:2!important;
+}
+#welcome .welcome-intro.multilingual-hero-loaded .pitch-illustration picture,
+#welcome .welcome-intro.multilingual-hero-loaded .pitch-illustration picture img{
+ position:absolute!important;inset:0!important;width:100%!important;height:100%!important;
+ max-width:none!important;object-fit:cover!important;object-position:center center!important;
+ transform:none!important;mask-image:none!important;-webkit-mask-image:none!important;
+}
+#welcome .welcome-intro.multilingual-hero-loaded > .pitch-hero-text{display:none!important}
+#welcome .welcome-intro.multilingual-hero-loaded::after{display:none!important}
+#welcome .welcome-intro.multilingual-hero-unavailable{background:linear-gradient(105deg,#ffdfcf 0%,#fff0e2 56%,#e9ddff 100%)!important}
+#welcome .welcome-intro.multilingual-hero-unavailable > .pitch-hero-text{display:flex!important;width:100%!important;max-width:100%!important}
+#welcome .welcome-intro.multilingual-hero-unavailable .pitch-illustration{display:none!important}
+@media(max-width:767px){
+ #welcome .welcome-intro.multilingual-hero-loaded .pitch-illustration picture img{object-position:right center!important}
+ #welcome .welcome-intro.multilingual-hero-unavailable > .pitch-hero-text{width:100%!important}
+}
