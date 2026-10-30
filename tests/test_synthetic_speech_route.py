@@ -1,11 +1,16 @@
 """Synthetic speech route checks. No paid model requests or real learner data."""
 import unittest
+import asyncio
 from unittest.mock import patch
 from fastapi import HTTPException
 from classroom_api import (
     ClassroomSessionRequest, ClassroomSpeech,
     create_classroom_session, classroom_speech
 )
+
+
+async def collect_audio(response):
+    return b"".join([chunk async for chunk in response.body_iterator])
 
 
 class ClassroomSpeechRouteTests(unittest.TestCase):
@@ -25,7 +30,7 @@ class ClassroomSpeechRouteTests(unittest.TestCase):
         self.assertEqual(response.media_type, "audio/l16;rate=24000;channels=1")
         self.assertEqual(response.headers["cache-control"], "no-store")
         self.assertEqual(response.headers["x-audio-sample-rate"], "24000")
-        self.assertIsNotNone(response.body_iterator)
+        self.assertEqual(asyncio.run(collect_audio(response)), b"audio1audio2")
         primary.assert_called_once_with(
             self.payload.text, "English", "female", "normal"
         )
@@ -34,7 +39,7 @@ class ClassroomSpeechRouteTests(unittest.TestCase):
         with patch("classroom_api.stream_tutor_speech", return_value=iter(())), \
              patch("classroom_api.stream_stable_tutor_speech", return_value=iter((b"fallback",))) as fallback:
             response = classroom_speech(self.payload)
-        self.assertIsNotNone(response.body_iterator)
+        self.assertEqual(asyncio.run(collect_audio(response)), b"fallback")
         fallback.assert_called_once()
 
     def test_both_voice_services_unavailable_returns_safe_error(self):
