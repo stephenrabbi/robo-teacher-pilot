@@ -982,14 +982,23 @@ async function speakText(text,preserveAudioUnlock=false,displayCanvasAvatar=true
     if(requestId!==teacherSpeechRequest)return;
     const response=await requestTeacherSpeech({text:prepareSpeechText(text),session_token:token,language:language.value,voice_gender:teacherPanel.dataset.voiceGender==='male'?'male':'female',pace:teacherSpeechPace},teacherSpeechController.signal,requestId);
     if(response.status===401){sessionToken=null;throw new Error('session')}
-    if(!response.ok)throw new Error('natural voice unavailable');
+    if(!response.ok)throw new Error(response.status===429?'voice-rate-limited':response.status===503?'voice-service-unavailable':'voice-http-error');
     if(!response.body)throw new Error('stream unavailable');
     await playPcmStream(response,requestId);
   }catch(error){
     if(error.name==='AbortError'||requestId!==teacherSpeechRequest)return;
     stopTeacherAudio();
     readAnswerButton.disabled=!canvasAnswer.textContent.trim();
-    addMessage('The natural teacher voice is temporarily unavailable. You can continue reading the worked answer on the Teaching Canvas.','teacher');
+    const reason=error?.message||'';
+    const guidance=reason==='voice-service-unavailable'||reason==='voice-rate-limited'
+      ? 'The voice service is busy or unavailable. Please try Read answer again shortly.'
+      : reason==='stream unavailable'||reason==='empty voice stream'
+        ? 'The voice response did not contain usable audio. Please retry Read answer.'
+        : reason==='session'
+          ? 'The voice session expired. Please tap Read answer again.'
+          : 'Audio playback was interrupted. Please retry Read answer, or use Chrome with sound enabled.';
+    teacherVoiceStatus.textContent='Voice unavailable';
+    addMessage(guidance+' The written answer is still available on the Teaching Canvas.','teacher');
   }
 }
 
