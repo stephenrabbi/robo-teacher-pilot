@@ -1,10 +1,6 @@
 name: One-shot Live Maths Preview Smoke
 
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - '.github/workflows/live-maths-smoke.yml'
   workflow_dispatch:
 
 permissions:
