@@ -674,3 +674,7 @@ body .legal-footer #businessDetails[open] > .legal-footer-grid{
   #welcome .pitch-form-heading{gap:12px!important}
   #welcome .founder-introduction #hearFounder{min-height:44px!important}
 }
+
+/* Dedicated in-app classroom view: landing/footer content must not follow learner login. */
+body.classroom-view-active .legal-footer{display:none!important}
+body.classroom-view-active #classroom:not(.hidden){min-height:calc(100dvh - 115px)}
