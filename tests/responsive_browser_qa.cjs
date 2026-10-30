@@ -42,6 +42,8 @@ const path = require('node:path');
         return { viewportWidth: innerWidth, documentWidth: document.documentElement.scrollWidth,
           screenWidth: Math.round(screen.getBoundingClientRect().width), inspected };
       });
+      // A consent overlay is outside this isolated classroom-navigation test.
+      await page.evaluate(() => { const el=document.getElementById('privacyConsentBanner'); if(el)el.style.display='none'; });
       // Synthetic audio context: exercise the actual read-aloud button handler
       // without a speech API request or an actual audio device.
       if (width === 375) {
