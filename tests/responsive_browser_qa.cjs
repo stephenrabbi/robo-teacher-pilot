@@ -14,6 +14,14 @@ const path = require('node:path');
     for (const width of [375, 768, 1280]) {
       const page = await browser.newPage({ viewport: { width, height: 850 }, deviceScaleFactor: 1 });
       await page.goto('http://127.0.0.1:8765/classroom/index.html', { waitUntil: 'domcontentloaded' });
+      // Top navigation must reveal the login panel, not merely scroll to onboarding.
+      await page.locator('#newTeacherAccess').click();
+      const teacherLoginVisible = await page.locator('#teacherLogin').evaluate(el =>
+        !el.classList.contains('hidden') && getComputedStyle(el).display !== 'none' &&
+        el.getBoundingClientRect().height > 0);
+      assert(teacherLoginVisible, width + 'px: Teacher access did not reveal the login form');
+      assert(await page.locator('#teacherAccessKey').isVisible(),
+        width + 'px: Teacher access field is not visible');
       await page.evaluate(() => {
         window.scrollTo(0, document.body.scrollHeight);
         window.eval('enterClassroomView()');
