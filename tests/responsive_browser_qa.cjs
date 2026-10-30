@@ -32,6 +32,38 @@ const path = require('node:path');
         return { viewportWidth: innerWidth, documentWidth: document.documentElement.scrollWidth,
           screenWidth: Math.round(screen.getBoundingClientRect().width), inspected };
       });
+      // Synthetic audio context: exercise the actual read-aloud button handler
+      // without a speech API request or an actual audio device.
+      if (width === 375) {
+        const setup = await page.evaluate(() => {
+          try {
+            window.eval(`teacherAudioContext = {
+              state: 'running',
+              suspend: async function () { this.state = 'suspended'; },
+              resume: async function () { this.state = 'running'; },
+            };
+            teacherSpeechPaused = false;
+            teacherPanel.classList.add('speaking');`);
+            return true;
+          } catch (err) { return String(err); }
+        });
+        assert.equal(setup, true, 'Could not establish synthetic playback state: ' + setup);
+        await page.locator('#readAnswer').click();
+        const paused = await page.evaluate(() => ({
+          button: document.querySelector('#readAnswer').getAttribute('aria-label'),
+          paused: document.querySelector('#teacherPanel').classList.contains('paused'),
+        }));
+        assert.equal(paused.button, 'Continue reading the answer');
+        assert.equal(paused.paused, true);
+        await page.locator('#readAnswer').click();
+        const resumed = await page.evaluate(() => ({
+          button: document.querySelector('#readAnswer').getAttribute('aria-label'),
+          speaking: document.querySelector('#teacherPanel').classList.contains('speaking'),
+        }));
+        assert.equal(resumed.button, 'Pause reading the answer');
+        assert.equal(resumed.speaking, true);
+        console.log('Synthetic browser pause/resume interaction: PASS');
+      }
       await page.screenshot({ path: path.join(output, 'classroom-' + width + '.png'), fullPage: true });
       console.log(JSON.stringify(result));
       if (result.documentWidth > width + 3) failures.push(width + 'px: document overflows by ' + (result.documentWidth - width) + 'px');
