@@ -756,7 +756,7 @@ start.addEventListener('click',async()=>{
     stopFounderSpeech();
     await ensureSession();learnerIdentity.textContent=`${nickname.toUpperCase()} · ${code} · ${learnerClass.value} CLASSROOM`;
     enterClassroomView();
-    addMessage(`Welcome, ${nickname}! I’ll explain each lesson at ${learnerClass.value} level.`,'teacher');question.focus();
+    addMessage(`Welcome, ${nickname}! I’ll explain each lesson at ${learnerClass.value} level.`,'teacher');question.focus({preventScroll:true});
     if(pendingChatRecovery)setTimeout(retryPendingChat,300);
   }catch(_){onboardingError.textContent='I could not start the classroom connection. Please try again.';onboardingError.classList.remove('hidden')}
   finally{start.disabled=false;start.textContent='Start Learning Now →'}
