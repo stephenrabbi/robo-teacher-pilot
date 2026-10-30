@@ -43,9 +43,9 @@ class PitchEditionContractTest(unittest.TestCase):
 
     def test_approved_option_one_copy_and_layout(self):
         """Stop accidental regressions back to the rejected old welcome screen."""
-        self.assertIn('<h1>Big <span class="r1-ideas">ideas.', self.html)
+        self.assertIn('class="welcome-intro approved-banner-only"', self.html)
         self.assertIn("Small steps.", self.html)
-        self.assertIn("Ask anything, in your own words", self.html)
+        self.assertIn('src="/classroom/images/hero.webp', self.html)\n        self.assertIn('srcset="/classroom/images/hero-mobile.webp', self.html)
         self.assertIn('id="how-it-works"', self.html)
         self.assertIn("How it works", self.html)
         self.assertIn('id="hearFounder"', self.html)
