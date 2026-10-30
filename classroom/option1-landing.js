@@ -56,38 +56,19 @@ sticky?.addEventListener("click",()=>{
 });
 })();
 
-/* Staged asset upgrade: only switch after the optimized files actually load.
-   Files belong in classroom/images/ (requested names: images/hero.webp,
-   images/hero-mobile.webp and images/herbert.webp). */
-(()=>{
- const base="/classroom/";
- const hero=document.querySelector("#roboHeroPicture img[data-hero-src]");
- if(hero){
-   const desktop=base+hero.dataset.heroSrc;
-   const mobile=base+"images/hero-mobile.webp";
-   const probe=new Image();
-   probe.onload=()=>{
-     const source=document.querySelector("#roboHeroPicture source");
-     if(source)source.srcset=mobile;
-     hero.src=desktop;
-     hero.closest(".pitch-illustration")?.classList.add("hero-ready");
-   };
-   probe.src=desktop;
- }
- const founder=document.querySelector("img[data-founder-src]");
- if(founder){
-   const probe=new Image();
-   probe.onload=()=>{founder.src=base+founder.dataset.founderSrc;};
-   probe.src=base+founder.dataset.founderSrc;
- }
-})();
-
-/* Round 1: If the mobile WebP has not yet been uploaded, avoid a broken picture. */
+/* Hero image upgrade: keep approved artwork until BOTH webp assets load. */
 (()=>{
  const pic=document.getElementById("roboHeroPicture");
- const source=pic?.querySelector("source");
- if(!source)return;
- const probe=new Image();
- probe.onerror=()=>{source.srcset="/classroom/assets/robo_teacher_approved_option1_hero.png";source.type="image/png"};
- probe.src="/classroom/images/hero-mobile.webp";
+ const hero=pic?.querySelector("img[data-optimized-src]");
+ const source=pic?.querySelector("source[data-optimized-srcset]");
+ if(!hero||!source)return;
+ const files=[hero.dataset.optimizedSrc,source.dataset.optimizedSrcset];
+ Promise.all(files.map(url=>new Promise((resolve,reject)=>{
+   const probe=new Image();probe.onload=()=>resolve(url);probe.onerror=reject;probe.src=url;
+ }))).then(()=>{
+   source.srcset=files[1];source.type="image/webp";hero.src=files[0];
+   pic.closest(".pitch-illustration")?.classList.add("hero-ready");
+ }).catch(()=>{/* Missing images: retain the approved asset, never the blue placeholder. */});
+ const founder=document.querySelector("img[data-founder-src]");
+ if(founder){const p=new Image();p.onload=()=>{founder.src="/classroom/"+founder.dataset.founderSrc};p.src="/classroom/"+founder.dataset.founderSrc}
 })();
