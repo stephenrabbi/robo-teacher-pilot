@@ -52,6 +52,41 @@ class PracticePersistenceFailureTests(unittest.TestCase):
             self.assertIs(progress.save_result("synthetic-owner", summary), False)
         self.assertIn(summary["session_id"], progress._unsynced_ids)
 
+    def test_process_restart_discards_unsynced_fallback_records(self):
+        """Demonstrate why memory alone cannot be considered a durable queue."""
+        summary = {
+            "session_id": "qa-durability-restart",
+            "topic": "Simple Equations",
+            "difficulty": "easy",
+            "score": 1,
+            "attempted": 1,
+            "percentage": 100,
+            "class_level": "JSS2",
+        }
+        with patch.object(progress, "_sheet_configured", return_value=False):
+            progress.save_result("synthetic-owner", summary)
+            # Simulate a process restart by replacing the process-local state.
+            progress._memory_records = []
+            progress._unsynced_ids = set()
+            records, durable = progress.get_records("synthetic-owner")
+        self.assertEqual(records, [])
+        self.assertIs(durable, False)
+
+    def test_same_session_is_only_cached_once_locally(self):
+        summary = {
+            "session_id": "qa-durability-repeat",
+            "topic": "Simple Equations",
+            "difficulty": "easy",
+            "score": 1,
+            "attempted": 1,
+            "percentage": 100,
+            "class_level": "JSS2",
+        }
+        with patch.object(progress, "_sheet_configured", return_value=False):
+            progress.save_result("synthetic-owner", summary)
+            progress.save_result("synthetic-owner", summary)
+        self.assertEqual(len(progress._memory_records), 1)
+
 
 if __name__ == "__main__":
     unittest.main()
