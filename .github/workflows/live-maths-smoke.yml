@@ -1,0 +1,20 @@
+name: One-shot Live Maths Preview Smoke
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/live-maths-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live-synthetic-chat:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the preview's live JSS2 fraction response
+        run: python3 tests/live_maths_preview_smoke.py
