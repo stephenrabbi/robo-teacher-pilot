@@ -623,3 +623,12 @@ body:has(#welcome:not(.hidden)) .legal-footer-links a,body:has(#welcome:not(.hid
   object-fit:contain!important;object-position:center!important;
  }
 }
+
+/* Respect native <details> disclosure: the footer grid must not override
+   the browser's closed-state rendering, even with display:grid!important. */
+body .legal-footer #businessDetails:not([open]) > .legal-footer-grid{
+  display:none!important;
+}
+body .legal-footer #businessDetails[open] > .legal-footer-grid{
+  display:grid!important;
+}
