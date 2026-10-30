@@ -45,7 +45,8 @@ class PitchEditionContractTest(unittest.TestCase):
         """Stop accidental regressions back to the rejected old welcome screen."""
         self.assertIn('class="welcome-intro approved-banner-only"', self.html)
         self.assertIn("Small steps.", self.html)
-        self.assertIn('src="/classroom/images/hero.webp', self.html)\n        self.assertIn('srcset="/classroom/images/hero-mobile.webp', self.html)
+        self.assertIn('src="/classroom/images/hero.webp', self.html)
+        self.assertIn('srcset="/classroom/images/hero-mobile.webp', self.html)
         self.assertIn('id="how-it-works"', self.html)
         self.assertIn("How it works", self.html)
         self.assertIn('id="hearFounder"', self.html)
