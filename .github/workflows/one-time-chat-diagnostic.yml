@@ -1,10 +1,6 @@
 name: One-time Classroom 503 Diagnostic
 # Retest after preview Gemini API key configuration
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - '.github/workflows/one-time-chat-diagnostic.yml'
   workflow_dispatch:
 permissions:
   contents: read
@@ -36,4 +32,6 @@ jobs:
           else:
               print('Tutor error detail:',str(data.get('detail',''))[:140])
           assert status==200, 'Live classroom chat endpoint returned a failure'
+          assert bool(data.get('reply')), 'Empty tutor reply'
+          assert 'technical hiccup' not in data['reply'].lower(), 'Tutor returned technical fallback despite HTTP 200'
           PY
