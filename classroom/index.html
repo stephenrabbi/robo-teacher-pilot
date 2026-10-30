@@ -248,6 +248,17 @@
       <button id="privacyChoices" type="button" class="footer-link-button">Privacy Choices</button>
     </nav>
   </footer>
+  <script>
+    // Always begin with business details closed, including restored browser sessions.
+    (() => {
+      const closeBusinessDetails = () => {
+        const details = document.getElementById("businessDetails");
+        if (details) details.open = false;
+      };
+      closeBusinessDetails();
+      window.addEventListener("pageshow", closeBusinessDetails);
+    })();
+  </script>
   <script src="/classroom/compliance.js?v=20261006-privacy1"></script>
   <script src="/classroom/app.js?v=20261006-privacy1"></script>
   <script src="/classroom/classroom2-workspace.js?v=20261023-1"></script>
