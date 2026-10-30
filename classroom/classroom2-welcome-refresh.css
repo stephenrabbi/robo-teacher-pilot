@@ -67,7 +67,6 @@
   #welcome .student-welcome-photo { height:clamp(260px,45vw,390px); }
 }
 @media(max-width:600px) {
-  .app-shell { padding-inline:12px; }
   #welcome .welcome-intro { padding:18px 16px; border-radius:18px; }
   #welcome .welcome-copy { padding:20px 16px; }
   #welcome .welcome-start-guide ol li { padding-left:48px; }
