@@ -28,6 +28,9 @@ jobs:
       - name: Run complete offline regression suite
         run: python -m pytest -q
 
+      - name: Verify Pitch Edition UI contract
+        run: python -m unittest discover -s tests -p 'test_pitch_edition_contract.py' -v
+
       - name: Run pilot sanity tests
         run: python test_webhook.py
 

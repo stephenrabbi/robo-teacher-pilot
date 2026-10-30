@@ -7,6 +7,7 @@ Robo-Teacher tutoring engine used by the messaging channels.
 import base64
 import binascii
 import hashlib
+import logging
 import hmac
 import os
 import secrets
@@ -46,6 +47,7 @@ from tutor import (
 )
 
 router = APIRouter(prefix="/api/classroom", tags=["classroom"])
+_logger = logging.getLogger("robo_teacher.classroom")
 _SESSION_TTL_SECONDS = 60 * 60 * 4
 _RATE_WINDOW_SECONDS = 60
 _RATE_MAX_REQUESTS = 12
@@ -372,7 +374,8 @@ def classroom_chat(question: ClassroomQuestion, request: Request):
         class_level = _classroom_profiles.get(student_id, {}).get("class_level", "JSS2")
         reply, latency = get_tutor_reply(student_id, message, question.language, class_level)
     except Exception as exc:
-        # Never expose provider details, prompts, credentials, or stack traces to learners.
+        # Log exception type only: never log learner messages, credentials or provider payloads.
+        _logger.error("Classroom tutor request failed; exception_type=%s", type(exc).__name__)
         raise HTTPException(status_code=503, detail="Robo-Teacher is temporarily unavailable") from exc
     return {"reply": reply, "latency_seconds": round(float(latency), 3), "learner_id": student_id}
 

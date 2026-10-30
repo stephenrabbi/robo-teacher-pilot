@@ -1,0 +1,37 @@
+name: One-time Classroom 503 Diagnostic
+# Retest after preview Gemini API key configuration
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Synthetic JSS2 chat and error status
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json,urllib.request,urllib.error
+          base='https://robo-teacher-pitch-ui-preview.onrender.com/api/classroom'
+          def post(path,data):
+              req=urllib.request.Request(base+path, data=json.dumps(data).encode(),headers={'Content-Type':'application/json'},method='POST')
+              try:
+                  with urllib.request.urlopen(req, timeout=55) as r:return r.status,json.load(r)
+              except urllib.error.HTTPError as e:
+                  return e.code,json.loads(e.read().decode())
+          status,session=post('/session',{'nickname':'SyntheticDiagnostic','class_level':'JSS2'})
+          print('Session HTTP:',status)
+          assert status==200
+          status,data=post('/chat',{'session_token':session['session_token'],'language':'English','message':'Explain how to solve 2x + 3 = 11 step by step.'})
+          print('Tutor HTTP:',status)
+          if status==200:
+              print('Tutor reply received:',bool(data.get('reply')),'characters:',len(data.get('reply','')))
+              print('Generic fallback:', 'technical hiccup' in data.get('reply','').lower())
+          else:
+              print('Tutor error detail:',str(data.get('detail',''))[:140])
+          assert status==200, 'Live classroom chat endpoint returned a failure'
+          assert bool(data.get('reply')), 'Empty tutor reply'
+          assert 'technical hiccup' not in data['reply'].lower(), 'Tutor returned technical fallback despite HTTP 200'
+          PY

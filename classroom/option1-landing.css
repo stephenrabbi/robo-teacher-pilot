@@ -1,0 +1,684 @@
+/* Option 1 landing redesign — only active on welcome screen. */
+:root{--violet:#5B3FD9;--violet-dark:#3A25A0;--violet-tint:#EFE9FF;--sun:#FFD60A;--coral:#FF6B4A;--mint:#17C3A5;--sky:#4DA3FF;--pink:#FF5C8A;--cream:#FFF8EF;--navy:#1B1740}
+body:has(#welcome:not(.hidden)){background:var(--cream);color:var(--navy)}
+body:has(#welcome:not(.hidden)) .app-shell{max-width:1200px;padding:12px 16px 16px}
+body:has(#welcome:not(.hidden)) .legal-footer{max-width:1168px;width:calc(100% - 32px);margin:0 auto 20px}
+#welcome.welcome-screen{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;grid-template-areas:"nav nav" "hero hero" "impact impact" "left right" "subjects subjects" "trust trust"!important;grid-template-rows:auto!important;align-items:start!important;gap:16px!important;min-height:0!important}
+#welcome .new-nav{grid-area:nav;display:flex;align-items:center;justify-content:space-between;gap:14px;min-height:46px}
+#welcome .new-brand{display:flex;align-items:center;gap:10px;color:var(--navy);font-weight:850;font-size:17px;text-decoration:none}
+#welcome .new-brand img{width:40px;height:40px;object-fit:contain;border-radius:10px}
+#welcome .new-links{display:flex;align-items:center;gap:clamp(12px,2.5vw,28px);flex-wrap:wrap}
+#welcome .new-links a{color:var(--navy);font-size:13px;font-weight:750;text-decoration:none}
+#welcome .new-links button{border:2px solid var(--violet);background:white;color:var(--violet-dark);border-radius:999px;padding:9px 14px;font-weight:800}
+#welcome .welcome-intro{grid-area:hero!important;display:grid!important;grid-template-columns:56% 44%!important;position:relative!important;height:224px!important;max-height:none!important;min-height:0!important;border-radius:16px!important;overflow:hidden!important;background:linear-gradient(100deg,#ffe1d3,var(--cream) 58%,#ece4ff)!important}
+#welcome .pitch-hero-text{display:flex!important;position:relative!important;z-index:2!important;flex-direction:column!important;align-items:flex-start!important;justify-content:center!important;width:auto!important;height:auto!important;clip-path:none!important;overflow:visible!important;white-space:normal!important;margin:0!important;padding:16px 8px 16px 24px!important;grid-column:1!important}
+#welcome .hero-pill{display:inline-block;background:white;color:var(--violet-dark);font-size:11px;font-weight:750;padding:7px 12px;border-radius:999px}
+#welcome .pitch-hero-text h1{font-size:clamp(26px,3.5vw,47px)!important;line-height:1.04!important;letter-spacing:-.045em!important;color:var(--navy)!important;margin:14px 0 10px!important;max-width:none!important}
+#welcome .pitch-hero-text h1 span{white-space:nowrap;border-bottom:5px solid var(--sun)}
+#welcome .pitch-hero-text p{font-size:clamp(12px,1.3vw,17px)!important;color:var(--navy)!important;margin:0 0 13px!important}
+#welcome .hero-subject-chips{font-size:11px;color:var(--violet-dark);font-weight:750}
+#welcome .pitch-illustration{grid-column:2!important;grid-row:1!important;height:100%!important;width:100%!important;overflow:hidden!important}
+#welcome .pitch-illustration img{position:relative!important;width:190%!important;max-width:none!important;height:100%!important;object-fit:cover!important;object-position:right center!important;transform:translateX(-45%)!important}
+#welcome .impact-proof{grid-area:impact;text-align:center;background:white;border-radius:999px;margin:0;padding:10px 16px;font-weight:750;font-size:13px;color:var(--violet-dark)}
+#welcome .pitch-left-column{grid-area:left!important;display:flex!important;flex-direction:column!important;gap:12px!important;align-self:start!important;height:auto!important;min-width:0!important}
+#welcome .pitch-left-column #founderPanel{min-height:0!important;height:auto!important;width:100%!important;margin:0!important}
+#welcome #founderPanel .founder-introduction{min-height:76px!important;padding:10px!important;border-radius:16px!important}
+#welcome .pitch-left-column .welcome-copy{display:block!important;min-height:0!important;height:auto!important;width:100%!important;margin:0!important;padding:18px 20px!important;background:linear-gradient(135deg,var(--violet),var(--violet-dark))!important;border-radius:16px!important;grid-area:auto!important}
+#welcome .welcome-copy .speech-card h2{margin:0 0 15px!important;font-size:31px!important}
+#welcome .welcome-copy .learner-onboarding{gap:8px!important}
+#welcome .welcome-copy .learner-onboarding input:not([type="checkbox"]){min-height:44px!important}
+#welcome .welcome-copy .learner-code-help,#welcome .welcome-copy .privacy-helper,#welcome .welcome-copy .privacy-note{color:white!important;font-size:12px!important}
+#welcome .welcome-copy #startLearning{background:var(--sun)!important;color:var(--navy)!important;min-height:48px!important;margin-top:8px!important}
+#welcome .welcome-copy .secondary-clear{float:right;color:white!important;margin-top:0!important;font-weight:750}
+#welcome .welcome-copy .parent-link{text-align:center;margin:10px 0 0;font-size:12px}
+#welcome .welcome-copy .parent-link a{color:white;text-decoration:underline}
+#welcome .new-right-column{grid-area:right;min-width:0;display:flex;flex-direction:column;gap:12px}
+#welcome .lesson-peek{background:#fff;padding:18px;border-radius:16px;box-shadow:0 6px 24px #3524770b}
+#welcome .lesson-peek h2,#welcome .how-compact h2,#welcome .subject-section h2{font-size:21px;color:var(--navy);margin:0 0 14px}
+#welcome .peek-question{display:table;margin:0 0 10px auto;background:#dceaff;color:var(--navy);padding:11px 14px;border-radius:16px;font-weight:700;font-size:14px}
+#welcome .peek-answer{background:#eef1ff;color:var(--navy);padding:14px;border-radius:16px;font-size:14px;line-height:1.45}
+#welcome .peek-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:14px}
+#welcome .peek-actions button{min-height:44px;border:0;border-radius:999px;background:var(--violet-tint);color:var(--violet-dark);font-weight:800;font-size:12px}
+#welcome .peek-actions button:nth-child(2){background:#dceaff;color:#1b58a8}
+#welcome .peek-actions button:nth-child(3){background:#ffe3ec;color:#9b1f4b}
+#welcome .how-compact{padding:16px;background:var(--violet-tint);border-radius:16px}
+#welcome .how-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+#welcome .how-cards>div{background:white;border-radius:12px;padding:12px;min-width:0}
+#welcome .how-cards b{display:grid;place-items:center;border-radius:50%;background:#ffe3ec;color:#9b1f4b;width:26px;height:26px;margin-bottom:10px}
+#welcome .how-cards strong{display:block;color:var(--navy);font-size:12px}
+#welcome .how-cards p{color:var(--navy);font-size:11px;line-height:1.4;margin:5px 0}
+#welcome .how-tip{background:#e3efff;padding:11px 12px;border-radius:12px;font-size:12px;color:var(--navy);margin:10px 0 0}
+#welcome .subject-section{grid-area:subjects;min-width:0}
+#welcome .subject-section h2{margin-bottom:2px}
+#welcome .subject-section>p{font-size:13px;margin:0 0 12px}
+#welcome .subject-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+#welcome .subject-tile{min-height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;border:2px solid transparent;border-radius:16px;padding:12px 7px;text-align:center;font-weight:800;cursor:pointer}
+#welcome .subject-tile .subject-symbol{font-size:25px;line-height:1.1}
+#welcome .subject-tile small{font-size:10px;font-weight:750}
+#welcome .subject-tile:disabled{opacity:.8;cursor:not-allowed}
+#welcome .subject-tile:not(:disabled):hover{border-color:var(--violet)}
+#welcome .trust-row{grid-area:trust;background:#e5f0ff;border-radius:16px;padding:14px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+#welcome .trust-row div+div{border-left:1px solid #b8cee8;padding-left:12px}
+#welcome .trust-row strong{display:block;font-size:12px;color:var(--navy)}
+#welcome .trust-row p{font-size:11px;color:var(--navy);margin:4px 0 0}
+#welcome button:focus-visible,#welcome a:focus-visible{outline:3px solid var(--violet)!important;outline-offset:3px}
+#welcome .mobile-start-bar{display:none}
+@media(max-width:767px){
+ body:has(#welcome:not(.hidden)) .app-shell{padding:8px 12px 100px!important}
+ #welcome.welcome-screen{display:flex!important;flex-direction:column!important;gap:12px!important}
+ #welcome .new-nav{order:1;width:100%;flex-wrap:wrap}
+ #welcome .new-links{width:100%;gap:10px;justify-content:space-between}
+ #welcome .new-links a{font-size:11px}
+ #welcome .new-links button{font-size:11px;padding:7px}
+ #welcome .welcome-intro{order:2!important;display:grid!important;grid-template-columns:57% 43%!important;width:100%!important;height:176px!important}
+ #welcome .pitch-hero-text{padding:10px!important}
+ #welcome .hero-pill{font-size:9px;padding:5px}
+ #welcome .pitch-hero-text h1{font-size:clamp(19px,5.8vw,28px)!important;margin:8px 0!important}
+ #welcome .pitch-hero-text p{font-size:11px!important}
+ #welcome .hero-subject-chips{display:none}
+ #welcome .impact-proof{order:3;width:100%;font-size:11px}
+ #welcome .pitch-left-column{display:flex!important;flex-direction:column!important;order:4!important;width:100%!important;gap:10px!important}
+ #welcome .pitch-left-column #founderPanel{width:100%!important}
+ #welcome .pitch-left-column .welcome-copy{width:100%!important;padding:18px!important}
+ #welcome .new-right-column{order:5;width:100%}
+ #welcome .subject-section{order:6;width:100%}
+ #welcome .subject-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #welcome .trust-row{order:7;width:100%;grid-template-columns:1fr}
+ #welcome .trust-row div+div{border-left:0;border-top:1px solid #b8cee8;padding:10px 0 0}
+ #welcome .mobile-start-bar{display:block;position:fixed;bottom:0;left:0;right:0;padding:10px 14px calc(10px + env(safe-area-inset-bottom));background:#fff8eff2;z-index:50;box-shadow:0 -6px 20px #1b174021}
+ #welcome .mobile-start-bar button{display:block;width:100%;min-height:48px;border:0;border-radius:999px;background:var(--sun);color:var(--navy);font-weight:900}
+}
+@media(prefers-reduced-motion:reduce){#welcome *,#welcome *::before,#welcome *::after{animation:none!important;transition:none!important}}
+
+/* Visual fidelity pass against approved 1279px reference screenshot (28 Oct).
+   This is the final override; do not enlarge the original text-bearing hero. */
+body:has(#welcome:not(.hidden)) .app-shell{max-width:1160px!important;padding:8px 16px 12px!important}
+#welcome.welcome-screen{column-gap:20px!important;row-gap:10px!important}
+#welcome .new-nav{min-height:44px!important}
+#welcome .welcome-intro{height:228px!important;max-height:228px!important;background:linear-gradient(115deg,#ffe2d0 0%,#fff4e8 58%,#e7dcff 100%)!important;isolation:isolate}
+#welcome .pitch-hero-text{grid-column:1!important;padding:14px 4px 14px 25px!important;z-index:3!important;justify-content:center!important}
+#welcome .pitch-hero-text h1{font-size:clamp(28px,3.45vw,44px)!important;max-width:100%!important;line-height:1.05!important}
+#welcome .pitch-illustration{position:relative!important;grid-column:2!important;overflow:hidden!important;isolation:isolate}
+#welcome .pitch-illustration img{position:absolute!important;top:0!important;left:auto!important;right:0!important;width:205%!important;height:100%!important;max-width:none!important;max-height:none!important;transform:none!important;object-fit:fill!important;object-position:right center!important}
+#welcome .pitch-left-column{gap:10px!important;height:auto!important;min-height:0!important}
+#welcome .pitch-left-column #founderPanel{height:auto!important;min-height:0!important}
+#welcome #founderPanel .founder-introduction{min-height:75px!important}
+#welcome .pitch-left-column .welcome-copy{height:auto!important;min-height:0!important}
+#welcome .new-right-column{gap:10px!important}
+#welcome .lesson-peek{padding:16px!important}
+#welcome .how-compact{padding:15px!important}
+#welcome .how-cards>div{min-height:130px}
+#welcome .subject-grid{gap:10px!important}
+#welcome .subject-tile{min-height:86px!important}
+#welcome .trust-row{padding:12px!important}
+#welcome .impact-proof{padding:8px 14px!important}
+#welcome .welcome-copy .secondary-clear{float:none!important;order:2!important;margin:0!important}
+#welcome .welcome-copy .welcome-actions{display:flex!important;flex-wrap:wrap!important;flex-direction:row!important;align-items:center!important;justify-content:center!important;gap:10px!important}
+#welcome .welcome-copy .welcome-actions #startLearning{flex-basis:100%!important}
+#welcome .welcome-copy .welcome-actions #showTeacherLogin{margin:0!important}
+#welcome .welcome-copy .learner-onboarding{gap:7px!important}
+#welcome .welcome-copy .learner-onboarding .secondary-clear{margin:0 0 0 auto!important}
+#welcome .peek-actions button{cursor:pointer}
+#welcome a:focus-visible,#welcome button:focus-visible{outline:3px solid var(--violet)!important;outline-offset:3px}
+@media(max-width:767px){
+ body:has(#welcome:not(.hidden)) .app-shell{padding:8px 12px 100px!important}
+ #welcome.welcome-screen{gap:12px!important}
+ #welcome .welcome-intro{height:176px!important;max-height:176px!important;grid-template-columns:59% 41%!important}
+ #welcome .pitch-hero-text{padding:8px 3px 8px 10px!important}
+ #welcome .pitch-hero-text h1{font-size:clamp(19px,5.5vw,28px)!important}
+ #welcome .pitch-illustration img{width:220%!important}
+ #welcome .pitch-left-column{display:flex!important;flex-direction:column!important;gap:10px!important}
+ #welcome .subject-tile{min-height:86px!important}
+}
+
+/* Final approved mockup: compact cards and preserved live classroom controls. */
+#welcome .new-brand{background:var(--navy)!important;color:white!important;border-radius:11px!important;padding:7px 12px!important;letter-spacing:.025em}
+#welcome .new-brand img{width:28px!important;height:28px!important;object-fit:contain}
+#welcome .welcome-intro{border-radius:24px!important;background:linear-gradient(105deg,#ffe0d0 0%,#fff5e9 58%,#e9ddff)!important}
+#welcome .pitch-hero-text{padding-left:26px!important}
+#welcome .pitch-hero-text h1 span{text-decoration:underline;text-decoration-color:var(--sun);text-decoration-thickness:6px;text-underline-offset:7px;border-bottom:0!important}
+#welcome .pitch-hero-text p{max-width:52ch}
+#welcome .impact-proof{background:white;color:var(--navy)!important}
+#welcome .pitch-left-column{gap:8px!important}
+#welcome #founderPanel .founder-introduction{border-radius:20px!important}
+#welcome .pitch-left-column .welcome-copy{background:var(--violet)!important;border-radius:20px!important;padding:20px 24px!important}
+#welcome .pitch-form-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}
+#welcome .pitch-form-heading h2{margin:0!important;font-size:clamp(26px,3vw,34px)!important;color:white!important}
+#welcome #pitchClearButton{color:white;background:transparent;border:0;text-decoration:underline;font-size:13px;font-weight:750;min-height:44px}
+#welcome .learner-onboarding .secondary-clear{display:none!important}
+#welcome .welcome-copy .learner-onboarding{gap:8px!important}
+#welcome .welcome-copy label{color:white!important}
+#welcome .welcome-copy .learner-code-help,#welcome .welcome-copy .privacy-helper,#welcome .welcome-copy .privacy-note{color:white!important;opacity:1!important}
+#welcome .welcome-copy .learner-onboarding input:not([type=checkbox]){min-height:44px!important;color:var(--navy)!important}
+#welcome .pitch-class-choices button.selected{border:3px solid var(--sun)!important;background:var(--violet-tint)!important}
+#welcome #startLearning{background:var(--sun)!important;color:var(--navy)!important}
+#welcome .new-right-column{gap:8px!important}
+#welcome .peek-heading{display:flex;justify-content:space-between;align-items:center;gap:10px}
+#welcome .peek-heading h2{margin-bottom:14px!important}
+#welcome .peek-window-dots{display:flex;gap:6px}
+#welcome .peek-window-dots i{display:block;width:10px;height:10px;border-radius:50%;background:var(--coral)}
+#welcome .peek-window-dots i:nth-child(2){background:var(--sun)}
+#welcome .peek-window-dots i:nth-child(3){background:var(--violet-tint);border:1px solid var(--violet-dark)}
+#welcome .peek-chat-line{display:flex;align-items:flex-start;gap:10px;margin-bottom:12px}
+#welcome .peek-avatar{display:grid;place-items:center;width:34px;height:34px;flex:0 0 34px;background:var(--violet-tint);border-radius:50%;color:var(--violet-dark)}
+#welcome .peek-robot{background:white;border:1px solid var(--violet-tint);color:var(--navy)}
+#welcome .peek-question{margin:0!important;margin-left:auto!important}
+#welcome .peek-answer{flex:1}
+#welcome .how-compact{background:var(--violet-tint)!important;border-radius:20px!important}
+#welcome .how-cards>div{border-radius:14px!important;padding:14px!important}
+#welcome .how-cards strong{font-size:13px!important}
+#welcome .how-cards p{font-size:11px!important}
+#welcome .subject-legend{float:right;display:inline-flex;gap:12px;font-size:11px;color:var(--navy)}
+#welcome .subject-legend span:first-child{color:#0b6b59}
+#welcome .subject-legend span:last-child{color:#5f5c6d}
+#welcome .trust-row{border-radius:20px!important}
+@media(max-width:900px){
+ #welcome.welcome-screen{grid-template-columns:1fr!important;grid-template-areas:"nav" "hero" "impact" "left" "right" "subjects" "trust"!important}
+ #welcome .pitch-left-column{width:100%!important}
+}
+@media(max-width:767px){
+ #welcome .new-brand{padding:5px 9px!important}
+ #welcome .pitch-left-column .welcome-copy{padding:18px!important}
+ #welcome .new-links{overflow-x:auto;flex-wrap:nowrap;scrollbar-width:thin}
+ #welcome .subject-legend{float:none;display:flex;margin-top:5px}
+ #welcome .how-cards{grid-template-columns:1fr!important}
+ #welcome .how-cards>div{min-height:0!important}
+ #welcome .peek-actions{gap:5px}
+ #welcome .peek-actions button{font-size:11px}
+}
+
+/* Responsive picture: real optimized assets activate only once uploaded. */
+#welcome .pitch-illustration picture{display:block;width:100%;height:100%;position:relative}
+#welcome .pitch-illustration.hero-ready{position:absolute!important;inset:0!important;grid-column:1 / -1!important;width:100%!important;height:100%!important;z-index:0!important;pointer-events:none}
+#welcome .pitch-illustration.hero-ready picture{width:100%;height:100%}
+#welcome .pitch-illustration.hero-ready picture img{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:none!important;transform:none!important;object-fit:cover!important;object-position:right center!important}
+#welcome .welcome-intro:has(.hero-ready)::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(255,248,239,.96) 0%,rgba(255,248,239,.83) 34%,rgba(255,248,239,0) 70%);z-index:1;pointer-events:none}
+#welcome .welcome-intro:has(.hero-ready) .pitch-hero-text{position:relative!important;z-index:2!important}
+@media(max-width:767px){
+ #welcome .welcome-intro:has(.hero-ready)::after{background:linear-gradient(90deg,rgba(255,248,239,.98) 0%,rgba(255,248,239,.91) 48%,rgba(255,248,239,.12) 94%)}
+}
+
+/* 2026-10-28 hero hotfix: previous width:205% + object-fit:fill
+   squashed the student's proportions and exposed embedded old text.
+   Crop the original image to the right section without distortion. */
+#welcome .welcome-intro:not(:has(.hero-ready)) .pitch-illustration{
+  grid-column:2!important;grid-row:1!important;
+  position:relative!important;inset:auto!important;
+  width:100%!important;height:100%!important;
+  overflow:hidden!important;z-index:1!important;
+}
+#welcome .welcome-intro:not(:has(.hero-ready)) .pitch-illustration picture{
+  display:block!important;position:relative!important;
+  width:100%!important;height:100%!important;overflow:hidden!important;
+}
+#welcome .welcome-intro:not(:has(.hero-ready)) .pitch-illustration picture img{
+  position:absolute!important;top:0!important;left:0!important;right:auto!important;
+  display:block!important;width:100%!important;height:100%!important;
+  min-width:0!important;max-width:none!important;max-height:none!important;
+  object-fit:cover!important;object-position:82% 45%!important;
+  transform:none!important;scale:none!important;
+}
+#welcome .welcome-intro:not(:has(.hero-ready)) .pitch-hero-text{
+  grid-column:1!important;grid-row:1!important;z-index:3!important;
+  overflow:visible!important;
+}
+@media(max-width:767px){
+ #welcome .welcome-intro:not(:has(.hero-ready)) .pitch-illustration picture img{
+   width:100%!important;object-fit:cover!important;object-position:83% center!important;
+ }
+}
+
+/* Target reference v4 — compact hero, non-distorting art and aligned sections. */
+body:has(#welcome:not(.hidden)) .app-shell{max-width:1160px!important;padding:8px 16px 16px!important}
+#welcome.welcome-screen{grid-template-columns:minmax(0,48fr) minmax(0,52fr)!important;gap:12px 20px!important;align-items:start!important}
+#welcome .new-nav{min-height:42px!important}
+#welcome .welcome-intro{height:233px!important;max-height:233px!important;grid-template-columns:55% 45%!important;border-radius:24px!important}
+#welcome .pitch-hero-text{padding:12px 8px 12px 24px!important;min-width:0!important}
+#welcome .pitch-hero-text h1{font-size:clamp(28px,3.6vw,47px)!important;line-height:1.08!important;letter-spacing:-.045em!important;margin:12px 0!important}
+#welcome .hero-pill{font-size:11px!important;background:white!important;padding:8px 13px!important}
+#welcome .pitch-hero-text p{font-size:clamp(12px,1.26vw,16px)!important;font-weight:600!important}
+#welcome .hero-subject-chips{font-size:11px!important;line-height:1.5!important}
+#welcome .impact-proof{margin:0!important;min-height:34px!important}
+#welcome .pitch-left-column{gap:8px!important}
+#welcome #founderPanel .founder-introduction{min-height:74px!important;padding:9px 12px!important}
+#welcome .pitch-left-column .welcome-copy{padding:18px 20px!important}
+#welcome .new-right-column{gap:10px!important}
+#welcome .lesson-peek{padding:17px!important}
+#welcome .how-compact{padding:16px!important}
+#welcome .how-cards>div{min-height:128px!important}
+#welcome .subject-tile{min-height:88px!important}
+#welcome .trust-row{padding:12px!important}
+#welcome .welcome-intro:not(:has(.hero-ready)) .pitch-illustration picture img{
+ width:100%!important;height:100%!important;object-fit:cover!important;
+ object-position:80% 45%!important;transform:none!important;
+}
+@media(max-width:900px){
+ #welcome.welcome-screen{grid-template-columns:1fr!important}
+}
+@media(max-width:767px){
+ #welcome .welcome-intro{height:180px!important;max-height:180px!important;grid-template-columns:58% 42%!important}
+ #welcome .pitch-hero-text{padding:9px!important}
+ #welcome .pitch-hero-text h1{font-size:clamp(19px,5vw,30px)!important}
+ #welcome .hero-pill{font-size:9px!important;padding:5px 7px!important}
+ #welcome .pitch-left-column .welcome-copy{padding:16px!important}
+ #welcome .how-cards>div{min-height:0!important}
+}
+
+/* ROUND 1 final styling. Overrides older split-hero layers. */
+body:has(#welcome:not(.hidden)) .app-shell{max-width:1160px!important;padding:8px 24px 16px!important}
+#welcome.welcome-screen{grid-template-columns:minmax(0,48fr) minmax(0,52fr)!important;column-gap:24px!important;row-gap:8px!important}
+#welcome .new-nav{grid-area:nav!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:14px!important;min-height:44px!important;width:100%!important}
+#welcome .r1-nav-left{display:flex;align-items:center;gap:32px;min-width:0}
+#welcome .new-brand{display:inline-flex!important;align-items:center!important;gap:9px!important;padding:9px 13px!important;background:var(--navy)!important;color:white!important;border-radius:11px!important;font-weight:800!important;font-size:14px!important;letter-spacing:.02em!important;white-space:nowrap!important}
+#welcome .new-brand svg{width:23px;height:23px}
+#welcome .new-links{display:flex!important;gap:28px!important;align-items:center!important;flex-wrap:wrap!important}
+#welcome .new-links a{white-space:nowrap;color:var(--navy)!important;font-weight:750!important}
+#welcome #newTeacherAccess{border:2px solid var(--violet)!important;color:var(--violet-dark)!important;background:white!important;border-radius:999px!important;padding:9px 16px!important;white-space:nowrap!important;min-height:44px!important;font-weight:800!important}
+#welcome .welcome-intro{grid-area:hero!important;position:relative!important;display:block!important;isolation:isolate!important;width:100%!important;height:235px!important;max-height:235px!important;overflow:hidden!important;border-radius:24px!important;background:var(--cream)!important}
+#welcome .welcome-intro .pitch-illustration,#welcome .welcome-intro .pitch-illustration.hero-ready{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;z-index:0!important;pointer-events:none!important}
+#welcome .welcome-intro .pitch-illustration picture,#welcome .welcome-intro .pitch-illustration picture img{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:none!important;min-width:0!important;max-height:none!important;object-fit:cover!important;object-position:center center!important;transform:none!important}
+#welcome .welcome-intro::after,#welcome .welcome-intro:has(.hero-ready)::after{content:""!important;position:absolute!important;inset:0!important;background:linear-gradient(90deg,rgba(255,248,239,.65),rgba(255,248,239,.32) 34%,transparent 64%)!important;z-index:1!important;pointer-events:none!important}
+#welcome .welcome-intro .pitch-hero-text{display:flex!important;position:relative!important;z-index:2!important;inset:auto!important;grid-column:auto!important;grid-row:auto!important;width:74%!important;max-width:800px!important;height:100%!important;margin:0!important;padding:15px 24px!important;justify-content:center!important;align-items:flex-start!important;clip-path:none!important;overflow:visible!important}
+#welcome .hero-pill{color:var(--violet-dark)!important;background:white!important;border-radius:999px!important;padding:8px 13px!important;font-size:11px!important;font-weight:700!important}
+#welcome .pitch-hero-text h1{color:var(--navy)!important;font-size:clamp(29px,4vw,52px)!important;font-weight:800!important;line-height:1.05!important;letter-spacing:-.045em!important;margin:12px 0!important;white-space:normal!important}
+#welcome .pitch-hero-text h1 span{border:0!important;text-decoration:none!important;white-space:nowrap!important}
+#welcome .r1-ideas{display:inline-block;position:relative}
+#welcome .r1-ideas svg{position:absolute;left:0;bottom:-9px;width:100%;height:14px}
+#welcome .pitch-hero-text p{font-size:15px!important;color:var(--navy)!important;font-weight:600!important;margin:0 0 12px!important}
+#welcome .hero-subject-chips{display:flex!important;flex-wrap:wrap!important;gap:6px!important;font-size:11px!important}
+#welcome .r1-chip{display:inline-flex;align-items:center;gap:5px;padding:7px 10px;border-radius:999px;font-size:11px;font-weight:800;white-space:nowrap}
+#welcome .r1-chip svg{width:14px;height:14px;flex:0 0 14px}
+#welcome .r1-maths{background:#EFE9FF;color:#3A25A0}
+#welcome .r1-english{background:#FFE3EC;color:#9B1F4B}
+#welcome .r1-science{background:#D6F6EF;color:#0B6B59}
+#welcome .r1-coding{background:#DCEBFF;color:#1B58A8}
+#welcome .r1-social{background:#FFE5DD;color:#A8381C}
+#welcome .r1-exam{background:#FFF3C2;color:#7A5A00}
+#welcome .impact-proof{grid-area:impact!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:10px!important;background:white!important;color:var(--navy)!important;margin:0!important;min-height:36px!important;padding:8px 14px!important;font-size:12px!important;font-weight:700!important}
+#welcome .impact-proof svg{width:19px;height:19px;color:var(--violet);flex:0 0 19px}
+#welcome #founderPanel .founder-introduction{display:flex!important;align-items:center!important;gap:12px!important;min-height:75px!important;padding:8px 12px!important}
+#welcome #founderPanel .founder-avatar-stage{width:64px!important;height:64px!important;flex:0 0 64px!important}
+#welcome #founderPanel .founder-introduction-copy{min-width:0}
+#welcome #hearFounder{display:inline-flex!important;gap:7px!important;align-items:center!important;justify-content:center!important;background:var(--violet-tint)!important;color:var(--violet-dark)!important;border-radius:999px!important;white-space:nowrap!important}
+#welcome #hearFounder svg{width:17px;height:17px;flex:0 0 17px}
+@media(max-width:900px){
+ #welcome.welcome-screen{grid-template-columns:1fr!important;grid-template-areas:"nav" "hero" "impact" "left" "right" "subjects" "trust"!important}
+ #welcome .r1-nav-left{gap:12px}
+ #welcome .new-links{gap:12px!important}
+}
+@media(max-width:767px){
+ body:has(#welcome:not(.hidden)) .app-shell{padding:8px 16px 96px!important}
+ #welcome .welcome-intro{height:170px!important;max-height:170px!important}
+ #welcome .welcome-intro .pitch-illustration picture img{object-position:right center!important}
+ #welcome .welcome-intro::after,#welcome .welcome-intro:has(.hero-ready)::after{background:linear-gradient(90deg,rgba(255,248,239,.88) 0%,rgba(255,248,239,.54) 49%,transparent 90%)!important}
+ #welcome .welcome-intro .pitch-hero-text{width:81%!important;padding:8px 10px!important}
+ #welcome .pitch-hero-text h1{font-size:clamp(20px,5.1vw,32px)!important;margin:8px 0!important}
+ #welcome .pitch-hero-text p{font-size:11px!important;margin-bottom:6px!important}
+ #welcome .hero-pill{font-size:9px!important;padding:4px 7px!important}
+ #welcome .hero-subject-chips{gap:3px!important}
+ #welcome .r1-chip{font-size:9px;padding:4px 6px;gap:3px}
+ #welcome .r1-chip svg{width:11px;height:11px;flex-basis:11px}
+ #welcome .r1-nav-left{flex:1;flex-wrap:wrap}
+ #welcome .new-links{overflow-x:auto;flex-wrap:nowrap!important;width:100%}
+ #welcome #newTeacherAccess{padding:7px 9px!important;font-size:11px!important}
+ #welcome .new-brand{font-size:12px!important;padding:6px 9px!important}
+}
+
+/* ROUND 2: compact form, readable error and accessible lesson cards. */
+#welcome .pitch-left-column .welcome-copy{background:linear-gradient(135deg,#4A2EC2 0%,var(--violet) 100%)!important;padding:24px!important;border-radius:20px!important}
+#welcome .pitch-onboarding-kicker{display:none!important}
+#welcome .welcome-copy .speech-card{border:0!important;box-shadow:none!important;padding:0!important;background:transparent!important}
+#welcome .welcome-copy .speech-card::before,#welcome .welcome-copy .speech-card::after{display:none!important;content:none!important}
+#welcome .pitch-form-heading{padding:0!important;margin:0 0 12px!important;border:0!important}
+#welcome .pitch-form-heading::after{display:none!important}
+#welcome .pitch-form-heading h2{margin:0!important;border:0!important;padding:0!important;color:white!important;font-size:clamp(27px,3vw,34px)!important}
+#welcome .welcome-copy .learner-onboarding{gap:8px!important;margin:0!important;padding:0!important}
+#welcome .welcome-copy .learner-onboarding label{font-size:12px!important;margin:0!important}
+#welcome #learnerNickname,#welcome #learnerCode{height:48px!important;min-height:48px!important;max-height:48px!important;border-radius:10px!important}
+#welcome #generateLearnerCode{min-height:44px!important;white-space:nowrap!important;border-radius:999px!important}
+#welcome .learner-code-help{margin:0!important;line-height:1.45!important}
+#welcome .pitch-class-choices{gap:8px!important;margin:0!important}
+#welcome .pitch-class-choices button{min-height:44px!important;height:44px!important;border-radius:10px!important}
+#welcome .learner-consent{margin:0!important;padding:0!important}
+#welcome .privacy-helper{margin:0!important}
+#welcome #onboardingError{background:white!important;color:var(--navy)!important;border:0!important;border-left:5px solid var(--coral)!important;border-radius:10px!important;font-size:13px!important;padding:10px 12px!important;margin:9px 0!important;line-height:1.4!important}
+#welcome #onboardingError.hidden{display:none!important}
+#welcome #startLearning{height:48px!important;min-height:48px!important;margin:10px 0 0!important;font-size:18px!important}
+#welcome .welcome-actions{gap:0!important;padding:0!important}
+#welcome #showTeacherLogin{display:block!important;min-height:44px!important;margin:2px auto 0!important;text-align:center!important}
+#welcome .parent-link{margin:0!important;text-align:center!important}
+#welcome .parent-link a{color:white!important;text-decoration:underline!important;font-size:12px!important}
+#welcome .privacy-note{display:none!important}
+#welcome .lesson-peek{border-radius:20px!important;padding:20px!important}
+#welcome .peek-chat-line{display:flex!important;align-items:flex-start!important;gap:10px!important;margin:0 0 12px!important}
+#welcome .peek-chat-line .peek-avatar{display:grid!important;place-items:center!important;flex:0 0 38px!important;width:38px!important;height:38px!important;border-radius:50%!important}
+#welcome .peek-student{background:var(--violet-tint)!important;color:var(--violet-dark)!important}
+#welcome .peek-robot{background:white!important;color:var(--navy)!important;border:1px solid var(--violet-tint)!important}
+#welcome .peek-chat-line .peek-question{margin:0!important;width:fit-content!important;max-width:calc(100% - 48px)!important;background:var(--violet-tint)!important;color:var(--navy)!important}
+#welcome .peek-chat-line .peek-answer{background:#E3EEFF!important;color:var(--navy)!important;flex:1!important;margin:0!important}
+#welcome .peek-actions{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important}
+#welcome .peek-actions button{display:flex!important;align-items:center!important;justify-content:center!important;gap:7px!important;min-width:0!important;border:0!important;border-radius:999px!important;min-height:44px!important;white-space:normal!important}
+#welcome .peek-actions button svg{flex:0 0 17px!important;width:17px!important;height:17px!important}
+#welcome .how-compact{border-radius:20px!important;padding:20px!important;background:var(--violet-tint)!important}
+#welcome .how-cards{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important}
+#welcome .how-cards>div{background:white!important;border-radius:14px!important;min-height:157px!important;padding:12px!important}
+#welcome .how-step-icons{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;margin-bottom:10px!important}
+#welcome .how-step-icons b{display:grid!important;place-items:center!important;width:29px!important;height:29px!important;border-radius:50%!important;margin:0!important;flex:0 0 29px!important}
+#welcome .how-step-icons svg{width:22px!important;height:22px!important;flex:0 0 22px!important}
+#welcome .how-cards>div:nth-child(1) .how-step-icons b{background:#FFE3EC!important;color:#9B1F4B!important}
+#welcome .how-cards>div:nth-child(2) .how-step-icons b{background:#DCEBFF!important;color:#1B58A8!important}
+#welcome .how-cards>div:nth-child(3) .how-step-icons b{background:#FFF3C2!important;color:#7A5A00!important}
+#welcome .how-cards>div:nth-child(1) .how-step-icons svg{color:#9B1F4B!important}
+#welcome .how-cards>div:nth-child(2) .how-step-icons svg{color:#1B58A8!important}
+#welcome .how-cards>div:nth-child(3) .how-step-icons svg{color:#7A5A00!important}
+#welcome .how-cards strong{font-size:12px!important;line-height:1.3!important}
+#welcome .how-cards p{font-size:11px!important;line-height:1.45!important;margin:5px 0 0!important}
+#welcome .how-tip{display:flex!important;align-items:center!important;gap:10px!important;background:#E3EEFF!important;color:var(--navy)!important;line-height:1.5!important;padding:10px!important}
+#welcome .how-bulb{display:grid;place-items:center;flex:0 0 30px;width:30px;height:30px;border-radius:50%;background:white;color:#7A5A00}
+#welcome .how-bulb svg{width:19px;height:19px}
+@media(max-width:767px){
+ #welcome .pitch-left-column .welcome-copy{padding:16px!important}
+ #welcome .how-cards{grid-template-columns:1fr!important}
+ #welcome .how-cards>div{min-height:0!important}
+ #welcome .peek-actions button{gap:4px!important;font-size:11px!important}
+}
+
+/* ROUND 3: aligned footer, subject availability and mobile polish. */
+body:has(#welcome:not(.hidden)){font-family:"Plus Jakarta Sans","Segoe UI",Arial,sans-serif!important}
+body:has(#welcome:not(.hidden)) .app-shell{width:100%!important;max-width:1160px!important;padding:8px 24px 0!important;margin-inline:auto!important}
+body:has(#welcome:not(.hidden)) .legal-footer{width:calc(100% - 48px)!important;max-width:1112px!important;margin:8px auto 24px!important;padding:24px!important;border-radius:20px!important;background:#E3EEFF!important;font-family:"Plus Jakarta Sans","Segoe UI",Arial,sans-serif!important;font-size:14px!important;line-height:1.5!important}
+body:has(#welcome:not(.hidden)) .legal-footer .legal-footer-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:24px!important}
+body:has(#welcome:not(.hidden)) .legal-footer p{font-size:14px!important;line-height:1.5!important;margin:4px 0!important}
+body:has(#welcome:not(.hidden)) .legal-footer-links{display:flex!important;flex-wrap:wrap!important;gap:12px 16px!important;border-top:1px solid #bccde9!important;padding-top:16px!important;margin-top:16px!important}
+body:has(#welcome:not(.hidden)) .legal-footer-links a,body:has(#welcome:not(.hidden)) .legal-footer-links button{font-size:13px!important;font-family:inherit!important;text-decoration:underline!important}
+#welcome .subject-section{grid-area:subjects!important;min-width:0!important}
+#welcome .subject-grid{display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:8px!important}
+#welcome .subject-tile{position:relative!important;display:flex!important;align-items:center!important;justify-content:center!important;flex-direction:column!important;gap:6px!important;min-width:0!important;min-height:112px!important;border:2px solid transparent!important;border-radius:16px!important;transition:transform .2s ease,box-shadow .2s ease}
+#welcome .subject-tile:not(:disabled):hover{transform:translateY(-3px)!important;box-shadow:0 6px 18px #1b17401a!important}
+#welcome .subject-status-dot{position:absolute;right:10px;top:10px;width:9px;height:9px;border-radius:50%;background:#858295}
+#welcome .subject-status-dot.is-available{background:#0B806D}
+#welcome .subject-tile .subject-symbol{display:block!important;line-height:1!important}
+#welcome .subject-tile .subject-symbol svg{width:26px;height:26px;display:block}
+#welcome .subject-coming-soon{display:inline-block!important;background:white!important;color:var(--navy)!important;border-radius:999px!important;padding:3px 8px!important;font-size:10px!important}
+#welcome .subject-legend{display:inline-flex!important;gap:12px!important;font-size:11px!important}
+#welcome .trust-row{grid-area:trust!important;display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:0!important;background:#E3EEFF!important;padding:14px 16px!important;border-radius:20px!important}
+#welcome .trust-item{display:flex!important;align-items:center!important;gap:12px!important;min-width:0!important;padding:0 12px!important}
+#welcome .trust-item:first-child{padding-left:0!important}
+#welcome .trust-item+.trust-item{border-left:1px solid #b8cee8!important}
+#welcome .trust-item svg{width:24px;height:24px;flex:0 0 24px;color:#1B58A8}
+#welcome .trust-item strong{font-size:12px!important;color:var(--navy)!important}
+#welcome .trust-item p{font-size:11px!important;color:var(--navy)!important;opacity:.85!important}
+#welcome a:focus-visible,#welcome button:focus-visible{outline:3px solid var(--violet)!important;outline-offset:2px!important}
+@media(max-width:767px){
+ body:has(#welcome:not(.hidden)) .app-shell{padding:8px 16px 104px!important}
+ body:has(#welcome:not(.hidden)) .legal-footer{width:calc(100% - 32px)!important;margin:8px auto 92px!important;padding:16px!important}
+ body:has(#welcome:not(.hidden)) .legal-footer .legal-footer-grid{grid-template-columns:1fr!important;gap:12px!important}
+ #welcome .subject-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ #welcome .trust-row{grid-template-columns:1fr!important}
+ #welcome .trust-item{padding:10px 0!important}
+ #welcome .trust-item+.trust-item{border-left:0!important;border-top:1px solid #b8cee8!important}
+ #welcome .mobile-start-bar{display:block!important;padding-bottom:calc(10px + env(safe-area-inset-bottom))!important}
+}
+@media(prefers-reduced-motion:reduce){#welcome .subject-tile{transition:none!important}}
+
+/* Founder moved to right column after the how-to card. */
+#welcome .pitch-left-column{grid-area:left!important;display:flex!important;flex-direction:column!important;gap:0!important;align-self:start!important}
+#welcome .pitch-left-column .welcome-copy{margin:0!important;width:100%!important}
+#welcome .new-right-column{grid-area:right!important;display:flex!important;flex-direction:column!important;gap:8px!important;align-self:stretch!important;min-height:0!important}
+#welcome .new-right-column .how-compact{flex:1 1 auto!important}
+#welcome .new-right-column #founderPanel{display:block!important;width:100%!important;min-height:0!important;height:auto!important;margin:0!important;flex:0 0 auto!important}
+#welcome .new-right-column #founderPanel .founder-introduction{display:flex!important;align-items:center!important;gap:12px!important;min-height:76px!important;padding:8px 12px!important;border-radius:20px!important;background:white!important}
+#welcome .new-right-column #founderPanel .founder-introduction-copy{flex:1 1 auto!important;min-width:0!important}
+#welcome .new-right-column #founderPanel .founder-avatar-stage{width:64px!important;height:64px!important;flex:0 0 64px!important}
+#welcome .new-right-column #hearFounder{margin-left:auto!important;min-height:44px!important}
+@media(max-width:900px){
+ #welcome .new-right-column{align-self:start!important;width:100%!important}
+ #welcome .new-right-column .how-compact{flex:none!important}
+}
+
+/* Safe approved-art fallback only: the former blue-uniform placeholder
+   was incorrect. Keep the old image's baked headline outside the visible crop.
+   The true clean WebP still takes precedence once uploaded. */
+#welcome .welcome-intro .pitch-illustration:has(img[src*="robo_teacher_approved_option1_hero.png"]){background:linear-gradient(100deg,#ffe5d5,#fff1e8 60%,#eadcff)!important}
+#welcome .welcome-intro .pitch-illustration picture img[src*="robo_teacher_approved_option1_hero.png"]{
+ position:absolute!important;left:auto!important;right:0!important;top:0!important;
+ width:54%!important;height:100%!important;min-width:0!important;max-width:none!important;
+ object-fit:cover!important;object-position:89% 46%!important;transform:none!important;
+ -webkit-mask-image:linear-gradient(90deg,transparent 0%,black 17%)!important;
+ mask-image:linear-gradient(90deg,transparent 0%,black 17%)!important;
+}
+#welcome .welcome-intro:has(img[src*="robo_teacher_approved_option1_hero.png"])::after{background:linear-gradient(90deg,rgba(255,248,239,.64) 0%,rgba(255,248,239,.34) 40%,transparent 64%)!important}
+@media(max-width:767px){
+ #welcome .welcome-intro .pitch-illustration picture img[src*="robo_teacher_approved_option1_hero.png"]{width:51%!important;object-position:86% center!important}
+}
+
+/* 30 Oct: stable approved-hero fallback. No distortion, clipping or old text on left. */
+#welcome .welcome-intro .pitch-illustration picture img[src*="robo_teacher_approved_option1_hero.png"]{
+ position:absolute!important;top:0!important;right:0!important;left:auto!important;
+ height:100%!important;width:42%!important;max-width:none!important;min-width:0!important;
+ object-fit:cover!important;object-position:76% 37%!important;transform:none!important;
+ mask-image:linear-gradient(90deg,transparent,black 22%)!important;
+ -webkit-mask-image:linear-gradient(90deg,transparent,black 22%)!important;
+}
+#welcome .welcome-intro:has(img[src*="robo_teacher_approved_option1_hero.png"]){background:linear-gradient(105deg,#ffe1d0 0%,#fff4ec 50%,#e9dcff 100%)!important}
+#welcome .welcome-intro:has(img[src*="robo_teacher_approved_option1_hero.png"]) .pitch-hero-text{z-index:3!important}
+@media(max-width:767px){
+ #welcome .welcome-intro .pitch-illustration picture img[src*="robo_teacher_approved_option1_hero.png"]{width:44%!important;object-position:78% 38%!important}
+}
+
+/* Critical fix: legacy landing-layout.css hides the HTML headline completely.
+   Explicitly undo its display:none!important and visually-hidden dimensions. */
+#welcome .welcome-intro > .pitch-hero-text{
+ display:flex!important;visibility:visible!important;opacity:1!important;
+ position:relative!important;z-index:5!important;
+ width:70%!important;min-width:0!important;max-width:760px!important;
+ height:100%!important;min-height:0!important;
+ padding:16px 24px!important;margin:0!important;
+ overflow:visible!important;clip:auto!important;clip-path:none!important;
+ white-space:normal!important;transform:none!important;
+ flex-direction:column!important;align-items:flex-start!important;
+ justify-content:center!important;pointer-events:auto!important;
+}
+#welcome .welcome-intro > .pitch-hero-text h1,
+#welcome .welcome-intro > .pitch-hero-text p,
+#welcome .welcome-intro > .pitch-hero-text .hero-pill,
+#welcome .welcome-intro > .pitch-hero-text .hero-subject-chips{
+ display:block!important;visibility:visible!important;opacity:1!important;
+ clip-path:none!important;white-space:normal!important;
+}
+#welcome .welcome-intro > .pitch-hero-text .hero-subject-chips{display:flex!important;flex-wrap:wrap!important}
+#welcome .welcome-intro .pitch-illustration picture img[src*="robo_teacher_approved_option1_hero.png"]{
+ right:0!important;left:auto!important;width:42%!important;height:100%!important;
+ object-fit:cover!important;object-position:83% 44%!important;
+ -webkit-mask-image:linear-gradient(90deg,transparent 0%,black 28%)!important;
+ mask-image:linear-gradient(90deg,transparent 0%,black 28%)!important;
+}
+#welcome .welcome-intro{background:linear-gradient(110deg,#ffe0d1 0%,#fff4ed 55%,#e9ddff)!important}
+#welcome .welcome-intro::after{pointer-events:none!important;z-index:1!important}
+@media(max-width:767px){
+ #welcome .welcome-intro > .pitch-hero-text{width:78%!important;padding:8px 10px!important}
+ #welcome .welcome-intro > .pitch-hero-text h1{font-size:clamp(19px,5vw,30px)!important}
+ #welcome .welcome-intro .pitch-illustration picture img[src*="robo_teacher_approved_option1_hero.png"]{width:43%!important}
+}
+
+/* Definitive staged-hero composition: image is cropped only inside right art panel.
+   Left 58% holds real HTML; no image pixels or embedded text can enter it. */
+#welcome .welcome-intro{display:block!important;position:relative!important;overflow:hidden!important;background:linear-gradient(105deg,#ffe1d0 0%,#fff1e8 58%,#ebddff 100%)!important}
+#welcome .welcome-intro .pitch-illustration,
+#welcome .welcome-intro .pitch-illustration.hero-ready{
+ position:absolute!important;inset:0 0 0 auto!important;width:43%!important;height:100%!important;
+ overflow:hidden!important;display:block!important;z-index:1!important;pointer-events:none!important;
+}
+#welcome .welcome-intro .pitch-illustration picture{position:relative!important;display:block!important;width:100%!important;height:100%!important;overflow:hidden!important}
+#welcome .welcome-intro .pitch-illustration picture img[src*="robo_teacher_approved_option1_hero.png"]{
+ position:absolute!important;top:50%!important;right:-18%!important;left:auto!important;
+ width:200%!important;height:auto!important;min-width:0!important;max-width:none!important;max-height:none!important;
+ transform:translateY(-50%)!important;object-fit:contain!important;object-position:center!important;
+ filter:none!important;-webkit-mask-image:none!important;mask-image:none!important;
+}
+#welcome .welcome-intro > .pitch-hero-text{
+ display:flex!important;position:relative!important;z-index:4!important;width:63%!important;height:100%!important;
+ min-width:0!important;padding:12px 22px!important;overflow:visible!important;clip-path:none!important;
+ visibility:visible!important;opacity:1!important;justify-content:center!important;align-items:flex-start!important;
+}
+#welcome .welcome-intro::after,#welcome .welcome-intro:has(.hero-ready)::after{
+ content:""!important;display:block!important;position:absolute!important;inset:0!important;
+ background:linear-gradient(90deg,rgba(255,248,239,.35),transparent 58%)!important;
+ z-index:2!important;pointer-events:none!important;
+}
+#welcome .welcome-intro .pitch-illustration.hero-ready{width:100%!important;inset:0!important}
+#welcome .welcome-intro .pitch-illustration.hero-ready picture img{
+ position:absolute!important;inset:0!important;width:100%!important;height:100%!important;
+ object-fit:cover!important;object-position:center center!important;transform:none!important;
+}
+@media(max-width:767px){
+ #welcome .welcome-intro .pitch-illustration:not(.hero-ready){width:42%!important}
+ #welcome .welcome-intro .pitch-illustration picture img[src*="robo_teacher_approved_option1_hero.png"]{
+  right:-14%!important;width:240%!important;top:50%!important;transform:translateY(-50%)!important;
+ }
+ #welcome .welcome-intro > .pitch-hero-text{width:70%!important;padding:8px 10px!important}
+ #welcome .welcome-intro .pitch-illustration.hero-ready{width:100%!important}
+ #welcome .welcome-intro .pitch-illustration.hero-ready picture img{object-position:right center!important}
+}
+
+/* Approved final multilingual banner supplied by founder.
+   The image already contains the headline, subject chips and greetings. */
+#welcome .welcome-intro.multilingual-hero-loaded .pitch-illustration{
+ position:absolute!important;inset:0!important;width:100%!important;height:100%!important;
+ overflow:hidden!important;display:block!important;z-index:2!important;
+}
+#welcome .welcome-intro.multilingual-hero-loaded .pitch-illustration picture,
+#welcome .welcome-intro.multilingual-hero-loaded .pitch-illustration picture img{
+ position:absolute!important;inset:0!important;width:100%!important;height:100%!important;
+ max-width:none!important;object-fit:cover!important;object-position:center center!important;
+ transform:none!important;mask-image:none!important;-webkit-mask-image:none!important;
+}
+#welcome .welcome-intro.multilingual-hero-loaded > .pitch-hero-text{display:none!important}
+#welcome .welcome-intro.multilingual-hero-loaded::after{display:none!important}
+#welcome .welcome-intro.multilingual-hero-unavailable{background:linear-gradient(105deg,#ffdfcf 0%,#fff0e2 56%,#e9ddff 100%)!important}
+#welcome .welcome-intro.multilingual-hero-unavailable > .pitch-hero-text{display:flex!important;width:100%!important;max-width:100%!important}
+#welcome .welcome-intro.multilingual-hero-unavailable .pitch-illustration{display:none!important}
+@media(max-width:767px){
+ #welcome .welcome-intro.multilingual-hero-loaded .pitch-illustration picture img{object-position:right center!important}
+ #welcome .welcome-intro.multilingual-hero-unavailable > .pitch-hero-text{width:100%!important}
+}
+
+/* Approved multilingual image is self-contained: show its entire artwork.
+   Fixed 235px + cover was cropping its top/bottom and important text. */
+#welcome .welcome-intro.multilingual-hero-loaded{
+ aspect-ratio:1920 / 647!important;
+ height:auto!important;min-height:0!important;max-height:none!important;
+ position:relative!important;overflow:hidden!important;border-radius:24px!important;
+}
+#welcome .welcome-intro.multilingual-hero-loaded .pitch-illustration,
+#welcome .welcome-intro.multilingual-hero-loaded .pitch-illustration picture{
+ position:absolute!important;inset:0!important;width:100%!important;height:100%!important;
+ overflow:hidden!important;display:block!important;
+}
+#welcome .welcome-intro.multilingual-hero-loaded .pitch-illustration img{
+ position:absolute!important;inset:0!important;width:100%!important;height:100%!important;
+ object-fit:contain!important;object-position:center center!important;
+ transform:none!important;max-width:none!important;max-height:none!important;
+ -webkit-mask-image:none!important;mask-image:none!important;
+}
+#welcome .welcome-intro.multilingual-hero-loaded > .pitch-hero-text{display:none!important}
+#welcome .welcome-intro.multilingual-hero-loaded::before,
+#welcome .welcome-intro.multilingual-hero-loaded::after{display:none!important}
+@media(max-width:767px){
+ #welcome .welcome-intro.multilingual-hero-loaded{aspect-ratio:1120 / 377!important;height:auto!important;min-height:0!important;max-height:none!important}
+ #welcome .welcome-intro.multilingual-hero-loaded .pitch-illustration img{object-fit:contain!important;object-position:center!important}
+}
+
+/* FINAL: user-approved banner is a single complete image.
+   Supersedes all earlier fallback, crop, mask and split-hero rules. */
+#welcome .welcome-intro.approved-banner-only{
+ display:block!important;position:relative!important;grid-area:hero!important;
+ width:100%!important;height:auto!important;min-height:0!important;
+ max-height:none!important;aspect-ratio:1920/647!important;
+ overflow:hidden!important;border-radius:20px!important;
+ background:transparent!important;padding:0!important;margin:0!important;
+ isolation:isolate!important;box-shadow:none!important;
+}
+#welcome .welcome-intro.approved-banner-only::before,
+#welcome .welcome-intro.approved-banner-only::after{display:none!important;content:none!important}
+#welcome .welcome-intro.approved-banner-only picture.approved-multilingual-banner{
+ display:block!important;position:absolute!important;inset:0!important;
+ width:100%!important;height:100%!important;overflow:hidden!important;
+}
+#welcome .welcome-intro.approved-banner-only picture.approved-multilingual-banner img{
+ display:block!important;position:absolute!important;inset:0!important;
+ width:100%!important;height:100%!important;max-width:none!important;
+ min-width:0!important;max-height:none!important;
+ object-fit:contain!important;object-position:center center!important;
+ transform:none!important;filter:none!important;
+ -webkit-mask-image:none!important;mask-image:none!important;
+ border-radius:0!important;
+}
+@media(max-width:767px){
+ #welcome .welcome-intro.approved-banner-only{
+  height:auto!important;max-height:none!important;min-height:0!important;
+  aspect-ratio:1920/647!important;
+ }
+ #welcome .welcome-intro.approved-banner-only picture.approved-multilingual-banner img{
+  object-fit:contain!important;object-position:center!important;
+ }
+}
+
+/* Respect native <details> disclosure: the footer grid must not override
+   the browser's closed-state rendering, even with display:grid!important. */
+body .legal-footer #businessDetails:not([open]) > .legal-footer-grid{
+  display:none!important;
+}
+body .legal-footer #businessDetails[open] > .legal-footer-grid{
+  display:grid!important;
+}
+
+/* Landing polish pass: preserve the approved image and native onboarding. */
+@media (min-width:768px){
+  body:has(#welcome:not(.hidden)) .app-shell{padding-top:8px!important}
+  #welcome .welcome-intro.approved-banner-only{margin-block:0!important}
+}
+#welcome .pitch-form-heading{
+  border-bottom:0!important;
+  padding-bottom:4px!important;
+}
+#welcome .pitch-form-heading h2{
+  border:0!important;
+  box-shadow:none!important;
+  text-decoration:none!important;
+}
+#welcome .welcome-copy .speech-card .learner-onboarding .privacy-helper{
+  color:#fff!important;opacity:1!important;line-height:1.5!important;
+}
+#welcome .welcome-copy #onboardingError:not(.hidden){
+  color:#172043!important;background:#fff7f4!important;
+  border-left:4px solid #ffb09b!important;
+}
+#welcome .welcome-copy .learner-onboarding input:focus-visible,
+#welcome .welcome-copy .learner-onboarding button:focus-visible,
+#welcome .welcome-copy .pitch-class-choices button:focus-visible,
+#welcome #startLearning:focus-visible{
+  outline:3px solid #ffd60a!important;outline-offset:2px!important;
+}
+#welcome .founder-introduction #hearFounder{
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  gap:6px!important;white-space:nowrap!important;
+}
+#welcome .founder-introduction #hearFounder svg{
+  display:inline-block!important;flex:0 0 16px!important;width:16px!important;height:16px!important;
+  visibility:visible!important;opacity:1!important;
+}
+@media(max-width:767px){
+  #welcome .welcome-intro.approved-banner-only{border-radius:14px!important}
+  #welcome .pitch-left-column,#welcome .new-right-column{min-width:0!important}
+  #welcome .pitch-form-heading{gap:12px!important}
+  #welcome .founder-introduction #hearFounder{min-height:44px!important}
+}
+
+/* Dedicated in-app classroom view: landing/footer content must not follow learner login. */
+body.classroom-view-active .legal-footer{display:none!important}
+body.classroom-view-active #classroom:not(.hidden){min-height:calc(100dvh - 115px)}
+
+/* Screen-switch invariant: override older high-specificity welcome display rules. */
+body.classroom-view-active #welcome.screen.welcome-screen.hidden{display:none!important}
+body:not(.classroom-view-active) #classroom.screen.classroom-screen.hidden{display:none!important}

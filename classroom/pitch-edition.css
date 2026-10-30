@@ -1,0 +1,405 @@
+/* Robo-Teacher Pitch Edition — progressive visual layer.
+   Loaded after legacy styles and Classroom 2.0. No JS, IDs, learner state or routes altered. */
+:root{
+ --pitch-ink:#172b4d;--pitch-blue:#235bd3;--pitch-deep:#153d99;
+ --pitch-teal:#077f79;--pitch-gold:#e9a53a;
+ --pitch-paper:#f3f7ff;--pitch-border:#dfe8f5;
+ --pitch-shadow:0 18px 45px rgba(25,56,105,.09);
+ --pitch-radius:22px;
+}
+html{scroll-behavior:smooth}
+body{background:radial-gradient(ellipse at 12% 0%,#e2efff 0,transparent 34%),radial-gradient(ellipse at 95% 18%,#d8f3ee 0,transparent 26%),#f5f8ff;color:var(--pitch-ink);line-height:1.5}
+.app-shell{max-width:1500px;padding:clamp(12px,2.5vw,32px)}
+.brandbar{position:relative;background:rgba(255,255,255,.94);border:1px solid var(--pitch-border);box-shadow:0 8px 28px rgba(18,50,102,.05);border-radius:22px;padding:clamp(12px,2vw,20px);gap:12px}
+.brandmark strong{color:#153265;letter-spacing:.035em;font-size:clamp(15px,1.8vw,21px)}
+.brandmark small{color:#507297;letter-spacing:.06em}
+.version{background:#e5f7f2;color:#086d69;border-color:#c1e7dd;font-weight:750}
+#welcome{min-height:unset;align-items:start;gap:clamp(18px,3.2vw,46px)}
+#welcome .welcome-intro{padding:clamp(8px,2vw,32px) 0}
+#welcome .welcome-intro h1{color:#12356b;font-size:clamp(2rem,4vw,4rem);letter-spacing:-.045em;line-height:1.08;max-width:16ch;text-wrap:balance}
+#welcome .welcome-intro>p:last-child{font-size:clamp(15px,1.5vw,19px);color:#55708a;max-width:52ch}
+.eyebrow,.practice-kicker{color:var(--pitch-teal);font-weight:850;letter-spacing:.1em}
+#welcome .student-first-founder-panel{border:1px solid #d1e2f4;border-radius:26px;box-shadow:var(--pitch-shadow);overflow:hidden}
+#welcome .student-welcome-photo{border-radius:22px;overflow:hidden}
+#welcome .student-welcome-photo img{object-fit:cover}
+#welcome .welcome-copy,#welcome .welcome-start-guide,.teacher-panel,.practice-area,.progress-area,.revision-panel,.learner-code-manager,.teacher-dashboard-content{background:#fff;border:1px solid var(--pitch-border);border-radius:var(--pitch-radius);box-shadow:var(--pitch-shadow)}
+#welcome .welcome-copy,#welcome .welcome-start-guide{padding:clamp(18px,2.4vw,30px)}
+#welcome .welcome-start-guide{background:linear-gradient(140deg,#fff 40%,#eff8ff)}
+#welcome .welcome-start-guide li{color:#365374}
+#welcome .welcome-actions{gap:12px;flex-wrap:wrap}
+button,.primary,.send{transition:background-color .2s ease,box-shadow .2s ease,transform .2s ease}
+button:not(:disabled):active{transform:translateY(1px)}
+.primary,.send,.practice-primary,.practice-answer-form button[type="submit"]{background:linear-gradient(135deg,#235bd3,#1746a9);border:1px solid #1746a9;color:#fff;box-shadow:0 7px 17px rgba(30,86,190,.17);border-radius:14px;font-weight:800}
+.primary:hover:not(:disabled),.send:hover:not(:disabled),.practice-primary:hover:not(:disabled){background:#173e99;box-shadow:0 10px 23px rgba(27,75,162,.24)}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #e9a53a;outline-offset:3px}
+input,select,textarea{border-radius:12px;max-width:100%;font-size:16px}
+.classroom-screen{min-width:0}
+.teacher-panel{position:relative;overflow:hidden;background:linear-gradient(115deg,#fff 55%,#e7f7f5);border-color:#cfe3f3;padding:clamp(16px,2vw,26px)}
+.teacher-panel::before{content:"";position:absolute;width:180px;height:180px;right:-70px;top:-100px;background:#bdeae1;border-radius:50%;opacity:.5;pointer-events:none}
+.teacher-panel>*{position:relative}
+.teacher-caption strong{color:#133d71}
+.class-tools{background:#fff;border:1px solid #dce9f6;border-radius:18px;padding:8px;box-shadow:0 8px 25px rgba(21,50,110,.07);gap:6px}
+.class-tools button{border-radius:12px;min-height:44px;font-weight:750}
+.class-tools button:hover:not(:disabled){background:#eaf3ff;color:#184aa5}
+.class-tools button[aria-selected="true"],.class-tools button.active{background:#e3efff;color:#184aa5}
+.practice-area,.progress-area,.revision-panel{padding:clamp(16px,2.5vw,30px)}
+.practice-area h2,.progress-area h2,.revision-panel h2{color:#15376f;letter-spacing:-.02em}
+.practice-question,.practice-setup,.practice-results,.progress-stats>*,.progress-recommendation,.topic-progress{border-radius:18px}
+.practice-question{background:#f3f8ff;border:1px solid #dbe9ff}
+.practice-answer-form button,.practice-actions button{min-height:44px}
+.progress-stats{gap:14px}
+.progress-stats>*{background:linear-gradient(145deg,#f0f7ff,#fff);border:1px solid #dbe8fb}
+.progress-recommendation{background:#eaf7f4;border:1px solid #c8e7df}
+#teacherDashboard,#learnerCodeManager,#qaChecklist{max-width:100%}
+.message{border-radius:18px;line-height:1.65}
+.message.teacher{background:#eaf3ff;border:1px solid #d5e7ff;color:#153562}
+.legal-footer-links{flex-wrap:wrap;row-gap:10px}
+.legal-footer-links a{color:#315f9c}
+@media(max-width:900px){
+ .app-shell{padding:14px}
+ .brandbar{margin-bottom:14px}
+ #welcome{gap:16px}
+ .teacher-panel{padding:16px}
+ .class-tools{overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:thin}
+ .class-tools button{flex:0 0 auto}
+}
+@media(max-width:600px){
+ .app-shell{padding:10px 10px 24px}
+ .brandbar{border-radius:15px;padding:10px 12px}
+ .brandmark{gap:8px;min-width:0}
+ .brandmark strong{font-size:15px;letter-spacing:.01em}
+ .brandmark small{font-size:9px}
+ .version{font-size:10px;padding:6px 8px}
+ #welcome .welcome-intro{padding:8px 4px}
+ #welcome .welcome-intro h1{font-size:clamp(29px,8.2vw,39px);max-width:16ch}
+ #welcome .welcome-copy,#welcome .welcome-start-guide,.practice-area,.progress-area{padding:16px;border-radius:17px}
+ #welcome .student-first-founder-panel{border-radius:18px}
+ .teacher-panel{border-radius:17px}
+ .teacher-panel .teacher-caption{min-width:0}
+ .class-tools{border-radius:14px}
+ .progress-columns,.progress-stats{min-width:0}
+ input,select,textarea{width:auto;max-width:100%}
+}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}button{transition:none}}
+
+/* Pitch Edition v2 — visibly different, learner-first landing flow. */
+#welcome{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.94fr);grid-template-areas:"hero visual" "signup visual";align-items:start;column-gap:clamp(20px,4vw,56px);row-gap:18px}
+#welcome .welcome-intro{grid-area:hero;position:relative;padding:clamp(26px,4vw,62px) clamp(24px,3.5vw,48px);background:linear-gradient(132deg,#103978 0%,#1953ad 63%,#087e87 140%);border-radius:30px;box-shadow:0 24px 60px rgba(13,58,122,.2);overflow:hidden;isolation:isolate}
+#welcome .welcome-intro::after{content:"";position:absolute;z-index:-1;right:-56px;bottom:-110px;width:270px;height:270px;border:40px solid rgba(255,255,255,.08);border-radius:50%}
+#welcome .welcome-intro .eyebrow{color:#a7f9dd;font-size:12px;letter-spacing:.12em;margin-bottom:16px}
+#welcome .welcome-intro h1{color:#fff;font-size:clamp(34px,3.6vw,60px);max-width:18ch;margin:0 0 20px;letter-spacing:-.05em;line-height:1.12}
+#welcome .welcome-intro h1 .pitch-highlight{color:#a8f5df}
+#welcome .welcome-intro>p:last-of-type{color:#dceaff;font-size:clamp(15px,1.5vw,19px);max-width:40ch;margin:0}
+.pitch-feature-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+.pitch-feature-chips span{padding:8px 11px;border-radius:999px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);color:#fff;font-size:12px;font-weight:700}
+#welcome .welcome-copy{grid-area:signup;margin:0;border:1px solid #c9e2fc;box-shadow:0 14px 36px rgba(25,56,105,.08);border-radius:24px}
+#welcome .welcome-copy>.eyebrow{color:#116d84}
+#welcome .welcome-copy .speech-card{background:transparent;border:0;box-shadow:none}
+#welcome .welcome-copy .speech-card h2{color:#15396d}
+#welcome .welcome-copy .learner-onboarding{gap:10px}
+#welcome .welcome-copy .learner-onboarding label{font-weight:750;color:#294665}
+#welcome .welcome-copy #startLearning{min-height:54px;font-size:17px;padding:12px 22px}
+#welcome .welcome-visual-column{grid-area:visual;display:flex;flex-direction:column;gap:18px;min-width:0}
+#welcome .student-first-founder-panel{box-shadow:0 22px 50px rgba(27,71,116,.12)}
+#welcome .student-welcome-photo{height:clamp(340px,39vw,550px)}
+#welcome .founder-introduction{border-radius:20px}
+#welcome .welcome-start-guide{border-left:4px solid #23a6a0}
+@media(max-width:900px){
+ #welcome{grid-template-columns:minmax(0,1fr);grid-template-areas:"hero" "signup" "visual";gap:16px}
+ #welcome .welcome-intro{padding:26px 24px;border-radius:23px}
+ #welcome .welcome-intro h1{font-size:clamp(32px,7vw,50px);max-width:19ch}
+ #welcome .welcome-copy{grid-row:auto}
+ #welcome .welcome-visual-column{display:flex;grid-area:visual}
+}
+@media(max-width:600px){
+ #welcome{display:flex;flex-direction:column;gap:14px}
+ #welcome .welcome-intro,#welcome .welcome-copy,#welcome .welcome-visual-column{width:100%;min-width:0}
+ #welcome .welcome-intro{padding:26px 20px 24px;border-radius:22px}
+ #welcome .welcome-intro h1{font-size:clamp(30px,8vw,43px);line-height:1.12;max-width:18ch}
+ #welcome .welcome-intro .eyebrow{font-size:11px}
+ #welcome .welcome-intro>p:last-of-type{font-size:15px}
+ .pitch-feature-chips{margin-top:16px;gap:6px}
+ .pitch-feature-chips span{font-size:11px;padding:7px 9px}
+ #welcome .welcome-copy{padding:18px 16px;border-radius:20px}
+ #welcome .welcome-visual-column{display:flex;flex-direction:column;gap:14px}
+ #welcome .student-welcome-photo{height:330px}
+ #welcome .welcome-start-guide{padding:18px}
+}
+
+/* Approved student-centred hero: girl with books, visible before the photo and founder introduction. */
+#welcome .welcome-intro{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(170px,.95fr);align-items:center;column-gap:12px}
+#welcome .welcome-intro>.eyebrow,#welcome .welcome-intro>h1,#welcome .welcome-intro>p,#welcome .welcome-intro>.pitch-feature-chips{grid-column:1}
+#welcome .welcome-intro>.eyebrow{align-self:end}
+#welcome .welcome-intro>h1{font-size:clamp(32px,3vw,52px)}
+#welcome .welcome-intro>.pitch-illustration{grid-column:2;grid-row:1/5;align-self:stretch;display:flex;align-items:end;justify-content:center;min-width:0}
+#welcome .pitch-illustration img{width:100%;max-height:380px;object-fit:contain;filter:drop-shadow(0 18px 15px rgba(0,24,69,.18))}
+@media(max-width:1100px){#welcome .welcome-intro{grid-template-columns:minmax(0,1fr) minmax(130px,.65fr)}}
+@media(max-width:600px){
+ #welcome .welcome-intro{display:grid;grid-template-columns:minmax(0,1fr) minmax(112px,.52fr);column-gap:4px;padding:22px 14px}
+ #welcome .welcome-intro>.eyebrow,#welcome .welcome-intro>h1,#welcome .welcome-intro>p,#welcome .welcome-intro>.pitch-feature-chips{grid-column:1}
+ #welcome .welcome-intro>h1{font-size:clamp(25px,6.4vw,37px);line-height:1.12}
+ #welcome .welcome-intro>p:last-of-type{font-size:13px}
+ #welcome .pitch-illustration img{max-height:270px;width:100%}
+ #welcome .pitch-feature-chips span{font-size:10px}
+}
+
+/* Reference-aligned landing layout: top bar, girl-and-books hero, founder strip, lavender steps, onboarding. */
+body:has(#welcome:not(.hidden)){background:#fff8f3}
+body:has(#welcome:not(.hidden)) .app-shell{max-width:1230px}
+body:has(#welcome:not(.hidden)) .brandbar{background:#fff9f3;border:0;box-shadow:none;border-radius:0;padding:12px 16px;margin:0}
+body:has(#welcome:not(.hidden)) .brandmark{display:flex;align-items:center;gap:12px}
+body:has(#welcome:not(.hidden)) .brand-logo{width:57px;height:57px;object-fit:contain}
+body:has(#welcome:not(.hidden)) .pitch-header-copy{display:flex;flex-direction:column;border-left:1px solid #d6d3d7;padding-left:13px}
+body:has(#welcome:not(.hidden)) .pitch-header-copy small{font-size:13px;letter-spacing:0;color:#7d7788;font-weight:500}
+body:has(#welcome:not(.hidden)) .pitch-header-copy strong{font-size:21px;line-height:1.05;letter-spacing:-.035em;color:#101d42}
+body:has(#welcome:not(.hidden)) .brandbar .version{display:none}
+#welcome{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"hero hero" "founder guide" "signup guide";gap:16px;min-height:0;align-items:start}
+#welcome .welcome-intro{grid-area:hero;position:relative;display:flex;flex-direction:row;align-items:center;justify-content:space-between;min-height:340px;padding:0 0 0 clamp(25px,5vw,80px);border:0;border-radius:0;background:linear-gradient(120deg,#ffdfcf 0%,#fff0da 48%,#c8d9ff 100%);box-shadow:none;overflow:hidden}
+#welcome .welcome-intro::before{content:"";position:absolute;left:-35px;bottom:-35px;width:100%;height:120px;background:radial-gradient(ellipse at 50% 100%,#8889db 0,transparent 65%);opacity:.35}
+#welcome .welcome-intro::after{content:"";position:absolute;right:26%;top:13%;width:48px;height:48px;border:12px solid #b66ae6;border-radius:50%;background:none;opacity:.45}
+#welcome .pitch-hero-text{position:relative;z-index:2;min-width:0;flex:1}
+#welcome .pitch-hero-text h1{font-size:clamp(37px,5vw,70px);line-height:1.04;letter-spacing:-.06em;color:#101a45;font-weight:900;max-width:10ch;margin:0 0 18px;text-shadow:none}
+#welcome .pitch-hero-text p{font-size:clamp(17px,2vw,25px);font-weight:750;color:#34476b;margin:0}
+#welcome .pitch-illustration{position:relative;z-index:1;flex:1;align-self:stretch;display:flex;align-items:flex-end;justify-content:center;min-width:0}
+#welcome .pitch-illustration img{width:min(100%,420px);height:100%;max-height:400px;object-fit:contain;object-position:bottom;filter:drop-shadow(0 10px 13px #8c6b9455)}
+#welcome .pitch-hero-orbit{position:absolute;right:8%;top:7%;font-size:44px;color:#f59c3d}
+#welcome .welcome-visual-column{display:contents}
+#welcome .student-first-founder-panel{grid-area:founder;display:contents;min-width:0;box-shadow:none;border:0;overflow:visible}
+#welcome .student-welcome-photo{display:none}
+#welcome .founder-introduction{grid-area:founder;position:static;display:grid;grid-template-columns:74px minmax(0,1fr);align-items:center;background:#fff;padding:13px;border:1px solid #f0edf3;border-radius:20px;box-shadow:0 6px 22px #27235c0b;gap:12px}
+#welcome .founder-introduction .founder-avatar-stage{width:64px;height:64px;border-radius:50%;overflow:hidden}
+#welcome .founder-introduction .founder-avatar{width:100%;height:100%;object-fit:cover}
+#welcome .founder-introduction-copy{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center}
+#welcome .founder-introduction-copy strong{color:#182147;font-size:17px;flex-basis:100%}
+#welcome .founder-introduction-copy p{color:#7c8198;font-size:12px;flex:1;min-width:145px;margin:0}
+#welcome .founder-introduction #hearFounder{background:#eee7ff;color:#544b91;border-radius:14px;border:0;padding:11px;font-size:12px;min-height:42px;box-shadow:none}
+#welcome .welcome-start-guide{grid-area:guide;display:block!important;padding:20px;border-radius:22px;background:#eee9ff;border:0;border-left:0;box-shadow:none;min-width:0}
+#welcome .welcome-start-guide h2{text-align:center;font-size:24px;color:#171c40;font-weight:850;margin:0 0 13px}
+#welcome .welcome-start-guide .welcome-guide-intro{display:none}
+#welcome .welcome-start-guide ol{display:grid;list-style:none;counter-reset:startstep;gap:7px;padding:0;margin:0}
+#welcome .welcome-start-guide li{position:relative;counter-increment:startstep;display:flex;flex-direction:column;justify-content:center;min-height:71px;padding:12px 45px 12px 48px;background:#fff;border-radius:13px;color:#6e7187;font-size:12px;line-height:1.35}
+#welcome .welcome-start-guide li:before{content:counter(startstep);position:absolute;left:11px;top:50%;transform:translateY(-50%);width:27px;height:27px;border-radius:50%;display:grid;place-items:center;background:#ffe1e8;color:#a54562;font-weight:800;font-size:15px}
+#welcome .welcome-start-guide li:nth-child(2):before{background:#e7ddff;color:#705ac0}
+#welcome .welcome-start-guide li:nth-child(3):before{background:#fff3b9;color:#8c6c16}
+#welcome .welcome-start-guide li:nth-child(4):before{background:#d4faec;color:#15826c}
+#welcome .welcome-start-guide li:nth-child(5):before{background:#d9f0ff;color:#2673af}
+#welcome .welcome-start-guide li strong{display:block;color:#1c2246;font-size:14px;margin-bottom:3px}
+#welcome .welcome-start-guide li em{font-weight:inherit}
+#welcome .welcome-start-guide .welcome-guide-note{border-radius:12px}
+#welcome .welcome-copy{grid-area:signup;border-radius:20px;min-width:0}
+@media(max-width:760px){
+ body:has(#welcome:not(.hidden)) .app-shell{padding:0 0 24px}
+ body:has(#welcome:not(.hidden)) .brandbar{padding:12px 17px}
+ #welcome{display:flex;flex-direction:column;gap:0}
+ #welcome .welcome-intro{display:flex;width:100%;min-height:245px;max-height:none;padding:14px 0 0 17px;border-radius:0;gap:0}
+ #welcome .pitch-hero-text{flex:1.05;align-self:center}
+ #welcome .pitch-hero-text h1{font-size:clamp(31px,8vw,46px);margin:0 0 10px}
+ #welcome .pitch-hero-text p{font-size:clamp(14px,3.8vw,20px)}
+ #welcome .pitch-illustration{flex:1;min-width:0;grid-column:auto;grid-row:auto;align-self:stretch}
+ #welcome .pitch-illustration img{width:100%;height:100%;max-height:280px;object-position:bottom}
+ #welcome .pitch-hero-orbit{right:14%;top:5%}
+ #welcome .welcome-visual-column{display:contents}
+ #welcome .student-first-founder-panel{display:contents}
+ #welcome .founder-introduction{order:2;grid-area:auto;display:grid;position:static;width:calc(100% - 22px);margin:8px 11px 0;grid-template-columns:65px minmax(0,1fr);padding:9px}
+ #welcome .founder-introduction .founder-avatar-stage{width:54px;height:54px}
+ #welcome .founder-introduction-copy strong{font-size:14px}
+ #welcome .founder-introduction-copy p{font-size:11px;min-width:125px}
+ #welcome .founder-introduction #hearFounder{font-size:11px;padding:8px}
+ #welcome .welcome-start-guide{order:3;grid-area:auto;width:calc(100% - 22px);margin:8px 11px 0;padding:13px 10px 15px;border-radius:20px}
+ #welcome .welcome-start-guide h2{font-size:22px}
+ #welcome .welcome-start-guide li{min-height:60px;padding:10px 13px 10px 46px}
+ #welcome .welcome-start-guide li strong{font-size:13px}
+ #welcome .welcome-copy{order:4;grid-area:auto;width:calc(100% - 22px);margin:10px 11px 0}
+}
+
+/* Option 1 restoration: approved purple registration and colourful instruction cards. */
+#welcome .welcome-start-guide{background:#e8e2ff}
+#welcome .welcome-start-guide li{border-radius:17px;border:1px solid #f7f4ff;box-shadow:0 1px 0 #fff;min-height:75px}
+#welcome .welcome-start-guide li::after{position:absolute;right:13px;top:50%;transform:translateY(-50%);border-radius:50%;width:31px;height:31px;display:grid;place-items:center;font-size:18px;font-weight:700}
+#welcome .welcome-start-guide li:nth-child(1)::after{content:"♙";color:#c65a70;background:#ffe7ea}
+#welcome .welcome-start-guide li:nth-child(2)::after{content:"▤";color:#6f4ecc;background:#eee4ff}
+#welcome .welcome-start-guide li:nth-child(3)::after{content:"⚑";color:#a16f10;background:#fff4cf}
+#welcome .welcome-start-guide li:nth-child(4)::after{content:"☷";color:#168a68;background:#d9fbef}
+#welcome .welcome-start-guide li:nth-child(5)::after{content:"♧";color:#2879b6;background:#e4f5ff}
+#welcome .welcome-start-guide li:nth-child(6)::after{content:"▥";color:#745ac8;background:#eee8ff}
+#welcome .welcome-copy{background:linear-gradient(145deg,#382187,#5438ad 65%,#392080);border:0;color:#fff;padding:clamp(20px,3.5vw,34px);box-shadow:0 12px 30px #2a1d7430;border-radius:25px}
+#welcome .welcome-copy>.pitch-onboarding-kicker{display:none}
+#welcome .welcome-copy .speech-card{background:transparent!important;color:#fff!important;border:0!important;padding:0!important}
+#welcome .welcome-copy .speech-card h2{color:#fff!important;font-size:clamp(30px,4vw,43px);font-weight:900;letter-spacing:-.045em;line-height:1.05;margin:0 0 22px}
+#welcome .welcome-copy .learner-onboarding label{color:#fff;font-size:14px;font-weight:730}
+#welcome .welcome-copy .learner-onboarding input:not([type="checkbox"]),#welcome .welcome-copy .learner-onboarding select{background:#fff!important;border:1px solid #e9defd!important;border-radius:12px!important;color:#1e2250!important;min-height:46px;padding:11px 13px}
+#welcome .welcome-copy .learner-onboarding input::placeholder{color:#9b93bb}
+#welcome .welcome-copy .learner-code-row{gap:10px}
+#welcome .welcome-copy #generateLearnerCode{background:#ded1ff;color:#2b1d5d;border:0;border-radius:28px;min-height:44px;font-weight:750;padding:10px 13px}
+#welcome .pitch-class-choices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+#welcome .pitch-class-choices button{display:flex;align-items:center;justify-content:center;gap:10px;background:#fff!important;color:#252050!important;border:2px solid transparent;border-radius:12px;min-height:49px;font-weight:800;box-shadow:none}
+#welcome .pitch-class-choices button::before{content:"";width:17px;height:17px;border:2px solid #32256a;border-radius:50%}
+#welcome .pitch-class-choices button.selected{background:#f9f4ff!important;border-color:#ffeb49}
+#welcome .pitch-class-choices button.selected::before{box-shadow:inset 0 0 0 4px #fff;background:#4b31a4}
+#welcome #learnerClass{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none}
+#welcome .learner-consent{color:#fff}
+#welcome .learner-consent label,#welcome .learner-consent a{color:#fff!important}
+#welcome .learner-code-help,#welcome .privacy-helper,#welcome .privacy-note{color:#e0d7ff!important}
+#welcome .privacy-note{margin-top:13px}
+#welcome .welcome-actions{display:flex;flex-direction:column;gap:8px}
+#welcome #startLearning{background:#fff744!important;color:#171748!important;border:0!important;border-radius:100px!important;font-size:clamp(17px,2vw,23px)!important;font-weight:900;min-height:58px;width:100%;box-shadow:none}
+#welcome #startLearning:hover{background:#fff967!important}
+#welcome #showTeacherLogin{background:transparent;color:#f5edff;border:0;text-decoration:underline;box-shadow:none;align-self:center}
+#welcome .secondary-clear{color:#ded2ff;background:transparent}
+#welcome .learner-consent input{accent-color:#fff344}
+@media(max-width:760px){
+ #welcome .welcome-copy{width:calc(100% - 22px);padding:19px 16px 24px;border-radius:23px}
+ #welcome .welcome-start-guide li{min-height:66px;padding-right:44px}
+ #welcome .welcome-copy .speech-card h2{font-size:31px;margin-bottom:20px}
+ #welcome .pitch-class-choices{gap:7px}
+ #welcome .pitch-class-choices button{font-size:13px}
+ #welcome .learner-code-row{flex-wrap:wrap}
+ #welcome .learner-code-row input{flex:1 1 165px}
+}
+
+/* Layout correction from 28 Oct screenshot: stop guide's height creating an empty left row. */
+@media (min-width:761px){
+ #welcome{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  grid-template-rows:auto min-content min-content;
+  grid-template-areas:"hero hero" "founder guide" "signup guide";
+  column-gap:18px;row-gap:14px;
+  align-items:start;align-content:start;
+ }
+ #welcome .welcome-intro{grid-area:hero}
+ #welcome .welcome-visual-column,#welcome #founderPanel{display:contents}
+ #welcome .founder-introduction{grid-area:founder;margin:0;min-height:88px}
+ #welcome .welcome-copy{grid-area:signup;margin:0;align-self:start}
+ #welcome .welcome-start-guide{grid-area:guide;grid-row:2 / 4;margin:0;align-self:start}
+}
+@media (max-width:760px){
+ #welcome{display:flex;flex-direction:column;gap:10px}
+ #welcome .welcome-intro{order:1}
+ #welcome .welcome-visual-column,#welcome #founderPanel{display:contents}
+ #welcome .founder-introduction{order:2}
+ #welcome .welcome-start-guide{order:3}
+ #welcome .welcome-copy{order:4}
+}
+
+/* Original approved artwork contains its own logo, headline, illustration and skyline.
+   Present it as a single intact image; never overlay duplicate heading text. */
+#welcome .welcome-intro{display:block!important;position:relative;padding:0!important;min-height:0!important;max-height:none!important;background:#fff0e3!important;border-radius:18px!important;overflow:hidden}
+#welcome .welcome-intro::before,#welcome .welcome-intro::after,#welcome .pitch-hero-orbit{display:none!important}
+#welcome .pitch-hero-text{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip-path:inset(50%)!important;white-space:nowrap!important}
+#welcome .pitch-illustration{display:block!important;width:100%!important;height:auto!important;max-height:none!important;margin:0!important;min-width:0!important}
+#welcome .pitch-illustration img{display:block!important;width:100%!important;max-width:100%!important;height:auto!important;max-height:none!important;object-fit:contain!important;object-position:center!important;filter:none!important;border-radius:0}
+#welcome .welcome-copy .secondary-clear{color:#fff!important;font-weight:750;text-decoration:underline}
+#welcome .welcome-copy .learner-code-help,#welcome .welcome-copy .privacy-helper,#welcome .welcome-copy .privacy-note{color:#f6efff!important;font-size:12px;line-height:1.55}
+#welcome .welcome-copy .onboarding-error{color:#fff5be!important;font-weight:700}
+#welcome .welcome-copy button:focus-visible,#welcome .welcome-copy input:focus-visible{outline:3px solid #fff744;outline-offset:3px}
+@media(min-width:761px){
+ #welcome .welcome-intro{grid-area:hero}
+ #welcome .welcome-copy{align-self:start}
+}
+@media(max-width:760px){
+ #welcome .welcome-intro{border-radius:0!important}
+ #welcome .pitch-illustration img{width:100%!important;height:auto!important}
+}
+
+/* Option 1 application-wide visual system — scoped to active classroom, not welcome. */
+#classroom{--rt-purple:#4a328f;--rt-lavender:#eee8ff;--rt-peach:#fff3e9;--rt-yellow:#fff44a;--rt-ink:#17254a;color:var(--rt-ink)}
+#classroom .lesson-header{background:linear-gradient(120deg,#fff1e1,#f5efff);padding:clamp(16px,2.5vw,28px);border:1px solid #eadffa;border-radius:22px;box-shadow:0 9px 26px rgba(46,32,105,.07);gap:12px}
+#classroom .lesson-header h2{font-weight:850;letter-spacing:-.035em;color:#1b2451;font-size:clamp(22px,2.6vw,34px);line-height:1.17}
+#classroom .lesson-header .eyebrow{color:#6850a8}
+#classroom .lesson-actions{flex-wrap:wrap;gap:10px}
+#classroom .lesson-actions select,#classroom .lesson-actions button{min-height:44px;border-radius:12px;border:1px solid #dfd4f2;background:#fff;color:#2d2857}
+#classroom .teacher-panel{background:linear-gradient(145deg,#45308a,#6e51b3);color:#fff;border:0;border-radius:22px;box-shadow:0 14px 32px rgba(50,31,117,.13)}
+#classroom .teacher-panel .teacher-toolbar strong,#classroom .teacher-panel .teacher-caption{color:#fff}
+#classroom .teacher-panel .teacher-voice-status{color:#e8fbef}
+#classroom .teacher-panel button,#classroom .teacher-panel summary{border-radius:12px}
+#classroom .teacher-panel .teacher-avatar-stage{border:3px solid #fff9c4;border-radius:20px;overflow:hidden}
+#classroom .learning-area{min-width:0}
+#classroom .teaching-canvas{background:#fff;border:1px solid #e6dff7;border-radius:23px;box-shadow:0 11px 30px rgba(48,34,103,.06);min-width:0}
+#classroom .canvas-empty{background:radial-gradient(circle at 90% 12%,#fff2cb,transparent 36%),linear-gradient(140deg,#fff9f5,#f6efff);border-radius:20px;padding:clamp(20px,3vw,38px)}
+#classroom .canvas-empty strong{color:#2b225c;font-size:clamp(20px,2.4vw,29px);letter-spacing:-.025em}
+#classroom .canvas-entry-actions{display:flex;gap:10px;flex-wrap:wrap}
+#classroom .canvas-entry-actions button{background:#fff;border:2px solid #e1d6f5;color:#432e8a;border-radius:14px;min-height:48px;font-weight:750}
+#classroom .canvas-entry-actions button:hover{background:#eee8ff}
+#classroom .class-tools{background:#fff;border:1px solid #e4dbf5;border-radius:18px}
+#classroom .class-tools button{color:#3c3477;border-radius:12px}
+#classroom .class-tools button.active,#classroom .class-tools button[aria-selected="true"],#classroom .class-tools button[aria-current="page"]{background:#eee8ff;color:#3e258f}
+#classroom .practice-area,#classroom .progress-area,#classroom .revision-panel,#classroom .my-lessons-area,#classroom .daily-plan-area{background:#fff;border:1px solid #e5def6;border-radius:22px;box-shadow:0 10px 26px rgba(45,32,97,.05)}
+#classroom .practice-area h2,#classroom .progress-area h2,#classroom .revision-panel h2{color:#282058;letter-spacing:-.03em}
+#classroom .practice-question,#classroom .practice-setup,#classroom .practice-results{background:#f8f4ff;border:1px solid #ebe2ff;border-radius:18px}
+#classroom .practice-primary,#classroom .practice-answer-form button[type="submit"]{background:#4b329b;border:0;color:#fff;border-radius:14px;min-height:48px;box-shadow:none}
+#classroom .practice-primary:hover,#classroom .practice-answer-form button[type="submit"]:hover{background:#352276}
+#classroom .progress-stats>*,#classroom .progress-recommendation,#classroom .topic-progress{border-radius:18px;border:1px solid #e7ddf8;background:#fcfaff}
+#classroom .progress-recommendation{background:#e9f9f2;border-color:#c5ebde}
+#classroom .teacher-dashboard-content{border:1px solid #e9def8;border-radius:20px;background:#fff}
+#classroom .message.teacher{background:#f1ecff;color:#2d225d;border:1px solid #e0d5f9}
+#classroom input:focus-visible,#classroom select:focus-visible,#classroom button:focus-visible{outline:3px solid #ffc72f;outline-offset:3px}
+@media(max-width:900px){
+ #classroom .lesson-header{padding:16px}
+ #classroom .teacher-panel{border-radius:18px}
+ #classroom .teaching-canvas{border-radius:18px}
+ #classroom .class-tools{display:flex;overflow-x:auto;max-width:100%;scrollbar-width:thin}
+ #classroom .class-tools button{flex:0 0 auto;min-height:44px}
+}
+@media(max-width:600px){
+ #classroom .lesson-header{padding:14px;border-radius:17px}
+ #classroom .lesson-header h2{font-size:24px}
+ #classroom .teacher-panel{padding:13px}
+ #classroom .canvas-entry-actions{flex-direction:column}
+ #classroom .canvas-entry-actions button{width:100%}
+ #classroom .practice-area,#classroom .progress-area,#classroom .daily-plan-area,#classroom .my-lessons-area{padding:14px;border-radius:17px}
+}
+
+/* Option 1 alignment repair: actual grouped columns, no implicit grid rows. */
+body:has(#welcome:not(.hidden)) .brandbar{display:none!important}
+#welcome{align-content:start!important;align-items:start!important}
+#welcome .pitch-left-column{min-width:0;display:flex;flex-direction:column;gap:16px;align-self:start}
+#welcome .pitch-left-column #founderPanel{display:block!important;position:relative;min-width:0;margin:0;box-shadow:none;border:0;background:transparent}
+#welcome .pitch-left-column #founderPanel .student-welcome-photo{display:none!important}
+#welcome .pitch-left-column .founder-introduction{position:relative!important;inset:auto!important;margin:0!important;width:100%!important;display:grid!important;grid-template-columns:68px minmax(0,1fr);min-height:88px}
+#welcome .pitch-left-column .welcome-copy{width:100%!important;margin:0!important;min-width:0;align-self:stretch}
+#welcome .welcome-start-guide{margin:0!important;align-self:start;min-width:0}
+@media(min-width:761px){
+ #welcome{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;grid-template-rows:auto auto!important;grid-template-areas:"hero hero" "left guide"!important;column-gap:20px;row-gap:16px}
+ #welcome .welcome-intro{grid-area:hero!important}
+ #welcome .pitch-left-column{grid-area:left!important}
+ #welcome .welcome-start-guide{grid-area:guide!important;grid-row:auto!important}
+}
+@media(max-width:760px){
+ #welcome{display:flex!important;flex-direction:column;gap:12px}
+ #welcome .welcome-intro{order:1}
+ #welcome .pitch-left-column{display:contents}
+ #welcome .pitch-left-column #founderPanel{order:2;width:calc(100% - 24px);margin:0 12px!important}
+ #welcome .welcome-start-guide{order:3;width:calc(100% - 24px);margin:0 12px!important}
+ #welcome .pitch-left-column .welcome-copy{order:4;width:calc(100% - 24px)!important;margin:0 12px!important}
+ #welcome .pitch-left-column .founder-introduction{grid-template-columns:58px minmax(0,1fr);min-height:78px}
+}
+
+/* Targeted layout fix: old founder-panel minimum height caused the blank gap. */
+#welcome .pitch-left-column #founderPanel{
+  min-height:0!important;height:auto!important;max-height:none!important;
+  align-self:start!important;flex:none!important;
+}
+#welcome .pitch-left-column .founder-introduction{
+  min-height:78px!important;
+}
+@media(min-width:761px){
+  #welcome{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    grid-template-rows:auto auto!important;grid-template-areas:"hero hero" "left guide"!important;
+    align-items:start!important;gap:16px!important;}
+  #welcome .welcome-intro{grid-area:hero!important}
+  #welcome .pitch-left-column{grid-area:left!important;display:flex!important;flex-direction:column!important;
+    height:auto!important;gap:12px!important;align-self:start!important}
+  #welcome .pitch-left-column .welcome-copy{grid-area:auto!important;grid-row:auto!important;grid-column:auto!important;
+    align-self:stretch!important;flex:none!important;margin:0!important}
+  #welcome>.welcome-start-guide{grid-area:guide!important;grid-row:2!important;grid-column:2!important;
+    height:auto!important;align-self:start!important;display:block!important}
+  #welcome .welcome-start-guide ol{display:grid!important;gap:7px!important}
+  #welcome .welcome-start-guide li{flex:none!important;min-height:75px!important}
+}
+@media(max-width:760px){
+  #welcome .pitch-left-column{display:contents!important}
+  #welcome .pitch-left-column #founderPanel{order:2;min-height:0!important;height:auto!important}
+  #welcome .welcome-start-guide{order:3;height:auto!important}
+  #welcome .pitch-left-column .welcome-copy{order:4;height:auto!important}
+}

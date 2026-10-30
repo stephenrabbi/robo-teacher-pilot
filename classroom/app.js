@@ -1,5 +1,20 @@
 const welcome=document.getElementById('welcome');
 const classroom=document.getElementById('classroom');
+/* Treat onboarding and the classroom as distinct screens, not sections of a
+   scrolling landing page. Preserve existing tutor/session state. */
+function enterClassroomView(){
+  welcome.classList.add('hidden');
+  classroom.classList.remove('hidden');
+  document.body.classList.add('classroom-view-active');
+  window.scrollTo({top:0,left:0,behavior:'instant'});
+}
+function leaveClassroomView(){
+  classroom.classList.add('hidden');
+  welcome.classList.remove('hidden');
+  document.body.classList.remove('classroom-view-active');
+  window.scrollTo({top:0,left:0,behavior:'instant'});
+}
+
 const start=document.getElementById('startLearning');
 const resumeLearningButton=document.getElementById('resumeLearning');
 const founderPanel=document.getElementById('founderPanel');
@@ -740,8 +755,8 @@ start.addEventListener('click',async()=>{
   try{
     stopFounderSpeech();
     await ensureSession();learnerIdentity.textContent=`${nickname.toUpperCase()} · ${code} · ${learnerClass.value} CLASSROOM`;
-    welcome.classList.add('hidden');classroom.classList.remove('hidden');
-    addMessage(`Welcome, ${nickname}! I’ll explain each lesson at ${learnerClass.value} level.`,'teacher');question.focus();
+    enterClassroomView();
+    addMessage(`Welcome, ${nickname}! I’ll explain each lesson at ${learnerClass.value} level.`,'teacher');question.focus({preventScroll:true});
     if(pendingChatRecovery)setTimeout(retryPendingChat,300);
   }catch(_){onboardingError.textContent='I could not start the classroom connection. Please try again.';onboardingError.classList.remove('hidden')}
   finally{start.disabled=false;start.textContent='Start Learning Now →'}
@@ -758,7 +773,7 @@ resumeLearningButton.addEventListener('click',async()=>{
   resumeLearningButton.disabled=true;resumeLearningButton.textContent='Restoring lesson…';
   try{
     learnerNickname.value=snapshot.nickname;learnerCode.value=snapshot.learnerCode||'';learnerClass.value=snapshot.classLevel;practiceClass.value=snapshot.classLevel;language.value=snapshot.language||'English';localStorage.setItem('roboTeacherLanguage',language.value);updatePracticeTopics();
-    if(!learnerCode.value){refreshResumeLearning();return}await ensureSession();learnerIdentity.textContent=`${snapshot.nickname.toUpperCase()} · ${learnerCode.value} · ${snapshot.classLevel} CLASSROOM`;welcome.classList.add('hidden');classroom.classList.remove('hidden');
+    if(!learnerCode.value){refreshResumeLearning();return}await ensureSession();learnerIdentity.textContent=`${snapshot.nickname.toUpperCase()} · ${learnerCode.value} · ${snapshot.classLevel} CLASSROOM`;enterClassroomView();
     dismissLessonOverlays();canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');canvasStatus.textContent=snapshot.canvasStatus||'Previous lesson restored';const autoTeachWasEnabled=lessonChoreography.enabled;lessonChoreography.enabled=false;startLessonDirector(snapshot.answer,snapshot.lessonIndex||0);lessonChoreography.enabled=autoTeachWasEnabled;readAnswerButton.disabled=false;setActiveMode(chatButton);setLearningStatus('Previous lesson restored','success');
     void practiceRequest('progress',{class_level:snapshot.classLevel}).then(data=>{currentProgress=data}).catch(()=>{});
     if(pendingChatRecovery)setTimeout(retryPendingChat,300);keepTeachingCanvasVisible();
@@ -772,14 +787,14 @@ openTeacherDashboardButton.addEventListener('click',async()=>{
   const accessKey=teacherAccessKey.value.trim();
   if(accessKey.length<16){teacherLoginError.textContent='Enter the private teacher access key.';teacherLoginError.classList.remove('hidden');teacherAccessKey.focus();return}
   teacherLoginError.classList.add('hidden');openTeacherDashboardButton.disabled=true;openTeacherDashboardButton.textContent='Opening…';
-  try{teacherClass.value=learnerClass.value;teacherDashboardAccessKey=accessKey;const data=await fetchTeacherDashboard(accessKey);welcome.classList.add('hidden');classroom.classList.remove('hidden');learnerIdentity.textContent=`TEACHER DASHBOARD · ${teacherClass.value}`;showTeacherDashboard(data)}
+  try{teacherClass.value=learnerClass.value;teacherDashboardAccessKey=accessKey;const data=await fetchTeacherDashboard(accessKey);enterClassroomView();learnerIdentity.textContent=`TEACHER DASHBOARD · ${teacherClass.value}`;showTeacherDashboard(data)}
   catch(error){teacherLoginError.textContent=error.message;teacherLoginError.classList.remove('hidden');teacherAccessKey.focus()}
   finally{openTeacherDashboardButton.disabled=false;openTeacherDashboardButton.textContent='Open Dashboard →';teacherAccessKey.value=''}
 });
 teacherAccessKey.addEventListener('keydown',event=>{if(event.key==='Enter')openTeacherDashboardButton.click()});
 
 changeLearnerButton.addEventListener('click',()=>{
-  stopTeacherAudio();handsFree.enabled=false;handsFree.processing=false;stopHandsFreeListening();updateHandsFreeStatus();sessionToken=null;currentProgress=null;clearClassroomSnapshot();learnerNickname.value='';learnerCode.value='';learnerClass.value='JSS2';practiceClass.value='JSS2';updatePracticeTopics();classroom.classList.add('hidden');welcome.classList.remove('hidden');teacherLogin.classList.add('hidden');onboardingError.classList.add('hidden');learnerNickname.focus();
+  stopTeacherAudio();handsFree.enabled=false;handsFree.processing=false;stopHandsFreeListening();updateHandsFreeStatus();sessionToken=null;currentProgress=null;clearClassroomSnapshot();learnerNickname.value='';learnerCode.value='';learnerClass.value='JSS2';practiceClass.value='JSS2';updatePracticeTopics();leaveClassroomView();teacherLogin.classList.add('hidden');onboardingError.classList.add('hidden');learnerNickname.focus();
 });
 
 toggle.addEventListener('click',()=>{
@@ -982,14 +997,23 @@ async function speakText(text,preserveAudioUnlock=false,displayCanvasAvatar=true
     if(requestId!==teacherSpeechRequest)return;
     const response=await requestTeacherSpeech({text:prepareSpeechText(text),session_token:token,language:language.value,voice_gender:teacherPanel.dataset.voiceGender==='male'?'male':'female',pace:teacherSpeechPace},teacherSpeechController.signal,requestId);
     if(response.status===401){sessionToken=null;throw new Error('session')}
-    if(!response.ok)throw new Error('natural voice unavailable');
+    if(!response.ok)throw new Error(response.status===429?'voice-rate-limited':response.status===503?'voice-service-unavailable':'voice-http-error');
     if(!response.body)throw new Error('stream unavailable');
     await playPcmStream(response,requestId);
   }catch(error){
     if(error.name==='AbortError'||requestId!==teacherSpeechRequest)return;
     stopTeacherAudio();
     readAnswerButton.disabled=!canvasAnswer.textContent.trim();
-    addMessage('The natural teacher voice is temporarily unavailable. You can continue reading the worked answer on the Teaching Canvas.','teacher');
+    const reason=error?.message||'';
+    const guidance=reason==='voice-service-unavailable'||reason==='voice-rate-limited'
+      ? 'The voice service is busy or unavailable. Please try Read answer again shortly.'
+      : reason==='stream unavailable'||reason==='empty voice stream'
+        ? 'The voice response did not contain usable audio. Please retry Read answer.'
+        : reason==='session'
+          ? 'The voice session expired. Please tap Read answer again.'
+          : 'Audio playback was interrupted. Please retry Read answer, or use Chrome with sound enabled.';
+    teacherVoiceStatus.textContent='Voice unavailable';
+    addMessage(guidance+' The written answer is still available on the Teaching Canvas.','teacher');
   }
 }
 

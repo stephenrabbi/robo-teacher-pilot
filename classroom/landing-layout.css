@@ -1,0 +1,158 @@
+/* Robo-Teacher Option 1: landing-page layout correction.
+   Complete stylesheet loaded LAST, scoped to #welcome. No content or logic changes. */
+:root{
+  --landing-max:1200px;
+  --landing-gap:16px;
+  --landing-radius:18px;
+  --landing-cream:#fff8f3;
+  --landing-purple:#49309b;
+  --landing-lavender:#e8e2ff;
+  --landing-yellow:#fff744;
+}
+body:has(#welcome:not(.hidden)){background:var(--landing-cream)}
+body:has(#welcome:not(.hidden)) .app-shell{
+  width:min(100%,var(--landing-max));max-width:var(--landing-max);
+  padding:16px 20px 8px;margin-inline:auto;
+}
+body:has(#welcome:not(.hidden)) .brandbar{display:none!important}
+body:has(#welcome:not(.hidden)) .legal-footer{
+  box-sizing:border-box;width:calc(100% - 40px);
+  max-width:1160px;margin:8px auto 22px;
+}
+#welcome.welcome-screen{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  grid-template-rows:auto auto!important;
+  grid-template-areas:"hero hero" "left guide"!important;
+  column-gap:var(--landing-gap)!important;
+  row-gap:var(--landing-gap)!important;
+  align-items:start!important;align-content:start!important;
+  min-height:0!important;padding:0!important;margin:0!important;
+}
+#welcome .welcome-intro{
+  grid-area:hero!important;display:block!important;width:100%!important;
+  height:210px!important;min-height:0!important;max-height:210px!important;
+  padding:0!important;margin:0!important;overflow:hidden!important;
+  border-radius:var(--landing-radius)!important;background:transparent!important;
+  box-shadow:none!important;
+}
+#welcome .pitch-hero-text,#welcome .pitch-hero-orbit{display:none!important}
+#welcome .welcome-intro::before,#welcome .welcome-intro::after{display:none!important}
+#welcome .pitch-illustration{
+  display:block!important;width:100%!important;height:100%!important;
+  min-width:0!important;max-height:none!important;margin:0!important;
+}
+#welcome .pitch-illustration img{
+  display:block!important;width:100%!important;height:100%!important;
+  max-width:none!important;max-height:none!important;
+  object-fit:cover!important;object-position:center 38%!important;
+  border-radius:0!important;filter:none!important;
+}
+#welcome .pitch-left-column{
+  grid-area:left!important;display:flex!important;flex-direction:column!important;
+  min-width:0!important;min-height:0!important;height:auto!important;
+  align-self:start!important;gap:var(--landing-gap)!important;margin:0!important;
+}
+#welcome .pitch-left-column #founderPanel{
+  display:block!important;position:relative!important;
+  width:100%!important;min-width:0!important;min-height:0!important;
+  max-width:none!important;height:auto!important;margin:0!important;
+  padding:0!important;align-self:start!important;flex:0 0 auto!important;
+  grid-row:auto!important;grid-column:auto!important;
+  background:transparent!important;border:0!important;box-shadow:none!important;
+}
+#welcome #founderPanel .student-welcome-photo{display:none!important}
+#welcome #founderPanel .founder-introduction{
+  position:static!important;inset:auto!important;
+  display:grid!important;grid-template-columns:62px minmax(0,1fr)!important;
+  width:100%!important;min-height:76px!important;height:auto!important;
+  padding:8px 12px!important;margin:0!important;gap:12px!important;
+  align-items:center!important;box-sizing:border-box!important;
+  background:#fff!important;border-radius:var(--landing-radius)!important;
+}
+#welcome #founderPanel .founder-avatar-stage{width:56px!important;height:56px!important}
+#welcome #founderPanel .founder-introduction-copy{
+  min-width:0!important;display:flex!important;flex-wrap:wrap!important;
+  align-items:center!important;gap:4px 10px!important;
+}
+#welcome #founderPanel .founder-introduction-copy strong{font-size:15px!important;margin:0!important}
+#welcome #founderPanel .founder-introduction-copy p{margin:0!important;font-size:12px!important;flex:1 1 155px}
+#welcome #founderPanel #hearFounder{min-height:44px!important;margin:0!important}
+#welcome .pitch-left-column > .welcome-copy{
+  display:block!important;position:static!important;
+  grid-area:auto!important;grid-row:auto!important;grid-column:auto!important;
+  align-self:stretch!important;flex:none!important;float:none!important;clear:none!important;
+  width:100%!important;max-width:none!important;min-width:0!important;
+  min-height:0!important;height:auto!important;margin:0!important;
+  padding:20px 24px!important;transform:none!important;
+  background:linear-gradient(145deg,#382187,#5438ad 65%,#392080)!important;
+  border-radius:var(--landing-radius)!important;
+}
+#welcome .welcome-copy .speech-card{padding:0!important;margin:0!important}
+#welcome .welcome-copy .speech-card h2{margin:0 0 14px!important}
+#welcome .welcome-copy .learner-onboarding{gap:8px!important}
+#welcome .welcome-copy .learner-onboarding input:not([type="checkbox"]),
+#welcome .welcome-copy .learner-onboarding select,
+#welcome .welcome-copy .pitch-class-choices button{min-height:44px!important}
+#welcome .welcome-copy .welcome-actions{gap:8px!important}
+#welcome .welcome-copy #startLearning{min-height:48px!important;margin-top:8px!important}
+#welcome .welcome-copy .secondary-clear{margin:0!important;align-self:flex-end!important}
+#welcome .welcome-copy .privacy-helper,
+#welcome .welcome-copy .learner-code-help,
+#welcome .welcome-copy .privacy-note{color:#f7f0ff!important}
+#welcome .welcome-copy .onboarding-error{color:#fff5be!important}
+#welcome .welcome-copy #onboardingError:not(.hidden){display:block}
+#welcome .welcome-copy input:focus-visible,
+#welcome .welcome-copy button:focus-visible,
+#welcome .welcome-copy select:focus-visible{outline:3px solid var(--landing-yellow)!important;outline-offset:2px}
+#welcome > .welcome-start-guide{
+  grid-area:guide!important;grid-row:2!important;grid-column:2!important;
+  display:block!important;position:static!important;
+  width:100%!important;min-width:0!important;max-width:none!important;
+  min-height:0!important;height:auto!important;
+  align-self:start!important;margin:0!important;
+  padding:16px!important;border:0!important;border-radius:var(--landing-radius)!important;
+  background:var(--landing-lavender)!important;
+}
+#welcome .welcome-start-guide ol{
+  display:grid!important;grid-template-columns:minmax(0,1fr)!important;
+  gap:8px!important;list-style:none!important;counter-reset:startstep!important;
+  padding:0!important;margin:0!important;
+}
+#welcome .welcome-start-guide li{
+  position:relative!important;display:block!important;
+  flex:none!important;min-height:72px!important;height:auto!important;
+  padding:14px 48px 14px 50px!important;margin:0!important;
+  border-radius:14px!important;background:#fff!important;
+  font-size:12px!important;line-height:1.4!important;
+}
+#welcome .welcome-start-guide li::before{top:50%!important;transform:translateY(-50%)!important}
+#welcome .welcome-start-guide li::after{top:50%!important;transform:translateY(-50%)!important}
+#welcome .welcome-start-guide li strong{
+  display:block!important;margin-bottom:2px!important;line-height:1.25!important
+}
+#welcome .welcome-start-guide li em,
+#welcome .welcome-start-guide li em strong{
+  display:inline!important;white-space:normal!important;font-style:normal!important;
+}
+#welcome .welcome-start-guide .welcome-guide-note{margin:8px 0 0!important;padding:10px!important}
+@media(max-width:767px){
+  body:has(#welcome:not(.hidden)) .app-shell{padding:0 12px 8px!important}
+  body:has(#welcome:not(.hidden)) .legal-footer{
+    width:calc(100% - 24px)!important;margin:8px 12px 20px!important
+  }
+  #welcome.welcome-screen{display:flex!important;flex-direction:column!important;gap:12px!important}
+  #welcome .welcome-intro{order:1!important;height:155px!important;max-height:155px!important;border-radius:14px!important}
+  #welcome .pitch-illustration img{object-position:center 35%!important}
+  #welcome .pitch-left-column{display:contents!important}
+  #welcome .pitch-left-column #founderPanel{order:2!important;width:100%!important;margin:0!important}
+  #welcome .pitch-left-column > .welcome-copy{order:3!important;width:100%!important;margin:0!important;padding:18px!important}
+  #welcome > .welcome-start-guide{order:4!important;width:100%!important;margin:0!important;padding:14px!important}
+  #welcome .welcome-start-guide li{min-height:72px!important;padding:12px 43px 12px 46px!important}
+  #welcome .pitch-class-choices{gap:6px!important}
+  #welcome .welcome-copy .learner-code-row{flex-wrap:wrap!important}
+}
+@media(max-width:390px){
+  #welcome #founderPanel .founder-introduction{gap:6px!important;padding:8px!important}
+  #welcome .welcome-start-guide li{font-size:11px!important}
+}

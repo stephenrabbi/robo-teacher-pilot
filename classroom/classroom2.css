@@ -269,3 +269,74 @@ body:has(#classroom:not(.hidden)) .legal-footer-links { margin-top: 4px; font-si
   .teacher-panel .teacher-avatar-stage, .teacher-panel .teacher-avatar { height: 68px; }
   .teacher-panel .teacher-actions > * { font-size: 11px; }
 }
+
+/* Classroom 2.0 mobile usability pass; CSS only, no state or tutor changes. */
+#classroom .learning-area,#classroom .lesson-header,#classroom #canvas,
+#classroom .teacher-panel{min-width:0}
+#classroom .lesson-header h2{overflow-wrap:anywhere;line-height:1.23}
+#classroom #canvasAnswer,#classroom #messages{overflow-wrap:anywhere}
+#classroom #canvas img,#classroom #canvas svg{max-width:100%}
+#classroom .lesson-actions select,#classroom .lesson-actions button{
+  min-height:44px;max-width:100%;
+}
+#classroom button:focus-visible,#classroom select:focus-visible,
+#classroom textarea:focus-visible,#classroom input:focus-visible{
+  outline:3px solid #ffd60a;outline-offset:2px;
+}
+@media(max-width:767px){
+  body:has(#classroom:not(.hidden)) .app-shell{
+    padding:8px 10px 24px;
+  }
+  #classroom.classroom-screen,#classroom.classroom-screen.teacher-min{
+    grid-template-columns:minmax(0,1fr);gap:12px;
+  }
+  #classroom .learning-area{
+    padding:14px 12px;border-radius:16px;
+  }
+  #classroom .lesson-header{
+    display:flex;flex-direction:column;align-items:stretch;gap:12px;
+  }
+  #classroom .lesson-header h2{
+    font-size:clamp(20px,5.1vw,25px);margin:4px 0 6px;
+  }
+  #classroom .lesson-actions{
+    display:flex;align-items:center;flex-wrap:wrap;gap:8px;
+    width:100%;
+  }
+  #classroom .lesson-actions select,
+  #classroom .lesson-actions button{flex:1 1 135px;min-width:0}
+  #classroom .teacher-panel{
+    border-radius:16px;padding:12px;
+  }
+  #classroom .teacher-panel .teacher-toolbar{
+    min-width:0;
+  }
+  #classroom .teacher-panel .teacher-actions{
+    display:flex;flex-wrap:wrap;gap:8px;
+  }
+  #classroom .teacher-panel .teacher-actions button{
+    min-height:44px;
+  }
+  #classroom #chatForm{
+    min-width:0;gap:8px;
+  }
+  #classroom #question{
+    width:100%;min-width:0;max-width:100%;font-size:16px;
+  }
+  #classroom #canvas{
+    min-width:0;overflow-x:auto;
+  }
+  #classroom #canvasAnswer pre,
+  #classroom #canvasAnswer code{
+    white-space:pre-wrap;overflow-wrap:anywhere;
+  }
+  #classroom .canvas-entry-actions button{
+    min-height:46px;
+  }
+}
+@media(max-width:380px){
+  #classroom .learning-area{padding:12px 10px}
+  #classroom .lesson-actions{gap:6px}
+  #classroom .lesson-actions select,
+  #classroom .lesson-actions button{flex-basis:100%}
+}
