@@ -1,4 +1,5 @@
 name: One-time Classroom 503 Diagnostic
+# Retest after preview Gemini API key configuration
 on:
   pull_request:
     branches: [main]
