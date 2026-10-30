@@ -562,3 +562,29 @@ body:has(#welcome:not(.hidden)) .legal-footer-links a,body:has(#welcome:not(.hid
  #welcome .welcome-intro.multilingual-hero-loaded .pitch-illustration picture img{object-position:right center!important}
  #welcome .welcome-intro.multilingual-hero-unavailable > .pitch-hero-text{width:100%!important}
 }
+
+/* Approved multilingual image is self-contained: show its entire artwork.
+   Fixed 235px + cover was cropping its top/bottom and important text. */
+#welcome .welcome-intro.multilingual-hero-loaded{
+ aspect-ratio:1920 / 647!important;
+ height:auto!important;min-height:0!important;max-height:none!important;
+ position:relative!important;overflow:hidden!important;border-radius:24px!important;
+}
+#welcome .welcome-intro.multilingual-hero-loaded .pitch-illustration,
+#welcome .welcome-intro.multilingual-hero-loaded .pitch-illustration picture{
+ position:absolute!important;inset:0!important;width:100%!important;height:100%!important;
+ overflow:hidden!important;display:block!important;
+}
+#welcome .welcome-intro.multilingual-hero-loaded .pitch-illustration img{
+ position:absolute!important;inset:0!important;width:100%!important;height:100%!important;
+ object-fit:contain!important;object-position:center center!important;
+ transform:none!important;max-width:none!important;max-height:none!important;
+ -webkit-mask-image:none!important;mask-image:none!important;
+}
+#welcome .welcome-intro.multilingual-hero-loaded > .pitch-hero-text{display:none!important}
+#welcome .welcome-intro.multilingual-hero-loaded::before,
+#welcome .welcome-intro.multilingual-hero-loaded::after{display:none!important}
+@media(max-width:767px){
+ #welcome .welcome-intro.multilingual-hero-loaded{aspect-ratio:1120 / 377!important;height:auto!important;min-height:0!important;max-height:none!important}
+ #welcome .welcome-intro.multilingual-hero-loaded .pitch-illustration img{object-fit:contain!important;object-position:center!important}
+}
