@@ -260,6 +260,7 @@ let lessonInterruption=null;
 let pendingChatRecovery=null;
 let savedClassroomSnapshot=null;
 const teachingStage={mode:'lesson',bookmark:0};
+const lessonController=window.RoboTeacherLessonController.createLessonController();
 // Recommendations remain visible, but the learner decides when to open a
 // visual, example, or check. Automatic mode changes were disorienting and
 // could hide the explanation before it had been read.
@@ -289,6 +290,28 @@ const savedLanguage=localStorage.getItem('roboTeacherLanguage');
 
 try{pendingChatRecovery=JSON.parse(sessionStorage.getItem('roboTeacherPendingChat')||'null')}catch(_error){sessionStorage.removeItem('roboTeacherPendingChat')}
 
+// A checkpoint preserves the exact rendered steps, including translated steps.
+// Audio resumes from the start of this step; sample-level playback is separate.
+function captureLessonCheckpoint(){
+  if(!currentLesson)return null;
+  return {text:currentLesson.text,index:currentLesson.index,steps:currentLesson.steps.slice(),step:currentLesson.steps[currentLesson.index]};
+}
+
+function restoreLessonCheckpoint(checkpoint){
+  if(!checkpoint)return;
+  startLessonDirector(checkpoint.text,checkpoint.index,checkpoint.steps);
+}
+
+function restoreLessonHistory(snapshot){
+  lessonHistory.length=0;lessonInterruption=null;
+  const valid=item=>item&&typeof item.text==='string'&&Number.isInteger(item.index)&&item.index>=0&&Array.isArray(item.steps)&&item.steps.length>item.index&&item.steps.every(step=>typeof step==='string');
+  for(const item of (Array.isArray(snapshot.lessonHistory)?snapshot.lessonHistory:[]).slice(-20)){
+    if(valid(item))lessonHistory.push({...item,steps:item.steps.slice()});
+  }
+  if(valid(snapshot.lessonInterruption))lessonInterruption={...snapshot.lessonInterruption,steps:snapshot.lessonInterruption.steps.slice()};
+  lessonDirector.classList.toggle('lesson-paused',!!lessonInterruption);
+}
+
 function loadClassroomSnapshot(){
   try{
     const snapshot=JSON.parse(localStorage.getItem('roboTeacherClassroomSnapshot')||'null');
@@ -302,11 +325,11 @@ function refreshResumeLearning(){savedClassroomSnapshot=loadClassroomSnapshot();
 function saveClassroomSnapshot(){
   const nickname=learnerNickname.value.trim(),answer=currentLesson?.text||canvasAnswer.innerText.trim();
   if(nickname.length<2||!answer)return;
-  savedClassroomSnapshot={nickname,learnerCode:learnerCode.value.trim().toUpperCase(),classLevel:learnerClass.value,language:language.value,answer,lessonIndex:currentLesson?.index||0,canvasStatus:canvasStatus.textContent,savedAt:Date.now()};
+  savedClassroomSnapshot={nickname,learnerCode:learnerCode.value.trim().toUpperCase(),classLevel:learnerClass.value,language:language.value,lessonSteps:currentLesson?.steps?.slice()||null,lessonHistory:lessonHistory.slice(-20),lessonInterruption,answer,lessonIndex:currentLesson?.index||0,canvasStatus:canvasStatus.textContent,savedAt:Date.now()};
   localStorage.setItem('roboTeacherClassroomSnapshot',JSON.stringify(savedClassroomSnapshot));refreshResumeLearning();
 }
 
-function clearClassroomSnapshot(){savedClassroomSnapshot=null;localStorage.removeItem('roboTeacherClassroomSnapshot');resumeLearningButton.classList.add('hidden')}
+function clearClassroomSnapshot(){lessonController.begin('idle');lessonHistory.length=0;lessonInterruption=null;currentLesson=null;clearPendingChatRecovery();savedClassroomSnapshot=null;localStorage.removeItem('roboTeacherClassroomSnapshot');resumeLearningButton.classList.add('hidden')}
 
 refreshResumeLearning();
 
@@ -536,7 +559,7 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
 function resumeBookmarkedLessonByVoice(){
   stopTeacherAudio();lessonInterruption=null;lessonDirector.classList.remove('lesson-paused');
   if(lessonHistory.length){
-    const lesson=lessonHistory.pop();startLessonDirector(lesson.text,lesson.index);canvasStatus.textContent='Previous lesson resumed';setLearningStatus(`Returned to lesson step ${lesson.index+1}`);
+    const lesson=lessonHistory.pop();restoreLessonCheckpoint(lesson);canvasStatus.textContent='Previous lesson resumed';setLearningStatus(`Returned to lesson step ${lesson.index+1}`);
   }else if(currentLesson)renderCurrentLessonStep();
   const step=currentLesson?.steps[currentLesson.index];
   if(step)void speakText(step,true,true);else void resumeTeacherAudio();
@@ -774,7 +797,7 @@ resumeLearningButton.addEventListener('click',async()=>{
   try{
     learnerNickname.value=snapshot.nickname;learnerCode.value=snapshot.learnerCode||'';learnerClass.value=snapshot.classLevel;practiceClass.value=snapshot.classLevel;language.value=snapshot.language||'English';localStorage.setItem('roboTeacherLanguage',language.value);updatePracticeTopics();
     if(!learnerCode.value){refreshResumeLearning();return}await ensureSession();learnerIdentity.textContent=`${snapshot.nickname.toUpperCase()} · ${learnerCode.value} · ${snapshot.classLevel} CLASSROOM`;enterClassroomView();
-    dismissLessonOverlays();canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');canvasStatus.textContent=snapshot.canvasStatus||'Previous lesson restored';const autoTeachWasEnabled=lessonChoreography.enabled;lessonChoreography.enabled=false;startLessonDirector(snapshot.answer,snapshot.lessonIndex||0);lessonChoreography.enabled=autoTeachWasEnabled;readAnswerButton.disabled=false;setActiveMode(chatButton);setLearningStatus('Previous lesson restored','success');
+    dismissLessonOverlays();canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');canvasStatus.textContent=snapshot.canvasStatus||'Previous lesson restored';const autoTeachWasEnabled=lessonChoreography.enabled;lessonChoreography.enabled=false;restoreLessonHistory(snapshot);startLessonDirector(snapshot.answer,snapshot.lessonIndex||0,snapshot.lessonSteps);lessonChoreography.enabled=autoTeachWasEnabled;readAnswerButton.disabled=false;setActiveMode(chatButton);setLearningStatus('Previous lesson restored','success');
     void practiceRequest('progress',{class_level:snapshot.classLevel}).then(data=>{currentProgress=data}).catch(()=>{});
     if(pendingChatRecovery)setTimeout(retryPendingChat,300);keepTeachingCanvasVisible();
   }catch(_error){onboardingError.textContent='I could not restore the previous lesson. Check your connection and try again.';onboardingError.classList.remove('hidden')}
@@ -830,6 +853,7 @@ async function pauseTeacherAudio(){
   if(!teacherAudioContext||teacherSpeechPaused)return;
   // Lock the state before suspension so a final streamed chunk cannot close
   // the audio context while the learner is pausing it.
+  lessonController.begin('paused');
   teacherSpeechPaused=true;
   teacherPanel.classList.remove('speaking');teacherPanel.classList.add('paused');teacherVoiceStatus.textContent='Paused';
   if(showVoiceAnswerAvatar)canvasVoiceAvatarStatus.textContent='Paused';
@@ -844,7 +868,7 @@ async function resumeTeacherAudio(){
   try{
     await teacherAudioContext.resume();
     if(teacherAudioContext.state!=='running')throw new Error('audio context did not resume');
-    teacherSpeechPaused=false;setTeacherSpeaking(true);
+    teacherSpeechPaused=false;lessonController.begin('speech');setTeacherSpeaking(true);
     if(teacherStreamComplete&&!teacherAudioSources.size)stopTeacherAudio();
   }catch(_error){
     teacherSpeechPaused=false;stopTeacherAudio();
@@ -941,10 +965,12 @@ async function prepareTeacherAudio(){
 }
 
 async function playPcmStream(response,requestId){
-  const context=await prepareTeacherAudio();const reader=response.body.getReader();let pending=new Uint8Array(0);let nextStart=context.currentTime+.06;let receivedAudio=false;
+  const context=await prepareTeacherAudio();if(requestId!==teacherSpeechRequest)return;const reader=response.body.getReader();let pending=new Uint8Array(0);let nextStart=context.currentTime+.06;let receivedAudio=false;
   const finishIfDone=()=>{if(teacherStreamComplete&&!teacherAudioSources.size&&!teacherSpeechPaused&&requestId===teacherSpeechRequest)stopTeacherAudio()};
   while(requestId===teacherSpeechRequest){
-    const {done,value}=await reader.read();if(done)break;
+    const {done,value}=await reader.read();
+    if(requestId!==teacherSpeechRequest){await reader.cancel();return;}
+    if(done)break;
     const joined=new Uint8Array(pending.length+value.length);joined.set(pending);joined.set(value,pending.length);
     const evenLength=joined.length-joined.length%2;pending=joined.slice(evenLength);
     if(!evenLength)continue;
@@ -961,7 +987,7 @@ async function playPcmStream(response,requestId){
     const startAt=Math.max(nextStart,context.currentTime+.025);source.start(startAt);nextStart=startAt+buffer.duration;
   }
   if(requestId===teacherSpeechRequest&&!receivedAudio)throw new Error('empty voice stream');
-  teacherStreamComplete=true;finishIfDone();
+  if(requestId===teacherSpeechRequest){teacherStreamComplete=true;finishIfDone();}
 }
 
 async function requestTeacherSpeech(payload,signal,requestId){
@@ -982,6 +1008,8 @@ async function requestTeacherSpeech(payload,signal,requestId){
 
 async function speakText(text,preserveAudioUnlock=false,displayCanvasAvatar=true){
   if(!text.trim())return;
+  if(teachingStage.mode==='example'){stopLessonMedia();restoreTeachingStage();}
+  lessonController.begin('speech');
   stopTeacherAudio(preserveAudioUnlock);
   setCanvasVoiceAvatar(displayCanvasAvatar);
   teacherVoiceStatus.textContent='Preparing teacher voice…';
@@ -1035,7 +1063,7 @@ function stopFounderSpeech(){
 }
 
 async function playFounderPcmStream(response,requestId){
-  const context=await prepareTeacherAudio();const reader=response.body.getReader();let pending=new Uint8Array(0);let nextStart=context.currentTime+.06;let received=false;founderStreamComplete=false;
+  const context=await prepareTeacherAudio();if(requestId!==teacherSpeechRequest)return;const reader=response.body.getReader();let pending=new Uint8Array(0);let nextStart=context.currentTime+.06;let received=false;founderStreamComplete=false;
   while(requestId===founderSpeechRequest){const {done,value}=await reader.read();if(done)break;const joined=new Uint8Array(pending.length+value.length);joined.set(pending);joined.set(value,pending.length);const evenLength=joined.length-joined.length%2;pending=joined.slice(evenLength);if(!evenLength)continue;
     if(!received){received=true;hearFounderButton.disabled=false;hearFounderButton.textContent='Stop Herbert';startAvatarMotion(founderPanel)}
     const samples=evenLength/2;const buffer=context.createBuffer(1,samples,24000);const channel=buffer.getChannelData(0);const view=new DataView(joined.buffer,joined.byteOffset,evenLength);for(let index=0;index<samples;index++)channel[index]=view.getInt16(index*2,true)/32768;
@@ -1189,6 +1217,7 @@ function renderLessonBlock(container,text){
 }
 
 function startLessonDirector(text,index=0,stepsOverride=null){
+  lessonController.begin('lesson');
   const steps=Array.isArray(stepsOverride)&&stepsOverride.length?stepsOverride:splitLessonSteps(text);
   currentLesson={text,steps,index:Math.max(0,Math.min(index,steps.length-1))};
   lessonChoreography.visited.clear();
@@ -1238,6 +1267,7 @@ autoTeachToggle.addEventListener('click',()=>{
 
 function setTeachingStageMode(mode){
   const labels={lesson:'Lesson',visual:'Visual',example:'Example',check:'Check'};
+  lessonController.begin(mode);
   teachingStage.mode=mode;teachingCanvas.dataset.stageMode=mode;
   teachingStageMode.textContent=labels[mode]||'Lesson';
 }
@@ -1287,17 +1317,18 @@ watchStepExample.addEventListener('click',openLessonMedia);
 checkStepUnderstanding.addEventListener('click',startUnderstandingCheck);
 function pauseLessonForQuestion(source='text'){
   if(!currentLesson)return;
-  if(!lessonInterruption){lessonInterruption={text:currentLesson.text,index:currentLesson.index};recordLearningSignal('questions')}
+  lessonController.begin('question');clearTimeout(lessonChoreography.timer);stopLessonMedia();
+  if(!lessonInterruption){lessonInterruption=captureLessonCheckpoint();recordLearningSignal('questions')}
   stopTeacherAudio();
   lessonPauseNotice.textContent=`Lesson paused at Step ${currentLesson.index+1}. Ask your question ${source==='voice'?'using the microphone':'below'}.`;
   lessonPauseNotice.classList.remove('hidden');askLessonQuestion.textContent='Continue this step';lessonDirector.classList.add('lesson-paused');
-  setLearningStatus('Lesson paused for your question','paused');
+  setLearningStatus('Lesson paused for your question','paused');saveClassroomSnapshot();
 }
 askLessonQuestion.addEventListener('click',()=>{
   if(lessonInterruption){lessonInterruption=null;lessonDirector.classList.remove('lesson-paused');renderCurrentLessonStep();setLearningStatus(`Lesson step ${currentLesson.index+1} resumed`);return}
   pauseLessonForQuestion();question.placeholder='Ask a question about this step…';question.focus();
 });
-returnToLesson.addEventListener('click',()=>{if(!lessonHistory.length)return;stopTeacherAudio();lessonInterruption=null;lessonDirector.classList.remove('lesson-paused');const lesson=lessonHistory.pop();startLessonDirector(lesson.text,lesson.index);canvasStatus.textContent='Previous lesson resumed';setLearningStatus('Returned to your lesson')});
+returnToLesson.addEventListener('click',()=>{if(!lessonHistory.length)return;stopTeacherAudio();lessonInterruption=null;lessonDirector.classList.remove('lesson-paused');const lesson=lessonHistory.pop();restoreLessonCheckpoint(lesson);canvasStatus.textContent='Previous lesson resumed';setLearningStatus('Returned to your lesson')});
 endLesson.addEventListener('click',()=>{stopTeacherAudio();currentLesson=null;lessonInterruption=null;lessonHistory.length=0;clearClassroomSnapshot();lessonDirector.classList.add('hidden');lessonDirector.classList.remove('lesson-paused');canvasWork.classList.add('hidden');canvasEmpty.classList.remove('hidden');canvasAnswer.replaceChildren();readAnswerButton.disabled=true;question.placeholder='Ask your teacher a question…';setLearningStatus('Lesson ended')});
 
 window.addEventListener('pagehide',saveClassroomSnapshot);
@@ -1938,9 +1969,10 @@ function closeVisualExplanation(){visualArea.classList.add('hidden');restoreTeac
 
 async function openLessonMedia(){
   const lesson=(currentLesson?.text||Array.from(canvasAnswer.querySelectorAll('p')).map(item=>item.innerText.trim()).filter(Boolean).join('\n')||canvasAnswer.innerText).trim();if(!lesson){addMessage('Ask a Maths question first, then I can show an example.','teacher');return;}
+  const mediaTicket=lessonController.begin('media-loading');
   stopTeacherAudio();mediaButton.disabled=true;mediaButton.textContent='Preparing…';setLearningStatus('Preparing a learning example','thinking');
-  try{const token=await ensureSession();const response=await fetch('/api/classroom/media',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:lesson,session_token:token,language:language.value})});const data=await response.json();if(!response.ok)throw new Error(data.detail||'media');dismissLessonOverlays();renderLessonMedia(data);canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');mediaArea.classList.remove('hidden');enterTeachingStage('example');setLearningStatus('Learning example ready','success');}
-  catch(error){addMessage(error.message||'I could not prepare that example. Please try again.','teacher');setLearningStatus('Example needs another try','attention');}
+  try{const token=await ensureSession();const response=await fetch('/api/classroom/media',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:lesson,session_token:token,language:language.value})});const data=await response.json();if(!lessonController.owns(mediaTicket))return;if(!response.ok)throw new Error(data.detail||'media');dismissLessonOverlays();renderLessonMedia(data);canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');mediaArea.classList.remove('hidden');enterTeachingStage('example');setLearningStatus('Learning example ready','success');}
+  catch(error){if(!lessonController.owns(mediaTicket))return;addMessage(error.message||'I could not prepare that example. Please try again.','teacher');setLearningStatus('Example needs another try','attention');}
   finally{mediaButton.disabled=false;mediaButton.textContent='Watch or Explore';}
 }
 
@@ -1987,10 +2019,11 @@ async function handleImage(file,source='upload'){
 form.addEventListener('submit',async(e)=>{
   e.preventDefault();const text=question.value.trim();if(!text||sendButton.disabled)return;
   const recovery=pendingChatRecovery?.text===text?pendingChatRecovery:null;
-  const interruptedLesson=recovery?.interruptedLesson||lessonInterruption||(currentLesson?{text:currentLesson.text,index:currentLesson.index,step:currentLesson.steps[currentLesson.index]}:null);
+  const interruptedLesson=recovery?.interruptedLesson||lessonInterruption||captureLessonCheckpoint();
   const interruptedStep=interruptedLesson?.step||currentLesson?.steps?.[interruptedLesson?.index]||interruptedLesson?.text||'';
   const lessonQuestion=interruptedLesson?`The learner paused this lesson step: "${interruptedStep}"\n\nTheir question is: ${text}`:text;
   const requestText=`${adaptivePromptContext()}\n\n${lessonQuestion}`;
+  stopTeacherAudio();clearTimeout(lessonChoreography.timer);stopLessonMedia();lessonController.begin('question');
   if(!recovery)addMessage(text,'student');sendButton.disabled=true;sendButton.textContent='Thinking…';setLearningStatus(recovery?'Connection restored — continuing your question':'Working through your question','thinking');
   const thinking=addMessage(recovery?'Your connection is back. I’m continuing from where we stopped…':'Let me work through that with you…','teacher');
   try{
