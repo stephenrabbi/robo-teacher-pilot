@@ -20,6 +20,7 @@ from math import gcd
 
 from google import genai
 from google.genai import types
+from cloud_ai_provider import create_ai_client
 from learner_profile import DEFAULT_PROFILE, load_profile, profile_prompt_context, update_profile_from_message
 
 logger = logging.getLogger("robo-teacher.tutor")
@@ -167,7 +168,7 @@ SPOKEN_MATH = {
 def _get_client():
     global _client
     if _client is None:
-        _client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+        _client = create_ai_client()
     return _client
 
 
