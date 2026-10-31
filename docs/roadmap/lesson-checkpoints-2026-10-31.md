@@ -11,3 +11,7 @@ Limitations: resumption starts at the beginning of the bookmarked step, not its 
 Preview acceptance: interrupt a multi-step lesson, ask a follow-up, return twice, reload during a follow-up, resume and confirm both return destinations. Repeat via voice, then switch learner and confirm that no previous return history or queued question remains.
 
 Rollback: revert the eventual checkpoint commit or redeploy the baseline. No schema or environment changes are required.
+
+## Presentation ownership increment
+
+An in-memory controller issues revision tickets for asynchronous media requests. Asking a question, moving to a lesson, changing stage or clearing learner state revokes previous tickets, preventing stale media success/error responses from taking over the display. This is a first ownership guard, not the complete speech/avatar state machine. Four behavioral controller tests pass; the full Python suite passes 411 tests.

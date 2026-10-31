@@ -260,6 +260,7 @@ let lessonInterruption=null;
 let pendingChatRecovery=null;
 let savedClassroomSnapshot=null;
 const teachingStage={mode:'lesson',bookmark:0};
+const lessonController=window.RoboTeacherLessonController.createLessonController();
 // Recommendations remain visible, but the learner decides when to open a
 // visual, example, or check. Automatic mode changes were disorienting and
 // could hide the explanation before it had been read.
@@ -328,7 +329,7 @@ function saveClassroomSnapshot(){
   localStorage.setItem('roboTeacherClassroomSnapshot',JSON.stringify(savedClassroomSnapshot));refreshResumeLearning();
 }
 
-function clearClassroomSnapshot(){lessonHistory.length=0;lessonInterruption=null;currentLesson=null;clearPendingChatRecovery();savedClassroomSnapshot=null;localStorage.removeItem('roboTeacherClassroomSnapshot');resumeLearningButton.classList.add('hidden')}
+function clearClassroomSnapshot(){lessonController.begin('idle');lessonHistory.length=0;lessonInterruption=null;currentLesson=null;clearPendingChatRecovery();savedClassroomSnapshot=null;localStorage.removeItem('roboTeacherClassroomSnapshot');resumeLearningButton.classList.add('hidden')}
 
 refreshResumeLearning();
 
@@ -1211,6 +1212,7 @@ function renderLessonBlock(container,text){
 }
 
 function startLessonDirector(text,index=0,stepsOverride=null){
+  lessonController.begin('lesson');
   const steps=Array.isArray(stepsOverride)&&stepsOverride.length?stepsOverride:splitLessonSteps(text);
   currentLesson={text,steps,index:Math.max(0,Math.min(index,steps.length-1))};
   lessonChoreography.visited.clear();
@@ -1260,6 +1262,7 @@ autoTeachToggle.addEventListener('click',()=>{
 
 function setTeachingStageMode(mode){
   const labels={lesson:'Lesson',visual:'Visual',example:'Example',check:'Check'};
+  lessonController.begin(mode);
   teachingStage.mode=mode;teachingCanvas.dataset.stageMode=mode;
   teachingStageMode.textContent=labels[mode]||'Lesson';
 }
@@ -1309,6 +1312,7 @@ watchStepExample.addEventListener('click',openLessonMedia);
 checkStepUnderstanding.addEventListener('click',startUnderstandingCheck);
 function pauseLessonForQuestion(source='text'){
   if(!currentLesson)return;
+  lessonController.begin('question');clearTimeout(lessonChoreography.timer);stopLessonMedia();
   if(!lessonInterruption){lessonInterruption=captureLessonCheckpoint();recordLearningSignal('questions')}
   stopTeacherAudio();
   lessonPauseNotice.textContent=`Lesson paused at Step ${currentLesson.index+1}. Ask your question ${source==='voice'?'using the microphone':'below'}.`;
@@ -1960,9 +1964,10 @@ function closeVisualExplanation(){visualArea.classList.add('hidden');restoreTeac
 
 async function openLessonMedia(){
   const lesson=(currentLesson?.text||Array.from(canvasAnswer.querySelectorAll('p')).map(item=>item.innerText.trim()).filter(Boolean).join('\n')||canvasAnswer.innerText).trim();if(!lesson){addMessage('Ask a Maths question first, then I can show an example.','teacher');return;}
+  const mediaTicket=lessonController.begin('media-loading');
   stopTeacherAudio();mediaButton.disabled=true;mediaButton.textContent='Preparing…';setLearningStatus('Preparing a learning example','thinking');
-  try{const token=await ensureSession();const response=await fetch('/api/classroom/media',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:lesson,session_token:token,language:language.value})});const data=await response.json();if(!response.ok)throw new Error(data.detail||'media');dismissLessonOverlays();renderLessonMedia(data);canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');mediaArea.classList.remove('hidden');enterTeachingStage('example');setLearningStatus('Learning example ready','success');}
-  catch(error){addMessage(error.message||'I could not prepare that example. Please try again.','teacher');setLearningStatus('Example needs another try','attention');}
+  try{const token=await ensureSession();const response=await fetch('/api/classroom/media',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:lesson,session_token:token,language:language.value})});const data=await response.json();if(!lessonController.owns(mediaTicket))return;if(!response.ok)throw new Error(data.detail||'media');dismissLessonOverlays();renderLessonMedia(data);canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');mediaArea.classList.remove('hidden');enterTeachingStage('example');setLearningStatus('Learning example ready','success');}
+  catch(error){if(!lessonController.owns(mediaTicket))return;addMessage(error.message||'I could not prepare that example. Please try again.','teacher');setLearningStatus('Example needs another try','attention');}
   finally{mediaButton.disabled=false;mediaButton.textContent='Watch or Explore';}
 }
 
@@ -2013,7 +2018,7 @@ form.addEventListener('submit',async(e)=>{
   const interruptedStep=interruptedLesson?.step||currentLesson?.steps?.[interruptedLesson?.index]||interruptedLesson?.text||'';
   const lessonQuestion=interruptedLesson?`The learner paused this lesson step: "${interruptedStep}"\n\nTheir question is: ${text}`:text;
   const requestText=`${adaptivePromptContext()}\n\n${lessonQuestion}`;
-  stopTeacherAudio();clearTimeout(lessonChoreography.timer);
+  stopTeacherAudio();clearTimeout(lessonChoreography.timer);stopLessonMedia();lessonController.begin('question');
   if(!recovery)addMessage(text,'student');sendButton.disabled=true;sendButton.textContent='Thinking…';setLearningStatus(recovery?'Connection restored — continuing your question':'Working through your question','thinking');
   const thinking=addMessage(recovery?'Your connection is back. I’m continuing from where we stopped…':'Let me work through that with you…','teacher');
   try{
