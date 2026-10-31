@@ -853,6 +853,7 @@ async function pauseTeacherAudio(){
   if(!teacherAudioContext||teacherSpeechPaused)return;
   // Lock the state before suspension so a final streamed chunk cannot close
   // the audio context while the learner is pausing it.
+  lessonController.begin('paused');
   teacherSpeechPaused=true;
   teacherPanel.classList.remove('speaking');teacherPanel.classList.add('paused');teacherVoiceStatus.textContent='Paused';
   if(showVoiceAnswerAvatar)canvasVoiceAvatarStatus.textContent='Paused';
@@ -867,7 +868,7 @@ async function resumeTeacherAudio(){
   try{
     await teacherAudioContext.resume();
     if(teacherAudioContext.state!=='running')throw new Error('audio context did not resume');
-    teacherSpeechPaused=false;setTeacherSpeaking(true);
+    teacherSpeechPaused=false;lessonController.begin('speech');setTeacherSpeaking(true);
     if(teacherStreamComplete&&!teacherAudioSources.size)stopTeacherAudio();
   }catch(_error){
     teacherSpeechPaused=false;stopTeacherAudio();
@@ -964,10 +965,12 @@ async function prepareTeacherAudio(){
 }
 
 async function playPcmStream(response,requestId){
-  const context=await prepareTeacherAudio();const reader=response.body.getReader();let pending=new Uint8Array(0);let nextStart=context.currentTime+.06;let receivedAudio=false;
+  const context=await prepareTeacherAudio();if(requestId!==teacherSpeechRequest)return;const reader=response.body.getReader();let pending=new Uint8Array(0);let nextStart=context.currentTime+.06;let receivedAudio=false;
   const finishIfDone=()=>{if(teacherStreamComplete&&!teacherAudioSources.size&&!teacherSpeechPaused&&requestId===teacherSpeechRequest)stopTeacherAudio()};
   while(requestId===teacherSpeechRequest){
-    const {done,value}=await reader.read();if(done)break;
+    const {done,value}=await reader.read();
+    if(requestId!==teacherSpeechRequest){await reader.cancel();return;}
+    if(done)break;
     const joined=new Uint8Array(pending.length+value.length);joined.set(pending);joined.set(value,pending.length);
     const evenLength=joined.length-joined.length%2;pending=joined.slice(evenLength);
     if(!evenLength)continue;
@@ -984,7 +987,7 @@ async function playPcmStream(response,requestId){
     const startAt=Math.max(nextStart,context.currentTime+.025);source.start(startAt);nextStart=startAt+buffer.duration;
   }
   if(requestId===teacherSpeechRequest&&!receivedAudio)throw new Error('empty voice stream');
-  teacherStreamComplete=true;finishIfDone();
+  if(requestId===teacherSpeechRequest){teacherStreamComplete=true;finishIfDone();}
 }
 
 async function requestTeacherSpeech(payload,signal,requestId){
@@ -1005,6 +1008,8 @@ async function requestTeacherSpeech(payload,signal,requestId){
 
 async function speakText(text,preserveAudioUnlock=false,displayCanvasAvatar=true){
   if(!text.trim())return;
+  if(teachingStage.mode==='example'){stopLessonMedia();restoreTeachingStage();}
+  lessonController.begin('speech');
   stopTeacherAudio(preserveAudioUnlock);
   setCanvasVoiceAvatar(displayCanvasAvatar);
   teacherVoiceStatus.textContent='Preparing teacher voice…';
@@ -1058,7 +1063,7 @@ function stopFounderSpeech(){
 }
 
 async function playFounderPcmStream(response,requestId){
-  const context=await prepareTeacherAudio();const reader=response.body.getReader();let pending=new Uint8Array(0);let nextStart=context.currentTime+.06;let received=false;founderStreamComplete=false;
+  const context=await prepareTeacherAudio();if(requestId!==teacherSpeechRequest)return;const reader=response.body.getReader();let pending=new Uint8Array(0);let nextStart=context.currentTime+.06;let received=false;founderStreamComplete=false;
   while(requestId===founderSpeechRequest){const {done,value}=await reader.read();if(done)break;const joined=new Uint8Array(pending.length+value.length);joined.set(pending);joined.set(value,pending.length);const evenLength=joined.length-joined.length%2;pending=joined.slice(evenLength);if(!evenLength)continue;
     if(!received){received=true;hearFounderButton.disabled=false;hearFounderButton.textContent='Stop Herbert';startAvatarMotion(founderPanel)}
     const samples=evenLength/2;const buffer=context.createBuffer(1,samples,24000);const channel=buffer.getChannelData(0);const view=new DataView(joined.buffer,joined.byteOffset,evenLength);for(let index=0;index<samples;index++)channel[index]=view.getInt16(index*2,true)/32768;

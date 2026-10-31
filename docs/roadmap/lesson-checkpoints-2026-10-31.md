@@ -15,3 +15,7 @@ Rollback: revert the eventual checkpoint commit or redeploy the baseline. No sch
 ## Presentation ownership increment
 
 An in-memory controller issues revision tickets for asynchronous media requests. Asking a question, moving to a lesson, changing stage or clearing learner state revokes previous tickets, preventing stale media success/error responses from taking over the display. This is a first ownership guard, not the complete speech/avatar state machine. Four behavioral controller tests pass; the full Python suite passes 411 tests.
+
+## Speech ownership increment
+
+PCM playback checks its request owner after asynchronous audio preparation and every stream read. A cancelled stream is cancelled without scheduling stale chunks or altering a newer stream completion state. Read-aloud closes an active example and restores the lesson view. Speech/pause states revoke pending media work. Three executable stream-race tests cover delayed chunks, delayed completion and preparation cancellation. Physical audio and full presentation acceptance remain pending.

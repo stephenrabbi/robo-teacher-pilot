@@ -3,7 +3,7 @@
   'use strict';
   function createLessonController(){
     let revision=0,mode='idle';
-    const modes=new Set(['idle','lesson','question','media-loading','example','visual','check','paused']);
+    const modes=new Set(['idle','lesson','question','media-loading','example','visual','check','paused','speech']);
     return Object.freeze({
       begin(next){
         if(!modes.has(next))throw new Error('Unknown lesson mode');
