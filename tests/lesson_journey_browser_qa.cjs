@@ -29,6 +29,7 @@ const assert=require('node:assert/strict');
   await page.locator('#chatForm button[type=submit]').click();
   await page.waitForFunction(()=>document.querySelector('#question').value==='' && !document.querySelector('#chatForm button[type=submit]').disabled);
   await page.reload();
+  await page.locator('#learnerConsent').check();
   await page.locator('#resumeLearning').click();
   await page.locator('#returnToLesson').waitFor({state:'visible'});
   await page.locator('#returnToLesson').click();
