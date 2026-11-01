@@ -28,7 +28,8 @@ def stream_cloud_speech(client, model, prompt, voice):
                     continue
                 mime = (audio.mime_type or '').lower().replace(' ', '')
                 if mime not in ('audio/l16;codec=pcm;rate=24000', 'audio/pcm;rate=24000',
-                                'audio/l16;rate=24000'):
+                                'audio/l16;rate=24000',
+                                'audio/l16;rate=24000;channels=1'):
                     raise ValueError('Cloud speech returned an unsupported PCM format')
                 pcm = base64.b64decode(audio.data, validate=True) if isinstance(audio.data, str) else bytes(audio.data)
                 if pcm:

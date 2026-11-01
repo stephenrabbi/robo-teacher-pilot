@@ -10,10 +10,11 @@ def response(data=None, mime='audio/L16;codec=pcm;rate=24000'):
     return NS(candidates=[NS(content=NS(parts=[part]))])
 
 
-def test_cloud_audio_stream_skips_metadata_and_preserves_chunk_order():
+@pytest.mark.parametrize('mime', ['audio/L16;codec=pcm;rate=24000', 'audio/l16; rate=24000; channels=1'])
+def test_cloud_audio_stream_skips_metadata_and_preserves_chunk_order(mime):
     client = Mock()
     client.models.generate_content_stream.return_value = iter([
-        NS(candidates=None), response(), response(b'\x00\x01'), response(b'\x02\x03')])
+        NS(candidates=None), response(), response(b'\x00\x01', mime), response(b'\x02\x03', mime)])
     assert list(stream_cloud_speech(client, 'cloud-tts', 'hello', 'Kore')) == [b'\x00\x01', b'\x02\x03']
     args = client.models.generate_content_stream.call_args.kwargs
     assert args['model'] == 'cloud-tts'
