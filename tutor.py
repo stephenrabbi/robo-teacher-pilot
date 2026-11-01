@@ -20,7 +20,7 @@ from math import gcd
 
 from google import genai
 from google.genai import types
-from cloud_ai_provider import create_ai_client
+from cloud_ai_provider import create_ai_client, cloud_backend_selected, stream_cloud_speech
 from learner_profile import DEFAULT_PROFILE, load_profile, profile_prompt_context, update_profile_from_message
 
 logger = logging.getLogger("robo-teacher.tutor")
@@ -278,6 +278,9 @@ def stream_tutor_speech(text: str, language: str = "English", voice_gender: str 
     )
     client = _get_client()
     emitted_audio = False
+    if cloud_backend_selected():
+        yield from stream_cloud_speech(client, GEMINI_STREAMING_TTS_MODEL, prompt, TTS_VOICES[gender])
+        return
     stream = client.interactions.create(
         model=GEMINI_STREAMING_TTS_MODEL,
         input=prompt,

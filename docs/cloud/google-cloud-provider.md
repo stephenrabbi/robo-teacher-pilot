@@ -25,3 +25,22 @@ References:
 - https://docs.cloud.google.com/docs/authentication/application-default-credentials
 - https://docs.cloud.google.com/free/docs/free-cloud-features
 - https://ai.google.dev/gemini-api/docs/billing
+
+## Cloud streaming voice adapter (1 November 2026)
+
+When the Cloud backend is explicitly selected, primary streaming speech uses
+`models.generate_content_stream` instead of Developer API Interactions. It skips
+metadata-only responses, emits audio chunks in order and rejects formats other
+than raw 24 kHz PCM, matching the classroom player. The existing Developer route
+is unchanged. Cloud candidate models for the preview are `gemini-3.1-flash-lite`,
+`gemini-2.5-flash-tts` (stable speech), and `gemini-3.1-flash-tts-preview`
+(streaming speech), with location `global`. The stable Cloud TTS model ID differs
+from the Developer API default; set it explicitly on the preview only.
+
+User-provided Cloud Shell results confirmed a tiny text request using the runtime
+service account on 1 November. This does not verify Render's saved private key,
+Cloud speech access, language quality or trial-credit billing attribution. The
+temporary impersonation permission was removed after that test. Credentials must
+remain in Render secret files; never commit them or include them in test output.
+
+Reference: https://docs.cloud.google.com/text-to-speech/docs/gemini-tts
