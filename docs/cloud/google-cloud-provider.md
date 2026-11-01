@@ -44,3 +44,21 @@ temporary impersonation permission was removed after that test. Credentials must
 remain in Render secret files; never commit them or include them in test output.
 
 Reference: https://docs.cloud.google.com/text-to-speech/docs/gemini-tts
+
+## Isolated Render runtime probe
+
+`uvicorn cloud_runtime_probe:app --host 0.0.0.0 --port $PORT` runs a separate
+smoke-test service, not the classroom. Set the same explicit Cloud model/project
+configuration, `ROBO_CLOUD_PROBE_ENABLED=true`, and the runtime credential secret
+file path. Without the file, `/health` reports `waiting_for_secret` without any
+Cloud calls. With it, startup performs three fixed synthetic checks (text, stable
+speech and streaming speech). Health requests never trigger AI work. Responses
+and logs contain only status/counts/error class, never credentials or raw errors.
+Disable/suspend this test service after validation; every process restart can run
+the three small tests again while enabled. It has no learner data or endpoints.
+
+Cloud Shell verification on 1 November: REST streaming returned 64 PCM chunks /
+122880 bytes. An isolated install of google-genai 2.17.0 (the repository pin)
+accepted the explicit enterprise/vertex client, text configuration and streamed
+58 chunks / 111360 bytes. Both used the signed-in Google account; neither proves
+Render credential access. User confirmed hearing the earlier unary audio sample.
