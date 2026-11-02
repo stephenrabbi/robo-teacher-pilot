@@ -6,15 +6,15 @@
 
 <p align="center"><strong>Every learner. Their own AI teacher.</strong></p>
 
-Robo-Teacher is a **working, deployed AI teaching and learning platform** developed by **Earlyon-Tech Brainery** to expand access to personalised education across subjects and grade levels in Africa. It is designed to complement human teachers, not replace them.
+Robo-Teacher is an **all-subject AI teaching and learning platform for secondary-school students**, developed by **Earlyon-Tech Brainery**. Its purpose is to give every learner a personal AI teacher across the secondary-school curriculum: a teacher they can talk to, interrupt, question and learn from through explanations, drawings, graphs, demonstrations and videos. The platform is live and designed to complement human teachers.
 
-**What is available now:** the live browser classroom supports **Mathematics for Junior Secondary School 1, 2 and 3 (JSS1–JSS3)**. Learners can access curriculum-aware teaching, practice, diagnostic assessment, revision, adaptive guidance and progress views through a multilingual, multimodal classroom.
+**The platform today:** a live, multilingual classroom with text and voice interaction, image questions, a Teaching Canvas, visual explanations, practice, diagnostics, progress tracking and teacher dashboards. **JSS1–JSS3 Mathematics is the first implemented curriculum module** used to build and validate these shared teaching capabilities. Additional subject modules are the next expansion; they are not yet all available in the live classroom.
 
 **School reach:** **331 students onboarded across Ise Junior High School and Ise Senior High School, Epe, Lagos State.** Separately, the documented earlier evaluation involved **56 learners from Ise Junior High School, Epe, and Tio College, Ikorodu**, with matched baseline/post-test results and **188 successful logged interactions**. These are different groups and measures: onboarding is not a count of evaluated learners, regularly active users or paying customers. See the evaluation evidence below.
 
-**Wider product scope:** Robo-Teacher is an **all-subject AI teacher initiative**, with expansion beyond the currently implemented JSS1–JSS3 Mathematics curriculum part of its product roadmap. **The implemented Mathematics scope should not be mistaken for a JSS2-only, First-Term-only tutor, nor should the all-subject vision be mistaken for verified deployment of every subject today.**
+**Product scope:** all secondary-school subjects, across junior and senior secondary levels. The subject modules will share the same conversational teacher, visual teaching tools, lesson continuity, learner support and teacher oversight. The first module is a starting point for delivery, not the identity or limit of the product.
 
-The initial WhatsApp/Telegram tutoring pilot began with JSS2 Mathematics; that describes the **starting point**, not the scope of the current live platform.
+The initial WhatsApp/Telegram pilot began with JSS2 Mathematics. Robo-Teacher has since grown into a browser-based teaching platform; the development journey continues toward complete secondary-school subject coverage.
 
 ## 🚀 Live Production Demo
 
@@ -104,7 +104,21 @@ Robo-Teacher is being developed as an **always-available AI learning layer that 
 
 ---
 
-## Current Working Classroom: JSS1–JSS3 Mathematics
+## The Robo-Teacher Learning Platform
+
+### Subject coverage and expansion
+
+Robo-Teacher's scope includes Mathematics, English, sciences, humanities, social sciences, business and technology subjects across secondary education. Delivery will expand through subject-specific modules with teacher review.
+
+| Curriculum area | Delivery status |
+|---|---|
+| Mathematics | JSS1–JSS3 module implemented, with all three term mappings |
+| English and other language subjects | Planned curriculum modules; the existing interface language selector is not a language-subject course |
+| Sciences, including Physics, Chemistry and Biology | Planned subject modules |
+| Humanities and social sciences | Planned subject modules |
+| Business, computing and technology subjects | Planned subject modules |
+
+These categories describe the platform's intended coverage. The live curriculum selector remains limited to implemented modules.
 
 ### Personalized daily learning journey
 
@@ -116,9 +130,9 @@ The live classroom includes a **Today** system organized around three pedagogica
 
 Daily completion is stored by **learner, class and local date**. A returning learner can resume an unfinished activity, while a completed plan remains completed for that learner for the day.
 
-### Step-by-step Gemini tutoring
+### Conversational, step-by-step teaching
 
-The tutoring layer is designed to teach rather than simply return answers. It supports:
+The teaching layer is designed for explanations, dialogue and guided learning across subject modules. Current capabilities include:
 
 - worked, step-by-step explanations;
 - misconception correction;
@@ -127,7 +141,7 @@ The tutoring layer is designed to teach rather than simply return answers. It su
 - class-level adaptation; and
 - curriculum-aware teaching.
 
-### JSS1–JSS3 curriculum-aware learning — all three terms
+### First implemented subject module: JSS1–JSS3 Mathematics
 
 The working browser classroom supports **Junior Secondary School 1, 2 and 3 Mathematics**, with **First, Second and Third Term topic mappings for each class** in `curriculum.py`. The class-and-term curriculum is used to organise practice topics and recommendations.
 
@@ -135,7 +149,7 @@ The `CURRICULUM_TOPICS` list in `tutor.py` is a **combined topic guide for conve
 
 Examples represented across the curriculum and tutor guidance include numbers and place value, number bases and standard form, fractions and decimals, LCM/HCF, approximation, directed numbers, ratios and percentages, algebra, inequalities and graphs, geometrical constructions and transformations, mensuration, statistics and probability.
 
-The current `tutor.py` system prompt and its out-of-scope message explicitly target **JSS1–JSS3 Mathematics**. That is an intentional guardrail for the **currently implemented subject module**, not the end goal for Robo-Teacher. Extending those subject-specific prompts, content maps, assessment rules and safeguards to additional subjects remains part of the all-subject platform roadmap.
+The current `tutor.py` teaching prompt and safeguards serve this first module. Each additional subject needs its own curriculum map, teaching guidance, assessment rules, visual tools and quality review. Shared classroom features will support these modules without redefining Robo-Teacher as a single-subject product.
 
 ### Adaptive Practice Mode
 
@@ -439,7 +453,7 @@ Current limitations include:
 - voice quality/availability depends on provider capacity and browser/device support;
 - image tutoring depends on image clarity;
 - conversation context can be limited by service/runtime state;
-- current verified subject coverage is JSS1–JSS3 Mathematics; broader subject coverage is an expansion objective;
+- the all-subject platform currently has one implemented curriculum module (JSS1–JSS3 Mathematics); additional modules require development and validation;
 - internet access is required for the current live experience;
 - the original pilot did not include a randomized control group;
 - the post-test average remained low in absolute terms despite the observed improvement; and
@@ -454,8 +468,8 @@ Human teachers remain important for safeguarding, curriculum judgment, motivatio
 ### Implemented classroom — current production
 
 - live browser AI classroom
-- JSS1–JSS3 Mathematics
-- English, Yorùbá, Igbo and Hausa
+- first curriculum module: JSS1–JSS3 Mathematics
+- teaching/interface languages: English, Yorùbá, Igbo and Hausa
 - text, image, voice and whiteboard learning
 - adaptive Practice Mode and diagnostic placement
 - learning path and progress dashboard
@@ -510,9 +524,9 @@ These are **product requirements and acceptance targets**, not a statement that 
 
 ## Vision
 
-Robo-Teacher is built as an all-subject teaching and learning platform, with a working JSS1–JSS3 Mathematics classroom as its current implemented subject coverage. It is not intended to be another question-answer chatbot.
+**A personal AI teacher for every secondary-school subject.** Robo-Teacher brings conversation, speech, an expressive avatar, visual explanation, videos, practice and progress into one learning experience. Mathematics is the first implemented module in that platform.
 
-The long-term goal is to build an **AI teacher infrastructure layer for African education**: a system that can understand where a learner is, teach at that learner's level, switch language when necessary, show concepts visually, listen to questions, provide practice, remember progress, identify learning gaps and help human teachers see where support is needed.
+The goal is an **AI teacher infrastructure layer for African secondary education**: a system that can understand where a learner is, teach at that learner's level, switch language when necessary, show concepts visually, listen to questions, provide practice, remember progress, identify learning gaps and help human teachers see where support is needed.
 
 **Every learner. Their own AI teacher.**
 
