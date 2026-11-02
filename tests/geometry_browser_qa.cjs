@@ -20,12 +20,24 @@ const fs=require('node:fs');
    if(await page.getByRole('button',{name:'Essential only',exact:true}).isVisible())await page.getByRole('button',{name:'Essential only',exact:true}).click();
    await page.evaluate(()=>window.eval("learnerNickname.value='SyntheticGeometryQA';enterClassroomView();canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');startLessonDirector('Original geometry lesson',0,['Exact original geometry explanation']);"));
    await page.locator('#showStepVisual').click();await page.locator('.geometry-diagram').waitFor({state:'visible'});
+   assert.equal(await page.locator('#teacherPanel').getAttribute('data-pose'),'presenting');
+   const pose=page.locator('#teacherPanel .teacher-presenting-pose');await pose.waitFor({state:'visible'});
+   await pose.evaluate(i=>i.decode());assert.equal(await pose.evaluate(i=>i.naturalWidth>0),true);
+   const poseBox=await pose.boundingBox();assert.ok(poseBox.width>0&&poseBox.x>=0&&poseBox.x+poseBox.width<=width);
+   await page.locator('#teacherPanel').screenshot({path:`responsive-qa/presenter-live-${shape}-${width}.png`});
+   await page.evaluate(()=>window.eval("setTeacherSpeaking(true)"));
+   assert.equal(await page.locator('#teacherPanel').getAttribute('data-pose'),'portrait');
+   assert.equal(await pose.isVisible(),false);
+   await page.evaluate(()=>window.eval("setTeacherSpeaking(false)"));
+   assert.equal(await page.locator('#teacherPanel').getAttribute('data-pose'),'presenting');
    const box=await page.locator('.geometry-diagram').boundingBox();assert.ok(box.width>0&&box.x>=0&&box.x+box.width<=width);
    await page.getByRole('button',{name:'Hide shape labels',exact:true}).click();assert.equal(await page.locator('[data-geometry-labels]').getAttribute('visibility'),'hidden');
    await page.getByRole('button',{name:'Show shape labels',exact:true}).click();await page.getByRole('button',{name:'Show area formula',exact:true}).click();
    assert.match(await page.locator('#visualGraphic [role=status]').innerText(),/Area =/);
    await page.locator('#visualGraphic').screenshot({path:`responsive-qa/geometry-${shape}-${width}.png`});
    await page.getByRole('button',{name:'Return to explanation',exact:true}).click();assert.equal(await page.locator('#canvasAnswer').innerText(),'Exact original geometry explanation');
+   assert.equal(await page.locator('#teacherPanel').getAttribute('data-pose'),'portrait');
+   assert.equal(await pose.isVisible(),false);
   }
   console.log('Rectangle/circle/triangle schematics, labels, area formulas and lesson return at four widths: PASS');
  }finally{await browser.close()}

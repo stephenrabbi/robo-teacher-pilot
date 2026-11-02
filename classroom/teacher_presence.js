@@ -15,6 +15,7 @@
  function renderTeacherPresence(panel,cue,options){
   if(!panel||!cue)return;
   const value=teacherPresence(options);panel.dataset.teachingState=value.state;cue.dataset.state=value.state;
+  panel.dataset.pose=['visual','example','check'].includes(value.state)?'presenting':'portrait';
   const icon=cue.ownerDocument.createElement('span');icon.className='teacher-cue-icon';icon.setAttribute('aria-hidden','true');icon.textContent=value.icon;
   const text=cue.ownerDocument.createElement('span');text.textContent=value.label;
   cue.replaceChildren(icon,text);
