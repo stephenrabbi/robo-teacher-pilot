@@ -774,6 +774,20 @@ def fallback_understanding_check(text: str, response_language: str = "English", 
     return {"question":"Which value is stated in the final step of this lesson?","choices":[others[0],answer,others[1]],"correct_index":1,"feedback":f"The final step in the saved lesson states {answer}."}
 
 
+def geometry_visual_aid(text: str, response_language: str) -> dict | None:
+    """Return a general schematic only when one unambiguous basic shape is named."""
+    if response_language != "English":
+        return None
+    patterns={"rectangle":r"\brectangles?\b", "circle":r"\bcircles?\b", "triangle":r"\btriangles?\b"}
+    found=[shape for shape,pattern in patterns.items() if re.search(pattern,text,re.IGNORECASE)]
+    if len(found)!=1:
+        return None
+    shape=found[0]
+    if shape=="triangle" and re.search(r"\b(equilateral|isosceles|scalene|right|obtuse|acute)\b",text,re.IGNORECASE):
+        return None
+    return {"title":f"{shape.title()} schematic", "kind":"geometry", "items":[{"label":shape,"value":1}], "caption":"Schematic. Not to scale. Use the measurements in your question."}
+
+
 def generate_visual_aid(text: str, response_language: str, class_level: str = "JSS2") -> dict:
     """Describe a safe, lightweight visual that the browser can render."""
     coordinate_matches = re.findall(r"\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)", text)
@@ -782,6 +796,9 @@ def generate_visual_aid(text: str, response_language: str, class_level: str = "J
         title, caption = labels.get(response_language, labels["English"])
         points = [{"label": f"{x},{y}", "value": index + 1} for index, (x, y) in enumerate(coordinate_matches[:8])]
         return {"title": title, "kind": "coordinate", "items": points, "caption": caption}
+    geometry=geometry_visual_aid(text,response_language)
+    if geometry is not None:
+        return geometry
     language_instruction = f"Use simple {response_language} suitable for {class_level}." if response_language != "English" else f"Use simple English suitable for {class_level}."
     prompt = (
         f"{_class_instruction(class_level)}\n{language_instruction}\n\n"

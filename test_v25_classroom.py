@@ -2022,3 +2022,24 @@ def test_example_replay_groups_many_numbered_steps_instead_of_truncating_them():
     assert replay['kind']=='replay'
     assert 1<=len(replay['steps'])<=6
     assert ' '.join(' '.join(replay['steps']).split())==' '.join(lesson.split())
+
+
+def test_geometry_schematics_are_deterministic_and_use_no_model_request():
+    for shape in ('rectangle','circle','triangle'):
+        with patch.object(tutor,'_get_client') as factory:
+            result=tutor.generate_visual_aid(f'Explain the area of a {shape}.','English','JSS2')
+        assert result['kind']=='geometry'
+        assert result['items'][0]['label']==shape
+        assert 'Not to scale' in result['caption']
+        factory.assert_not_called()
+
+
+def test_geometry_detection_does_not_guess_comparisons_special_triangles_or_other_languages():
+    for text in ('Compare a circle and triangle.','Draw an equilateral triangle.','Draw a right triangle.','Draw a semicircle.'):
+        assert tutor.geometry_visual_aid(text,'English') is None
+    assert tutor.geometry_visual_aid('Draw a circle.','Yoruba') is None
+
+
+def test_coordinate_points_take_priority_over_generic_shape_diagrams():
+    result=tutor.generate_visual_aid('Plot triangle vertices (0,0), (2,0), (1,3).','English','JSS2')
+    assert result['kind']=='coordinate'
