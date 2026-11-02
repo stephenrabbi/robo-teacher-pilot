@@ -821,12 +821,16 @@ changeLearnerButton.addEventListener('click',()=>{
 });
 
 toggle.addEventListener('click',()=>{
-  const mini=teacherPanel.classList.toggle('minimized');
-  classroom.classList.toggle('teacher-min',mini);
-  toggle.textContent=mini?'Show':'Hide';
-  toggle.setAttribute('aria-label',mini?'Maximize teacher':'Minimize teacher');
-  toggle.setAttribute('aria-expanded',String(!mini));
+  setTeacherPanelMinimized(!teacherPanel.classList.contains('minimized'));
 });
+
+function setTeacherPanelMinimized(minimized){
+  teacherPanel.classList.toggle('minimized',minimized);
+  classroom.classList.toggle('teacher-min',minimized);
+  toggle.textContent=minimized?'Show':'Hide';
+  toggle.setAttribute('aria-label',minimized?'Maximize teacher':'Minimize teacher');
+  toggle.setAttribute('aria-expanded',String(!minimized));
+}
 
 function prepareSpeechText(text){
   return text
@@ -1274,7 +1278,7 @@ function setTeachingStageMode(mode){
 
 function enterTeachingStage(mode){
   teachingStage.bookmark=currentLesson?.index||0;setTeachingStageMode(mode);setCanvasVoiceAvatar(false);
-  teacherPanel.classList.add('minimized');classroom.classList.add('teacher-min');toggle.textContent='Show';toggle.setAttribute('aria-expanded','false');
+  setTeacherPanelMinimized(true);
 }
 
 function restoreTeachingStage(){
@@ -1304,7 +1308,7 @@ function renderCurrentLessonStep(){
 }
 
 function moveLessonStep(direction){
-  if(!currentLesson)return;stopTeacherAudio();lessonInterruption=null;
+  if(!currentLesson)return;stopTeacherAudio();lessonController.begin('lesson');lessonInterruption=null;
   currentLesson.index=Math.max(0,Math.min(currentLesson.steps.length-1,currentLesson.index+direction));
   renderCurrentLessonStep();setLearningStatus(`Lesson step ${currentLesson.index+1} ready`);
 }
@@ -1931,13 +1935,18 @@ function closeUnderstandingCheck(){
   restoreTeachingStage();
 }
 
+let visualPreparationRequest=0;
 async function showVisualExplanation(){
   const lesson=(currentLesson?.text||canvasAnswer.textContent).trim();if(!lesson){addMessage('Ask a Maths question first, then I can show a visual explanation.','teacher');return;}
+  const visualTicket=lessonController.begin('media-loading');
+  const preparationRequest=++visualPreparationRequest;
   stopTeacherAudio();visualButton.disabled=true;visualButton.textContent='Preparing…';setLearningStatus('Drawing a lesson visual','thinking');
   try{
     const token=await ensureSession();let response;let data;
     for(let attempt=1;attempt<=3;attempt++){
+      if(!lessonController.owns(visualTicket))return;
       response=await fetch('/api/classroom/visual',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:lesson,session_token:token,language:language.value})});data=await response.json();
+      if(!lessonController.owns(visualTicket))return;
       if(response.ok)break;
       if(![429,503].includes(response.status)||attempt===3)throw new Error(data.detail||'visual');
       setLearningStatus(`Visual busy — retrying (${attempt}/2)`,'thinking');
@@ -1945,8 +1954,8 @@ async function showVisualExplanation(){
     }
     if(!response.ok)throw new Error(data.detail||'visual');dismissLessonOverlays();renderVisualAid(data);canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');visualArea.classList.remove('hidden');
     enterTeachingStage('visual');setLearningStatus('Visual explanation ready','success');
-  }catch(error){addMessage(error.message&&!['visual'].includes(error.message)?error.message:'I could not prepare the visual right now. Please try again.','teacher');setLearningStatus('Visual needs another try','attention');}
-  finally{visualButton.disabled=false;visualButton.textContent='Show Visual';}
+  }catch(error){if(!lessonController.owns(visualTicket))return;addMessage(error.message&&!['visual'].includes(error.message)?error.message:'I could not prepare the visual right now. Please try again.','teacher');setLearningStatus('Visual needs another try','attention');}
+  finally{if(preparationRequest===visualPreparationRequest){visualButton.disabled=false;visualButton.textContent='Show Visual';}}
 }
 
 function renderVisualAid(data){
@@ -1959,7 +1968,7 @@ function renderVisualAid(data){
   data.items.forEach((item,index)=>{const node=document.createElement('div');node.className='visual-item';const mark=document.createElement('strong');const label=document.createElement('span');label.textContent=item.label;if(data.kind==='steps')mark.textContent=String(index+1);else if(data.kind==='bars'){mark.style.width=`${Math.max(12,Math.abs(item.value)/max*100)}%`;mark.textContent=String(item.value)}else mark.textContent=String(item.value);node.append(mark,label);visualGraphic.appendChild(node);});
 }
 
-function restoreTeacherPanel(){teacherPanel.classList.remove('minimized');classroom.classList.remove('teacher-min');toggle.textContent='Hide';toggle.setAttribute('aria-expanded','true')}
+function restoreTeacherPanel(){setTeacherPanelMinimized(false)}
 
 function stopLessonMedia(){if(mediaReplayTimer){clearInterval(mediaReplayTimer);mediaReplayTimer=null}mediaFrame.removeAttribute('src');mediaArea.classList.add('hidden')}
 

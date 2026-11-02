@@ -1195,7 +1195,7 @@ def test_visual_teaching_mode_minimizes_avatar_and_renders_safe_data():
     html=(PROJECT_ROOT/'classroom'/'index.html').read_text();script=(PROJECT_ROOT/'classroom'/'app.js').read_text()
     assert 'id="visualButton"' in html and 'id="visualArea"' in html
     assert "fetch('/api/classroom/visual'" in script
-    assert "teacherPanel.classList.add('minimized')" in script
+    assert "setTeacherPanelMinimized(true)" in script
     assert 'visualTitle.textContent=data.title' in script
     assert 'innerHTML=data' not in script
 
@@ -1256,7 +1256,7 @@ def test_watch_example_ui_minimizes_avatar_and_stops_embedded_media():
     assert 'id="mediaButton"' in html and 'id="mediaFrame"' in html
     assert "fetch('/api/classroom/media'" in script
     assert "mediaFrame.removeAttribute('src')" in script
-    assert "teacherPanel.classList.add('minimized')" in script
+    assert "setTeacherPanelMinimized(true)" in script
 
 
 def test_mobile_simulation_always_exposes_an_escape_control():
