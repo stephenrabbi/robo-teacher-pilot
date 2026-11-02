@@ -5,7 +5,7 @@ const vm=require('node:vm');
 const src=fs.readFileSync('classroom/app.js','utf8');
 function harness(){
  const hidden={add(){},remove(){}};
- const ctx={currentLesson:{text:'Original lesson',index:1,steps:['Introduction','Exact translated step','Check']},teachingStage:{mode:'lesson',checkpoint:null,lesson:null},canvasWork:{classList:hidden},canvasEmpty:{classList:hidden},canvasAnswer:{textContent:''},setTeachingStageMode(mode){ctx.teachingStage.mode=mode},setCanvasVoiceAvatar(){},setTeacherPanelMinimized(){},renderCurrentLessonStep(){},restoreTeacherPanel(){},setLearningStatus(){},startLessonDirector(text,index,steps){ctx.currentLesson={text,index,steps:steps.slice()}}};
+ const ctx={currentLesson:{text:'Original lesson',index:1,steps:['Introduction','Exact translated step','Check']},teachingStage:{mode:'lesson',checkpoint:null,lesson:null},canvasWork:{classList:hidden},canvasEmpty:{classList:hidden},canvasAnswer:{textContent:''},setTeachingStageMode(mode){ctx.teachingStage.mode=mode},setCanvasVoiceAvatar(){},saveClassroomSnapshot(){},setTeacherPanelMinimized(){},renderCurrentLessonStep(){},restoreTeacherPanel(){},setLearningStatus(){},startLessonDirector(text,index,steps){ctx.currentLesson={text,index,steps:steps.slice()}}};
  vm.createContext(ctx);
  vm.runInContext(src.slice(src.indexOf('function captureLessonCheckpoint('),src.indexOf('function restoreLessonHistory(')),ctx);
  vm.runInContext(src.slice(src.indexOf('function enterTeachingStage('),src.indexOf('function renderCurrentLessonStep(')),ctx);

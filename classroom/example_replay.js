@@ -22,6 +22,7 @@
       play.textContent=timer===null?'Play example':'Pause example';play.disabled=active===steps.length-1;
       play.setAttribute('aria-pressed',String(timer!==null));
       status.textContent=`Example step ${active+1} of ${steps.length}${active===steps.length-1?' — complete':timer===null?' — paused':' — playing'}`;
+      if(narration?.onStep)narration.onStep({text:values[active],index:active});
     }
     function moveBy(direction){if(disposed)return;stop();active=Math.max(0,Math.min(steps.length-1,active+direction));show();}
     const previous=button('Previous example step',()=>moveBy(-1));

@@ -332,7 +332,7 @@ function refreshResumeLearning(){savedClassroomSnapshot=loadClassroomSnapshot();
 function saveClassroomSnapshot(){
   const nickname=learnerNickname.value.trim(),answer=currentLesson?.text||canvasAnswer.innerText.trim();
   if(nickname.length<2||!answer)return;
-  savedClassroomSnapshot={nickname,learnerCode:learnerCode.value.trim().toUpperCase(),classLevel:learnerClass.value,language:language.value,lessonSteps:currentLesson?.steps?.slice()||null,lessonHistory:lessonHistory.slice(-20),lessonInterruption,answer,lessonIndex:currentLesson?.index||0,canvasStatus:canvasStatus.textContent,savedAt:Date.now()};
+  savedClassroomSnapshot={nickname,learnerCode:learnerCode.value.trim().toUpperCase(),classLevel:learnerClass.value,language:language.value,lessonSteps:currentLesson?.steps?.slice()||null,lessonHistory:lessonHistory.slice(-20),lessonInterruption,workedExample:captureLessonCheckpoint()?.example||null,answer,lessonIndex:currentLesson?.index||0,canvasStatus:canvasStatus.textContent,savedAt:Date.now()};
   localStorage.setItem('roboTeacherClassroomSnapshot',JSON.stringify(savedClassroomSnapshot));refreshResumeLearning();
 }
 
@@ -817,7 +817,7 @@ resumeLearningButton.addEventListener('click',async()=>{
   try{
     learnerNickname.value=snapshot.nickname;learnerCode.value=snapshot.learnerCode||'';learnerClass.value=snapshot.classLevel;practiceClass.value=snapshot.classLevel;language.value=snapshot.language||'English';localStorage.setItem('roboTeacherLanguage',language.value);updatePracticeTopics();
     if(!learnerCode.value){refreshResumeLearning();return}await ensureSession();learnerIdentity.textContent=`${snapshot.nickname.toUpperCase()} · ${learnerCode.value} · ${snapshot.classLevel} CLASSROOM`;enterClassroomView();
-    dismissLessonOverlays();canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');canvasStatus.textContent=snapshot.canvasStatus||'Previous lesson restored';const autoTeachWasEnabled=lessonChoreography.enabled;lessonChoreography.enabled=false;restoreLessonHistory(snapshot);startLessonDirector(snapshot.answer,snapshot.lessonIndex||0,snapshot.lessonSteps);lessonChoreography.enabled=autoTeachWasEnabled;readAnswerButton.disabled=false;setActiveMode(chatButton);setLearningStatus('Previous lesson restored','success');
+    dismissLessonOverlays();canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');canvasStatus.textContent=snapshot.canvasStatus||'Previous lesson restored';const autoTeachWasEnabled=lessonChoreography.enabled;lessonChoreography.enabled=false;restoreLessonHistory(snapshot);startLessonDirector(snapshot.answer,snapshot.lessonIndex||0,snapshot.lessonSteps);if(snapshot.workedExample)restoreWorkedExample(snapshot.workedExample);lessonChoreography.enabled=autoTeachWasEnabled;readAnswerButton.disabled=false;setActiveMode(chatButton);setLearningStatus('Previous lesson restored','success');
     void practiceRequest('progress',{class_level:snapshot.classLevel}).then(data=>{currentProgress=data}).catch(()=>{});
     if(pendingChatRecovery)setTimeout(retryPendingChat,300);keepTeachingCanvasVisible();
   }catch(_error){onboardingError.textContent='I could not restore the previous lesson. Check your connection and try again.';onboardingError.classList.remove('hidden')}
@@ -1305,7 +1305,7 @@ function enterTeachingStage(mode){
     teachingStage.checkpoint=captureLessonCheckpoint();teachingStage.lesson=currentLesson;
   }
   setTeachingStageMode(mode);setCanvasVoiceAvatar(false);
-  setTeacherPanelMinimized(true);
+  setTeacherPanelMinimized(true);saveClassroomSnapshot();
 }
 
 function restoreTeachingStage(){
@@ -2025,7 +2025,7 @@ function renderLessonMedia(data,exampleIndex=0){
   if(mediaReplayPlayer){mediaReplayPlayer.dispose();mediaReplayPlayer=null}mediaTitle.textContent=data.title;mediaSource.textContent=`Source: ${data.source}`;mediaFrame.classList.add('hidden');mediaReplay.classList.add('hidden');mediaFrame.removeAttribute('src');mediaReplay.replaceChildren();
   closeMediaButton.textContent=data.kind==='simulation'?'← Exit simulation':'← Exit example';if(data.kind==='simulation'){if(window.RoboTeacherPrivacy&&!window.RoboTeacherPrivacy.externalContentAllowed()){window.RoboTeacherPrivacy.requestExternalContent(data.url,data.title);return}mediaFrame.src=data.url;mediaFrame.classList.remove('hidden');return;}
   currentWorkedExample={title:data.title,source:data.source,steps:data.steps.slice()};
-  mediaReplay.classList.remove('hidden');mediaReplayPlayer=window.RoboTeacherExamples.renderExampleReplay(mediaReplay,data.steps,window,{read:text=>{if(teachingStage.mode==='example')void speakText(text,false,false,true)},stop:()=>stopTeacherAudio(),ask:askWorkedExampleStep,pause:()=>void pauseTeacherAudio(),resume:()=>void resumeTeacherAudio()},exampleIndex);
+  mediaReplay.classList.remove('hidden');mediaReplayPlayer=window.RoboTeacherExamples.renderExampleReplay(mediaReplay,data.steps,window,{read:text=>{if(teachingStage.mode==='example')void speakText(text,false,false,true)},stop:()=>stopTeacherAudio(),ask:askWorkedExampleStep,pause:()=>void pauseTeacherAudio(),resume:()=>void resumeTeacherAudio(),onStep:()=>saveClassroomSnapshot()},exampleIndex);
 }
 
 function askWorkedExampleStep(text,index){

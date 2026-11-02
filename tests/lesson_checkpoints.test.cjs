@@ -71,3 +71,10 @@ test('next and previous voice intents move the active example instead of the mai
  vm.createContext(c);vm.runInContext(source.slice(source.indexOf('function executeHandsFreeIntent('),source.indexOf('function handleHandsFreePhrase(')),c);
  c.executeHandsFreeIntent('next step');c.executeHandsFreeIntent('previous step');assert.deepEqual(moved,[1,-1]);
 });
+test('saved classroom snapshot retains an active example and clears it after leaving',()=>{
+ let stored;let example={title:'Example',source:'Synthetic',steps:['First','Exact second'],index:1};
+ const c={learnerNickname:{value:'SyntheticQA'},learnerCode:{value:'TEST-RECOVERY'},learnerClass:{value:'JSS2'},language:{value:'English'},currentLesson:{text:'Main lesson',steps:['Main step'],index:0},canvasAnswer:{innerText:'Main step'},lessonHistory:[],lessonInterruption:null,canvasStatus:{textContent:'Ready'},captureLessonCheckpoint:()=>({example}),localStorage:{setItem(k,v){stored=JSON.parse(v)}},refreshResumeLearning(){}};
+ vm.createContext(c);vm.runInContext(source.slice(source.indexOf('function saveClassroomSnapshot('),source.indexOf('function clearClassroomSnapshot(')),c);
+ c.saveClassroomSnapshot();assert.equal(stored.workedExample.index,1);assert.equal(stored.workedExample.steps[1],'Exact second');assert.equal(stored.answer,'Main lesson');
+ example=null;c.saveClassroomSnapshot();assert.equal(stored.workedExample,null);
+});
