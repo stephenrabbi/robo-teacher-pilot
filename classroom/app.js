@@ -272,6 +272,7 @@ let languageSwitchRequest=0;
 let teacherAudioKeepAlive=null;
 let understandingCheckId=null;
 let mediaReplayPlayer=null;
+let currentWorkedExample=null;
 let drawing=false;
 let drawingTool='pen';
 let boardHasInk=false;
@@ -300,6 +301,7 @@ function captureLessonCheckpoint(){
 function restoreLessonCheckpoint(checkpoint){
   if(!checkpoint)return;
   startLessonDirector(checkpoint.text,checkpoint.index,checkpoint.steps);
+  if(checkpoint.example&&typeof restoreWorkedExample==='function')restoreWorkedExample(checkpoint.example);
 }
 
 function restoreLessonHistory(snapshot){
@@ -1338,7 +1340,7 @@ function pauseLessonForQuestion(source='text'){
   setLearningStatus('Lesson paused for your question','paused');saveClassroomSnapshot();
 }
 askLessonQuestion.addEventListener('click',()=>{
-  if(lessonInterruption){lessonInterruption=null;lessonDirector.classList.remove('lesson-paused');renderCurrentLessonStep();setLearningStatus(`Lesson step ${currentLesson.index+1} resumed`);return}
+  if(lessonInterruption){const checkpoint=lessonInterruption;lessonInterruption=null;lessonDirector.classList.remove('lesson-paused');if(checkpoint.example)restoreLessonCheckpoint(checkpoint);else renderCurrentLessonStep();setLearningStatus('Paused explanation resumed');return}
   pauseLessonForQuestion();question.placeholder='Ask a question about this step…';question.focus();
 });
 returnToLesson.addEventListener('click',()=>{if(!lessonHistory.length)return;stopTeacherAudio();lessonInterruption=null;lessonDirector.classList.remove('lesson-paused');const lesson=lessonHistory.pop();restoreLessonCheckpoint(lesson);canvasStatus.textContent='Previous lesson resumed';setLearningStatus('Returned to your lesson')});
@@ -1979,7 +1981,7 @@ function renderVisualAid(data){
 
 function restoreTeacherPanel(){setTeacherPanelMinimized(false)}
 
-function stopLessonMedia(){if(mediaReplayPlayer){mediaReplayPlayer.dispose();mediaReplayPlayer=null}mediaFrame.removeAttribute('src');mediaArea.classList.add('hidden')}
+function stopLessonMedia(){currentWorkedExample=null;if(mediaReplayPlayer){mediaReplayPlayer.dispose();mediaReplayPlayer=null}mediaFrame.removeAttribute('src');mediaArea.classList.add('hidden')}
 
 function dismissLessonOverlays(){stopLessonMedia();visualArea.classList.add('hidden');understandingArea.classList.add('hidden')}
 
@@ -1996,10 +1998,27 @@ async function openLessonMedia(){
   finally{if(preparationRequest===mediaPreparationRequest){mediaButton.disabled=false;mediaButton.textContent='Watch or Explore';}}
 }
 
-function renderLessonMedia(data){
+function renderLessonMedia(data,exampleIndex=0){
+  currentWorkedExample=null;
   if(mediaReplayPlayer){mediaReplayPlayer.dispose();mediaReplayPlayer=null}mediaTitle.textContent=data.title;mediaSource.textContent=`Source: ${data.source}`;mediaFrame.classList.add('hidden');mediaReplay.classList.add('hidden');mediaFrame.removeAttribute('src');mediaReplay.replaceChildren();
   closeMediaButton.textContent=data.kind==='simulation'?'← Exit simulation':'← Exit example';if(data.kind==='simulation'){if(window.RoboTeacherPrivacy&&!window.RoboTeacherPrivacy.externalContentAllowed()){window.RoboTeacherPrivacy.requestExternalContent(data.url,data.title);return}mediaFrame.src=data.url;mediaFrame.classList.remove('hidden');return;}
-  mediaReplay.classList.remove('hidden');mediaReplayPlayer=window.RoboTeacherExamples.renderExampleReplay(mediaReplay,data.steps,window,{read:text=>{if(teachingStage.mode==='example')void speakText(text,false,false,true)},stop:()=>stopTeacherAudio()});
+  currentWorkedExample={title:data.title,source:data.source,steps:data.steps.slice()};
+  mediaReplay.classList.remove('hidden');mediaReplayPlayer=window.RoboTeacherExamples.renderExampleReplay(mediaReplay,data.steps,window,{read:text=>{if(teachingStage.mode==='example')void speakText(text,false,false,true)},stop:()=>stopTeacherAudio(),ask:askWorkedExampleStep},exampleIndex);
+}
+
+function askWorkedExampleStep(text,index){
+  if(teachingStage.mode!=='example'||!currentWorkedExample)return;
+  const base=teachingStage.checkpoint||captureLessonCheckpoint();if(!base)return;
+  const checkpoint={...base,steps:base.steps.slice(),step:text,example:{...currentWorkedExample,steps:currentWorkedExample.steps.slice(),index}};
+  closeLessonMedia();pauseLessonForQuestion();lessonInterruption=checkpoint;
+  question.placeholder='Ask a question about this example step…';question.focus();saveClassroomSnapshot();
+}
+
+function restoreWorkedExample(example){
+  if(!example||typeof example.title!=='string'||example.title.length>300||typeof example.source!=='string'||example.source.length>300||!Array.isArray(example.steps)||!example.steps.length||example.steps.length>8||!example.steps.every(t=>typeof t==='string'&&t.trim()&&t.length<=4000)||!Number.isInteger(example.index)||example.index<0||example.index>=example.steps.length)return;
+  clearTimeout(lessonChoreography.timer);
+  dismissLessonOverlays();renderLessonMedia({kind:'replay',title:example.title,source:example.source,steps:example.steps.slice()},example.index);
+  canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');mediaArea.classList.remove('hidden');enterTeachingStage('example');
 }
 
 function closeLessonMedia(){stopLessonMedia();restoreTeachingStage()}
