@@ -61,3 +61,8 @@ test('voice navigation exposes the active step, respects bounds and stops after 
  h.player.moveBy(1);assert.equal(h.player.getStep().index,1);h.player.moveBy(-1);assert.equal(h.player.getStep().index,0);
  h.player.dispose();h.player.moveBy(1);assert.equal(h.player.getStep(),null);
 });
+test('example navigation reports updated checkpoints for recovery',()=>{
+ const checkpoints=[];const h=harness(['First','Second'],{read(){},stop(){},onStep:p=>checkpoints.push(p)});
+ assert.deepEqual(checkpoints.at(-1),{text:'First',index:0});h.next.click();assert.deepEqual(checkpoints.at(-1),{text:'Second',index:1});
+ h.restart.click();assert.deepEqual(checkpoints.at(-1),{text:'First',index:0});
+});
