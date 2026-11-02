@@ -862,8 +862,8 @@ async function pauseTeacherAudio(){
   // the audio context while the learner is pausing it.
   lessonController.begin('paused');
   teacherSpeechPaused=true;
-  if(typeof mediaReplayPlayer!=='undefined'&&mediaReplayPlayer?.setVoiceState)mediaReplayPlayer.setVoiceState('paused');
   teacherPanel.classList.remove('speaking');teacherPanel.classList.add('paused');teacherVoiceStatus.textContent='Paused';
+  if(typeof mediaReplayPlayer!=='undefined'&&mediaReplayPlayer?.setVoiceState)mediaReplayPlayer.setVoiceState('paused');
   if(showVoiceAnswerAvatar)canvasVoiceAvatarStatus.textContent='Paused';
   stopAvatarMotion(teacherPanel);
   readAnswerButton.innerHTML='<span>Continue</span>';readAnswerButton.setAttribute('aria-label','Continue reading the answer');setLearningStatus('Audio paused','paused');
