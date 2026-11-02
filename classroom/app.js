@@ -845,6 +845,7 @@ function prepareSpeechText(text){
 }
 
 function setTeacherSpeaking(speaking){
+  if(typeof mediaReplayPlayer!=='undefined'&&mediaReplayPlayer?.setVoiceState)mediaReplayPlayer.setVoiceState(speaking?'speaking':'idle');
   teacherPanel.classList.toggle('speaking',speaking);
   if(speaking)startAvatarMotion(teacherPanel);else stopAvatarMotion(teacherPanel);
   if(speaking)teacherPanel.classList.remove('paused');
@@ -862,6 +863,7 @@ async function pauseTeacherAudio(){
   lessonController.begin('paused');
   teacherSpeechPaused=true;
   teacherPanel.classList.remove('speaking');teacherPanel.classList.add('paused');teacherVoiceStatus.textContent='Paused';
+  if(typeof mediaReplayPlayer!=='undefined'&&mediaReplayPlayer?.setVoiceState)mediaReplayPlayer.setVoiceState('paused');
   if(showVoiceAnswerAvatar)canvasVoiceAvatarStatus.textContent='Paused';
   stopAvatarMotion(teacherPanel);
   readAnswerButton.innerHTML='<span>Continue</span>';readAnswerButton.setAttribute('aria-label','Continue reading the answer');setLearningStatus('Audio paused','paused');
@@ -1019,6 +1021,7 @@ async function speakText(text,preserveAudioUnlock=false,displayCanvasAvatar=true
   stopTeacherAudio(preserveAudioUnlock);
   setCanvasVoiceAvatar(displayCanvasAvatar);
   teacherVoiceStatus.textContent='Preparing teacher voice…';
+  if(typeof mediaReplayPlayer!=='undefined'&&mediaReplayPlayer?.setVoiceState)mediaReplayPlayer.setVoiceState('preparing');
   readAnswerButton.disabled=true;
   readAnswerButton.innerHTML='<span>Preparing…</span>';
   readAnswerButton.setAttribute('aria-label','Preparing the teacher voice');
@@ -2003,7 +2006,7 @@ function renderLessonMedia(data,exampleIndex=0){
   if(mediaReplayPlayer){mediaReplayPlayer.dispose();mediaReplayPlayer=null}mediaTitle.textContent=data.title;mediaSource.textContent=`Source: ${data.source}`;mediaFrame.classList.add('hidden');mediaReplay.classList.add('hidden');mediaFrame.removeAttribute('src');mediaReplay.replaceChildren();
   closeMediaButton.textContent=data.kind==='simulation'?'← Exit simulation':'← Exit example';if(data.kind==='simulation'){if(window.RoboTeacherPrivacy&&!window.RoboTeacherPrivacy.externalContentAllowed()){window.RoboTeacherPrivacy.requestExternalContent(data.url,data.title);return}mediaFrame.src=data.url;mediaFrame.classList.remove('hidden');return;}
   currentWorkedExample={title:data.title,source:data.source,steps:data.steps.slice()};
-  mediaReplay.classList.remove('hidden');mediaReplayPlayer=window.RoboTeacherExamples.renderExampleReplay(mediaReplay,data.steps,window,{read:text=>{if(teachingStage.mode==='example')void speakText(text,false,false,true)},stop:()=>stopTeacherAudio(),ask:askWorkedExampleStep},exampleIndex);
+  mediaReplay.classList.remove('hidden');mediaReplayPlayer=window.RoboTeacherExamples.renderExampleReplay(mediaReplay,data.steps,window,{read:text=>{if(teachingStage.mode==='example')void speakText(text,false,false,true)},stop:()=>stopTeacherAudio(),ask:askWorkedExampleStep,pause:()=>void pauseTeacherAudio(),resume:()=>void resumeTeacherAudio()},exampleIndex);
 }
 
 function askWorkedExampleStep(text,index){

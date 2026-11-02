@@ -5,7 +5,7 @@ const assert=require('node:assert/strict');
 (async()=>{
  const browser=await chromium.launch({headless:true});
  try{
-  const page=await browser.newPage();
+  const page=await browser.newPage();let speechRequests=0;
   await page.route('**/*',route=>{
    const url=new URL(route.request().url());
    if(url.origin!=='http://127.0.0.1:8765')return route.abort();
@@ -13,7 +13,7 @@ const assert=require('node:assert/strict');
    if(url.pathname==='/api/classroom/session')return route.fulfill({json:{session_token:'synthetic-graph-session-token'}});
    if(url.pathname==='/api/classroom/visual')return route.fulfill({json:{title:'Points on y = 2x + 1',kind:'coordinate',items:[{label:'-1,-1',value:1},{label:'0,1',value:2},{label:'1,3',value:3}],caption:'Three points from this synthetic lesson.'}});
    if(url.pathname==='/api/classroom/chat')return route.fulfill({json:{reply:'Synthetic answer to the example question.'}});
-   if(url.pathname==='/api/classroom/speech')return route.fulfill({contentType:'audio/L16',body:Buffer.alloc(4800)});
+   if(url.pathname==='/api/classroom/speech'){speechRequests++;return route.fulfill({contentType:'audio/L16',body:Buffer.alloc(240000)});}
    if(url.pathname==='/api/classroom/media')return route.fulfill({json:{kind:'replay',title:'Synthetic example',source:'Synthetic QA',steps:['Read the points.','Compare their coordinates.']}});
    if(url.pathname.startsWith('/api/'))return route.fulfill({status:503,json:{detail:'Not used'}});
    return route.continue();
@@ -52,6 +52,15 @@ const assert=require('node:assert/strict');
    const speechRequest=page.waitForRequest(r=>r.url().endsWith('/api/classroom/speech'));
    await replay.getByRole('button',{name:'Read example step',exact:true}).click();
    assert.equal((await speechRequest).postDataJSON().text,'Compare their coordinates.');
+   assert.equal(await page.locator('#mediaArea').isVisible(),true);
+   const pauseVoice=replay.getByRole('button',{name:'Pause example voice',exact:true});
+   await page.waitForFunction(()=>!Array.from(document.querySelectorAll('#mediaReplay button')).find(b=>b.textContent==='Pause example voice').disabled);
+   const requestsBeforePause=speechRequests;
+   await pauseVoice.click();
+   await page.waitForFunction(()=>window.eval('teacherSpeechPaused && teacherAudioContext.state==="suspended"'));
+   await replay.getByRole('button',{name:'Continue example voice',exact:true}).click();
+   await page.waitForFunction(()=>window.eval('!teacherSpeechPaused && teacherAudioContext.state==="running"'));
+   assert.equal(speechRequests,requestsBeforePause);
    assert.equal(await page.locator('#mediaArea').isVisible(),true);
    await replay.getByRole('button',{name:'Stop example voice',exact:true}).click();
    await replay.getByRole('button',{name:'Restart example',exact:true}).click();
