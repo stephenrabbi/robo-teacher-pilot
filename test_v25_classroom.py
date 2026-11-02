@@ -1992,3 +1992,33 @@ def test_english_focused_check_stays_local_and_invalidates_stale_languages():
     with patch.object(practice, 'translate_question_batch', side_effect=lambda items, lang: list(items)) as translate:
         assert practice.change_practice_language(learner, 'Yoruba')['question'] == candidate[0]
         assert translate.call_args.args[0][1] == candidate
+
+
+def test_example_replay_preserves_complete_numbered_teaching_steps_and_answer():
+    lesson=("Let's round 47 to the nearest ten.\n\n"
+            "Step 1: Find the tens digit. It is 4.\n\n"
+            "Step 2: Check the units digit. It is 7, which is at least 5.\n\n"
+            "Step 3: Round up to 50. Replace the units digit with zero.\n\n"
+            "Final answer: 50")
+    replay=tutor.select_lesson_media(lesson)
+    assert replay['kind']=='replay'
+    assert len(replay['steps'])<=6
+    assert ' '.join(' '.join(replay['steps']).split())==' '.join(lesson.split())
+    assert any('Step 2:' in step and 'at least 5' in step for step in replay['steps'])
+    assert 'Final answer: 50' in replay['steps'][-1]
+
+
+def test_example_replay_groups_long_unstructured_explanations_without_losing_content():
+    lesson=' '.join(f'Observation {number} is important.' for number in range(1,15))
+    replay=tutor.select_lesson_media(lesson)
+    assert replay['kind']=='replay'
+    assert 1<=len(replay['steps'])<=6
+    assert ' '.join(' '.join(replay['steps']).split())==lesson
+
+
+def test_example_replay_groups_many_numbered_steps_instead_of_truncating_them():
+    lesson='\n'.join([f'Step {number}: Consider {number}.' for number in range(1,9)]+['Final answer: 8'])
+    replay=tutor.select_lesson_media(lesson)
+    assert replay['kind']=='replay'
+    assert 1<=len(replay['steps'])<=6
+    assert ' '.join(' '.join(replay['steps']).split())==' '.join(lesson.split())

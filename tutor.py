@@ -854,7 +854,14 @@ def select_lesson_media(text: str, response_language: str = "English") -> dict:
         if any(keyword in lesson for keyword in keywords): return {"kind":"simulation","title":title,"url":url,"source":"PhET Interactive Simulations"}
     replay_text=re.sub(r"(?i)(?<!^)(?=step\s*\d+\s*[:.])","\n",text)
     replay_text=re.sub(r"(?i)(?<!^)(?=final\s+(?:answer|estimation)\s*[:.])","\n",replay_text)
-    steps=[part.strip() for part in re.split(r"(?:\n+|(?<=[.!?])\s+)",replay_text) if part.strip()][:6]
+    # Preserve complete numbered teaching steps; never discard the conclusion
+    # just to fit the replay's six-step presentation limit.
+    steps=[part.strip() for part in re.split(r"(?i)(?=\bstep\s*\d+\s*[:.]|\bfinal\s+(?:answer|estimation)\s*[:.])",replay_text) if part.strip()]
+    if len(steps)==1:
+        steps=[part.strip() for part in re.split(r"(?:\n+|(?<=[.!?])\s+)",replay_text) if part.strip()]
+    if len(steps)>6:
+        group_size=(len(steps)+5)//6
+        steps=["\n".join(steps[index:index+group_size]) for index in range(0,len(steps),group_size)]
     return {"kind":"replay","title":"Worked example replay","steps":steps or [text.strip()[:240]],"source":"Robo-Teacher"}
 
 
