@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Robo-Teacher Classroom</title>
-  <link rel="stylesheet" href="/classroom/styles.css?v=20261102-presenter1" />
+  <link rel="stylesheet" href="/classroom/styles.css?v=20261102-motion1" />
   <link rel="stylesheet" href="/classroom/classroom2.css?v=20261030-mobile-classroom1" />
   <link rel="stylesheet" href="/classroom/pitch-edition.css?v=20261028-12" />
   <link rel="stylesheet" href="/classroom/option1-landing.css?v=20261030-classroom-screen1" />
@@ -97,6 +97,7 @@
             <select id="teacherVolume" class="teacher-volume" aria-label="Teacher volume"><option value="mute">Mute</option><option value="low">Low volume</option><option value="normal" selected>Normal volume</option><option value="high">High volume</option></select>
             <button id="voiceHelpToggle" class="icon-button voice-help-toggle" type="button" aria-label="Show voice commands" aria-expanded="false">Commands</button>
             <button id="handsFreeToggle" class="icon-button hands-free-toggle" type="button" aria-label="Enable wake-word teaching" aria-pressed="false">Wake-word</button>
+            <button id="teacherMotion" class="icon-button" type="button" aria-pressed="true">Gesture motion</button>
             </div></details>
             <button id="readAnswer" class="icon-button read-answer" type="button" aria-label="Read the current answer aloud" disabled><span>Read answer</span></button>
             <button id="toggleTeacher" class="icon-button" type="button" aria-label="Minimize teacher" aria-expanded="true">Hide teacher</button>
@@ -112,7 +113,10 @@
             <img class="teacher-avatar avatar-head-motion avatar-head-speaking teacher-head-motion" src="/classroom/assets/ai-teacher-face-speaking.jpg" alt="" aria-hidden="true" />
           </div>
         </div>
-        <img class="teacher-presenting-pose" src="/classroom/assets/teacher-presenting.png" alt="" aria-hidden="true" loading="lazy" decoding="async" />
+        <div class="teacher-presenting-pose" aria-hidden="true">
+          <img class="presenter-body" src="/classroom/assets/teacher-presenting.png" alt="" loading="lazy" decoding="async" />
+          <img class="presenter-arm" src="/classroom/assets/teacher-presenting.png" alt="" loading="lazy" decoding="async" />
+        </div>
         <div id="teacherCue" class="teacher-caption" data-state="ready">Ready to guide you step by step</div>
       </aside>
 
@@ -264,9 +268,9 @@
   <script src="/classroom/lesson_controller.js?v=20261031-1"></script>
   <script src="/classroom/coordinate_graph.js?v=20261102-lines1"></script>
   <script src="/classroom/example_replay.js?v=20261102-recovery1"></script>
-  <script src="/classroom/teacher_presence.js?v=20261102-presenter1"></script>
+  <script src="/classroom/teacher_presence.js?v=20261102-motion1"></script>
   <script src="/classroom/geometry_visual.js?v=20261102-1"></script>
-  <script src="/classroom/app.js?v=20261102-presenter1"></script>
+  <script src="/classroom/app.js?v=20261102-motion1"></script>
   <script src="/classroom/classroom2-workspace.js?v=20261023-1"></script>
   <script src="/classroom/pitch-edition.js?v=20261028-2" defer></script>
   <script src="/classroom/option1-landing.js?v=20261030-hero-loadfix" defer></script>

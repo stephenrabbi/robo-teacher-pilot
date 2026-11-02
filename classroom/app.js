@@ -845,6 +845,7 @@ changeLearnerButton.addEventListener('click',()=>{
 toggle.addEventListener('click',()=>{
   setTeacherPanelMinimized(!teacherPanel.classList.contains('minimized'));
 });
+window.RoboTeacherPresence?.initGestureMotion(teacherPanel,document.getElementById('teacherMotion'),window.matchMedia('(prefers-reduced-motion: reduce)'));
 
 function setTeacherPanelMinimized(minimized){
   teacherPanel.classList.toggle('minimized',minimized);
