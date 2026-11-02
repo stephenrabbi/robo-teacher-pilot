@@ -1985,13 +1985,15 @@ function dismissLessonOverlays(){stopLessonMedia();visualArea.classList.add('hid
 
 function closeVisualExplanation(){visualArea.classList.add('hidden');restoreTeachingStage()}
 
+let mediaPreparationRequest=0;
 async function openLessonMedia(){
   const lesson=(currentLesson?.text||Array.from(canvasAnswer.querySelectorAll('p')).map(item=>item.innerText.trim()).filter(Boolean).join('\n')||canvasAnswer.innerText).trim();if(!lesson){addMessage('Ask a Maths question first, then I can show an example.','teacher');return;}
   const mediaTicket=lessonController.begin('media-loading');
+  const preparationRequest=++mediaPreparationRequest;
   stopTeacherAudio();mediaButton.disabled=true;mediaButton.textContent='Preparing…';setLearningStatus('Preparing a learning example','thinking');
-  try{const token=await ensureSession();const response=await fetch('/api/classroom/media',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:lesson,session_token:token,language:language.value})});const data=await response.json();if(!lessonController.owns(mediaTicket))return;if(!response.ok)throw new Error(data.detail||'media');dismissLessonOverlays();renderLessonMedia(data);canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');mediaArea.classList.remove('hidden');enterTeachingStage('example');setLearningStatus('Learning example ready','success');}
+  try{const token=await ensureSession();if(!lessonController.owns(mediaTicket))return;const response=await fetch('/api/classroom/media',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:lesson,session_token:token,language:language.value})});const data=await response.json();if(!lessonController.owns(mediaTicket))return;if(!response.ok)throw new Error(data.detail||'media');dismissLessonOverlays();renderLessonMedia(data);canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');mediaArea.classList.remove('hidden');enterTeachingStage('example');setLearningStatus('Learning example ready','success');}
   catch(error){if(!lessonController.owns(mediaTicket))return;addMessage(error.message||'I could not prepare that example. Please try again.','teacher');setLearningStatus('Example needs another try','attention');}
-  finally{mediaButton.disabled=false;mediaButton.textContent='Watch or Explore';}
+  finally{if(preparationRequest===mediaPreparationRequest){mediaButton.disabled=false;mediaButton.textContent='Watch or Explore';}}
 }
 
 function renderLessonMedia(data){
