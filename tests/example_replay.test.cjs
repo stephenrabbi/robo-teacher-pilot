@@ -56,3 +56,8 @@ test('voice pause and continue follow actual audio state and cannot restart disp
  h.player.setVoiceState('idle');assert.equal(control.disabled,true);
  h.player.dispose();h.player.setVoiceState('speaking');control.click();assert.equal(pauses,1);
 });
+test('voice navigation exposes the active step, respects bounds and stops after disposal',()=>{
+ const h=harness(['One','Two']);h.player.moveBy(1);assert.deepEqual(h.player.getStep(),{text:'Two',index:1});
+ h.player.moveBy(1);assert.equal(h.player.getStep().index,1);h.player.moveBy(-1);assert.equal(h.player.getStep().index,0);
+ h.player.dispose();h.player.moveBy(1);assert.equal(h.player.getStep(),null);
+});
