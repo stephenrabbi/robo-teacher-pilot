@@ -37,6 +37,8 @@ jobs:
         run: node tests/lesson_journey_browser_qa.cjs
       - name: Verify guided coordinate graphs and lesson return
         run: node tests/coordinate_graph_browser_qa.cjs
+      - name: Verify geometry schematics and lesson return
+        run: node tests/geometry_browser_qa.cjs
       - name: Verify Chromium Web Audio suspend and resume
         run: node tests/web_audio_engine_qa.cjs
       - name: Verify production PCM stream decoder with synthetic audio
