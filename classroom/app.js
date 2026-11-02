@@ -1311,6 +1311,7 @@ function setTeachingStageMode(mode){
   lessonController.begin(mode);
   teachingStage.mode=mode;teachingCanvas.dataset.stageMode=mode;
   teachingStageMode.textContent=labels[mode]||'Lesson';
+  syncTeacherPresence();
 }
 
 function enterTeachingStage(mode){

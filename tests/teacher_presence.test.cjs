@@ -21,3 +21,14 @@ test('rendering updates only cue content and panel state',()=>{
  renderTeacherPresence(panel,cue,{listening:true});assert.equal(panel.dataset.teachingState,'listening');assert.equal(cue.children[0]['aria-hidden'],'true');assert.match(cue.children[1].textContent,/Listening/);
  renderTeacherPresence(panel,cue,{paused:true});assert.equal(cue.dataset.state,'paused');assert.doesNotThrow(()=>renderTeacherPresence(null,null,{}));
 });
+test('presenting pose yields to speech, questions, pause and preparation',()=>{
+ const doc={createElement(){return {setAttribute(){}}}};
+ const panel={dataset:{}},cue={dataset:{},ownerDocument:doc,replaceChildren(){}};
+ for(const stage of ['visual','example','check']){
+  renderTeacherPresence(panel,cue,{stage});assert.equal(panel.dataset.pose,'presenting');
+  for(const state of [{speaking:true},{listening:true},{paused:true},{activity:'thinking'},{activity:'paused'}]){
+   renderTeacherPresence(panel,cue,{stage,...state});assert.equal(panel.dataset.pose,'portrait');
+  }
+ }
+ renderTeacherPresence(panel,cue,{stage:'lesson'});assert.equal(panel.dataset.pose,'portrait');
+});
