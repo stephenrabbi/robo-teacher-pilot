@@ -25,6 +25,9 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements-dev.txt
 
+      - name: Run lesson checkpoint behavioral tests
+        run: node --test tests/lesson_checkpoints.test.cjs tests/lesson_controller.test.cjs tests/lesson_speech_ownership.test.cjs
+
       - name: Run complete offline regression suite
         run: python -m pytest -q
 
