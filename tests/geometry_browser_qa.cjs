@@ -22,9 +22,25 @@ const fs=require('node:fs');
    await page.locator('#showStepVisual').click();await page.locator('.geometry-diagram').waitFor({state:'visible'});
    assert.equal(await page.locator('#teacherPanel').getAttribute('data-pose'),'presenting');
    const pose=page.locator('#teacherPanel .teacher-presenting-pose');await pose.waitFor({state:'visible'});
-   await pose.evaluate(i=>i.decode());assert.equal(await pose.evaluate(i=>i.naturalWidth>0),true);
+   await pose.locator('img').first().evaluate(i=>i.decode());assert.equal(await pose.locator('img').first().evaluate(i=>i.naturalWidth>0),true);
    const poseBox=await pose.boundingBox();assert.ok(poseBox.width>0&&poseBox.x>=0&&poseBox.x+poseBox.width<=width);
    await page.locator('#teacherPanel').screenshot({path:`responsive-qa/presenter-live-${shape}-${width}.png`});
+   if(shape==='rectangle'){
+    const arm=pose.locator('.presenter-arm');
+    await arm.evaluate(el=>{const a=el.getAnimations()[0];if(!a)throw Error('Gesture animation missing');a.pause();a.currentTime=3000;});
+    assert.notEqual(await arm.evaluate(el=>getComputedStyle(el).transform),'none');
+    assert.equal(await pose.locator('.presenter-body').evaluate(el=>getComputedStyle(el).transform),'none');
+    await page.locator('#teacherPanel').screenshot({path:`responsive-qa/presenter-motion-${width}.png`});
+    await page.locator('#teacherPanel .voice-settings summary').click();
+    await page.locator('#teacherMotion').click();assert.equal(await arm.evaluate(el=>el.getAnimations().length),0);
+    await page.locator('#teacherMotion').click();assert.equal(await page.locator('#teacherMotion').getAttribute('aria-pressed'),'true');
+    await page.emulateMedia({reducedMotion:'reduce'});
+    await page.waitForFunction(()=>document.getElementById('teacherPanel').dataset.gestureMotion==='off');
+    assert.equal(await arm.evaluate(el=>el.getAnimations().length),0);assert.equal(await page.locator('#teacherMotion').isDisabled(),true);
+    await page.emulateMedia({reducedMotion:'no-preference'});
+    await page.waitForFunction(()=>document.getElementById('teacherPanel').dataset.gestureMotion==='on');
+    await page.locator('#teacherPanel .voice-settings summary').click();
+   }
    await page.evaluate(()=>window.eval("setTeacherSpeaking(true)"));
    assert.equal(await page.locator('#teacherPanel').getAttribute('data-pose'),'portrait');
    assert.equal(await pose.isVisible(),false);

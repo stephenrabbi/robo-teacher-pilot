@@ -20,6 +20,18 @@
   const text=cue.ownerDocument.createElement('span');text.textContent=value.label;
   cue.replaceChildren(icon,text);
  }
- if(typeof module==='object'&&module.exports)module.exports={teacherPresence,renderTeacherPresence};
- else root.RoboTeacherPresence={teacherPresence,renderTeacherPresence};
+ function initGestureMotion(panel,button,preference){
+  if(!panel||!button||!preference)return;
+  let enabled=!preference.matches;
+  const render=()=>{
+   const active=enabled&&!preference.matches;
+   panel.dataset.gestureMotion=active?'on':'off';button.setAttribute('aria-pressed',String(active));button.disabled=preference.matches;
+   button.title=preference.matches?'Motion follows your device reduced-motion setting':'Turn the presenting arm movement on or off';
+   if(!active)for(const arm of panel.querySelectorAll?.('.presenter-arm')||[])for(const animation of arm.getAnimations())animation.cancel();
+  };
+  button.addEventListener('click',()=>{enabled=!enabled;render();});
+  preference.addEventListener('change',render);render();
+ }
+ if(typeof module==='object'&&module.exports)module.exports={teacherPresence,renderTeacherPresence,initGestureMotion};
+ else root.RoboTeacherPresence={teacherPresence,renderTeacherPresence,initGestureMotion};
 })(typeof window==='undefined'?globalThis:window);

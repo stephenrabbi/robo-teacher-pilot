@@ -1,6 +1,6 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
-const {teacherPresence,renderTeacherPresence}=require('../classroom/teacher_presence.js');
+const {teacherPresence,renderTeacherPresence,initGestureMotion}=require('../classroom/teacher_presence.js');
 test('speech and pause take precedence over lesson focus',()=>{
  assert.equal(teacherPresence({stage:'visual',speaking:true}).state,'speaking');
  assert.equal(teacherPresence({speaking:true,paused:true}).state,'paused');
@@ -31,4 +31,16 @@ test('presenting pose yields to speech, questions, pause and preparation',()=>{
   }
  }
  renderTeacherPresence(panel,cue,{stage:'lesson'});assert.equal(panel.dataset.pose,'portrait');
+});
+test('gesture motion respects manual choice and device preference changes',()=>{
+ let cancelled=0;
+ const panel={dataset:{},querySelectorAll(){return [{getAnimations(){return [{cancel(){cancelled++}}]}}]}},button={attrs:{},setAttribute(k,v){this.attrs[k]=v},addEventListener(_,fn){this.click=fn}};
+ const preference={matches:false,addEventListener(_,fn){this.change=fn}};
+ initGestureMotion(panel,button,preference);assert.equal(panel.dataset.gestureMotion,'on');
+ button.click();assert.equal(panel.dataset.gestureMotion,'off');assert.equal(button.attrs['aria-pressed'],'false');assert.equal(cancelled,1);
+ preference.matches=true;preference.change();assert.equal(button.disabled,true);
+ preference.matches=false;preference.change();assert.equal(button.disabled,false);assert.equal(panel.dataset.gestureMotion,'off');
+ button.click();assert.equal(panel.dataset.gestureMotion,'on');
+ preference.matches=true;preference.change();assert.equal(panel.dataset.gestureMotion,'off');
+ assert.doesNotThrow(()=>initGestureMotion(null,null,null));
 });
