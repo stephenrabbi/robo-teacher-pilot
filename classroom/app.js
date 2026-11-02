@@ -259,7 +259,7 @@ const lessonHistory=[];
 let lessonInterruption=null;
 let pendingChatRecovery=null;
 let savedClassroomSnapshot=null;
-const teachingStage={mode:'lesson',bookmark:0};
+const teachingStage={mode:'lesson',checkpoint:null,lesson:null};
 const lessonController=window.RoboTeacherLessonController.createLessonController();
 // Recommendations remain visible, but the learner decides when to open a
 // visual, example, or check. Automatic mode changes were disorienting and
@@ -329,7 +329,7 @@ function saveClassroomSnapshot(){
   localStorage.setItem('roboTeacherClassroomSnapshot',JSON.stringify(savedClassroomSnapshot));refreshResumeLearning();
 }
 
-function clearClassroomSnapshot(){lessonController.begin('idle');lessonHistory.length=0;lessonInterruption=null;currentLesson=null;clearPendingChatRecovery();savedClassroomSnapshot=null;localStorage.removeItem('roboTeacherClassroomSnapshot');resumeLearningButton.classList.add('hidden')}
+function clearClassroomSnapshot(){lessonController.begin('idle');lessonHistory.length=0;lessonInterruption=null;currentLesson=null;teachingStage.checkpoint=null;teachingStage.lesson=null;clearPendingChatRecovery();savedClassroomSnapshot=null;localStorage.removeItem('roboTeacherClassroomSnapshot');resumeLearningButton.classList.add('hidden')}
 
 refreshResumeLearning();
 
@@ -1222,6 +1222,7 @@ function renderLessonBlock(container,text){
 
 function startLessonDirector(text,index=0,stepsOverride=null){
   lessonController.begin('lesson');
+  teachingStage.checkpoint=null;teachingStage.lesson=null;
   const steps=Array.isArray(stepsOverride)&&stepsOverride.length?stepsOverride:splitLessonSteps(text);
   currentLesson={text,steps,index:Math.max(0,Math.min(index,steps.length-1))};
   lessonChoreography.visited.clear();
@@ -1277,13 +1278,21 @@ function setTeachingStageMode(mode){
 }
 
 function enterTeachingStage(mode){
-  teachingStage.bookmark=currentLesson?.index||0;setTeachingStageMode(mode);setCanvasVoiceAvatar(false);
+  if(teachingStage.mode==='lesson'||teachingStage.lesson!==currentLesson){
+    teachingStage.checkpoint=captureLessonCheckpoint();teachingStage.lesson=currentLesson;
+  }
+  setTeachingStageMode(mode);setCanvasVoiceAvatar(false);
   setTeacherPanelMinimized(true);
 }
 
 function restoreTeachingStage(){
+  const checkpoint=teachingStage.lesson===currentLesson?teachingStage.checkpoint:null;
+  teachingStage.checkpoint=null;teachingStage.lesson=null;
   setTeachingStageMode('lesson');
-  if(currentLesson){currentLesson.index=Math.min(teachingStage.bookmark,currentLesson.steps.length-1);renderCurrentLessonStep();canvasWork.classList.remove('hidden');canvasEmpty.classList.add('hidden')}
+  // Retain the choreography's visited stages so returning does not reopen
+  // the same automatic visual or example immediately.
+  if(checkpoint)currentLesson={text:checkpoint.text,index:checkpoint.index,steps:checkpoint.steps.slice()};
+  if(currentLesson){renderCurrentLessonStep();canvasWork.classList.remove('hidden');canvasEmpty.classList.add('hidden')}
   else if(canvasAnswer.textContent.trim())canvasWork.classList.remove('hidden');else canvasEmpty.classList.remove('hidden');
   restoreTeacherPanel();setLearningStatus(`Returned to lesson step ${(currentLesson?.index||0)+1}`);
 }
