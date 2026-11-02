@@ -217,7 +217,6 @@ The Teacher View is intended to help the AI **support human teachers rather than
 | **Personalization** | Diagnostic assessment, learner progress, learning path, adaptive difficulty and Continue Learning |
 | **Teacher support** | Teacher dashboard, weekly summaries, privacy-safe aggregates and CSV reporting |
 | **V2.6 Pilot Stable Release** | V2.5 classroom capabilities plus verified mobile-layout fixes, safer practice input, iPhone MP4 voice compatibility, shared-device learner isolation, personalised lesson-to-check handoff, and independent mastery confirmation |
-
 | **Responsive classroom refresh** | Branded welcome page, mobile classroom layout, preserved avatar/logo, independent access and teacher dashboard improvements |
 | **Lesson continuity — November 2026** | Nested interruptions, saved-step return after reload and stale media/audio cancellation guards |
 | **Google Cloud rollout — 2 November 2026** | Production Cloud text and speech, isolated image/audio/translation checks and live classroom API smoke tests |
