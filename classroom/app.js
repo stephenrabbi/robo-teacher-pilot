@@ -295,7 +295,12 @@ try{pendingChatRecovery=JSON.parse(sessionStorage.getItem('roboTeacherPendingCha
 // Audio resumes from the start of this step; sample-level playback is separate.
 function captureLessonCheckpoint(){
   if(!currentLesson)return null;
-  return {text:currentLesson.text,index:currentLesson.index,steps:currentLesson.steps.slice(),step:currentLesson.steps[currentLesson.index]};
+  let checkpoint={text:currentLesson.text,index:currentLesson.index,steps:currentLesson.steps.slice(),step:currentLesson.steps[currentLesson.index]};
+  if(typeof teachingStage!=='undefined'&&teachingStage.mode==='example'&&typeof currentWorkedExample!=='undefined'&&currentWorkedExample&&typeof mediaReplayPlayer!=='undefined'){
+    const active=mediaReplayPlayer?.getStep?.();
+    if(active){const base=teachingStage.checkpoint||checkpoint;checkpoint={...base,steps:base.steps.slice(),step:active.text,example:{...currentWorkedExample,steps:currentWorkedExample.steps.slice(),index:active.index}};}
+  }
+  return checkpoint;
 }
 
 function restoreLessonCheckpoint(checkpoint){
@@ -559,21 +564,34 @@ window.addEventListener('online',()=>{if(handsFree.enabled&&!handsFree.processin
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&handsFree.enabled&&!handsFree.processing)scheduleHandsFreeRecovery('visible')});
 
 function resumeBookmarkedLessonByVoice(){
+  const interrupted=lessonInterruption;
   stopTeacherAudio();lessonInterruption=null;lessonDirector.classList.remove('lesson-paused');
-  if(lessonHistory.length){
+  if(interrupted)restoreLessonCheckpoint(interrupted);
+  else if(lessonHistory.length){
     const lesson=lessonHistory.pop();restoreLessonCheckpoint(lesson);canvasStatus.textContent='Previous lesson resumed';setLearningStatus(`Returned to lesson step ${lesson.index+1}`);
   }else if(currentLesson)renderCurrentLessonStep();
+  if(readCurrentWorkedExample(true))return;
   const step=currentLesson?.steps[currentLesson.index];
   if(step)void speakText(step,true,true);else void resumeTeacherAudio();
 }
 
+function readCurrentWorkedExample(preserveAudioUnlock=true){
+  if(teachingStage.mode!=='example'||!mediaReplayPlayer)return false;
+  const step=mediaReplayPlayer.getStep?.();if(!step)return false;
+  void speakText(step.text,preserveAudioUnlock,false,true);return true;
+}
+
 function continueHandsFreeTeaching(){
+  if(teachingStage.mode==='example'&&!lessonInterruption&&mediaReplayPlayer){
+    if(teacherSpeechPaused)void resumeTeacherAudio();else readCurrentWorkedExample(true);return;
+  }
   if(lessonHistory.length||lessonInterruption){resumeBookmarkedLessonByVoice();return}
   if(teacherSpeechPaused){void resumeTeacherAudio();return}
   if(currentLesson){renderCurrentLessonStep();const step=currentLesson.steps[currentLesson.index];if(step)void speakText(step,true,true)}
 }
 
 function replayCurrentTeachingAudio(){
+  if(readCurrentWorkedExample(false))return;
   const text=currentLesson?.steps[currentLesson.index]?.trim()||canvasAnswer.innerText.trim();
   if(!text){showHandsFreeHeard('There is no explanation to repeat yet.');updateHandsFreeStatus('Listening…');return}
   setLearningStatus('Repeating this explanation','thinking');void speakText(text,false,true);
@@ -650,8 +668,8 @@ function executeHandsFreeIntent(phrase){
   if(visualCommand){void showVisualExplanation();updateHandsFreeStatus('Listening…');return}
   if(simplerCommand){void simplifyCurrentAnswer();updateHandsFreeStatus('Listening…');return}
   if(understandingCommand){void startUnderstandingCheck();updateHandsFreeStatus('Listening…');return}
-  if(nextStepCommand){if(currentLesson)moveLessonStep(1);updateHandsFreeStatus('Listening…');return}
-  if(previousStepCommand){if(currentLesson)moveLessonStep(-1);updateHandsFreeStatus('Listening…');return}
+  if(nextStepCommand){if(teachingStage.mode==='example'&&mediaReplayPlayer)mediaReplayPlayer.moveBy(1);else if(currentLesson)moveLessonStep(1);updateHandsFreeStatus('Listening…');return}
+  if(previousStepCommand){if(teachingStage.mode==='example'&&mediaReplayPlayer)mediaReplayPlayer.moveBy(-1);else if(currentLesson)moveLessonStep(-1);updateHandsFreeStatus('Listening…');return}
   if(slowerCommand){setTeacherSpeechPace('slower',true);updateHandsFreeStatus('Listening…');return}
   if(normalSpeedCommand){setTeacherSpeechPace('normal',true);updateHandsFreeStatus('Listening…');return}
   if(fasterCommand){setTeacherSpeechPace('faster',true);updateHandsFreeStatus('Listening…');return}
@@ -1335,8 +1353,9 @@ watchStepExample.addEventListener('click',openLessonMedia);
 checkStepUnderstanding.addEventListener('click',startUnderstandingCheck);
 function pauseLessonForQuestion(source='text'){
   if(!currentLesson)return;
+  const checkpoint=captureLessonCheckpoint();
   lessonController.begin('question');clearTimeout(lessonChoreography.timer);stopLessonMedia();
-  if(!lessonInterruption){lessonInterruption=captureLessonCheckpoint();recordLearningSignal('questions')}
+  if(!lessonInterruption){lessonInterruption=checkpoint;recordLearningSignal('questions')}
   stopTeacherAudio();
   lessonPauseNotice.textContent=`Lesson paused at Step ${currentLesson.index+1}. Ask your question ${source==='voice'?'using the microphone':'below'}.`;
   lessonPauseNotice.classList.remove('hidden');askLessonQuestion.textContent='Continue this step';lessonDirector.classList.add('lesson-paused');

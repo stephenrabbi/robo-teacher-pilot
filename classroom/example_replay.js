@@ -23,9 +23,10 @@
       play.setAttribute('aria-pressed',String(timer!==null));
       status.textContent=`Example step ${active+1} of ${steps.length}${active===steps.length-1?' — complete':timer===null?' — paused':' — playing'}`;
     }
-    const previous=button('Previous example step',()=>{stop();active=Math.max(0,active-1);show();});
+    function moveBy(direction){if(disposed)return;stop();active=Math.max(0,Math.min(steps.length-1,active+direction));show();}
+    const previous=button('Previous example step',()=>moveBy(-1));
     const play=button('Play example',()=>{if(timer!==null)stop();else if(active<steps.length-1){stop();const owner=++generation;timer=timers.setInterval(()=>{if(disposed||owner!==generation)return;active++;if(active>=steps.length-1){active=steps.length-1;stop();}show();},2600);}show();});
-    const next=button('Next example step',()=>{stop();active=Math.min(steps.length-1,active+1);show();});
+    const next=button('Next example step',()=>moveBy(1));
     button('Restart example',()=>{stop();active=0;show();});
     if(narration){
       button('Read example step',()=>{stop();show();narration.read(values[active]);});
@@ -34,7 +35,7 @@
       if(narration.pause&&narration.resume){voiceControl=button('Pause example voice',()=>{if(voiceState==='paused')narration.resume();else if(voiceState==='speaking')narration.pause();});setVoiceState('idle');}
     }
     controls.appendChild(status);container.appendChild(controls);show();
-    return {setVoiceState,dispose(){disposed=true;stop();}};
+    return {setVoiceState,moveBy,getStep(){return disposed?null:{text:values[active],index:active}},dispose(){disposed=true;stop();}};
   }
   if(typeof module==='object'&&module.exports)module.exports={renderExampleReplay};
   else root.RoboTeacherExamples={renderExampleReplay};
