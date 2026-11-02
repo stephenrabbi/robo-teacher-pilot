@@ -30,3 +30,13 @@ test('cancellation during audio preparation does not consume the stream',async()
  await h.ctx.playPcmStream(h.response(()=>{throw new Error('Must not read')}),1);
  assert.equal(h.ctx.teacherStreamComplete,false);
 });
+test('example narration keeps the stage open while normal lesson reading returns to the lesson',async()=>{
+ for(const keepOpen of [true,false]){
+  let closed=0,restored=0,played=0,payload;
+  const ctx={teachingStage:{mode:'example'},lessonController:{begin(){}},stopLessonMedia(){closed++},restoreTeachingStage(){restored++},stopTeacherAudio(){},setCanvasVoiceAvatar(){},teacherVoiceStatus:{},readAnswerButton:{setAttribute(){}},setLearningStatus(){},teacherSpeechRequest:1,teacherSpeechController:null,AbortController,startAudioKeepAlive:async()=>{},ensureSession:async()=> 'synthetic',prepareSpeechText:t=>t,language:{value:'Yoruba'},teacherPanel:{dataset:{voiceGender:'female'}},teacherSpeechPace:1,requestTeacherSpeech:async p=>{payload=p;return {ok:true,status:200,body:{}}},playPcmStream:async()=>{played++},addMessage(){throw Error('Unexpected speech failure')}};
+  vm.createContext(ctx);vm.runInContext(src.slice(src.indexOf('async function speakText('),src.indexOf("readAnswerButton.addEventListener('click'")),ctx);
+  await ctx.speakText('Current example step',false,false,keepOpen);
+  assert.equal(played,1);assert.equal(closed,keepOpen?0:1);assert.equal(restored,keepOpen?0:1);
+  assert.equal(payload.text,'Current example step');assert.equal(payload.language,'Yoruba');
+ }
+});
