@@ -23,7 +23,12 @@
  function initGestureMotion(panel,button,preference){
   if(!panel||!button||!preference)return;
   let enabled=!preference.matches;
-  const render=()=>{panel.dataset.gestureMotion=enabled&&!preference.matches?'on':'off';button.setAttribute('aria-pressed',String(enabled&&!preference.matches));button.disabled=preference.matches;button.title=preference.matches?'Motion follows your device reduced-motion setting':'Turn the presenting arm movement on or off';};
+  const render=()=>{
+   const active=enabled&&!preference.matches;
+   panel.dataset.gestureMotion=active?'on':'off';button.setAttribute('aria-pressed',String(active));button.disabled=preference.matches;
+   button.title=preference.matches?'Motion follows your device reduced-motion setting':'Turn the presenting arm movement on or off';
+   if(!active)for(const arm of panel.querySelectorAll?.('.presenter-arm')||[])for(const animation of arm.getAnimations())animation.cancel();
+  };
   button.addEventListener('click',()=>{enabled=!enabled;render();});
   preference.addEventListener('change',render);render();
  }

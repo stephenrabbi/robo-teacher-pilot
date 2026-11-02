@@ -33,10 +33,11 @@ test('presenting pose yields to speech, questions, pause and preparation',()=>{
  renderTeacherPresence(panel,cue,{stage:'lesson'});assert.equal(panel.dataset.pose,'portrait');
 });
 test('gesture motion respects manual choice and device preference changes',()=>{
- const panel={dataset:{}},button={attrs:{},setAttribute(k,v){this.attrs[k]=v},addEventListener(_,fn){this.click=fn}};
+ let cancelled=0;
+ const panel={dataset:{},querySelectorAll(){return [{getAnimations(){return [{cancel(){cancelled++}}]}}]}},button={attrs:{},setAttribute(k,v){this.attrs[k]=v},addEventListener(_,fn){this.click=fn}};
  const preference={matches:false,addEventListener(_,fn){this.change=fn}};
  initGestureMotion(panel,button,preference);assert.equal(panel.dataset.gestureMotion,'on');
- button.click();assert.equal(panel.dataset.gestureMotion,'off');assert.equal(button.attrs['aria-pressed'],'false');
+ button.click();assert.equal(panel.dataset.gestureMotion,'off');assert.equal(button.attrs['aria-pressed'],'false');assert.equal(cancelled,1);
  preference.matches=true;preference.change();assert.equal(button.disabled,true);
  preference.matches=false;preference.change();assert.equal(button.disabled,false);assert.equal(panel.dataset.gestureMotion,'off');
  button.click();assert.equal(panel.dataset.gestureMotion,'on');
