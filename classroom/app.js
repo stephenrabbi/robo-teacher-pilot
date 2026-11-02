@@ -1,5 +1,6 @@
 const welcome=document.getElementById('welcome');
 const classroom=document.getElementById('classroom');
+let teacherPresenceActivity='';
 /* Treat onboarding and the classroom as distinct screens, not sections of a
    scrolling landing page. Preserve existing tutor/session state. */
 function enterClassroomView(){
@@ -267,7 +268,7 @@ const lessonController=window.RoboTeacherLessonController.createLessonController
 const lessonChoreography={enabled:false,visited:new Set(),timer:null};
 let learnerMemoryId='';
 let adaptiveMemory={replays:0,simplifications:0,questions:0,correct:0,incorrect:0};
-const handsFree={enabled:false,recognition:null,processing:false,restartTimer:null,restartAttempts:0,lastError:'',startedAt:0,hasStarted:false,phraseTimer:null,phraseBuffer:'',bufferConfidence:0,pending:'',lastPhrase:'',lastAt:0,armedUntil:0,bargeInAt:0,ignorePauseUntil:0};
+const handsFree={enabled:false,recognition:null,processing:false,restartTimer:null,restartAttempts:0,lastError:'',startedAt:0,hasStarted:false,listening:false,phraseTimer:null,phraseBuffer:'',bufferConfidence:0,pending:'',lastPhrase:'',lastAt:0,armedUntil:0,bargeInAt:0,ignorePauseUntil:0};
 let languageSwitchRequest=0;
 let teacherAudioKeepAlive=null;
 let understandingCheckId=null;
@@ -476,6 +477,7 @@ function updateHandsFreeStatus(message){
   handsFreeToggle.textContent=handsFree.enabled?(message||'Listening…'):'Wake-word';
   handsFreeToggle.setAttribute('aria-pressed',String(handsFree.enabled));
   handsFreeToggle.setAttribute('aria-label',handsFree.enabled?'Disable hands-free teaching':'Enable hands-free teaching');
+  if(typeof syncTeacherPresence==='function')syncTeacherPresence();
 }
 
 function showHandsFreeHeard(message){handsFreeHeard.textContent=message;handsFreeHeard.classList.toggle('hidden',!message)}
@@ -547,7 +549,7 @@ function startHandsFreeListening(){
   try{handsFree.recognition.start()}catch(error){if(error?.name!=='InvalidStateError')scheduleHandsFreeRecovery('start')}
 }
 
-function stopHandsFreeListening(){clearTimeout(handsFree.restartTimer);try{handsFree.recognition?.stop()}catch(_error){/* Already stopped. */}}
+function stopHandsFreeListening(){handsFree.listening=false;clearTimeout(handsFree.restartTimer);try{handsFree.recognition?.stop()}catch(_error){/* Already stopped. */}}
 
 function scheduleHandsFreeRecovery(reason=''){
   if(!handsFree.enabled||handsFree.processing)return;
@@ -719,10 +721,10 @@ function enableHandsFree(){
   if(!Recognition){addMessage('Hands-free commands are not supported in this browser. You can still use the Voice button.','teacher');return;}
   handsFree.recognition=new Recognition();handsFree.recognition.continuous=true;handsFree.recognition.interimResults=true;handsFree.recognition.maxAlternatives=5;
   handsFree.recognition.addEventListener('result',event=>{handsFree.restartAttempts=0;for(let index=event.resultIndex;index<event.results.length;index++){const result=event.results[index];if(handsFreeBargeIn(result))continue;const alternative=chooseBestSpeechAlternative(result),transcript=(alternative?.transcript||'').trim();if(!transcript)continue;if(result.isFinal)queueHandsFreePhrase(transcript,alternative.confidence);else showHandsFreeHeard(`Hearing: “${transcript}…”`)}});
-  handsFree.recognition.addEventListener('start',()=>{handsFree.startedAt=Date.now();handsFree.hasStarted=true;handsFree.lastError='';updateHandsFreeStatus(lessonInterruption?'Ask your question…':'Listening…')});
-  handsFree.recognition.addEventListener('end',()=>{if(Date.now()-handsFree.startedAt>5000)handsFree.restartAttempts=0;scheduleHandsFreeRecovery('ended')});
+  handsFree.recognition.addEventListener('start',()=>{handsFree.listening=true;handsFree.startedAt=Date.now();handsFree.hasStarted=true;handsFree.lastError='';updateHandsFreeStatus(lessonInterruption?'Ask your question…':'Listening…')});
+  handsFree.recognition.addEventListener('end',()=>{handsFree.listening=false;if(Date.now()-handsFree.startedAt>5000)handsFree.restartAttempts=0;scheduleHandsFreeRecovery('ended')});
   handsFree.recognition.addEventListener('error',event=>{
-    handsFree.lastError=event.error;
+    handsFree.listening=false;handsFree.lastError=event.error;
     if(event.error==='not-allowed'&&!handsFree.hasStarted&&document.visibilityState==='visible'){
       handsFree.enabled=false;clearTimeout(handsFree.restartTimer);updateHandsFreeStatus();addMessage('Microphone permission is needed for hands-free teaching.','teacher');setLearningStatus('Microphone access blocked','paused');return;
     }
@@ -872,6 +874,7 @@ function setTeacherSpeaking(speaking){
   readAnswerButton.innerHTML=speaking?'<span>Pause</span>':'<span>Read answer</span>';
   readAnswerButton.setAttribute('aria-label',speaking?'Pause reading the answer':'Read the current answer aloud');
   if(speaking)setLearningStatus('Speaking','speaking');
+  else if(typeof syncTeacherPresence==='function')syncTeacherPresence();
 }
 
 async function pauseTeacherAudio(){
@@ -1112,9 +1115,19 @@ function addMessage(text,role){
   messages.appendChild(el);messages.scrollTop=messages.scrollHeight;return el;
 }
 
+function syncTeacherPresence(activity=teacherPresenceActivity){
+  teacherPresenceActivity=activity;
+  if(!window.RoboTeacherPresence)return;
+  window.RoboTeacherPresence.renderTeacherPresence(teacherPanel,document.getElementById('teacherCue'),{
+    activity,stage:teachingStage.mode,speaking:teacherPanel.classList.contains('speaking'),paused:teacherSpeechPaused,
+    listening:Boolean(mediaRecorder?.state==='recording'||handsFree.listening),
+  });
+}
+
 function setLearningStatus(message,state=''){
   learningStatus.textContent=message;learningStatus.dataset.state=state;
   teachingCanvas.setAttribute('aria-busy',String(state==='thinking'));
+  syncTeacherPresence(state);
 }
 
 function setActiveMode(button){
