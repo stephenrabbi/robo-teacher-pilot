@@ -10,7 +10,7 @@ Robo-Teacher is a **working, deployed AI teaching and learning platform** develo
 
 **What is available now:** the live browser classroom supports **Mathematics for Junior Secondary School 1, 2 and 3 (JSS1–JSS3)**. Learners can access curriculum-aware teaching, practice, diagnostic assessment, revision, adaptive guidance and progress views through a multilingual, multimodal classroom.
 
-**Real school use and evaluation:** Robo-Teacher has been used with learners from **two Lagos State schools — Ise Junior High School, Epe, and Tio College, Ikorodu**. A separate onboarding activity recorded **331 students onboarded** to the participating schools. The documented learning evaluation covered **56 learners**, with matched baseline and post-test results and **188 successful logged interactions**. The 331 onboarding figure must not be interpreted as 331 evaluated learners or verified active users. The evidence and limitations are described below; these figures are **not** claims about paying customers or a controlled causal study.
+**School reach:** **331 students onboarded across Ise Junior High School and Ise Senior High School, Epe, Lagos State.** Separately, the documented earlier evaluation involved **56 learners from Ise Junior High School, Epe, and Tio College, Ikorodu**, with matched baseline/post-test results and **188 successful logged interactions**. These are different groups and measures: onboarding is not a count of evaluated learners, regularly active users or paying customers. See the evaluation evidence below.
 
 **Wider product scope:** Robo-Teacher is an **all-subject AI teacher initiative**, with expansion beyond the currently implemented JSS1–JSS3 Mathematics curriculum part of its product roadmap. **The implemented Mathematics scope should not be mistaken for a JSS2-only, First-Term-only tutor, nor should the all-subject vision be mistaken for verified deployment of every subject today.**
 
@@ -24,10 +24,26 @@ https://robo-teacher-jfg7.onrender.com/classroom-app
 **Telegram:**  
 https://t.me/RoboTeacherAfricaBot
 
-**Staging environment:**  
+**Earlier staging environment (not the production link):**  
 https://robo-teacher-v25-staging.onrender.com/classroom-app
 
-> **Current production baseline — 11 October 2026:** The deployed classroom is the **v2.6.1 release line** on `main` (verified commit `f9555ab2`), with JSS1–JSS3 Mathematics, classroom learning tools and the pilot-stability improvements described below. Experimental secure cross-device persistence work is on a separate, unmerged development pull request and is **not** a live production feature.
+> **Production status — 2 November 2026:** Google Cloud Gemini is active in the main classroom. The deployed code baseline is [`5f751fd`](https://github.com/stephenrabbi/robo-teacher-pilot/commit/5f751fd82d92a010e9cd4f8b7d4522b66ea16bd2), including the responsive classroom redesign, lesson checkpoints and Cloud provider integration. The v2.6.1 release is an earlier milestone. Secure cross-device persistence remains separate experimental work, not a verified production feature.
+
+## Latest milestones — 2 November 2026
+
+| Area | Delivered and verified |
+|---|---|
+| Classroom design and access | Responsive branded welcome/classroom experience, existing logo and teacher avatar, independent learner codes, JSS1–JSS3 selection, and teacher-access controls |
+| Interactive teaching | Step-by-step canvas lessons, follow-up questions, simpler explanations, structured visuals, worked-example replay and allowlisted PhET activities |
+| Lesson continuity | Nested question/return checkpoints, saved original steps across same-browser reloads, learner-switch state clearing, and guards against cancelled speech or delayed visuals taking over newer work |
+| Cloud AI | Production switched to Google Cloud Gemini using a dedicated service-account credential and explicit project/location/model configuration |
+| Natural voice | Cloud streaming PCM speech and stable TTS fallback; voice gender, pace and volume controls; manual teacher minimise/restore |
+| Multimodal checks | Isolated live Cloud tests passed for a synthetic image question, spoken question and equation preservation in Yoruba, Igbo and Hausa translation |
+| Production checks | After Cloud activation, a fresh synthetic classroom session, conceptual question, follow-up and speech generation passed |
+
+Release records: [lesson continuity PR #169](https://github.com/stephenrabbi/robo-teacher-pilot/pull/169) and [Cloud integration PR #170](https://github.com/stephenrabbi/robo-teacher-pilot/pull/170). Both are merged. See [Cloud setup and rollback](docs/cloud/google-cloud-provider.md) and [lesson checkpoint design](docs/roadmap/lesson-checkpoints-2026-10-31.md).
+
+**Verification boundary:** the latest combined code passed **424 Python tests** and **10 JavaScript interruption/audio tests**, plus both GitHub workflows. Earlier Chrome checks passed at desktop and phone widths of **393px and 390px**, including a follow-up and return to the exact original step. Those browser checks preceded the Cloud switch. Post-switch browser playback/listening, physical Android/iPhone Safari acceptance and human review of local-language quality remain pending. A narrow successful translation test does not establish teaching accuracy across a language or curriculum.
 
 ---
 
@@ -61,18 +77,18 @@ The current classroom supports **English, Yorùbá, Igbo and Hausa**, alongside 
 
 ---
 
-## 60-Second Reviewer Walkthrough
+## Quick Reviewer Walkthrough
 
 A reviewer can experience the current product without installing anything:
 
 1. Open the **Live Production Demo** above.
-2. Enter a nickname and choose **JSS1, JSS2 or JSS3**.
-3. Tap **Today** to view the personalized daily plan.
-4. Try the three-part journey: **Recall → Strengthen → Discover**.
-5. Open **Chat** and ask a Mathematics question such as `Explain 3/4 + 1/4 step by step`.
-6. Try **Practice**, **Whiteboard**, **Camera/Image**, **Voice**, or switch among **English, Yorùbá, Igbo and Hausa**.
-7. Open **Progress** to view learning history and recommendations.
-8. Return with the same nickname to see persisted progress and continuation guidance.
+2. Enter a nickname, choose **JSS1, JSS2 or JSS3**, and complete the permission step. Independent learners can leave the optional school code blank.
+3. Start a lesson, or ask `Explain 3/4 + 1/8 step by step` in Chat.
+4. Move to the next step, choose **Ask about this step**, and send a follow-up.
+5. Use **Return to previous lesson** to return to the saved step.
+6. Try **Read answer**, **Show Visual**, a step example, **Practice**, or the whiteboard/image tools. Switch among **English, Yorùbá, Igbo and Hausa**.
+7. Open **Progress** for activity and recommendations; explore the personalised daily learning plan from the learning tools.
+8. Return in the same browser and use the continuation controls. A nickname or learner code alone does not securely recover learning on another device.
 
 The live classroom is the clearest representation of the project's present stage.
 
@@ -169,7 +185,9 @@ The whiteboard includes pen, eraser, clear and **Ask Teacher** controls so learn
 
 Worked explanations are displayed on a large Teaching Canvas intended to behave more like a teaching surface than a conventional chatbot window.
 
-V2.6 also includes teacher-voice playback, pause/continue controls, visual teaching pathways and an AI teacher/avatar interface.
+The classroom includes teacher-voice playback, pause/continue controls, visual teaching pathways, PhET activities and an AI teacher/avatar interface. The teacher panel can minimise and restore.
+
+Lesson checkpoints preserve the original rendered steps and nested return destinations, including after a same-browser reload. Sending a typed interruption stops current speech. Ownership guards prevent late media responses or cancelled PCM chunks from taking control of a newer activity. Changing learner clears the lesson return state. Resume begins at the start of the saved step; exact audio timestamps and complete drawing/video-state restoration remain planned.
 
 ### Saved lessons and intelligent revision
 
@@ -183,7 +201,7 @@ The learning path distinguishes states such as **Mastered**, **Needs practice**,
 
 ### Teacher View
 
-Robo-Teacher includes a teacher-facing dashboard with privacy-conscious aggregate information such as class activity, performance trends, stronger and weaker topics, diagnostic placement summaries, recommended teaching attention and downloadable CSV reports.
+Robo-Teacher includes a teacher-facing dashboard with privacy-conscious aggregate information such as class activity, performance trends, stronger and weaker topics, diagnostic placement summaries, recommended teaching attention and downloadable CSV reports. Teacher access uses a dashboard key; learner-code management supports class rosters without displaying learner names.
 
 The Teacher View is intended to help the AI **support human teachers rather than replace their professional judgment**.
 
@@ -199,6 +217,10 @@ The Teacher View is intended to help the AI **support human teachers rather than
 | **Personalization** | Diagnostic assessment, learner progress, learning path, adaptive difficulty and Continue Learning |
 | **Teacher support** | Teacher dashboard, weekly summaries, privacy-safe aggregates and CSV reporting |
 | **V2.6 Pilot Stable Release** | V2.5 classroom capabilities plus verified mobile-layout fixes, safer practice input, iPhone MP4 voice compatibility, shared-device learner isolation, personalised lesson-to-check handoff, and independent mastery confirmation |
+
+| **Responsive classroom refresh** | Branded welcome page, mobile classroom layout, preserved avatar/logo, independent access and teacher dashboard improvements |
+| **Lesson continuity — November 2026** | Nested interruptions, saved-step return after reload and stale media/audio cancellation guards |
+| **Google Cloud rollout — 2 November 2026** | Production Cloud text and speech, isolated image/audio/translation checks and live classroom API smoke tests |
 
 ---
 
@@ -245,40 +267,25 @@ Student-level data and personally identifying records are not committed to this 
 
 ## Current Technical Architecture
 
-```text
-Learner
-   │
-   ├──────── Browser Classroom (V2.5)
-   ├──────── Telegram
-   └──────── WhatsApp migration path
-                  │
-                  v
-          FastAPI application
-       main.py / classroom_api.py
-                  │
-     ┌────────────┼────────────┐
-     v            v            v
- Tutor layer   Practice /   Learner state,
-  tutor.py     Diagnostic   progress & recs
-     └────────────┼────────────┘
-                  v
-             Google Gemini
-                  │
-                  v
-        Pedagogical AI response
-                  │
-     ┌────────────┼────────────┐
-     v            v            v
- Teaching     Voice /       Google Sheets
-  Canvas      visuals       pseudonymized
-                            logs/progress
+```mermaid
+flowchart TD
+    L[Browser learner] --> C[Teaching Canvas and lesson controls]
+    T[Telegram and WhatsApp channels] --> A[FastAPI classroom and adapters]
+    C --> A
+    A --> U[Tutor and Cloud provider]
+    A --> P[Practice and diagnostics]
+    U --> G[Google Cloud Gemini]
+    A --> S[Pseudonymous progress and Google Sheets]
+    G --> C
 ```
+
+Cloud is selected explicitly through `cloud_ai_provider.py`. The Developer API remains an available configuration option; the app does not silently switch billing routes. The browser receives teaching responses and PCM audio through the application backend, not service-account credentials.
 
 ### Main technology stack
 
 - **Python / FastAPI** — backend and authenticated API/webhook layer
-- **Google Gemini** — tutoring, multimodal understanding and AI generation
-- **HTML / CSS / JavaScript** — responsive V2.5 classroom
+- **Google Cloud Gemini / google-genai SDK** — production tutoring, multimodal understanding and speech; explicit Developer API option for separately configured environments
+- **HTML / CSS / JavaScript** — responsive classroom, Teaching Canvas and lesson ownership controller
 - **Google Sheets** — pseudonymized pilot, progress and evaluation records
 - **Telegram Bot API** — messaging tutor
 - **Twilio WhatsApp Sandbox** — original pilot channel / migration path
@@ -311,7 +318,7 @@ Never commit `.env`, API keys, bot tokens, service-account JSON, student-level r
 
 ## Testing and Release Discipline
 
-Robo-Teacher uses a **staging-first release workflow**. The current V2.5 feature release was tested on the dedicated staging service before promotion.
+Robo-Teacher validates changes with automated tests, isolated services or staging before production checks. The earlier V2.5 release used a dedicated staging service; the November Cloud rollout used an isolated Render runtime probe before production activation.
 
 Validation included:
 
@@ -342,6 +349,10 @@ The production service deploys automatically from `main`. Experimental work is v
 - `classroom/daily_return_fix.js` — Welcome-back and unfinished-activity continuation
 - `classroom_api.py` — browser session and classroom API endpoints
 - `tutor.py` — Gemini orchestration, pedagogy, multilingual and multimodal tutoring
+- `cloud_ai_provider.py` — explicit backend selection, ADC and Cloud PCM streaming
+- `cloud_runtime_probe.py` — isolated synthetic startup checks; health requests never initiate AI calls
+- `classroom/lesson_controller.js` — ownership guards for asynchronous lesson/media actions
+- `docs/cloud/google-cloud-provider.md` — configuration, validation and rollback
 - `curriculum.py` — class/term Mathematics curriculum mapping
 - `practice.py` — Practice Mode session and marking logic
 - `practice_generator.py` — curriculum-aware practice generation
@@ -378,9 +389,10 @@ For Render-style production startup:
 uvicorn main:app --host 0.0.0.0 --port $PORT
 ```
 
-### Typical environment variables
+### Developer API configuration (local default)
 
 ```env
+ROBO_AI_PROVIDER=developer
 GEMINI_API_KEY=
 GEMINI_MODEL=gemini-3.1-flash-lite
 GOOGLE_SHEET_ID=
@@ -390,7 +402,29 @@ TELEGRAM_WEBHOOK_SECRET=
 TWILIO_ACCOUNT_SID=
 TWILIO_AUTH_TOKEN=
 ALLOW_AUTO_ENROLL=false
+CLASSROOM_SESSION_SECRET=
+TEACHER_DASHBOARD_KEY=
 ```
+
+### Google Cloud configuration
+
+The main production classroom uses the Cloud route. Configure a billed Cloud project with the AI Platform API enabled and a dedicated runtime identity with the required model-use role. Keep credentials outside the repository.
+
+```env
+ROBO_AI_PROVIDER=vertex
+GOOGLE_CLOUD_PROJECT=your-project-id
+GOOGLE_CLOUD_LOCATION=global
+GOOGLE_APPLICATION_CREDENTIALS=/etc/secrets/google-cloud-runtime.json
+GEMINI_MODEL=gemini-3.1-flash-lite
+GEMINI_TTS_MODEL=gemini-2.5-flash-tts
+GEMINI_STREAMING_TTS_MODEL=gemini-3.1-flash-tts-preview
+```
+
+Use Render **Secret Files** for the JSON credential; the credentials variable contains its file path, not JSON contents. Cloud model access uses ADC rather than `GEMINI_API_KEY`. Google Sheets credentials have a separate purpose and should be preserved. See the [Cloud guide](docs/cloud/google-cloud-provider.md) for setup and rollback.
+
+An isolated synthetic probe can run with `uvicorn cloud_runtime_probe:app --host 0.0.0.0 --port $PORT` and `ROBO_CLOUD_PROBE_ENABLED=true`. It calls paid/credit-backed services once per process startup; disable it after testing. Do not use its startup checks as a free unlimited health test.
+
+**Credit usage:** the integration was developed with Google Cloud trial credits available. A specific credit deduction was not yet verified at rollout. Monitor billing, quotas and credit expiry; Cloud access is not a guarantee of free ongoing usage.
 
 Keep `ALLOW_AUTO_ENROLL=false` for controlled pilots unless enrollment is deliberately opened.
 
@@ -418,7 +452,7 @@ Human teachers remain important for safeguarding, curriculum judgment, motivatio
 
 ## Roadmap
 
-### Implemented classroom — v2.6.1 release line
+### Implemented classroom — current production
 
 - live browser AI classroom
 - JSS1–JSS3 Mathematics
@@ -430,7 +464,23 @@ Human teachers remain important for safeguarding, curriculum judgment, motivatio
 - daily **Recall → Strengthen → Discover** plan
 - learner/day-specific persistence
 - Welcome-back and unfinished-session continuation
-- Teacher View and CSV reporting
+- Teacher View, learner-code management and CSV reporting
+- responsive welcome/classroom refresh with the existing brand assets
+- nested lesson interruptions, same-browser reload checkpoints and stale media/audio guards
+- Google Cloud text, multimodal input and streaming/stable voice integration
+
+### Building journey toward the full AI teacher
+
+| Next stage | Acceptance target |
+|---|---|
+| 1. Complete Cloud classroom acceptance | Verify browser listening, interruption/resume and physical Android/iPhone behavior after the provider switch; review language quality and monitor credit use |
+| 2. Expressive avatar | Lip-sync, purposeful hand gestures, learner avatar/voice choices and reliable speech/avatar synchronisation |
+| 3. Unified teaching presentation | Minimise for a topic video or visual, restore the teacher, and resume narration/drawing/media from a consistent checkpoint |
+| 4. Rich concept explanation | Draw and explain graphs, shapes and diagrams with curriculum checks and accessible alternatives |
+| 5. Additional secondary subjects | Add subject maps, teaching prompts, assessments, safeguards and teacher-reviewed evidence for each subject |
+| 6. Wider school delivery | Improve latency/data use, access continuity, teacher intervention tools and learning-outcome evaluation |
+
+The end goal is an **“Alexa for education”**: a talking, gesturing teacher that explains, shows a video, draws, answers interruptions and returns to the previous explanation across secondary-school subjects. Existing visuals, simulations and step checkpoints are foundations; fully animated gesture teaching and exact media-timestamp continuation are not complete.
 
 ### Learner-selected AI teacher and mobile conversation — product requirements
 
@@ -471,6 +521,6 @@ The long-term goal is to build an **AI teacher infrastructure layer for African 
 
 ## About Earlyon-Tech Brainery
 
-Earlyon-Tech Brainery is a Nigerian education-technology initiative focused on improving access to practical digital and technology-enabled learning for children, young people and educators.
+Earlyon-Tech Brainery is a Nigerian **software-development and education business**. It builds **Robo-Teacher** for personalised learning and **Opada** for hospitality operations, AI-assisted receipt/payment reconciliation and reporting, alongside practical technology training for young people and educators.
 
 Robo-Teacher represents the initiative's move from primarily human-led learning programs toward building scalable AI-powered learning infrastructure that can complement teachers and expand individualized support.
