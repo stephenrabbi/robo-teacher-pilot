@@ -5,11 +5,11 @@ class Node{
  constructor(doc,kind){this.ownerDocument=doc;this.kind=kind;this.children=[];this.attributes={};this.listeners={};this.classes=new Set();this.classList={add:k=>this.classes.add(k),toggle:(k,v)=>v?this.classes.add(k):this.classes.delete(k)};}
  appendChild(n){this.children.push(n);return n;}replaceChildren(){this.children=[];}setAttribute(k,v){this.attributes[k]=v;}removeAttribute(k){delete this.attributes[k];}addEventListener(k,f){this.listeners[k]=f;}click(){if(!this.disabled)this.listeners.click();}
 }
-function harness(texts=['First','Second','Third'],narration=null){
+function harness(texts=['First','Second','Third'],narration=null,startIndex=0){
  const doc={createElement:k=>new Node(doc,k)},container=new Node(doc,'div');
  let callback=null,cleared=0,started=0;
  const timers={setInterval(f){callback=f;started++;return 0;},clearInterval(){cleared++;callback=null;}};
- const player=renderExampleReplay(container,texts,timers,narration);
+ const player=renderExampleReplay(container,texts,timers,narration,startIndex);
  const controls=container.children.at(-1),[previous,play,next,restart]=controls.children,status=controls.children.at(-1);
  return {container,controls,player,previous,play,next,restart,status,tick:()=>callback?.(),callback:()=>callback,counts:()=>({cleared,started})};
 }
@@ -40,4 +40,9 @@ test('reading uses only the active step and manual navigation or disposal stops 
  h.controls.children[4].click();assert.deepEqual(spoken,['First explanation','Second explanation']);
  const last=stopped;h.controls.children[5].click();assert.ok(stopped>last);
  h.player.dispose();h.controls.children[4].click();assert.equal(spoken.length,2);
+});
+
+test('example question identifies the active step and restored playback stays paused',()=>{
+ let asked;const h=harness(['Original first','Original second'],{read(){},stop(){},ask:(text,index)=>{asked={text,index}}},1);
+ assert.match(h.status.textContent,/2 of 2.*complete/);h.controls.children[6].click();assert.deepEqual(asked,{text:'Original second',index:1});assert.equal(h.counts().started,0);
 });

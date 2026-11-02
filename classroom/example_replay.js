@@ -1,11 +1,11 @@
 /* Learner-paced worked examples. Timers are disposed when the stage closes. */
 (function(root){
   'use strict';
-  function renderExampleReplay(container,texts,timers=root,narration=null){
+  function renderExampleReplay(container,texts,timers=root,narration=null,startIndex=0){
     const doc=container.ownerDocument;container.replaceChildren();
     const values=Array.isArray(texts)?texts.filter(t=>typeof t==='string'&&t.trim()).slice(0,8):[];
     if(!values.length){const note=doc.createElement('p');note.textContent='No example steps are available. Return to the lesson and try again.';container.appendChild(note);return {dispose(){}};}
-    let active=0,timer=null,disposed=false,generation=0;
+    let active=Number.isInteger(startIndex)?Math.max(0,Math.min(startIndex,values.length-1)):0,timer=null,disposed=false,generation=0;
     const steps=values.map((text,index)=>{const p=doc.createElement('p');p.textContent=`${index+1}. ${text}`;container.appendChild(p);return p;});
     const controls=doc.createElement('div');controls.classList.add('example-controls');
     const status=doc.createElement('span');status.setAttribute('role','status');status.setAttribute('aria-live','polite');
@@ -25,6 +25,7 @@
     if(narration){
       button('Read example step',()=>{stop();show();narration.read(values[active]);});
       button('Stop example voice',()=>{stop();show();});
+      if(narration.ask)button('Ask about example step',()=>{stop();show();narration.ask(values[active],active);});
     }
     controls.appendChild(status);container.appendChild(controls);show();
     return {dispose(){disposed=true;stop();}};

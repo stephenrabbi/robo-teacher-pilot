@@ -30,3 +30,19 @@ test('restoration clears another learner history and rejects malformed entries',
  assert.equal(c.lessonHistory.length,0);assert.equal(c.lessonInterruption,null);
  c.restoreLessonHistory({});assert.equal(c.lessonHistory.length,0);
 });
+
+test('serialized question history retains the exact example return point',()=>{
+ const c=harness();const checkpoint=c.captureLessonCheckpoint();checkpoint.example={title:'Worked example',source:'Synthetic',steps:['First','Exact second step'],index:1};checkpoint.step='Exact second step';
+ c.restoreLessonHistory(JSON.parse(JSON.stringify({lessonHistory:[checkpoint]})));
+ let restored;c.restoreWorkedExample=example=>{restored=example};c.restoreLessonCheckpoint(c.lessonHistory.pop());
+ assert.equal(restored.index,1);assert.equal(restored.steps[1],'Exact second step');assert.equal(c.currentLesson.steps[1],'Translated graph step');
+});
+
+test('example restoration accepts bounded replay data and rejects invalid or external payloads',()=>{
+ let renders=0;const classes={add(){},remove(){}};
+ const c={lessonChoreography:{timer:null},clearTimeout(){},dismissLessonOverlays(){},renderLessonMedia(data,index){renders++;assert.equal(data.kind,'replay');assert.equal(index,1)},canvasWork:{classList:classes},canvasEmpty:{classList:classes},mediaArea:{classList:classes},enterTeachingStage(){}};
+ vm.createContext(c);vm.runInContext(source.slice(source.indexOf('function restoreWorkedExample('),source.indexOf('function closeLessonMedia(')),c);
+ const good={title:'Example',source:'Synthetic',steps:['One','Two'],index:1};c.restoreWorkedExample(good);assert.equal(renders,1);
+ for(const bad of [null,{...good,index:4},{...good,steps:['']},{...good,steps:['x'.repeat(4001)]},{kind:'simulation',url:'https://example.invalid'}])c.restoreWorkedExample(bad);
+ assert.equal(renders,1);
+});
