@@ -2043,3 +2043,8 @@ def test_geometry_detection_does_not_guess_comparisons_special_triangles_or_othe
 def test_coordinate_points_take_priority_over_generic_shape_diagrams():
     result=tutor.generate_visual_aid('Plot triangle vertices (0,0), (2,0), (1,3).','English','JSS2')
     assert result['kind']=='coordinate'
+
+
+def test_general_triangle_height_at_right_angles_still_receives_a_schematic():
+    result=tutor.geometry_visual_aid('The height of a triangle meets the base at a right angle.','English')
+    assert result['kind']=='geometry' and result['items'][0]['label']=='triangle'

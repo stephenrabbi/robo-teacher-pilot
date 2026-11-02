@@ -783,7 +783,7 @@ def geometry_visual_aid(text: str, response_language: str) -> dict | None:
     if len(found)!=1:
         return None
     shape=found[0]
-    if shape=="triangle" and re.search(r"\b(equilateral|isosceles|scalene|right|obtuse|acute)\b",text,re.IGNORECASE):
+    if shape=="triangle" and re.search(r"\b(equilateral|isosceles|scalene|obtuse|acute)\b|\bright(?:[- ]angled?)?\s+triangles?\b|\btriangles?\s+(?:is|are)\s+right\b",text,re.IGNORECASE):
         return None
     return {"title":f"{shape.title()} schematic", "kind":"geometry", "items":[{"label":shape,"value":1}], "caption":"Schematic. Not to scale. Use the measurements in your question."}
 
