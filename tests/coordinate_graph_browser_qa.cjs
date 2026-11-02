@@ -22,9 +22,11 @@ const assert=require('node:assert/strict');
   for(const width of [375,390,768,1280]){
    await page.setViewportSize({width,height:900});
    await page.goto('http://127.0.0.1:8765/classroom/index.html');
+   if(await page.getByRole('button',{name:'Essential only',exact:true}).isVisible())await page.getByRole('button',{name:'Essential only',exact:true}).click();
    await page.evaluate(()=>window.eval("learnerNickname.value='SyntheticGraphQA';learnerCode.value='TEST-GRAPH-QA';enterClassroomView();canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');startLessonDirector('Plot (-1,-1), (0,1) and (1,3).',0,['Plot the given coordinates.']);"));
    await page.evaluate(()=>window.eval("mediaRecorder={state:'recording'};setLearningStatus('Listening','listening')"));
    assert.equal(await page.locator('#teacherCue').getAttribute('data-state'),'listening');
+   assert.equal(await page.locator('#teacherCue').evaluate(n=>getComputedStyle(n).color),'rgb(23, 53, 94)');
    await page.locator('#teacherPanel').screenshot({path:`responsive-qa/teacher-presence-${width}.png`});
    await page.evaluate(()=>window.eval("mediaRecorder=null;setLearningStatus('Preparing','thinking')"));
    assert.equal(await page.locator('#teacherCue').getAttribute('data-state'),'thinking');
