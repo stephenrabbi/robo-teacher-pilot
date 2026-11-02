@@ -1289,8 +1289,10 @@ function restoreTeachingStage(){
   const checkpoint=teachingStage.lesson===currentLesson?teachingStage.checkpoint:null;
   teachingStage.checkpoint=null;teachingStage.lesson=null;
   setTeachingStageMode('lesson');
-  if(checkpoint)restoreLessonCheckpoint(checkpoint);
-  if(currentLesson){if(!checkpoint)renderCurrentLessonStep();canvasWork.classList.remove('hidden');canvasEmpty.classList.add('hidden')}
+  // Retain the choreography's visited stages so returning does not reopen
+  // the same automatic visual or example immediately.
+  if(checkpoint)currentLesson={text:checkpoint.text,index:checkpoint.index,steps:checkpoint.steps.slice()};
+  if(currentLesson){renderCurrentLessonStep();canvasWork.classList.remove('hidden');canvasEmpty.classList.add('hidden')}
   else if(canvasAnswer.textContent.trim())canvasWork.classList.remove('hidden');else canvasEmpty.classList.remove('hidden');
   restoreTeacherPanel();setLearningStatus(`Returned to lesson step ${(currentLesson?.index||0)+1}`);
 }

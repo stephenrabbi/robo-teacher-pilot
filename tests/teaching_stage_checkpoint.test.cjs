@@ -24,3 +24,7 @@ test('closing an obsolete stage cannot overwrite a newer lesson',()=>{
 test('closing a stage after learner reset does not resurrect the old lesson',()=>{
  const c=harness();c.enterTeachingStage('example');c.currentLesson=null;c.restoreTeachingStage();assert.equal(c.currentLesson,null);assert.equal(c.teachingStage.checkpoint,null);
 });
+test('return does not restart the director and replay automatic teaching stages',()=>{
+ const c=harness();c.startLessonDirector=()=>{throw new Error('Must retain existing choreography state')};
+ c.enterTeachingStage('visual');assert.doesNotThrow(()=>c.restoreTeachingStage());assert.equal(c.currentLesson.index,1);
+});
