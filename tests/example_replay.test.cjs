@@ -46,3 +46,13 @@ test('example question identifies the active step and restored playback stays pa
  let asked;const h=harness(['Original first','Original second'],{read(){},stop(){},ask:(text,index)=>{asked={text,index}}},1);
  assert.match(h.status.textContent,/2 of 2.*complete/);h.controls.children[6].click();assert.deepEqual(asked,{text:'Original second',index:1});assert.equal(h.counts().started,0);
 });
+
+test('voice pause and continue follow actual audio state and cannot restart disposed audio',()=>{
+ let pauses=0,resumes=0;const h=harness(['First','Second'],{read(){},stop(){},pause(){pauses++},resume(){resumes++}});
+ const control=h.controls.children[6];assert.equal(control.disabled,true);
+ h.player.setVoiceState('preparing');assert.equal(control.disabled,true);
+ h.player.setVoiceState('speaking');assert.equal(control.disabled,false);control.click();assert.equal(pauses,1);
+ h.player.setVoiceState('paused');assert.equal(control.textContent,'Continue example voice');control.click();assert.equal(resumes,1);
+ h.player.setVoiceState('idle');assert.equal(control.disabled,true);
+ h.player.dispose();h.player.setVoiceState('speaking');control.click();assert.equal(pauses,1);
+});
