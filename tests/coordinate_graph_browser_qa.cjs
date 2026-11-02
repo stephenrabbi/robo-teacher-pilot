@@ -9,6 +9,7 @@ const assert=require('node:assert/strict');
   await page.route('**/*',route=>{
    const url=new URL(route.request().url());
    if(url.origin!=='http://127.0.0.1:8765')return route.abort();
+   if(url.pathname==='/')return route.fulfill({json:{status:'synthetic ready'}});
    if(url.pathname==='/api/classroom/session')return route.fulfill({json:{session_token:'synthetic-graph-session-token'}});
    if(url.pathname==='/api/classroom/visual')return route.fulfill({json:{title:'Points on y = 2x + 1',kind:'coordinate',items:[{label:'-1,-1',value:1},{label:'0,1',value:2},{label:'1,3',value:3}],caption:'Three points from this synthetic lesson.'}});
    if(url.pathname.startsWith('/api/'))return route.fulfill({status:503,json:{detail:'Not used'}});
