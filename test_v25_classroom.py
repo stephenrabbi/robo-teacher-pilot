@@ -1665,8 +1665,9 @@ def test_accidental_refresh_can_restore_the_previous_classroom_session():
     assert '7*24*60*60*1000' in script
     assert 'function saveClassroomSnapshot()' in script
     assert "window.addEventListener('pagehide',saveClassroomSnapshot)" in script
-    assert 'startLessonDirector(snapshot.answer,snapshot.lessonIndex||0)' in script
-    assert 'lessonChoreography.enabled=false;startLessonDirector' in script
+    assert 'startLessonDirector(snapshot.answer,snapshot.lessonIndex||0,snapshot.lessonSteps)' in script
+    assert 'restoreLessonHistory(snapshot)' in script
+    assert 'lessonChoreography.enabled=false;restoreLessonHistory(snapshot);startLessonDirector' in script
     assert "practiceRequest('progress',{class_level:snapshot.classLevel})" in script
     assert "setLearningStatus('Previous lesson restored','success')" in script
     assert 'clearClassroomSnapshot();learnerNickname.value' in script
