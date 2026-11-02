@@ -1010,9 +1010,9 @@ async function requestTeacherSpeech(payload,signal,requestId){
   return response;
 }
 
-async function speakText(text,preserveAudioUnlock=false,displayCanvasAvatar=true){
+async function speakText(text,preserveAudioUnlock=false,displayCanvasAvatar=true,keepExampleOpen=false){
   if(!text.trim())return;
-  if(teachingStage.mode==='example'){stopLessonMedia();restoreTeachingStage();}
+  if(teachingStage.mode==='example'&&!keepExampleOpen){stopLessonMedia();restoreTeachingStage();}
   lessonController.begin('speech');
   stopTeacherAudio(preserveAudioUnlock);
   setCanvasVoiceAvatar(displayCanvasAvatar);
@@ -1999,7 +1999,7 @@ async function openLessonMedia(){
 function renderLessonMedia(data){
   if(mediaReplayPlayer){mediaReplayPlayer.dispose();mediaReplayPlayer=null}mediaTitle.textContent=data.title;mediaSource.textContent=`Source: ${data.source}`;mediaFrame.classList.add('hidden');mediaReplay.classList.add('hidden');mediaFrame.removeAttribute('src');mediaReplay.replaceChildren();
   closeMediaButton.textContent=data.kind==='simulation'?'← Exit simulation':'← Exit example';if(data.kind==='simulation'){if(window.RoboTeacherPrivacy&&!window.RoboTeacherPrivacy.externalContentAllowed()){window.RoboTeacherPrivacy.requestExternalContent(data.url,data.title);return}mediaFrame.src=data.url;mediaFrame.classList.remove('hidden');return;}
-  mediaReplay.classList.remove('hidden');mediaReplayPlayer=window.RoboTeacherExamples.renderExampleReplay(mediaReplay,data.steps);
+  mediaReplay.classList.remove('hidden');mediaReplayPlayer=window.RoboTeacherExamples.renderExampleReplay(mediaReplay,data.steps,window,{read:text=>{if(teachingStage.mode==='example')void speakText(text,false,false,true)},stop:()=>stopTeacherAudio()});
 }
 
 function closeLessonMedia(){stopLessonMedia();restoreTeachingStage()}
