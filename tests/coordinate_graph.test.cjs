@@ -1,6 +1,6 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
-const {coordinateLayout,renderCoordinateGraph}=require('../classroom/coordinate_graph.js');
+const {coordinateLayout,straightLine,renderCoordinateGraph}=require('../classroom/coordinate_graph.js');
 const items=(...labels)=>labels.map(label=>({label,value:1}));
 test('large coordinates remain distinct and within the plot',()=>{
  const g=coordinateLayout(items('20,200','40,400','-30,-300'));
@@ -30,7 +30,7 @@ test('guided plotting reveals one point at a time and provides a coordinate tabl
  const c=container();renderCoordinateGraph(c,items('-1,-1','0,1','1,3'),'Lesson graph');
  const [svg,controls,status,table]=c.children;
  assert.equal(svg.attributes.role,'img');assert.equal(svg.attributes['aria-label'],'Lesson graph');assert.equal(table.children.length,5);
- const marks=svg.children.filter(n=>n.kind==='g').slice(1);
+ const marks=svg.children.filter(n=>n.kind==='g'&&!n.attributes['data-graph-line']).slice(1);
  controls.children[0].click();assert.ok(marks.every(n=>n.attributes.visibility==='hidden'));
  controls.children[1].click();assert.equal(marks[0].attributes.visibility,'visible');assert.equal(marks[1].attributes.visibility,'hidden');assert.match(status.textContent,/1 left.*1 down/);
  controls.children[2].click();assert.ok(marks.every(n=>n.attributes.visibility==='visible'));assert.equal(controls.children[1].disabled,true);
@@ -38,4 +38,25 @@ test('guided plotting reveals one point at a time and provides a coordinate tabl
 });
 test('empty coordinate data gives a safe explanation rather than a misleading graph',()=>{
  const c=container();renderCoordinateGraph(c,items('unreadable'));assert.equal(c.children[0].kind,'p');assert.match(c.children[0].textContent,/No readable/);
+});
+
+test('straight line detection accepts unordered horizontal, vertical and sloped points',()=>{
+ for(const labels of [['1,3','-1,-1','0,1'],['3,2','-2,2','0,2'],['2,-3','2,0','2,4']]){
+  assert.ok(straightLine(coordinateLayout(items(...labels)).points));
+ }
+ assert.equal(straightLine(coordinateLayout(items('0,0','1,1','2,3')).points),null);
+ assert.equal(straightLine(coordinateLayout(items('0,0','1,1')).points),null);
+});
+test('line explanation shows gradient and reset removes the segment',()=>{
+ const c=container();renderCoordinateGraph(c,items('1,3','-1,-1','0,1'));
+ const [svg,controls,status]=c.children;
+ const line=svg.children.find(n=>n.attributes['data-graph-line']);
+ controls.children[3].click();assert.equal(line.children.length,1);assert.match(status.textContent,/= 2\./);assert.match(status.textContent,/Only the segment/);
+ controls.children[0].click();assert.equal(line.children.length,0);assert.equal(controls.children[3].attributes['aria-pressed'],'false');
+});
+test('noncollinear points are never joined and vertical lines have undefined gradient',()=>{
+ for(const [labels,expected,count] of [[['0,0','1,1','2,3'],/do not establish/,0],[['2,-1','2,0','2,3'],/gradient is undefined/,1]]){
+  const c=container();renderCoordinateGraph(c,items(...labels));c.children[1].children[3].click();
+  assert.match(c.children[2].textContent,expected);assert.equal(c.children[0].children.find(n=>n.attributes['data-graph-line']).children.length,count);
+ }
 });
