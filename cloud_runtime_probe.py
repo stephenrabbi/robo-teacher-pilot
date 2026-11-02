@@ -57,6 +57,39 @@ def run_extended_probe():
     return result
 
 
+def run_classroom_probe():
+    """Call classroom HTTP routes locally; never publish learner endpoints."""
+    from fastapi.testclient import TestClient
+    from classroom_api import router
+    import tutor
+    classroom = FastAPI()
+    classroom.include_router(router)
+    result = {}
+    with TestClient(classroom) as http:
+        session = http.post('/api/classroom/session', json={
+            'nickname': 'SyntheticCloudQA', 'class_level': 'JSS2'})
+        session.raise_for_status()
+        token = session.json()['session_token']
+        result['session'] = True
+        for name, message in (
+            ('question', 'Explain why equivalent fractions represent the same amount.'),
+            ('follow_up', 'Use a different example to explain that same idea.')):
+            response = http.post('/api/classroom/chat', json={
+                'session_token': token, 'message': message, 'language': 'English'})
+            reply = response.json().get('reply', '')
+            result[name] = bool(response.status_code == 200 and reply.strip()
+                and reply not in (tutor.TECHNICAL_FALLBACK_RESPONSE, tutor.RATE_LIMIT_RESPONSE,
+                                  tutor.ESCALATION_RESPONSE))
+        voice = http.post('/api/classroom/speech', json={
+            'session_token': token, 'text': 'Two plus three equals five.', 'language': 'English'})
+        result['read_aloud'] = bool(voice.status_code == 200 and voice.content
+            and voice.headers.get('x-audio-sample-rate') == '24000'
+            and 'audio/l16' in voice.headers.get('content-type', ''))
+        result['reject_invalid_session'] = http.post('/api/classroom/speech', json={
+            'session_token': 'invalid-synthetic-token-value', 'text': 'Do not generate audio.'}).status_code == 401
+    return result
+
+
 def run_probe():
     if os.getenv('ROBO_CLOUD_PROBE_ENABLED') != 'true':
         return {'status': 'disabled'}
@@ -84,8 +117,12 @@ def run_probe():
         chunks = list(stream_cloud_speech(client, os.environ['GEMINI_STREAMING_TTS_MODEL'],
                                          'Say: Welcome to Robo Teacher.', 'Kore'))
         extended = run_extended_probe()
-        return {'status': 'passed' if all(value is True for value in extended.values()) else 'partial',
-                'text': True, 'stable_voice': True, 'extended': extended,
+        try:
+            classroom = run_classroom_probe()
+        except Exception as exc:
+            classroom = {'error_type': type(exc).__name__}
+        return {'status': 'passed' if all(value is True for value in (*extended.values(), *classroom.values())) else 'partial',
+                'text': True, 'stable_voice': True, 'extended': extended, 'classroom': classroom,
                 'stream_chunks': len(chunks), 'stream_bytes': sum(map(len, chunks))}
     finally:
         client.close()
