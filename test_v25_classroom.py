@@ -1232,7 +1232,7 @@ def test_visual_generator_normalizes_common_model_variations():
 
 
 def test_coordinate_renderer_accepts_parenthesized_points():
-    script=(PROJECT_ROOT/'classroom'/'app.js').read_text()
+    script=(PROJECT_ROOT/'classroom'/'coordinate_graph.js').read_text()
     assert "\\(?\\s*(-?\\d+" in script and "\\)?\\s*$/" in script
 
 
