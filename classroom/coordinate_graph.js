@@ -21,6 +21,15 @@
     const mapX=x=>180+x/bound*132,mapY=y=>180-y/bound*132;
     return {step,bound,mapX,mapY,points:points.map(p=>({...p,px:mapX(p.x),py:mapY(p.y)})),ticks:Array.from({length:count*2+1},(_,i)=>(i-count)*step)};
   }
+  function straightLine(points){
+    if(points.length<3)return null;
+    const ordered=[...points].sort((a,b)=>a.x-b.x||a.y-b.y);
+    const first=ordered[0],last=ordered[ordered.length-1];
+    const dx=last.x-first.x,dy=last.y-first.y,scale=Math.max(Math.abs(dx),Math.abs(dy));
+    if(!scale)return null;
+    if(!ordered.every(p=>Math.abs((p.x-first.x)/scale*(dy/scale)-(p.y-first.y)/scale*(dx/scale))<=1e-12))return null;
+    return {first,last,vertical:dx===0,slope:dx===0?null:dy/dx};
+  }
   function renderCoordinateGraph(container,items,title='Coordinate plot'){
     const layout=coordinateLayout(items),doc=container.ownerDocument;
     container.replaceChildren();
@@ -38,6 +47,7 @@
     node('line',{x1:48,y1:180,x2:320,y2:180,class:'graph-axis'});
     node('line',{x1:180,y1:312,x2:180,y2:40,class:'graph-axis'});
     node('text',{x:333,y:185,class:'graph-axis-label'},'x');node('text',{x:185,y:31,class:'graph-axis-label'},'y');node('text',{x:170,y:195,class:'graph-tick'},'0');
+    const lineLayer=node('g',{'data-graph-line':'true'});
     const guides=node('g',{}),marks=layout.points.map(p=>{const group=node('g',{});node('circle',{cx:p.px,cy:p.py,r:5,class:'graph-point'},undefined,group);node('text',{x:p.px+8,y:p.py-8,class:'graph-point-label'},p.label,group);return group;});
     const controls=doc.createElement('div');controls.classList.add('graph-controls');
     const status=doc.createElement('p');status.setAttribute('role','status');status.setAttribute('aria-live','polite');
@@ -46,8 +56,11 @@
     const header=doc.createElement('tr');for(const label of ['Point','x','y']){const th=doc.createElement('th');th.textContent=label;th.setAttribute('scope','col');header.appendChild(th);}table.appendChild(header);
     for(const p of layout.points){const row=doc.createElement('tr');for(const value of [p.label,p.x,p.y]){const cell=doc.createElement('td');cell.textContent=String(value);row.appendChild(cell);}table.appendChild(row);}
     let visible=layout.points.length;
+    const alignment=straightLine(layout.points);
     const button=(label,action)=>{const b=doc.createElement('button');b.type='button';b.textContent=label;b.addEventListener('click',action);controls.appendChild(b);return b;};
     const draw=()=>{
+      lineLayer.replaceChildren();
+      if(join)join.setAttribute('aria-pressed','false');
       marks.forEach((mark,i)=>mark.setAttribute('visibility',i<visible?'visible':'hidden'));guides.replaceChildren();
       if(visible===0)status.textContent='Start at the origin (0, 0). Plot the next point when you are ready.';
       else if(visible===layout.points.length)status.textContent='All points shown. Both axes use the same distance per unit. Points are not automatically joined.';
@@ -63,8 +76,17 @@
       status.textContent=`Point ${p.label}: x = ${p.x}, y = ${p.y}. Move ${Math.abs(p.x)} ${p.x<0?'left':'right'} from the origin, then ${Math.abs(p.y)} ${p.y<0?'down':'up'}. ${visible} of ${layout.points.length} points shown.`;
     });
     button('Show all points',()=>{visible=layout.points.length;draw();});
+    const join=button('Explain straight line',()=>{
+      visible=layout.points.length;draw();
+      if(!alignment){status.textContent='These points do not establish one straight line. Keep them as separate points; check the lesson before choosing how to join them.';return;}
+      const {first,last,vertical,slope}=alignment;
+      node('line',{x1:first.px,y1:first.py,x2:last.px,y2:last.py,class:'graph-joined-line'},undefined,lineLayer);
+      join.setAttribute('aria-pressed','true');
+      status.textContent=vertical?`All plotted points have x = ${first.x}, so they lie on a vertical straight line. Its gradient is undefined. Only the segment between the outermost given points is shown.`:`The plotted points lie on a straight line. Gradient = change in y / change in x = (${last.y} - ${first.y}) / (${last.x} - ${first.x}) = ${short(slope)}. Only the segment between the outermost given points is shown.`;
+    });
+    join.setAttribute('aria-pressed','false');
     container.append(svg,controls,status,table);draw();
   }
-  if(typeof module==='object'&&module.exports)module.exports={coordinateLayout,renderCoordinateGraph};
-  else root.RoboTeacherGraphs={coordinateLayout,renderCoordinateGraph};
+  if(typeof module==='object'&&module.exports)module.exports={coordinateLayout,straightLine,renderCoordinateGraph};
+  else root.RoboTeacherGraphs={coordinateLayout,straightLine,renderCoordinateGraph};
 })(typeof window==='undefined'?globalThis:window);

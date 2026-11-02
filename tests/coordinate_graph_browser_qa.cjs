@@ -31,6 +31,11 @@ const assert=require('node:assert/strict');
    await page.locator('.coordinate-graph').screenshot({path:`responsive-qa/coordinate-graph-${width}.png`});
    await page.getByRole('button',{name:'Show all points',exact:true}).click();
    assert.equal(await page.locator('.coordinate-graph g[visibility=visible]').count(),3);
+   await page.getByRole('button',{name:'Explain straight line',exact:true}).click();
+   assert.equal(await page.locator('.graph-joined-line').count(),1);
+   assert.match(await page.locator('#visualGraphic [role=status]').innerText(),/Gradient.*= 2\./);
+   await page.getByRole('button',{name:'Plot step by step',exact:true}).click();
+   assert.equal(await page.locator('.graph-joined-line').count(),0);
    await page.getByRole('button',{name:'Return to explanation',exact:true}).click();
    assert.equal(await page.locator('#canvasAnswer').innerText(),'Plot the given coordinates.');
   }
