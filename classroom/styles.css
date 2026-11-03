@@ -469,3 +469,5 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .topic-video{display:block;width:100%;max-height:65vh;aspect-ratio:16/9;background:#07162d;border-radius:12px}.media-replay>button{min-height:44px;padding:10px 14px;border:1px solid #afc2d9;border-radius:10px;background:#edf5ff;color:#17355e;font-weight:700;cursor:pointer}.media-replay>details{margin-top:12px;color:#17355e}.media-replay>details summary{cursor:pointer;min-height:44px}
 
 .media-replay>p[role=status],.media-replay>details p{opacity:1;transform:none;color:#17355e}
+
+.media-replay>button.topic-video-continue{background:#0757c9;border-color:#0757c9;color:#fff}

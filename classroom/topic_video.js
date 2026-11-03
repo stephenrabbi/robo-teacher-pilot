@@ -24,11 +24,12 @@
   video.addEventListener('loadedmetadata',()=>{if(disposed)return;if(Number.isFinite(start)&&start>0&&Number.isFinite(video.duration))video.currentTime=Math.min(start,Math.max(0,video.duration-.05));});
   video.addEventListener('pause',save);video.addEventListener('seeked',save);
   video.addEventListener('timeupdate',()=>{if(!disposed&&Math.abs(video.currentTime-lastSaved)>=5){lastSaved=video.currentTime;save();}});
-  video.addEventListener('ended',()=>{if(disposed)return;status.textContent='Video complete. Ask a question or return to the explanation.';save();});
+  video.addEventListener('ended',()=>{if(disposed)return;status.textContent='Video complete. Ask a question or choose Continue with teacher to hear the original explanation.';save();});
   video.addEventListener('error',()=>{if(!disposed)status.textContent='The video could not load. Read the transcript below or return to the explanation.';});
   const ask=doc.createElement('button');ask.type='button';ask.textContent='Ask about this video';ask.addEventListener('click',()=>{if(disposed)return;video.pause();options.ask?.(checkpoint());});
+  const continueTeacher=doc.createElement('button');continueTeacher.type='button';continueTeacher.className='topic-video-continue';continueTeacher.textContent='Continue with teacher';continueTeacher.addEventListener('click',()=>{if(disposed)return;video.pause();options.continueTeacher?.();});
   const details=doc.createElement('details'),summary=doc.createElement('summary'),text=doc.createElement('p');summary.textContent='Read video transcript';text.textContent=data.transcript;details.append(summary,text);
-  container.append(video,status,ask,details);
+  container.append(video,status,ask,continueTeacher,details);
   return {getCheckpoint:checkpoint,pause(){if(!disposed)video.pause();},resume(){if(!disposed)void video.play().catch(()=>{if(!disposed)status.textContent='Tap Play on the video to continue.';});},moveBy(direction){if(!disposed&&Number.isFinite(video.duration))video.currentTime=Math.max(0,Math.min(video.duration,video.currentTime+direction*10));},dispose(){disposed=true;video.pause();video.removeAttribute('src');for(const source of sources)source.removeAttribute('src');video.load();}};
  }
  if(typeof module==='object'&&module.exports)module.exports={getTopicVideo,validCheckpoint,renderTopicVideo};
