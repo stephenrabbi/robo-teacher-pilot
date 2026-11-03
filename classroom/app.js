@@ -1,4 +1,6 @@
 const welcome=document.getElementById('welcome');
+let subjectClassroom=null;
+let subjectRecording=false;
 const classroom=document.getElementById('classroom');
 let teacherPresenceActivity='';
 /* Treat onboarding and the classroom as distinct screens, not sections of a
@@ -10,6 +12,7 @@ function enterClassroomView(){
   window.scrollTo({top:0,left:0,behavior:'instant'});
 }
 function leaveClassroomView(){
+  subjectClassroom?.reset();
   classroom.classList.add('hidden');
   welcome.classList.remove('hidden');
   document.body.classList.remove('classroom-view-active');
@@ -17,6 +20,8 @@ function leaveClassroomView(){
 }
 
 const start=document.getElementById('startLearning');
+const subjectsButton=document.getElementById('subjectsButton');
+const subjectLearning=document.getElementById('subjectLearning');
 const resumeLearningButton=document.getElementById('resumeLearning');
 const founderPanel=document.getElementById('founderPanel');
 const hearFounderButton=document.getElementById('hearFounder');
@@ -1091,7 +1096,7 @@ readAnswerButton.addEventListener('click',async()=>{
   if(teacherSpeechPaused){await resumeTeacherAudio();return;}
   if(teacherPanel.classList.contains('speaking')){await pauseTeacherAudio();return;}
   try{await prepareTeacherAudio()}catch(_error){return}
-  void speakText(canvasAnswer.textContent);
+  void speakText(subjectClassroom?.isOpen()?subjectClassroom.getAnswer():canvasAnswer.textContent,false,!subjectClassroom?.isOpen(),true);
 });
 teacherSpeed.value=teacherSpeechPace;
 teacherSpeed.addEventListener('change',()=>setTeacherSpeechPace(teacherSpeed.value,teacherPanel.classList.contains('speaking')||teacherSpeechPaused));
@@ -1132,7 +1137,7 @@ function syncTeacherPresence(activity=teacherPresenceActivity){
   if(!window.RoboTeacherPresence)return;
   window.RoboTeacherPresence.renderTeacherPresence(teacherPanel,document.getElementById('teacherCue'),{
     activity,stage:teachingStage.mode,speaking:teacherPanel.classList.contains('speaking'),paused:teacherSpeechPaused,
-    listening:Boolean(mediaRecorder?.state==='recording'||handsFree.listening),
+    listening:Boolean(mediaRecorder?.state==='recording'||handsFree.listening||(typeof subjectRecording!=='undefined'&&subjectRecording)),
   });
 }
 
@@ -1143,6 +1148,12 @@ function setLearningStatus(message,state=''){
 }
 
 function setActiveMode(button){
+  if(typeof subjectsButton!=='undefined'&&typeof subjectLearning!=='undefined'){
+    const active=button===subjectsButton;
+    document.querySelector('.learning-area').classList.toggle('subject-mode',active);
+    subjectLearning.classList.toggle('hidden',!active);subjectsButton.setAttribute('aria-expanded',String(active));
+    if(!active&&typeof subjectClassroom!=='undefined'&&subjectClassroom?.isOpen()){subjectClassroom.close();readAnswerButton.disabled=!canvasAnswer.textContent.trim();}
+  }
   if(button!==myLessonsButton)myLessonsArea.classList.add('hidden');
   if(button!==dailyPlanButton)dailyPlanArea.classList.add('hidden');
   document.querySelectorAll('.class-tools [data-mode]').forEach(item=>{
@@ -1426,6 +1437,7 @@ whiteboard.addEventListener('pointercancel',stopDrawing);
 backToWhiteboard.addEventListener('click',openWhiteboard);
 language.addEventListener('change',async()=>{
   if(!handsFreeHelp.classList.contains('hidden'))renderHandsFreeHelp();
+  if(subjectClassroom?.isOpen()){stopTeacherAudio();localStorage.setItem('roboTeacherLanguage',language.value);subjectClassroom.languageChanged();return;}
   const wasReading=teacherPanel.classList.contains('speaking')||teacherSpeechPaused;
   const practiceIsActive=Boolean(currentPractice)&&!practiceArea.classList.contains('hidden');
   const practiceFeedbackWasVisible=practiceIsActive&&
@@ -2160,3 +2172,20 @@ form.addEventListener('submit',async(e)=>{
     }else{clearPendingChatRecovery();thinking.textContent=err.message&&/wait|waking/.test(err.message)?err.message:'I could not finish that answer. Your question is still in the box; please try again.';setLearningStatus('Question kept — please try again','paused');}
   }finally{sendButton.disabled=false;sendButton.textContent='Send';if(!pendingChatRecovery&&!question.value.trim())setLearningStatus('Answer ready');else if(pendingChatRecovery&&navigator.onLine&&!recovery)setTimeout(retryPendingChat,1000);keepTeachingCanvasVisible();if(handsFree.enabled){handsFree.processing=false;handsFree.restartAttempts=0;scheduleHandsFreeRecovery('answer-complete')}}
 });
+
+// Separate early-subject workspace shares the teacher, not Maths lesson state.
+subjectClassroom=window.RoboTeacherSubjects.createSubjectClassroom(subjectLearning,{
+  session:ensureSession,language:()=>language.value,prepareAudio:prepareTeacherAudio,
+  stop:()=>stopTeacherAudio(),speak:text=>{if(subjectClassroom?.isOpen())void speakText(text,false,false,true);},
+  status:setLearningStatus,listening:value=>{subjectRecording=value;syncTeacherPresence();},
+  answer:text=>{if(subjectClassroom?.isOpen())readAnswerButton.disabled=!text;},
+});
+subjectsButton.addEventListener('click',()=>{
+  if(subjectClassroom.isOpen()){openChat();return;}
+  if(sendButton.disabled||micButton.disabled||uploadButton.disabled||mediaRecorder?.state==='recording'){setLearningStatus('Finish the current question before changing workspace','attention');return;}
+  stopTeacherAudio();handsFree.enabled=false;stopHandsFreeListening();updateHandsFreeStatus();languageSwitchRequest++;
+  lessonController.begin('subjects');if(teachingStage.mode!=='lesson')restoreTeachingStage();
+  openChat();canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');setActiveMode(subjectsButton);restoreTeacherPanel();
+  subjectClassroom.open(`${learnerClass.value}:${learnerCode.value.trim().toUpperCase()}:${learnerNickname.value.trim()}`);
+});
+document.getElementById('subjectBack').addEventListener('click',openChat);

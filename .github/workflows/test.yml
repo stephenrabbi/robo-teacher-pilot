@@ -67,6 +67,7 @@ jobs:
       - name: Check mastery, planner, Practice, voice, whiteboard, identity and Autopilot browser scripts syntax
         run: |
           node --check classroom/app.js
+          node --check classroom/subject_teaching.js
           node --check classroom/mastery_memory.js
           node --check classroom/mastery_recheck.js
           node --check classroom/autonomous_planner.js

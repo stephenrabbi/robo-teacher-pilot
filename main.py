@@ -14,6 +14,7 @@ from sheet_logger import log_interaction
 from telegram_adapter import send_telegram_message, configure_telegram_webhook, download_telegram_image, download_telegram_audio, SUPPORTED_AUDIO_MIME_TYPES
 from roster_sheet import lookup_student, is_awaiting_school_choice, mark_awaiting_school_choice, parse_school_choice, register_student, auto_enrollment_enabled, ONBOARDING_PROMPT, ONBOARDING_RETRY, ENROLLMENT_CLOSED_PROMPT
 from classroom_api import router as classroom_router
+from subject_classroom_api import router as subject_classroom_router
 from mastery_api import router as mastery_router
 
 logging.basicConfig(level=logging.INFO)
@@ -47,6 +48,7 @@ async def add_privacy_security_headers(request: Request, call_next):
     return response
 
 app.include_router(classroom_router)
+app.include_router(subject_classroom_router)
 app.include_router(mastery_router)
 if os.path.isdir("classroom"):
     app.mount("/classroom", StaticFiles(directory="classroom"), name="classroom-static")

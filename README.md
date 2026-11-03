@@ -29,6 +29,12 @@ https://robo-teacher-v25-staging.onrender.com/classroom-app
 
 > **Production status — 2 November 2026:** Google Cloud Gemini is active in the main classroom. The deployed code baseline is [`5f751fd`](https://github.com/stephenrabbi/robo-teacher-pilot/commit/5f751fd82d92a010e9cd4f8b7d4522b66ea16bd2), including the responsive classroom redesign, lesson checkpoints and Cloud provider integration. The v2.6.1 release is an earlier milestone. Secure cross-device persistence remains separate experimental work, not a verified production feature.
 
+## Subject teaching expansion — 3 November 2026
+
+The **Subjects** button opens early-access English Language and Basic Science teaching for JSS1–JSS3. Learners can type, upload an educational image or recording, and read answers aloud using the existing Cloud teacher voice. Explanations use the selected teaching language; English examples remain in English. Switching subjects starts a fresh conversation, and returning to Maths preserves the original lesson.
+
+Subject conversations are separate from Maths mastery records and are held only in bounded, temporary server memory. Uploaded media bytes are not retained in conversation history. This is AI-guided subject teaching; curriculum-mapped practice, diagnostics and progress currently remain Mathematics. Full secondary-school subject and syllabus coverage is still ahead.
+
 ## Latest milestones — 2 November 2026
 
 | Area | Delivered and verified |
