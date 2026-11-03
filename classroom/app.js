@@ -302,6 +302,10 @@ function captureLessonCheckpoint(){
     const active=mediaReplayPlayer?.getStep?.();
     if(active){const base=teachingStage.checkpoint||checkpoint;checkpoint={...base,steps:base.steps.slice(),step:active.text,example:{...currentWorkedExample,steps:currentWorkedExample.steps.slice(),index:active.index}};}
   }
+  if(typeof teachingStage!=='undefined'&&teachingStage.mode==='example'&&typeof mediaReplayPlayer!=='undefined'&&mediaReplayPlayer?.getCheckpoint){
+    const video=mediaReplayPlayer.getCheckpoint();
+    if(video){const base=teachingStage.checkpoint||checkpoint;checkpoint={...base,steps:base.steps.slice(),video,step:`${base.step}\nVideo paused at ${Math.floor(video.time)} seconds: ${window.RoboTeacherVideos.getTopicVideo(video.id)?.title||'topic video'}`};}
+  }
   return checkpoint;
 }
 
@@ -309,6 +313,7 @@ function restoreLessonCheckpoint(checkpoint){
   if(!checkpoint)return;
   startLessonDirector(checkpoint.text,checkpoint.index,checkpoint.steps);
   if(checkpoint.example&&typeof restoreWorkedExample==='function')restoreWorkedExample(checkpoint.example);
+  else if(checkpoint.video&&typeof restoreTopicVideo==='function')restoreTopicVideo(checkpoint.video);
 }
 
 function restoreLessonHistory(snapshot){
@@ -334,7 +339,7 @@ function refreshResumeLearning(){savedClassroomSnapshot=loadClassroomSnapshot();
 function saveClassroomSnapshot(){
   const nickname=learnerNickname.value.trim(),answer=currentLesson?.text||canvasAnswer.innerText.trim();
   if(nickname.length<2||!answer)return;
-  savedClassroomSnapshot={nickname,learnerCode:learnerCode.value.trim().toUpperCase(),classLevel:learnerClass.value,language:language.value,lessonSteps:currentLesson?.steps?.slice()||null,lessonHistory:lessonHistory.slice(-20),lessonInterruption,workedExample:captureLessonCheckpoint()?.example||null,answer,lessonIndex:currentLesson?.index||0,canvasStatus:canvasStatus.textContent,savedAt:Date.now()};
+  savedClassroomSnapshot={nickname,learnerCode:learnerCode.value.trim().toUpperCase(),classLevel:learnerClass.value,language:language.value,lessonSteps:currentLesson?.steps?.slice()||null,lessonHistory:lessonHistory.slice(-20),lessonInterruption,workedExample:captureLessonCheckpoint()?.example||null,topicVideo:captureLessonCheckpoint()?.video||null,answer,lessonIndex:currentLesson?.index||0,canvasStatus:canvasStatus.textContent,savedAt:Date.now()};
   localStorage.setItem('roboTeacherClassroomSnapshot',JSON.stringify(savedClassroomSnapshot));refreshResumeLearning();
 }
 
@@ -580,6 +585,7 @@ function resumeBookmarkedLessonByVoice(){
 
 function readCurrentWorkedExample(preserveAudioUnlock=true){
   if(teachingStage.mode!=='example'||!mediaReplayPlayer)return false;
+  if(mediaReplayPlayer.getCheckpoint){mediaReplayPlayer.resume();return true;}
   const step=mediaReplayPlayer.getStep?.();if(!step)return false;
   void speakText(step.text,preserveAudioUnlock,false,true);return true;
 }
@@ -660,7 +666,7 @@ function executeHandsFreeIntent(phrase){
   const stopListeningCommand=/^(stop listening|turn off|goodbye)$/.test(command);
   if(teacherPanel.classList.contains('speaking')&&!pauseCommand&&!continueCommand&&!replayCommand&&!visualCommand&&!simplerCommand&&!understandingCommand&&!nextStepCommand&&!previousStepCommand&&!slowerCommand&&!normalSpeedCommand&&!fasterCommand&&!volumeUpCommand&&!volumeDownCommand&&!muteCommand&&!unmuteCommand&&!helpCommand&&!stopListeningCommand)return;
   if(pauseCommand){
-    if(teacherPanel.classList.contains('speaking'))void pauseTeacherAudio();else if(currentLesson)pauseLessonForQuestion('voice');
+    if(mediaReplayPlayer?.getCheckpoint)mediaReplayPlayer.pause();else if(teacherPanel.classList.contains('speaking'))void pauseTeacherAudio();else if(currentLesson)pauseLessonForQuestion('voice');
     openHandsFreeFollowUpWindow();return;
   }
   if(continueCommand){
@@ -820,7 +826,7 @@ resumeLearningButton.addEventListener('click',async()=>{
   try{
     learnerNickname.value=snapshot.nickname;learnerCode.value=snapshot.learnerCode||'';learnerClass.value=snapshot.classLevel;practiceClass.value=snapshot.classLevel;language.value=snapshot.language||'English';localStorage.setItem('roboTeacherLanguage',language.value);updatePracticeTopics();
     if(!learnerCode.value){refreshResumeLearning();return}await ensureSession();learnerIdentity.textContent=`${snapshot.nickname.toUpperCase()} · ${learnerCode.value} · ${snapshot.classLevel} CLASSROOM`;enterClassroomView();
-    dismissLessonOverlays();canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');canvasStatus.textContent=snapshot.canvasStatus||'Previous lesson restored';const autoTeachWasEnabled=lessonChoreography.enabled;lessonChoreography.enabled=false;restoreLessonHistory(snapshot);startLessonDirector(snapshot.answer,snapshot.lessonIndex||0,snapshot.lessonSteps);if(snapshot.workedExample)restoreWorkedExample(snapshot.workedExample);lessonChoreography.enabled=autoTeachWasEnabled;readAnswerButton.disabled=false;setActiveMode(chatButton);setLearningStatus('Previous lesson restored','success');
+    dismissLessonOverlays();canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');canvasStatus.textContent=snapshot.canvasStatus||'Previous lesson restored';const autoTeachWasEnabled=lessonChoreography.enabled;lessonChoreography.enabled=false;restoreLessonHistory(snapshot);startLessonDirector(snapshot.answer,snapshot.lessonIndex||0,snapshot.lessonSteps);if(snapshot.workedExample)restoreWorkedExample(snapshot.workedExample);else if(snapshot.topicVideo)restoreTopicVideo(snapshot.topicVideo);lessonChoreography.enabled=autoTeachWasEnabled;readAnswerButton.disabled=false;setActiveMode(chatButton);setLearningStatus('Previous lesson restored','success');
     void practiceRequest('progress',{class_level:snapshot.classLevel}).then(data=>{currentProgress=data}).catch(()=>{});
     if(pendingChatRecovery)setTimeout(retryPendingChat,300);keepTeachingCanvasVisible();
   }catch(_error){onboardingError.textContent='I could not restore the previous lesson. Check your connection and try again.';onboardingError.classList.remove('hidden')}
@@ -1382,7 +1388,7 @@ function pauseLessonForQuestion(source='text'){
   setLearningStatus('Lesson paused for your question','paused');saveClassroomSnapshot();
 }
 askLessonQuestion.addEventListener('click',()=>{
-  if(lessonInterruption){const checkpoint=lessonInterruption;lessonInterruption=null;lessonDirector.classList.remove('lesson-paused');if(checkpoint.example)restoreLessonCheckpoint(checkpoint);else renderCurrentLessonStep();setLearningStatus('Paused explanation resumed');return}
+  if(lessonInterruption){const checkpoint=lessonInterruption;lessonInterruption=null;lessonDirector.classList.remove('lesson-paused');if(checkpoint.example||checkpoint.video)restoreLessonCheckpoint(checkpoint);else renderCurrentLessonStep();setLearningStatus('Paused explanation resumed');return}
   pauseLessonForQuestion();question.placeholder='Ask a question about this step…';question.focus();
 });
 returnToLesson.addEventListener('click',()=>{if(!lessonHistory.length)return;stopTeacherAudio();lessonInterruption=null;lessonDirector.classList.remove('lesson-paused');const lesson=lessonHistory.pop();restoreLessonCheckpoint(lesson);canvasStatus.textContent='Previous lesson resumed';setLearningStatus('Returned to your lesson')});
@@ -2044,7 +2050,13 @@ async function openLessonMedia(){
 function renderLessonMedia(data,exampleIndex=0){
   currentWorkedExample=null;
   if(mediaReplayPlayer){mediaReplayPlayer.dispose();mediaReplayPlayer=null}mediaTitle.textContent=data.title;mediaSource.textContent=`Source: ${data.source}`;mediaFrame.classList.add('hidden');mediaReplay.classList.add('hidden');mediaFrame.removeAttribute('src');mediaReplay.replaceChildren();
-  closeMediaButton.textContent=data.kind==='simulation'?'← Exit simulation':'← Exit example';closeMediaButton.setAttribute('aria-label',data.kind==='simulation'?'Exit simulation and return to the lesson':'Exit example and return to the lesson');if(data.kind==='simulation'){if(window.RoboTeacherPrivacy&&!window.RoboTeacherPrivacy.externalContentAllowed()){window.RoboTeacherPrivacy.requestExternalContent(data.url,data.title);return}mediaFrame.src=data.url;mediaFrame.classList.remove('hidden');return;}
+  closeMediaButton.textContent=data.kind==='simulation'?'← Exit simulation':data.kind==='video'?'← Exit video':'← Exit example';closeMediaButton.setAttribute('aria-label',`Exit ${data.kind==='simulation'?'simulation':data.kind==='video'?'video':'example'} and return to the lesson`);if(data.kind==='simulation'){if(window.RoboTeacherPrivacy&&!window.RoboTeacherPrivacy.externalContentAllowed()){window.RoboTeacherPrivacy.requestExternalContent(data.url,data.title);return}mediaFrame.src=data.url;mediaFrame.classList.remove('hidden');return;}
+  if(data.kind==='video'){
+    mediaReplay.classList.remove('hidden');
+    mediaReplayPlayer=window.RoboTeacherVideos.renderTopicVideo(mediaReplay,data.video_id,{ask:askTopicVideo,onCheckpoint:()=>saveClassroomSnapshot()},data.startTime||0);
+    if(!mediaReplayPlayer)mediaReplay.textContent='This video is unavailable. Return to the explanation.';
+    return;
+  }
   currentWorkedExample={title:data.title,source:data.source,steps:data.steps.slice()};
   mediaReplay.classList.remove('hidden');mediaReplayPlayer=window.RoboTeacherExamples.renderExampleReplay(mediaReplay,data.steps,window,{read:text=>{if(teachingStage.mode==='example')void speakText(text,false,false,true)},readToEnd:text=>teachingStage.mode==='example'?speakText(text,false,false,true,true):Promise.resolve(false),stop:()=>stopTeacherAudio(),ask:askWorkedExampleStep,pause:()=>void pauseTeacherAudio(),resume:()=>void resumeTeacherAudio(),onStep:()=>saveClassroomSnapshot()},exampleIndex);
 }
@@ -2061,6 +2073,20 @@ function restoreWorkedExample(example){
   if(!example||typeof example.title!=='string'||example.title.length>300||typeof example.source!=='string'||example.source.length>300||!Array.isArray(example.steps)||!example.steps.length||example.steps.length>8||!example.steps.every(t=>typeof t==='string'&&t.trim()&&t.length<=4000)||!Number.isInteger(example.index)||example.index<0||example.index>=example.steps.length)return;
   clearTimeout(lessonChoreography.timer);
   dismissLessonOverlays();renderLessonMedia({kind:'replay',title:example.title,source:example.source,steps:example.steps.slice()},example.index);
+  canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');mediaArea.classList.remove('hidden');enterTeachingStage('example');
+}
+
+function askTopicVideo(){
+  const checkpoint=captureLessonCheckpoint();
+  closeLessonMedia();pauseLessonForQuestion();lessonInterruption=checkpoint;
+  question.placeholder='Ask a question about this video…';question.focus();saveClassroomSnapshot();
+}
+
+function restoreTopicVideo(video){
+  if(!window.RoboTeacherVideos.validCheckpoint(video))return;
+  const data=window.RoboTeacherVideos.getTopicVideo(video.id);
+  clearTimeout(lessonChoreography.timer);dismissLessonOverlays();
+  renderLessonMedia({kind:'video',video_id:video.id,title:data.title,source:'Robo-Teacher',startTime:video.time});
   canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');mediaArea.classList.remove('hidden');enterTeachingStage('example');
 }
 
