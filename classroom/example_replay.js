@@ -5,7 +5,7 @@
     const doc=container.ownerDocument;container.replaceChildren();
     const values=Array.isArray(texts)?texts.filter(t=>typeof t==='string'&&t.trim()).slice(0,8):[];
     if(!values.length){const note=doc.createElement('p');note.textContent='No example steps are available. Return to the lesson and try again.';container.appendChild(note);return {dispose(){}};}
-    let active=Number.isInteger(startIndex)?Math.max(0,Math.min(startIndex,values.length-1)):0,timer=null,disposed=false,generation=0,voiceState='idle',voiceControl=null;
+    let active=Number.isInteger(startIndex)?Math.max(0,Math.min(startIndex,values.length-1)):0,timer=null,disposed=false,generation=0,voiceState='idle',voiceControl=null,reading=false,sequenceControl=null;
     const steps=values.map((text,index)=>{const p=doc.createElement('p');p.textContent=`${index+1}. ${text}`;container.appendChild(p);return p;});
     const controls=doc.createElement('div');controls.classList.add('example-controls');
     const status=doc.createElement('span');status.setAttribute('role','status');status.setAttribute('aria-live','polite');
@@ -15,13 +15,14 @@
       voiceState=state;
       if(voiceControl){voiceControl.textContent=state==='paused'?'Continue example voice':'Pause example voice';voiceControl.disabled=!['speaking','paused'].includes(state);voiceControl.setAttribute('aria-pressed',String(state==='paused'));}
     }
-    function stop(){if(narration)narration.stop();generation++;if(timer!==null){timers.clearInterval(timer);timer=null;}}
+    function stop(){reading=false;generation++;if(narration)narration.stop();if(timer!==null){timers.clearInterval(timer);timer=null;}}
     function show(){
       steps.forEach((p,i)=>{p.classList.toggle('active',i===active);if(i===active)p.setAttribute('aria-current','step');else p.removeAttribute('aria-current');});
       previous.disabled=active===0;next.disabled=active===steps.length-1;
-      play.textContent=timer===null?'Play example':'Pause example';play.disabled=active===steps.length-1;
+      play.textContent=timer===null?'Play example':'Pause example';play.disabled=reading||active===steps.length-1;
       play.setAttribute('aria-pressed',String(timer!==null));
-      status.textContent=`Example step ${active+1} of ${steps.length}${active===steps.length-1?' — complete':timer===null?' — paused':' — playing'}`;
+      status.textContent=`Example step ${active+1} of ${steps.length}${reading?' — narrated reading':active===steps.length-1?' — complete':timer===null?' — paused':' — playing'}`;
+      if(sequenceControl){sequenceControl.textContent=reading?'Stop narrated example':'Read example from here';sequenceControl.setAttribute('aria-pressed',String(reading));}
       if(narration?.onStep)narration.onStep({text:values[active],index:active});
     }
     function moveBy(direction){if(disposed)return;stop();active=Math.max(0,Math.min(steps.length-1,active+direction));show();}
@@ -34,6 +35,18 @@
       button('Stop example voice',()=>{stop();show();});
       if(narration.ask)button('Ask about example step',()=>{stop();show();narration.ask(values[active],active);});
       if(narration.pause&&narration.resume){voiceControl=button('Pause example voice',()=>{if(voiceState==='paused')narration.resume();else if(voiceState==='speaking')narration.pause();});setVoiceState('idle');}
+      if(narration.readToEnd)sequenceControl=button('Read example from here',()=>{if(reading){stop();show();}else void readSequence();});
+    }
+    async function readSequence(){
+      stop();reading=true;const owner=++generation;show();
+      try{
+        while(!disposed&&owner===generation){
+          const complete=await narration.readToEnd(values[active]);
+          if(disposed||owner!==generation)return;
+          if(complete!==true||active===values.length-1){reading=false;show();return;}
+          active++;show();
+        }
+      }catch(_error){if(!disposed&&owner===generation){stop();show();}}
     }
     controls.appendChild(status);container.appendChild(controls);show();
     return {setVoiceState,moveBy,getStep(){return disposed?null:{text:values[active],index:active}},dispose(){disposed=true;stop();}};

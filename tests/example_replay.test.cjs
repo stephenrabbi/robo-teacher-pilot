@@ -1,6 +1,7 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const {renderExampleReplay}=require('../classroom/example_replay.js');
+const flush=()=>new Promise(resolve=>setImmediate(resolve));
 class Node{
  constructor(doc,kind){this.ownerDocument=doc;this.kind=kind;this.children=[];this.attributes={};this.listeners={};this.classes=new Set();this.classList={add:k=>this.classes.add(k),toggle:(k,v)=>v?this.classes.add(k):this.classes.delete(k)};}
  appendChild(n){this.children.push(n);return n;}replaceChildren(){this.children=[];}setAttribute(k,v){this.attributes[k]=v;}removeAttribute(k){delete this.attributes[k];}addEventListener(k,f){this.listeners[k]=f;}click(){if(!this.disabled)this.listeners.click();}
@@ -13,6 +14,29 @@ function harness(texts=['First','Second','Third'],narration=null,startIndex=0){
  const controls=container.children.at(-1),[previous,play,next,restart]=controls.children,status=controls.children.at(-1);
  return {container,controls,player,previous,play,next,restart,status,tick:()=>callback?.(),callback:()=>callback,counts:()=>({cleared,started})};
 }
+test('narration waits for actual completion and reads all remaining steps once',async()=>{
+ const read=[],finish=[];
+ const h=harness(['First','Second','Final'],{read(){},stop(){},readToEnd:t=>{read.push(t);return new Promise(r=>finish.push(r));}},1);
+ h.controls.children.find(b=>b.textContent==='Read example from here').click();
+ assert.deepEqual(read,['Second']);assert.equal(h.player.getStep().index,1);assert.equal(h.counts().started,0);
+ finish.shift()(true);await flush();assert.deepEqual(read,['Second','Final']);assert.equal(h.player.getStep().index,2);
+ finish.shift()(true);await flush();assert.match(h.status.textContent,/complete/);assert.equal(read.length,2);
+});
+test('cancelled or failed narration never advances to an unread step',async()=>{
+ for(const failure of [false,undefined]){
+  const h=harness(['First','Second'],{read(){},stop(){},readToEnd:()=>Promise.resolve(failure)});
+  h.controls.children.find(b=>b.textContent==='Read example from here').click();await flush();
+  assert.equal(h.player.getStep().index,0);assert.match(h.status.textContent,/paused/);
+ }
+});
+test('manual navigation and disposal prevent late narration completion from advancing',async()=>{
+ for(const action of ['next','dispose']){
+  let finish;const spoken=[];const h=harness(['First','Second','Third'],{read(){},stop(){},readToEnd:t=>{spoken.push(t);return new Promise(r=>finish=r);}});
+  h.controls.children.find(b=>b.textContent==='Read example from here').click();
+  if(action==='next')h.next.click();else h.player.dispose();finish(true);await flush();
+  assert.deepEqual(spoken,['First']);assert.equal(h.player.getStep()?.index,action==='next'?1:undefined);
+ }
+});
 test('examples start paused and manual navigation stays within bounds',()=>{
  const h=harness();assert.match(h.status.textContent,/1 of 3.*paused/);assert.equal(h.previous.disabled,true);assert.equal(h.counts().started,0);
  h.next.click();assert.match(h.status.textContent,/2 of 3.*paused/);h.previous.click();assert.match(h.status.textContent,/1 of 3/);

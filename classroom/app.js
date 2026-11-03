@@ -238,6 +238,7 @@ let micStream=null;
 let recordedChunks=[];
 let teacherSpeechController=null;
 let teacherSpeechRequest=0;
+let teacherPlaybackCompletion=null;
 let teacherAudioContext=null;
 let teacherAudioAnalyser=null;
 let teacherAudioGain=null;
@@ -973,6 +974,7 @@ async function startAudioKeepAlive(){
 }
 
 function stopTeacherAudio(preserveAudioUnlock=false){
+  if(typeof teacherPlaybackCompletion!=='undefined'&&teacherPlaybackCompletion){teacherPlaybackCompletion.resolve(false);teacherPlaybackCompletion=null;}
   teacherSpeechRequest+=1;
   if(teacherSpeechController){teacherSpeechController.abort();teacherSpeechController=null}
   if(!preserveAudioUnlock)stopAudioKeepAlive();
@@ -996,7 +998,7 @@ async function prepareTeacherAudio(){
 
 async function playPcmStream(response,requestId){
   const context=await prepareTeacherAudio();if(requestId!==teacherSpeechRequest)return;const reader=response.body.getReader();let pending=new Uint8Array(0);let nextStart=context.currentTime+.06;let receivedAudio=false;
-  const finishIfDone=()=>{if(teacherStreamComplete&&!teacherAudioSources.size&&!teacherSpeechPaused&&requestId===teacherSpeechRequest)stopTeacherAudio()};
+  const finishIfDone=()=>{if(teacherStreamComplete&&!teacherAudioSources.size&&!teacherSpeechPaused&&requestId===teacherSpeechRequest){if(typeof teacherPlaybackCompletion!=='undefined'&&teacherPlaybackCompletion){teacherPlaybackCompletion.resolve(true);teacherPlaybackCompletion=null;}stopTeacherAudio()}};
   while(requestId===teacherSpeechRequest){
     const {done,value}=await reader.read();
     if(requestId!==teacherSpeechRequest){await reader.cancel();return;}
@@ -1036,11 +1038,12 @@ async function requestTeacherSpeech(payload,signal,requestId){
   return response;
 }
 
-async function speakText(text,preserveAudioUnlock=false,displayCanvasAvatar=true,keepExampleOpen=false){
+async function speakText(text,preserveAudioUnlock=false,displayCanvasAvatar=true,keepExampleOpen=false,waitForPlayback=false){
   if(!text.trim())return;
   if(teachingStage.mode==='example'&&!keepExampleOpen){stopLessonMedia();restoreTeachingStage();}
   lessonController.begin('speech');
   stopTeacherAudio(preserveAudioUnlock);
+  const playback=waitForPlayback?new Promise(resolve=>{teacherPlaybackCompletion={resolve}}):null;
   setCanvasVoiceAvatar(displayCanvasAvatar);
   teacherVoiceStatus.textContent='Preparing teacher voice…';
   if(typeof mediaReplayPlayer!=='undefined'&&mediaReplayPlayer?.setVoiceState)mediaReplayPlayer.setVoiceState('preparing');
@@ -1059,6 +1062,7 @@ async function speakText(text,preserveAudioUnlock=false,displayCanvasAvatar=true
     if(!response.ok)throw new Error(response.status===429?'voice-rate-limited':response.status===503?'voice-service-unavailable':'voice-http-error');
     if(!response.body)throw new Error('stream unavailable');
     await playPcmStream(response,requestId);
+    if(playback)return await playback;
   }catch(error){
     if(error.name==='AbortError'||requestId!==teacherSpeechRequest)return;
     stopTeacherAudio();
@@ -1073,6 +1077,7 @@ async function speakText(text,preserveAudioUnlock=false,displayCanvasAvatar=true
           : 'Audio playback was interrupted. Please retry Read answer, or use Chrome with sound enabled.';
     teacherVoiceStatus.textContent='Voice unavailable';
     addMessage(guidance+' The written answer is still available on the Teaching Canvas.','teacher');
+    return false;
   }
 }
 
@@ -2041,7 +2046,7 @@ function renderLessonMedia(data,exampleIndex=0){
   if(mediaReplayPlayer){mediaReplayPlayer.dispose();mediaReplayPlayer=null}mediaTitle.textContent=data.title;mediaSource.textContent=`Source: ${data.source}`;mediaFrame.classList.add('hidden');mediaReplay.classList.add('hidden');mediaFrame.removeAttribute('src');mediaReplay.replaceChildren();
   closeMediaButton.textContent=data.kind==='simulation'?'← Exit simulation':'← Exit example';if(data.kind==='simulation'){if(window.RoboTeacherPrivacy&&!window.RoboTeacherPrivacy.externalContentAllowed()){window.RoboTeacherPrivacy.requestExternalContent(data.url,data.title);return}mediaFrame.src=data.url;mediaFrame.classList.remove('hidden');return;}
   currentWorkedExample={title:data.title,source:data.source,steps:data.steps.slice()};
-  mediaReplay.classList.remove('hidden');mediaReplayPlayer=window.RoboTeacherExamples.renderExampleReplay(mediaReplay,data.steps,window,{read:text=>{if(teachingStage.mode==='example')void speakText(text,false,false,true)},stop:()=>stopTeacherAudio(),ask:askWorkedExampleStep,pause:()=>void pauseTeacherAudio(),resume:()=>void resumeTeacherAudio(),onStep:()=>saveClassroomSnapshot()},exampleIndex);
+  mediaReplay.classList.remove('hidden');mediaReplayPlayer=window.RoboTeacherExamples.renderExampleReplay(mediaReplay,data.steps,window,{read:text=>{if(teachingStage.mode==='example')void speakText(text,false,false,true)},readToEnd:text=>teachingStage.mode==='example'?speakText(text,false,false,true,true):Promise.resolve(false),stop:()=>stopTeacherAudio(),ask:askWorkedExampleStep,pause:()=>void pauseTeacherAudio(),resume:()=>void resumeTeacherAudio(),onStep:()=>saveClassroomSnapshot()},exampleIndex);
 }
 
 function askWorkedExampleStep(text,index){
