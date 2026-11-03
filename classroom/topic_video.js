@@ -18,7 +18,7 @@
   const video=doc.createElement('video');video.controls=true;video.preload='metadata';video.playsInline=true;video.className='topic-video';video.setAttribute('aria-label',data.title);
   const sources=[];for(const [src,type] of [[data.webm,'video/webm'],[data.src,'video/mp4']]){const source=doc.createElement('source');source.src=src;source.type=type;sources.push(source);video.appendChild(source);}
   const track=doc.createElement('track');track.kind='captions';track.label='English';track.srclang='en';track.src=data.captions;track.default=true;video.appendChild(track);
-  const status=doc.createElement('p');status.setAttribute('role','status');status.textContent='Play the video when you are ready. You can pause and ask a question.';
+  const status=doc.createElement('p');status.setAttribute('role','status');status.textContent='Play when you are ready. Use fullscreen for a larger diagram. Pause and ask a question at any time.';
   const checkpoint=()=>disposed?null:{id,time:Number.isFinite(video.currentTime)?video.currentTime:0};
   const save=()=>{if(!disposed)options.onCheckpoint?.(checkpoint());};
   video.addEventListener('loadedmetadata',()=>{if(disposed)return;if(Number.isFinite(start)&&start>0&&Number.isFinite(video.duration))video.currentTime=Math.min(start,Math.max(0,video.duration-.05));});
