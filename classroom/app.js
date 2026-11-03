@@ -1,6 +1,8 @@
 const welcome=document.getElementById('welcome');
 let subjectClassroom=null;
 let subjectRecording=false;
+let subjectMathsLanguage=null;
+let subjectTeachingLanguage=null;
 const classroom=document.getElementById('classroom');
 let teacherPresenceActivity='';
 /* Treat onboarding and the classroom as distinct screens, not sections of a
@@ -1152,7 +1154,7 @@ function setActiveMode(button){
     const active=button===subjectsButton;
     document.querySelector('.learning-area').classList.toggle('subject-mode',active);
     subjectLearning.classList.toggle('hidden',!active);subjectsButton.setAttribute('aria-expanded',String(active));
-    if(!active&&typeof subjectClassroom!=='undefined'&&subjectClassroom?.isOpen()){subjectClassroom.close();readAnswerButton.disabled=!canvasAnswer.textContent.trim();}
+    if(!active&&typeof subjectClassroom!=='undefined'&&subjectClassroom?.isOpen()){subjectTeachingLanguage=language.value;language.value=subjectMathsLanguage||language.value;localStorage.setItem('roboTeacherLanguage',language.value);subjectClassroom.close();readAnswerButton.disabled=!canvasAnswer.textContent.trim();}
   }
   if(button!==myLessonsButton)myLessonsArea.classList.add('hidden');
   if(button!==dailyPlanButton)dailyPlanArea.classList.add('hidden');
@@ -2184,7 +2186,8 @@ subjectsButton.addEventListener('click',()=>{
   if(subjectClassroom.isOpen()){openChat();return;}
   if(pendingChatRecovery||sendButton.disabled||micButton.disabled||uploadButton.disabled||mediaRecorder?.state==='recording'){setLearningStatus('Finish the current question before changing workspace','attention');return;}
   stopTeacherAudio();handsFree.enabled=false;stopHandsFreeListening();updateHandsFreeStatus();languageSwitchRequest++;
-  clearTimeout(lessonChoreography.timer);lessonController.begin('subjects');if(teachingStage.mode!=='lesson')restoreTeachingStage();
+  subjectMathsLanguage=language.value;if(subjectTeachingLanguage)language.value=subjectTeachingLanguage;
+  if(teachingStage.mode!=='lesson')restoreTeachingStage();clearTimeout(lessonChoreography.timer);lessonController.begin('subjects');
   openChat();canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');setActiveMode(subjectsButton);restoreTeacherPanel();
   subjectClassroom.open(`${learnerClass.value}:${learnerCode.value.trim().toUpperCase()}:${learnerNickname.value.trim()}`);
 });

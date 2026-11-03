@@ -26,6 +26,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
    await page.goto('http://127.0.0.1:8765/classroom/index.html');
    if(await page.getByRole('button',{name:'Essential only',exact:true}).isVisible())await page.getByRole('button',{name:'Essential only',exact:true}).click();
    await page.evaluate(()=>window.eval("learnerNickname.value='SyntheticSubjectQA';learnerCode.value='TEST-SUBJECT-QA';enterClassroomView();canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');startLessonDirector('Original Maths lesson',0,['Original Maths step retained']);"));
+   await page.evaluate(()=>window.eval("lessonChoreography.enabled=true;enterTeachingStage('visual');"));
    await page.locator('#subjectsButton').click();assert.deepEqual(errors,[]);await page.locator('#subjectLearning').waitFor({state:'visible'});
    await page.locator('#subjectQuestion').fill('Explain nouns');await page.locator('#subjectSend').click();
    await page.locator('#subjectRead').waitFor({state:'visible'});await page.waitForFunction(()=>!document.querySelector('#subjectRead').disabled);
@@ -53,8 +54,8 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
    assert.equal(sent.at(-1).language,'Yoruba');
    await page.locator('#subjectLearning').screenshot({path:`responsive-qa/subjects-${width}.png`});
    const box=await page.locator('#subjectLearning').boundingBox();assert.ok(box.x>=0&&box.x+box.width<=width+1);
-   await page.locator('#subjectBack').click();assert.equal(await page.locator('#canvasAnswer').innerText(),'Original Maths step retained');
-   await page.locator('#subjectsButton').click();await page.locator('#changeLearner').click();
+   await page.locator('#subjectBack').click();assert.equal(await page.locator('#canvasAnswer').innerText(),'Original Maths step retained');assert.equal(await page.locator('#language').inputValue(),'English');
+   await page.locator('#subjectsButton').click();assert.equal(await page.locator('#language').inputValue(),'Yoruba');await page.locator('#changeLearner').click();
    assert.equal(await page.locator('#subjectMessages').innerText(),'');assert.deepEqual(errors,[]);
    await page.close();console.log(`Subject workspace ${width}px passed`);
   }
