@@ -10,10 +10,11 @@
   function controls(){const locked=busy||recorder?.state==='recording';send.disabled=locked;upload.disabled=locked;input.disabled=locked;read.disabled=!getAnswer();options.answer?.(active?getAnswer():'');}
   function tracks(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}options.listening?.(false);}
   function cancel(){epoch++;controller?.abort();controller=null;const old=recorder;recorder=null;if(old&&old.state!=='inactive')old.stop();tracks();busy=false;mic.disabled=false;mic.textContent='Record question';options.stop?.();controls();}
-  function reset(clear=true){cancel();conversation=fresh();answer='';answerLanguage='';if(clear){messages.replaceChildren();input.value='';}controls();notice(`Ask an ${select.value==='English Language'?'English Language':'Basic Science'} question.`);}
+  function reset(clear=true){cancel();conversation=fresh();answer='';answerLanguage='';if(clear){messages.replaceChildren();input.value='';}controls();notice(`Ask ${select.value==='English Language'?'an English Language':'a Basic Science'} question.`);}
   function append(label,text){const card=panel.ownerDocument.createElement('article'),heading=panel.ownerDocument.createElement('strong'),body=panel.ownerDocument.createElement('p');heading.textContent=label;body.textContent=text;card.append(heading,body);messages.appendChild(card);while(messages.children.length>12)messages.firstElementChild.remove();}
   async function request(kind,question,blob=null){
    if(!active||busy)return;
+   if(kind!=='chat'&&question.length>500){notice('Please keep the caption under 500 characters, or send it as a typed question.','attention');return;}
    if(!conversation)conversation=fresh();options.stop?.();busy=true;controls();mic.disabled=true;
    const version=epoch,subject=select.value,language=options.language(),abort=new AbortController();controller=abort;
    const owns=()=>active&&version===epoch&&!abort.signal.aborted;
@@ -24,6 +25,7 @@
     if(kind==='chat'){headers={'Content-Type':'application/json'};body=JSON.stringify({message:question,subject,language,conversation_id:conversation,session_token:token});}
     else{body=new FormData();for(const [key,value] of Object.entries({session_token:token,subject,language,conversation_id:conversation,caption:question}))body.append(key,value);body.append('file',blob,kind==='image'?'question-image':'question-recording');}
     const response=await root.fetch(`/api/classroom/subject/${kind}`,{method:'POST',headers,body,signal:abort.signal});const data=await response.json();if(!owns())return;
+    if(response.status===401)options.invalidSession?.();
     if(!response.ok||typeof data.reply!=='string')throw Error('unavailable');
     append('Your question',question||(kind==='image'?'Image question':'Recorded question'));append(`${subject} · ${language}`,data.reply);
     answer=data.reply;answerLanguage=language;input.value='';notice('Explanation ready. You can ask a follow-up.');

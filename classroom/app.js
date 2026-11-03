@@ -995,7 +995,7 @@ function stopTeacherAudio(preserveAudioUnlock=false){
   teacherPanel.classList.remove('paused');
   setTeacherSpeaking(false);
   setCanvasVoiceAvatar(false);
-  readAnswerButton.disabled=!canvasAnswer.textContent.trim();
+  readAnswerButton.disabled=!(typeof subjectClassroom!=='undefined'&&subjectClassroom?.isOpen()?subjectClassroom.getAnswer():canvasAnswer.textContent.trim());
 }
 
 async function prepareTeacherAudio(){
@@ -1077,7 +1077,7 @@ async function speakText(text,preserveAudioUnlock=false,displayCanvasAvatar=true
   }catch(error){
     if(error.name==='AbortError'||requestId!==teacherSpeechRequest)return;
     stopTeacherAudio();
-    readAnswerButton.disabled=!canvasAnswer.textContent.trim();
+    readAnswerButton.disabled=!(typeof subjectClassroom!=='undefined'&&subjectClassroom?.isOpen()?subjectClassroom.getAnswer():canvasAnswer.textContent.trim());
     const reason=error?.message||'';
     const guidance=reason==='voice-service-unavailable'||reason==='voice-rate-limited'
       ? 'The voice service is busy or unavailable. Please try Read answer again shortly.'
@@ -2175,16 +2175,16 @@ form.addEventListener('submit',async(e)=>{
 
 // Separate early-subject workspace shares the teacher, not Maths lesson state.
 subjectClassroom=window.RoboTeacherSubjects.createSubjectClassroom(subjectLearning,{
-  session:ensureSession,language:()=>language.value,prepareAudio:prepareTeacherAudio,
+  session:ensureSession,invalidSession:()=>{sessionToken=null;},language:()=>language.value,prepareAudio:prepareTeacherAudio,
   stop:()=>stopTeacherAudio(),speak:text=>{if(subjectClassroom?.isOpen())void speakText(text,false,false,true);},
   status:setLearningStatus,listening:value=>{subjectRecording=value;syncTeacherPresence();},
   answer:text=>{if(subjectClassroom?.isOpen())readAnswerButton.disabled=!text;},
 });
 subjectsButton.addEventListener('click',()=>{
   if(subjectClassroom.isOpen()){openChat();return;}
-  if(sendButton.disabled||micButton.disabled||uploadButton.disabled||mediaRecorder?.state==='recording'){setLearningStatus('Finish the current question before changing workspace','attention');return;}
+  if(pendingChatRecovery||sendButton.disabled||micButton.disabled||uploadButton.disabled||mediaRecorder?.state==='recording'){setLearningStatus('Finish the current question before changing workspace','attention');return;}
   stopTeacherAudio();handsFree.enabled=false;stopHandsFreeListening();updateHandsFreeStatus();languageSwitchRequest++;
-  lessonController.begin('subjects');if(teachingStage.mode!=='lesson')restoreTeachingStage();
+  clearTimeout(lessonChoreography.timer);lessonController.begin('subjects');if(teachingStage.mode!=='lesson')restoreTeachingStage();
   openChat();canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');setActiveMode(subjectsButton);restoreTeacherPanel();
   subjectClassroom.open(`${learnerClass.value}:${learnerCode.value.trim().toUpperCase()}:${learnerNickname.value.trim()}`);
 });

@@ -26,7 +26,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
    await page.goto('http://127.0.0.1:8765/classroom/index.html');
    if(await page.getByRole('button',{name:'Essential only',exact:true}).isVisible())await page.getByRole('button',{name:'Essential only',exact:true}).click();
    await page.evaluate(()=>window.eval("learnerNickname.value='SyntheticSubjectQA';learnerCode.value='TEST-SUBJECT-QA';enterClassroomView();canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');startLessonDirector('Original Maths lesson',0,['Original Maths step retained']);"));
-   await page.locator('#subjectsButton').click();await page.locator('#subjectLearning').waitFor({state:'visible'});
+   await page.locator('#subjectsButton').click();assert.deepEqual(errors,[]);await page.locator('#subjectLearning').waitFor({state:'visible'});
    await page.locator('#subjectQuestion').fill('Explain nouns');await page.locator('#subjectSend').click();
    await page.locator('#subjectRead').waitFor({state:'visible'});await page.waitForFunction(()=>!document.querySelector('#subjectRead').disabled);
    assert.equal(sent.at(-1).subject,'English Language');const firstId=sent.at(-1).conversation_id;
