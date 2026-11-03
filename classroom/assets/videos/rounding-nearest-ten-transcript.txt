@@ -1,0 +1,7 @@
+Rounding means choosing the nearest multiple of ten. Let us round forty seven to the nearest ten.
+
+Forty seven lies between forty and fifty. The halfway point is forty five.
+
+Forty seven is above forty five, so it is closer to fifty. Move up to fifty.
+
+Forty seven rounded to the nearest ten is fifty. For whole numbers, a units digit of five or more rounds up; less than five rounds down.

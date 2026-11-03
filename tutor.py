@@ -861,6 +861,8 @@ def fallback_visual_aid(text: str, response_language: str) -> dict:
 def select_lesson_media(text: str, response_language: str = "English") -> dict:
     """Select only allowlisted free learning media; never return model URLs."""
     lesson=text.lower()
+    if response_language == "English" and "round" in lesson and re.search(r"\bnearest\s+(?:ten|10)\b", lesson):
+        return {"kind":"video","video_id":"rounding-nearest-ten","title":"Rounding to the nearest ten — worked example: 47","source":"Robo-Teacher"}
     catalog=[
         (("fraction","numerator","denominator"),"Fractions Intro","https://phet.colorado.edu/sims/html/fractions-intro/latest/fractions-intro_all.html"),
         (("equation","equal","balance","solve x"),"Equality Explorer","https://phet.colorado.edu/sims/html/equality-explorer-basics/latest/equality-explorer-basics_all.html"),
@@ -869,6 +871,11 @@ def select_lesson_media(text: str, response_language: str = "English") -> dict:
     ]
     for keywords,title,url in catalog:
         if any(keyword in lesson for keyword in keywords): return {"kind":"simulation","title":title,"url":url,"source":"PhET Interactive Simulations"}
+    return worked_example_replay(text)
+
+
+def worked_example_replay(text: str) -> dict:
+    """Build a complete text replay when no curated media is selected."""
     replay_text=re.sub(r"(?i)(?<!^)(?=step\s*\d+\s*[:.])","\n",text)
     replay_text=re.sub(r"(?i)(?<!^)(?=final\s+(?:answer|estimation)\s*[:.])","\n",replay_text)
     # Preserve complete numbered teaching steps; never discard the conclusion

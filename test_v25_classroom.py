@@ -1273,7 +1273,7 @@ def test_mobile_toolbar_is_one_scrollable_row_and_replay_keeps_paragraphs():
     assert '>Watch or Explore</button>' in html
     assert "map(item=>item.innerText.trim()).filter(Boolean).join('\\n')" in script
     assert 'flex-wrap:nowrap!important' in css and 'overflow-x:auto!important' in css
-    assert "data.kind==='simulation'?'← Exit simulation':'← Exit example'" in script
+    assert all(label in script for label in ["← Exit simulation", "← Exit example", "← Exit video"])
 
 
 def test_switching_modes_unloads_media_before_showing_new_content():
@@ -2000,7 +2000,7 @@ def test_example_replay_preserves_complete_numbered_teaching_steps_and_answer():
             "Step 2: Check the units digit. It is 7, which is at least 5.\n\n"
             "Step 3: Round up to 50. Replace the units digit with zero.\n\n"
             "Final answer: 50")
-    replay=tutor.select_lesson_media(lesson)
+    replay=tutor.worked_example_replay(lesson)
     assert replay['kind']=='replay'
     assert len(replay['steps'])<=6
     assert ' '.join(' '.join(replay['steps']).split())==' '.join(lesson.split())
@@ -2048,3 +2048,13 @@ def test_coordinate_points_take_priority_over_generic_shape_diagrams():
 def test_general_triangle_height_at_right_angles_still_receives_a_schematic():
     result=tutor.geometry_visual_aid('The height of a triangle meets the base at a right angle.','English')
     assert result['kind']=='geometry' and result['items'][0]['label']=='triangle'
+
+
+def test_curated_rounding_video_is_local_and_language_specific():
+    media=tutor.select_lesson_media("Round 47 to the nearest ten.")
+    assert media["kind"]=="video"
+    assert media["video_id"]=="rounding-nearest-ten"
+    assert "47" in media["title"]
+    assert "url" not in media
+    assert tutor.select_lesson_media("Round 47 to the nearest ten.","Yoruba")["kind"]=="replay"
+    assert tutor.select_lesson_media("Round 247 to the nearest hundred.")["kind"]=="replay"
