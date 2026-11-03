@@ -1904,6 +1904,7 @@ async function finishRecording(){
   micButton.disabled=true;
   try{
     const token=await ensureSession();const body=new FormData();body.append('session_token',token);body.append('language',language.value);
+    const videoContext=lessonInterruption?.video||captureLessonCheckpoint()?.video;if(window.RoboTeacherVideos?.validCheckpoint(videoContext)){body.append('video_id',videoContext.id);body.append('video_time',String(videoContext.time));}
     body.append('audio',blob,`maths-question.${type.includes('mp4')?'m4a':type.includes('ogg')?'ogg':'webm'}`);
     const response=await fetch('/api/classroom/audio',{method:'POST',headers:{'Accept':'application/json'},body});
     const data=await response.json();
@@ -2136,7 +2137,7 @@ form.addEventListener('submit',async(e)=>{
   const thinking=addMessage(recovery?'Your connection is back. I’m continuing from where we stopped…':'Let me work through that with you…','teacher');
   try{
     const token=await ensureSession();
-    const response=await fetch('/api/classroom/chat',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({message:requestText,session_token:token,language:recovery?.language||language.value})});
+    const response=await fetch('/api/classroom/chat',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({message:requestText,session_token:token,language:recovery?.language||language.value,video_context:window.RoboTeacherVideos?.validCheckpoint(interruptedLesson?.video)?{id:interruptedLesson.video.id,time:interruptedLesson.video.time}:undefined})});
     const data=await response.json();
     if(response.status===401){sessionToken=null;throw new Error('session');}
     if(!response.ok)throw new Error(data.detail||'request');

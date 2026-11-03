@@ -12,6 +12,7 @@ import hmac
 import os
 import secrets
 import time
+from topic_video_context import video_question_reference
 from collections import defaultdict, deque
 from itertools import chain
 from typing import Literal
@@ -58,10 +59,17 @@ _understanding_checks: dict[str, dict] = {}
 SupportedLanguage = Literal["English", "Yoruba", "Igbo", "Hausa"]
 
 
+class VideoQuestionContext(BaseModel):
+    model_config = {"extra": "forbid"}
+    id: Literal["rounding-nearest-ten"]
+    time: float = Field(ge=0, le=3600, allow_inf_nan=False)
+
+
 class ClassroomQuestion(BaseModel):
     message: str = Field(min_length=1, max_length=1200)
     session_token: str = Field(min_length=20, max_length=300)
     language: SupportedLanguage = "English"
+    video_context: VideoQuestionContext | None = None
 
 
 class ClassroomSessionRequest(BaseModel):
@@ -372,6 +380,8 @@ def classroom_chat(question: ClassroomQuestion, request: Request):
         raise HTTPException(status_code=422, detail="Question cannot be empty")
     try:
         class_level = _classroom_profiles.get(student_id, {}).get("class_level", "JSS2")
+        if question.video_context:
+            message += video_question_reference(question.video_context.id, question.video_context.time)
         reply, latency = get_tutor_reply(student_id, message, question.language, class_level)
     except Exception as exc:
         # Log exception type only: never log learner messages, credentials or provider payloads.
@@ -575,9 +585,13 @@ async def classroom_audio(
     session_token: str = Form(..., min_length=20, max_length=300),
     audio: UploadFile = File(...),
     language: SupportedLanguage = Form("English"),
+    video_id: Literal["rounding-nearest-ten"] | None = Form(None),
+    video_time: float | None = Form(None, ge=0, le=3600, allow_inf_nan=False),
 ):
     student_id = _verify_session(session_token)
     _enforce_rate_limit(student_id)
+    if (video_id is None) != (video_time is None):
+        raise HTTPException(status_code=422, detail="Video ID and time must be supplied together")
     mime_type = (audio.content_type or "").split(";", 1)[0].lower()
     if mime_type not in SUPPORTED_AUDIO_MIME_TYPES:
         raise HTTPException(status_code=415, detail="Please record or upload a supported audio file")
@@ -588,7 +602,10 @@ async def classroom_audio(
         raise HTTPException(status_code=413, detail="The recording must be 12 MB or smaller")
     try:
         class_level = _classroom_profiles.get(student_id, {}).get("class_level", "JSS2")
-        reply, latency = get_tutor_audio_reply(student_id, audio_bytes, mime_type, language, class_level)
+        if video_id is not None:
+            reply, latency = get_tutor_audio_reply(student_id, audio_bytes, mime_type, language, class_level, reference_context=video_question_reference(video_id, video_time))
+        else:
+            reply, latency = get_tutor_audio_reply(student_id, audio_bytes, mime_type, language, class_level)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail="The recording could not be processed") from exc
     except Exception as exc:

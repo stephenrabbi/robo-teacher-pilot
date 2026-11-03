@@ -5,13 +5,14 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
  try{
   fs.mkdirSync('responsive-qa',{recursive:true});
   for(const width of [375,390,768,1280]){
-   const page=await browser.newPage({viewport:{width,height:900}});const questions=[];
+   const page=await browser.newPage({viewport:{width,height:900}});const questions=[],videoContexts=[],audioContexts=[];
    await page.route('**/*',route=>{
     const u=new URL(route.request().url());if(u.origin!=='http://127.0.0.1:8765')return route.abort();
     if(u.pathname==='/')return route.fulfill({json:{status:'ready'}});
     if(u.pathname==='/api/classroom/session')return route.fulfill({json:{session_token:'synthetic-topic-video-session'}});
     if(u.pathname==='/api/classroom/media')return route.fulfill({json:{kind:'video',video_id:'rounding-nearest-ten',title:'Rounding to the nearest ten — worked example: 47',source:'Robo-Teacher'}});
-    if(u.pathname==='/api/classroom/chat'){questions.push(route.request().postDataJSON().message);return route.fulfill({json:{reply:'47 is closer to 50 because its distance from 50 is 3, while its distance from 40 is 7.'}});}
+    if(u.pathname==='/api/classroom/chat'){const data=route.request().postDataJSON();questions.push(data.message);videoContexts.push(data.video_context);return route.fulfill({json:{reply:'47 is closer to 50 because its distance from 50 is 3, while its distance from 40 is 7.'}});}
+    if(u.pathname==='/api/classroom/audio'){audioContexts.push(route.request().postDataBuffer().toString());return route.fulfill({json:{reply:'The halfway point between 40 and 50 is 45.'}});}
     // The simple CI HTTP server lacks Range support; serve the real encoded
     // assets with byte ranges, matching production's static-file server.
     if(['/classroom/assets/videos/rounding-nearest-ten.webm','/classroom/assets/videos/rounding-nearest-ten.mp4'].includes(u.pathname)){
@@ -40,6 +41,13 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
    await page.getByRole('button',{name:'Ask about this video',exact:true}).click();
    await page.locator('#question').fill('Why is 47 closer to 50?');await page.locator('#chatForm button[type=submit]').click();
    await page.locator('#returnToLesson').waitFor({state:'visible'});assert.match(questions.at(-1),/Video paused at 12 seconds/);
+   assert.deepEqual(videoContexts.at(-1),{id:'rounding-nearest-ten',time:12.25});
+   await page.locator('#returnToLesson').click();
+   await page.waitForFunction(()=>{const v=document.querySelector('#mediaReplay video');return v&&v.readyState>=1&&Math.abs(v.currentTime-12.25)<.1;});
+   await page.getByRole('button',{name:'Ask about this video',exact:true}).click();
+   await page.evaluate(()=>window.eval("recordedChunks=[new Blob(['synthetic recording'],{type:'audio/webm'})];mediaRecorder={mimeType:'audio/webm'};void finishRecording();"));
+   await page.locator('#returnToLesson').waitFor({state:'visible'});
+   assert.match(audioContexts.at(-1),/name="video_id"\r\n\r\nrounding-nearest-ten/);assert.match(audioContexts.at(-1),/name="video_time"\r\n\r\n12.25/);
    await page.locator('#returnToLesson').click();
    await page.waitForFunction(()=>{const v=document.querySelector('#mediaReplay video');return v&&v.readyState>=1&&Math.abs(v.currentTime-12.25)<.1;});
    await page.locator('#mediaReplay video').evaluate(v=>{v.currentTime=18.5;});
