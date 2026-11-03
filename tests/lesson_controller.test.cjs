@@ -16,3 +16,8 @@ test('latest request owns the presentation and reset revokes it',()=>{
 test('invalid state does not revoke the current owner',()=>{
  const c=createLessonController();const t=c.begin('lesson');assert.throws(()=>c.begin('unknown'));assert.equal(c.owns(t),true);
 });
+test('switching subjects invalidates pending Maths visuals without reviving them on return',()=>{
+ const c=createLessonController();const pending=c.begin('visual');
+ c.begin('subjects');assert.equal(c.owns(pending),false);
+ c.begin('lesson');assert.equal(c.owns(pending),false);
+});
