@@ -25,7 +25,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
    });
    await page.goto('http://127.0.0.1:8765/classroom/index.html');
    if(await page.getByRole('button',{name:'Essential only',exact:true}).isVisible())await page.getByRole('button',{name:'Essential only',exact:true}).click();
-   await page.evaluate(()=>window.eval("learnerNickname.value='SyntheticVideoQA';enterClassroomView();canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');startLessonDirector('Round 47 to the nearest ten.',0,['Original exact rounding explanation']);"));
+   await page.evaluate(()=>window.eval("learnerNickname.value='SyntheticVideoQA';learnerCode.value='TEST-VIDEO-QA';enterClassroomView();canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');startLessonDirector('Round 47 to the nearest ten.',0,['Original exact rounding explanation']);"));
    await page.locator('#mediaButton').click();const video=page.locator('#mediaReplay video');
    await video.waitFor({state:'visible'});await page.waitForFunction(()=>{const v=document.querySelector('#mediaReplay video');if(v?.error)throw Error('Video decode failed: '+v.error.code);return v&&v.readyState>=1;},{},{timeout:15000});
    assert.equal(await video.evaluate(v=>v.paused),true);assert.ok(await video.evaluate(v=>v.duration>40&&v.duration<43));
