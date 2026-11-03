@@ -12,6 +12,14 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
     if(u.pathname==='/api/classroom/session')return route.fulfill({json:{session_token:'synthetic-topic-video-session'}});
     if(u.pathname==='/api/classroom/media')return route.fulfill({json:{kind:'video',video_id:'rounding-nearest-ten',title:'Rounding to the nearest ten — worked example: 47',source:'Robo-Teacher'}});
     if(u.pathname==='/api/classroom/chat'){questions.push(route.request().postDataJSON().message);return route.fulfill({json:{reply:'47 is closer to 50 because its distance from 50 is 3, while its distance from 40 is 7.'}});}
+    // The simple CI HTTP server lacks Range support; serve the real encoded
+    // assets with byte ranges, matching production's static-file server.
+    if(['/classroom/assets/videos/rounding-nearest-ten.webm','/classroom/assets/videos/rounding-nearest-ten.mp4'].includes(u.pathname)){
+     const bytes=fs.readFileSync('.'+u.pathname),type=u.pathname.endsWith('.webm')?'video/webm':'video/mp4';
+     const range=/^bytes=(\d+)-(\d*)$/.exec(route.request().headers().range||'');
+     if(range){const start=Number(range[1]),end=Math.min(range[2]?Number(range[2]):bytes.length-1,bytes.length-1);return route.fulfill({status:206,contentType:type,headers:{'Accept-Ranges':'bytes','Content-Range':`bytes ${start}-${end}/${bytes.length}`},body:bytes.subarray(start,end+1)});}
+     return route.fulfill({contentType:type,headers:{'Accept-Ranges':'bytes'},body:bytes});
+    }
     if(u.pathname.startsWith('/api/'))return route.fulfill({status:503,json:{detail:'Not used'}});
     return route.continue();
    });
