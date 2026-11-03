@@ -2054,7 +2054,7 @@ function renderLessonMedia(data,exampleIndex=0){
   closeMediaButton.textContent=data.kind==='simulation'?'← Exit simulation':data.kind==='video'?'← Exit video':'← Exit example';closeMediaButton.setAttribute('aria-label',`Exit ${data.kind==='simulation'?'simulation':data.kind==='video'?'video':'example'} and return to the lesson`);if(data.kind==='simulation'){if(window.RoboTeacherPrivacy&&!window.RoboTeacherPrivacy.externalContentAllowed()){window.RoboTeacherPrivacy.requestExternalContent(data.url,data.title);return}mediaFrame.src=data.url;mediaFrame.classList.remove('hidden');return;}
   if(data.kind==='video'){
     mediaReplay.classList.remove('hidden');
-    mediaReplayPlayer=window.RoboTeacherVideos.renderTopicVideo(mediaReplay,data.video_id,{ask:askTopicVideo,onCheckpoint:()=>saveClassroomSnapshot()},data.startTime||0);
+    mediaReplayPlayer=window.RoboTeacherVideos.renderTopicVideo(mediaReplay,data.video_id,{ask:askTopicVideo,continueTeacher:continueTeacherAfterVideo,onCheckpoint:()=>saveClassroomSnapshot()},data.startTime||0);
     if(!mediaReplayPlayer)mediaReplay.textContent='This video is unavailable. Return to the explanation.';
     return;
   }
@@ -2081,6 +2081,13 @@ function askTopicVideo(){
   const checkpoint=captureLessonCheckpoint();
   closeLessonMedia();pauseLessonForQuestion();lessonInterruption=checkpoint;
   question.placeholder='Ask a question about this video…';question.focus();saveClassroomSnapshot();
+}
+
+function continueTeacherAfterVideo(){
+  if(teachingStage.mode!=='example'||!mediaReplayPlayer?.getCheckpoint||!currentLesson)return;
+  closeLessonMedia();
+  const step=currentLesson?.steps[currentLesson.index];
+  if(step)void speakText(step,false,true);
 }
 
 function restoreTopicVideo(video){

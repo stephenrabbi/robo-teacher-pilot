@@ -5,7 +5,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
  try{
   fs.mkdirSync('responsive-qa',{recursive:true});
   for(const width of [375,390,768,1280]){
-   const page=await browser.newPage({viewport:{width,height:900}});const questions=[],videoContexts=[],audioContexts=[];
+   const page=await browser.newPage({viewport:{width,height:900}});const questions=[],videoContexts=[],audioContexts=[],spoken=[];
    await page.route('**/*',route=>{
     const u=new URL(route.request().url());if(u.origin!=='http://127.0.0.1:8765')return route.abort();
     if(u.pathname==='/')return route.fulfill({json:{status:'ready'}});
@@ -13,6 +13,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
     if(u.pathname==='/api/classroom/media')return route.fulfill({json:{kind:'video',video_id:'rounding-nearest-ten',title:'Rounding to the nearest ten — worked example: 47',source:'Robo-Teacher'}});
     if(u.pathname==='/api/classroom/chat'){const data=route.request().postDataJSON();questions.push(data.message);videoContexts.push(data.video_context);return route.fulfill({json:{reply:'47 is closer to 50 because its distance from 50 is 3, while its distance from 40 is 7.'}});}
     if(u.pathname==='/api/classroom/audio'){audioContexts.push(route.request().postDataBuffer().toString());return route.fulfill({json:{reply:'The halfway point between 40 and 50 is 45.'}});}
+    if(u.pathname==='/api/classroom/speech'){spoken.push(route.request().postDataJSON().text);return route.fulfill({contentType:'audio/L16',body:Buffer.alloc(96000)});}
     // The simple CI HTTP server lacks Range support; serve the real encoded
     // assets with byte ranges, matching production's static-file server.
     if(['/classroom/assets/videos/rounding-nearest-ten.webm','/classroom/assets/videos/rounding-nearest-ten.mp4'].includes(u.pathname)){
@@ -58,6 +59,20 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
    await page.getByRole('button',{name:'Exit video and return to the lesson',exact:true}).click();
    assert.equal(await page.locator('#canvasAnswer').innerText(),'Original exact rounding explanation');
    assert.equal(await page.locator('#teacherPanel').getAttribute('data-pose'),'portrait');
+   await page.locator('#mediaButton').click();
+   await page.waitForFunction(()=>document.querySelector('#mediaReplay video')?.readyState>=1);
+   spoken.length=0;
+   await page.locator('#mediaReplay video').evaluate(async v=>{v.currentTime=v.duration-.15;await v.play();});
+   await page.waitForFunction(()=>document.querySelector('#mediaReplay video')?.ended);
+   assert.equal(spoken.length,0); // Reaching the end never starts teacher speech.
+   await page.locator('#mediaArea').screenshot({path:`responsive-qa/video-handoff-${width}.png`});
+   await page.getByRole('button',{name:'Continue with teacher',exact:true}).click();
+   await page.locator('#teacherPanel.speaking').waitFor({state:'visible'});
+   assert.equal(spoken.at(-1),'Original exact rounding explanation.');
+   assert.equal(await page.locator('#mediaArea').isVisible(),false);
+   assert.equal(await page.locator('#teacherPanel').evaluate(e=>e.classList.contains('minimized')),false);
+   assert.equal(await page.locator('#teacherPanel').getAttribute('data-pose'),'portrait');
+   assert.equal(await page.locator('#mediaReplay video').evaluate(v=>v.paused),true);
    await page.close();console.log(width+': actual MP4, timestamp question return, paused reload recovery, original lesson return PASS');
   }
  }finally{await browser.close()}
