@@ -33,7 +33,7 @@ const assert=require('node:assert/strict');
    fail=true;await page.getByRole('button',{name:'Read example from here',exact:true}).click();
    await page.waitForFunction(()=>document.querySelector('#mediaReplay [role=status]')?.textContent.includes('1 of 3 — paused'));
    assert.equal(spoken.length,count+1);
-   await page.getByRole('button',{name:'← Exit example',exact:true}).click();
+   await page.getByRole('button',{name:'Exit example and return to the lesson',exact:true}).click();
    assert.equal(await page.locator('#canvasAnswer').innerText(),'Original exact lesson step');
    await page.close();console.log(width+': narrated order, playback completion, pause, cancellation, voice failure and lesson return PASS');
   }
