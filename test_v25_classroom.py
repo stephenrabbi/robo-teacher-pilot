@@ -1273,7 +1273,7 @@ def test_mobile_toolbar_is_one_scrollable_row_and_replay_keeps_paragraphs():
     assert '>Watch or Explore</button>' in html
     assert "map(item=>item.innerText.trim()).filter(Boolean).join('\\n')" in script
     assert 'flex-wrap:nowrap!important' in css and 'overflow-x:auto!important' in css
-    assert "data.kind==='simulation'?'← Exit simulation':'← Exit example'" in script
+    assert all(label in script for label in ["← Exit simulation", "← Exit example", "← Exit video"])
 
 
 def test_switching_modes_unloads_media_before_showing_new_content():

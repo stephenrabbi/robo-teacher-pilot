@@ -5,6 +5,7 @@
   'rounding-nearest-ten':{
    title:'Rounding to the nearest ten — worked example: 47',
    src:'/classroom/assets/videos/rounding-nearest-ten.mp4',
+   webm:'/classroom/assets/videos/rounding-nearest-ten.webm',
    captions:'/classroom/assets/videos/rounding-nearest-ten.vtt',
    transcript:'Rounding means choosing the nearest multiple of ten. Let us round forty seven to the nearest ten. Forty seven lies between forty and fifty. The halfway point is forty five. Forty seven is above forty five, so it is closer to fifty. Move up to fifty. Forty seven rounded to the nearest ten is fifty. For whole numbers, a units digit of five or more rounds up; less than five rounds down.'
   }
@@ -14,7 +15,8 @@
  function renderTopicVideo(container,id,options={},start=0){
   const data=getTopicVideo(id);if(!data)return null;
   const doc=container.ownerDocument;container.replaceChildren();let disposed=false,lastSaved=0;
-  const video=doc.createElement('video');video.controls=true;video.preload='metadata';video.playsInline=true;video.className='topic-video';video.setAttribute('aria-label',data.title);video.src=data.src;
+  const video=doc.createElement('video');video.controls=true;video.preload='metadata';video.playsInline=true;video.className='topic-video';video.setAttribute('aria-label',data.title);
+  const sources=[];for(const [src,type] of [[data.webm,'video/webm'],[data.src,'video/mp4']]){const source=doc.createElement('source');source.src=src;source.type=type;sources.push(source);video.appendChild(source);}
   const track=doc.createElement('track');track.kind='captions';track.label='English';track.srclang='en';track.src=data.captions;track.default=true;video.appendChild(track);
   const status=doc.createElement('p');status.setAttribute('role','status');status.textContent='Play the video when you are ready. You can pause and ask a question.';
   const checkpoint=()=>disposed?null:{id,time:Number.isFinite(video.currentTime)?video.currentTime:0};
@@ -27,7 +29,7 @@
   const ask=doc.createElement('button');ask.type='button';ask.textContent='Ask about this video';ask.addEventListener('click',()=>{if(disposed)return;video.pause();options.ask?.(checkpoint());});
   const details=doc.createElement('details'),summary=doc.createElement('summary'),text=doc.createElement('p');summary.textContent='Read video transcript';text.textContent=data.transcript;details.append(summary,text);
   container.append(video,status,ask,details);
-  return {getCheckpoint:checkpoint,pause(){if(!disposed)video.pause();},resume(){if(!disposed)void video.play().catch(()=>{if(!disposed)status.textContent='Tap Play on the video to continue.';});},moveBy(direction){if(!disposed&&Number.isFinite(video.duration))video.currentTime=Math.max(0,Math.min(video.duration,video.currentTime+direction*10));},dispose(){disposed=true;video.pause();video.removeAttribute('src');video.load();}};
+  return {getCheckpoint:checkpoint,pause(){if(!disposed)video.pause();},resume(){if(!disposed)void video.play().catch(()=>{if(!disposed)status.textContent='Tap Play on the video to continue.';});},moveBy(direction){if(!disposed&&Number.isFinite(video.duration))video.currentTime=Math.max(0,Math.min(video.duration,video.currentTime+direction*10));},dispose(){disposed=true;video.pause();video.removeAttribute('src');for(const source of sources)source.removeAttribute('src');video.load();}};
  }
  if(typeof module==='object'&&module.exports)module.exports={getTopicVideo,validCheckpoint,renderTopicVideo};
  else root.RoboTeacherVideos={getTopicVideo,validCheckpoint,renderTopicVideo};
