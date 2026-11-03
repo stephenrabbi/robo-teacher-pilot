@@ -909,7 +909,7 @@ def get_tutor_image_reply(student_id: str, image_bytes: bytes, mime_type: str, c
     return _media_reply(student_id, image_bytes, mime_type, prompt, learning_message)
 
 
-def get_tutor_audio_reply(student_id: str, audio_bytes: bytes, mime_type: str, response_language: str = "English", class_level: str = "JSS2") -> tuple[str, float]:
+def get_tutor_audio_reply(student_id: str, audio_bytes: bytes, mime_type: str, response_language: str = "English", class_level: str = "JSS2", reference_context: str = "") -> tuple[str, float]:
     """Understand a learner's voice note and answer the spoken Maths question in text."""
     if mime_type not in SUPPORTED_AUDIO_MIME_TYPES: raise ValueError("Unsupported audio type")
     if not audio_bytes or len(audio_bytes) > MAX_AUDIO_BYTES: raise ValueError("Audio is empty or too large")
@@ -921,7 +921,7 @@ def get_tutor_audio_reply(student_id: str, audio_bytes: bytes, mime_type: str, r
         "Only when every essential Maths token is clear should you answer the spoken question as a patient teacher and explain the method step by step in text. "
         "Never invent missing words or digits, and do not reproduce unrelated personal information that may be spoken in the recording."
     )
-    return _media_reply(student_id, audio_bytes, mime_type, prompt, profile_message)
+    return _media_reply(student_id, audio_bytes, mime_type, prompt + reference_context, profile_message)
 
 
 def _ask(client, history: list, message: str, profile: dict, response_language: str = "English", class_level: str = "JSS2") -> tuple[str, list]:
