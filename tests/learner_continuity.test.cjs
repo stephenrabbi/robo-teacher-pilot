@@ -24,7 +24,7 @@ function storage(initial = {}) {
 function snapshotHarness(localStorage, now = Date.now()) {
   const ctx = { localStorage, Date: class extends Date { static now() { return now; } } };
   vm.createContext(ctx);
-  vm.runInContext(extract('function loadClassroomSnapshot(){', 'function refreshResumeLearning(){'), ctx);
+  vm.runInContext(extract('function isServiceFailureReply(text){', 'function refreshResumeLearning(){'), ctx);
   return ctx.loadClassroomSnapshot;
 }
 function adaptiveHarness(localStorage) {
@@ -51,6 +51,15 @@ test('saved browser state is not available in a separate browser storage', () =>
   const first = storage({roboTeacherClassroomSnapshot:JSON.stringify({classLevel:'JSS2',answer:'Worked example',savedAt:now})});
   assert.ok(snapshotHarness(first, now)());
   assert.equal(snapshotHarness(storage(), now)(), null);
+});
+test('a saved provider error is rejected without removing learner progress', () => {
+  const now = Date.now();
+  for(const answer of ['Lots of students are asking me questions right now, so I need a tiny break! Please try again in about a minute. 🙂', 'Sorry, I had a small technical hiccup while working on that. Please try the question again in a moment.']) {
+    const s=storage({roboTeacherClassroomSnapshot:JSON.stringify({classLevel:'JSS2',answer,savedAt:now}), 'roboTeacherMemory:JSS2:SYNTHETIC':'retained'});
+    assert.equal(snapshotHarness(s,now)(),null);
+    assert.equal(s.getItem('roboTeacherClassroomSnapshot'),null);
+    assert.equal(s.getItem('roboTeacherMemory:JSS2:SYNTHETIC'),'retained');
+  }
 });
 test('adaptive memory remains separated by class and learner code', () => {
   const s = storage();

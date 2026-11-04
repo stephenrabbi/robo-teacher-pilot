@@ -326,10 +326,15 @@ function restoreLessonHistory(snapshot){
   lessonDirector.classList.toggle('lesson-paused',!!lessonInterruption);
 }
 
+function isServiceFailureReply(text){
+  return /^(?:Lots of students are asking me questions right now,|Sorry, I had a small technical hiccup while working on that\.)/.test(String(text||'').trim());
+}
+
 function loadClassroomSnapshot(){
   try{
     const snapshot=JSON.parse(localStorage.getItem('roboTeacherClassroomSnapshot')||'null');
     if(!snapshot||Date.now()-snapshot.savedAt>7*24*60*60*1000||!snapshot.answer||!/^JSS[1-3]$/.test(snapshot.classLevel))throw new Error('expired');
+    if(isServiceFailureReply(snapshot.answer))throw new Error('service-error');
     return snapshot;
   }catch(_error){localStorage.removeItem('roboTeacherClassroomSnapshot');return null}
 }
@@ -1225,6 +1230,7 @@ function openChat(){
 }
 
 function showCanvasAnswer(answer,status='Worked solution',preserveAudioUnlock=false){
+  if(isServiceFailureReply(answer))throw new Error('The AI service is temporarily unavailable. Please try again shortly.');
   // A newly displayed solution always replaces any playing or paused answer.
   stopTeacherAudio(preserveAudioUnlock);
   dismissLessonOverlays();restoreTeacherPanel();

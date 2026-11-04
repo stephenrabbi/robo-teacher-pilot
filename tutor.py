@@ -177,6 +177,22 @@ def _is_rate_limit_error(e: Exception) -> bool:
     return "429" in text or "RESOURCE_EXHAUSTED" in text or "quota" in text.lower()
 
 
+def _ask_with_capacity_retry(client, history, message, profile, language, class_level):
+    """Retry transient provider capacity limits without discarding lesson context."""
+    for attempt in range(3):
+        try:
+            return _ask(client, history, message, profile, language, class_level)
+        except Exception as exc:
+            if not _is_rate_limit_error(exc):
+                raise
+            # Only fixed labels enter logs; never include provider payloads or prompts.
+            category = "quota" if "quota" in str(exc).lower() else "capacity"
+            logger.warning("Gemini capacity limit category=%s attempt=%d model=%s", category, attempt + 1, GEMINI_MODEL)
+            if attempt == 2:
+                raise
+            time.sleep(1 if attempt == 0 else 2)
+
+
 def _pcm_to_wav(pcm: bytes) -> bytes:
     output = io.BytesIO()
     with wave.open(output, "wb") as wav_file:
@@ -586,7 +602,7 @@ def get_tutor_reply(student_id: str, message: str, response_language: str = "Eng
 
     history = _conversations.get(student_id, [])
     try:
-        text, new_history = _ask(client, history, message, profile, response_language, class_level)
+        text, new_history = _ask_with_capacity_retry(client, history, message, profile, response_language, class_level)
     except Exception as first_error:
         if _is_rate_limit_error(first_error):
             return RATE_LIMIT_RESPONSE, time.time() - start
