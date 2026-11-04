@@ -9,7 +9,7 @@ from topic_video_context import video_question_reference
 client = TestClient(app)
 
 def test_fraction_addition_video_is_selected_without_replacing_other_fraction_media():
-    for lesson in ['Add 1/2 + 1/3.', 'Adding fractions with different denominators.', 'Three sixths plus two sixths.']:
+    for lesson in ['Add 1/2 + 1/3.', 'Adding fractions with different denominators.', 'Three sixths plus two sixths.', 'Add the fractions. Multiply each numerator and denominator to make sixths.']:
         media=tutor.select_lesson_media(lesson, 'English')
         assert media['kind']=='video' and media['video_id']=='adding-unlike-fractions'
     for lesson in ['Subtract fractions.', 'Multiply 1/2 and 1/3.', 'What is a numerator?']:
