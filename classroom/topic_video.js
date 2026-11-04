@@ -8,6 +8,13 @@
    webm:'/classroom/assets/videos/rounding-nearest-ten.webm',
    captions:'/classroom/assets/videos/rounding-nearest-ten.vtt',
    transcript:'Rounding means choosing the nearest multiple of ten. Let us round forty seven to the nearest ten. Forty seven lies between forty and fifty. The halfway point is forty five. Forty seven is above forty five, so it is closer to fifty. Move up to fifty. Forty seven rounded to the nearest ten is fifty. For whole numbers, a units digit of five or more rounds up; less than five rounds down.'
+  },
+  'adding-unlike-fractions':{
+   title:'Adding unlike fractions — worked example: 1/2 + 1/3',
+   src:'/classroom/assets/videos/adding-unlike-fractions.mp4',
+   webm:'/classroom/assets/videos/adding-unlike-fractions.webm',
+   captions:'/classroom/assets/videos/adding-unlike-fractions.vtt',
+   transcript:"Let's add one half and one third. The whole bars are the same size, but the pieces are different sizes. First, make equal pieces. Six is a common multiple of two and three. One half equals three sixths. One third equals two sixths. Now add three sixths and two sixths. Three plus two is five. The pieces are still sixths, so the denominator stays six. One half plus one third equals five sixths. We changed the size of the pieces, not the amount shaded. Try adding one half and one sixth yourself."
   }
  };
  function getTopicVideo(id){return Object.hasOwn(catalog,id)?catalog[id]:null;}

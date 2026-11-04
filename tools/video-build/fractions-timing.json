@@ -1,0 +1,97 @@
+{
+  "duration": 54.24,
+  "scenes": [
+    {
+      "start": 0
+    },
+    {
+      "start": 5.06
+    },
+    {
+      "start": 12.01
+    },
+    {
+      "start": 20.81
+    },
+    {
+      "start": 24.73
+    },
+    {
+      "start": 26.4
+    },
+    {
+      "start": 33.23
+    },
+    {
+      "start": 49.72
+    }
+  ],
+  "captions": [
+    {
+      "start": 0.37,
+      "end": 4.17,
+      "text": "Let's add one half and one third."
+    },
+    {
+      "start": 5.06,
+      "end": 10.610000000000001,
+      "text": "The whole bars are the same size, but the pieces are different sizes."
+    },
+    {
+      "start": 11.14,
+      "end": 13.9,
+      "text": "First, make equal pieces."
+    },
+    {
+      "start": 14.46,
+      "end": 18.419999999999998,
+      "text": "Six is a common multiple of two and three."
+    },
+    {
+      "start": 19.11,
+      "end": 22.209999999999997,
+      "text": "One half equals three sixths."
+    },
+    {
+      "start": 22.71,
+      "end": 25.919999999999998,
+      "text": "One third equals two sixths."
+    },
+    {
+      "start": 26.4,
+      "end": 30.54,
+      "text": "Now add three sixths and two sixths."
+    },
+    {
+      "start": 31.06,
+      "end": 33.55,
+      "text": "Three plus two is five."
+    },
+    {
+      "start": 34.06,
+      "end": 39.089999999999996,
+      "text": "The pieces are still sixths, so the denominator stays six."
+    },
+    {
+      "start": 39.62,
+      "end": 44.309999999999995,
+      "text": "One half plus one third equals five sixths."
+    },
+    {
+      "start": 44.76,
+      "end": 49.17,
+      "text": "We changed the size of the pieces, not the amount shaded."
+    },
+    {
+      "start": 49.72,
+      "end": 53.92,
+      "text": "Try adding one half and one sixth yourself."
+    }
+  ],
+  "provenance": {
+    "voice": "Google Cloud existing Robo-Teacher speech route / female Aoede / slower",
+    "alignment": "PocketSphinx 5.1.1 forced word alignment at 16 kHz; no invented word timing",
+    "listening_review": "not_performed",
+    "style": "Flat fraction bars; same 720px whole across denominators; blue first addend, teal second addend"
+  }
+}
