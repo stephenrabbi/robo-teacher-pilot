@@ -19,10 +19,10 @@
     if (/failed to fetch|networkerror|load failed|network request failed|ERR_NETWORK|ERR_INTERNET_DISCONNECTED/i.test(value)) {
       return 'I couldn’t connect. Check your internet and try again.';
     }
-    if (/429|too many requests|rate limit|quota|resource exhausted/i.test(value)) {
+    if (/^(?:(?:HTTP|Error|Status(?: code)?)\s*[:=]?\s*)?429\b|too many requests|rate limit|quota|resource exhausted/i.test(value)) {
       return 'Robo-Teacher is busy right now. Please wait a moment, then try again.';
     }
-    if (/\b(?:500|502|503|504)\b|internal server error|bad gateway|service unavailable|gateway timeout/i.test(value)) {
+    if (/^(?:(?:HTTP|Error|Status(?: code)?)\s*[:=]?\s*)?(?:500|502|503|504)(?:\s*[-:]|\s*$)|internal server error|bad gateway|service unavailable|gateway timeout/i.test(value)) {
       return 'Something went wrong while preparing that. Please try again.';
     }
     if (/timed? out|timeout/i.test(value)) {
