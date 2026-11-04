@@ -7,7 +7,7 @@ const start=source.indexOf('  function learnerMessage(');
 const end=source.indexOf('\n  function decorate(',start);
 const context={};vm.createContext(context);vm.runInContext(source.slice(start,end),context);
 test('ordinary teaching numbers are never replaced with network errors',()=>{
- for(const text of ['Think of a 500 Naira note and a 200 Naira note.','500 Naira is five hundred naira.','Add 429 and 503.','Round 502 to the nearest ten.','The total is 504.','We have 429 students.'])assert.equal(context.learnerMessage(text),null,text);
+ for(const text of ['Think of a 500 Naira note and a 200 Naira note.','500 Naira is five hundred naira.','Add 429 and 503.','Round 502 to the nearest ten.','The total is 504.','We have 429 students.','429 students joined the class.'])assert.equal(context.learnerMessage(text),null,text);
 });
 test('explicit server and capacity failures remain friendly',()=>{
  for(const text of ['500','502','Error: 503','HTTP 504: Gateway Timeout','Internal server error','Bad gateway'])assert.equal(context.learnerMessage(text),'Something went wrong while preparing that. Please try again.',text);
