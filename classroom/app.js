@@ -2044,12 +2044,45 @@ function dismissLessonOverlays(){stopLessonMedia();visualArea.classList.add('hid
 function closeVisualExplanation(){visualArea.classList.add('hidden');restoreTeachingStage()}
 
 let mediaPreparationRequest=0;
+let videoCatalogueRefresh=null;
+async function ensureTopicVideoCatalogue(id){
+  if(typeof id!=='string'||!/^[a-z0-9-]{1,80}$/.test(id))return false;
+  if(window.RoboTeacherVideos?.getTopicVideo(id))return true;
+  if(!videoCatalogueRefresh){
+    videoCatalogueRefresh=new Promise(resolve=>{
+      const script=document.createElement('script');let finished=false;
+      const finish=loaded=>{if(finished)return;finished=true;clearTimeout(timer);script.remove();resolve(loaded)};
+      const timer=setTimeout(()=>finish(false),8000);
+      script.src='/classroom/topic_video.js?refresh='+Date.now();
+      script.onload=()=>finish(true);script.onerror=()=>finish(false);
+      document.head.appendChild(script);
+    }).finally(()=>{videoCatalogueRefresh=null});
+  }
+  return await videoCatalogueRefresh&&Boolean(window.RoboTeacherVideos?.getTopicVideo(id));
+}
 async function openLessonMedia(){
   const lesson=(currentLesson?.text||Array.from(canvasAnswer.querySelectorAll('p')).map(item=>item.innerText.trim()).filter(Boolean).join('\n')||canvasAnswer.innerText).trim();if(!lesson){addMessage('Ask a Maths question first, then I can show an example.','teacher');return;}
   const mediaTicket=lessonController.begin('media-loading');
   const preparationRequest=++mediaPreparationRequest;
   stopTeacherAudio();mediaButton.disabled=true;mediaButton.textContent='Preparing…';setLearningStatus('Preparing a learning example','thinking');
-  try{const token=await ensureSession();if(!lessonController.owns(mediaTicket))return;const response=await fetch('/api/classroom/media',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:lesson,session_token:token,language:language.value})});const data=await response.json();if(!lessonController.owns(mediaTicket))return;if(!response.ok)throw new Error(data.detail||'media');dismissLessonOverlays();renderLessonMedia(data);canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');mediaArea.classList.remove('hidden');enterTeachingStage('example');setLearningStatus('Learning example ready','success');}
+  try{
+    let response;
+    for(let attempt=0;attempt<2;attempt++){
+      const token=await ensureSession();if(!lessonController.owns(mediaTicket))return;
+      response=await fetch('/api/classroom/media',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:lesson,session_token:token,language:language.value})});
+      if(!lessonController.owns(mediaTicket))return;
+      if(response.status!==401||attempt===1)break;
+      if(sessionToken===token)sessionToken=null;
+    }
+    const data=await response.json();if(!lessonController.owns(mediaTicket))return;
+    if(!response.ok)throw new Error(data.detail||'I could not prepare that example. Please try again.');
+    if(data.kind==='video'){
+      const available=await ensureTopicVideoCatalogue(data.video_id);
+      if(!lessonController.owns(mediaTicket))return;
+      if(!available)throw new Error('The video could not load. Your explanation is still here; please try the example again.');
+    }
+    dismissLessonOverlays();renderLessonMedia(data);canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');mediaArea.classList.remove('hidden');enterTeachingStage('example');setLearningStatus('Learning example ready','success');
+  }
   catch(error){if(!lessonController.owns(mediaTicket))return;addMessage(error.message||'I could not prepare that example. Please try again.','teacher');setLearningStatus('Example needs another try','attention');}
   finally{if(preparationRequest===mediaPreparationRequest){mediaButton.disabled=false;mediaButton.textContent='Watch or Explore';}}
 }
