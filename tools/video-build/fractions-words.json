@@ -1,0 +1,462 @@
+[
+  {
+    "word": "let's",
+    "start": 0.37,
+    "end": 0.65
+  },
+  {
+    "word": "add",
+    "start": 0.65,
+    "end": 1.18
+  },
+  {
+    "word": "one",
+    "start": 1.18,
+    "end": 1.68
+  },
+  {
+    "word": "half",
+    "start": 1.68,
+    "end": 2.27
+  },
+  {
+    "word": "and(2)",
+    "start": 2.63,
+    "end": 3.03
+  },
+  {
+    "word": "one",
+    "start": 3.03,
+    "end": 3.51
+  },
+  {
+    "word": "third",
+    "start": 3.51,
+    "end": 4.02
+  },
+  {
+    "word": "the(2)",
+    "start": 5.06,
+    "end": 5.24
+  },
+  {
+    "word": "whole",
+    "start": 5.24,
+    "end": 5.61
+  },
+  {
+    "word": "bars",
+    "start": 5.61,
+    "end": 6.12
+  },
+  {
+    "word": "are",
+    "start": 6.12,
+    "end": 6.26
+  },
+  {
+    "word": "the(2)",
+    "start": 6.26,
+    "end": 6.43
+  },
+  {
+    "word": "same",
+    "start": 6.43,
+    "end": 6.82
+  },
+  {
+    "word": "size",
+    "start": 6.82,
+    "end": 7.26
+  },
+  {
+    "word": "but",
+    "start": 7.74,
+    "end": 7.99
+  },
+  {
+    "word": "the",
+    "start": 7.99,
+    "end": 8.12
+  },
+  {
+    "word": "pieces(2)",
+    "start": 8.12,
+    "end": 8.8
+  },
+  {
+    "word": "are(2)",
+    "start": 8.8,
+    "end": 8.83
+  },
+  {
+    "word": "different(2)",
+    "start": 9.22,
+    "end": 9.78
+  },
+  {
+    "word": "sizes(2)",
+    "start": 9.78,
+    "end": 10.46
+  },
+  {
+    "word": "first",
+    "start": 11.14,
+    "end": 11.73
+  },
+  {
+    "word": "make",
+    "start": 12.01,
+    "end": 12.28
+  },
+  {
+    "word": "equal",
+    "start": 12.62,
+    "end": 13.16
+  },
+  {
+    "word": "pieces",
+    "start": 13.16,
+    "end": 13.75
+  },
+  {
+    "word": "six",
+    "start": 14.46,
+    "end": 15.07
+  },
+  {
+    "word": "is",
+    "start": 15.25,
+    "end": 15.32
+  },
+  {
+    "word": "a(2)",
+    "start": 15.32,
+    "end": 15.44
+  },
+  {
+    "word": "common",
+    "start": 15.44,
+    "end": 16.03
+  },
+  {
+    "word": "multiple",
+    "start": 16.03,
+    "end": 16.74
+  },
+  {
+    "word": "of",
+    "start": 16.74,
+    "end": 16.89
+  },
+  {
+    "word": "two",
+    "start": 16.89,
+    "end": 17.24
+  },
+  {
+    "word": "and(2)",
+    "start": 17.59,
+    "end": 17.9
+  },
+  {
+    "word": "three",
+    "start": 17.9,
+    "end": 18.27
+  },
+  {
+    "word": "one",
+    "start": 19.11,
+    "end": 19.47
+  },
+  {
+    "word": "half",
+    "start": 19.47,
+    "end": 19.95
+  },
+  {
+    "word": "equals",
+    "start": 20.19,
+    "end": 20.81
+  },
+  {
+    "word": "three",
+    "start": 20.81,
+    "end": 21.35
+  },
+  {
+    "word": "sixths",
+    "start": 21.35,
+    "end": 22.06
+  },
+  {
+    "word": "one",
+    "start": 22.71,
+    "end": 23.11
+  },
+  {
+    "word": "third",
+    "start": 23.11,
+    "end": 23.69
+  },
+  {
+    "word": "equals",
+    "start": 23.95,
+    "end": 24.51
+  },
+  {
+    "word": "two",
+    "start": 24.73,
+    "end": 25.09
+  },
+  {
+    "word": "sixths",
+    "start": 25.09,
+    "end": 25.77
+  },
+  {
+    "word": "now",
+    "start": 26.4,
+    "end": 26.98
+  },
+  {
+    "word": "add",
+    "start": 27.36,
+    "end": 27.92
+  },
+  {
+    "word": "three",
+    "start": 27.92,
+    "end": 28.2
+  },
+  {
+    "word": "sixths",
+    "start": 28.2,
+    "end": 28.83
+  },
+  {
+    "word": "and(2)",
+    "start": 28.83,
+    "end": 29.39
+  },
+  {
+    "word": "two",
+    "start": 29.39,
+    "end": 29.77
+  },
+  {
+    "word": "sixths",
+    "start": 29.77,
+    "end": 30.39
+  },
+  {
+    "word": "three",
+    "start": 31.06,
+    "end": 31.44
+  },
+  {
+    "word": "plus",
+    "start": 31.74,
+    "end": 32.11
+  },
+  {
+    "word": "two",
+    "start": 32.11,
+    "end": 32.64
+  },
+  {
+    "word": "is",
+    "start": 32.64,
+    "end": 32.89
+  },
+  {
+    "word": "five",
+    "start": 33.23,
+    "end": 33.4
+  },
+  {
+    "word": "the(2)",
+    "start": 34.06,
+    "end": 34.2
+  },
+  {
+    "word": "pieces(2)",
+    "start": 34.2,
+    "end": 34.86
+  },
+  {
+    "word": "are",
+    "start": 34.86,
+    "end": 35.01
+  },
+  {
+    "word": "still",
+    "start": 35.01,
+    "end": 35.42
+  },
+  {
+    "word": "sixths",
+    "start": 35.42,
+    "end": 36.15
+  },
+  {
+    "word": "so",
+    "start": 36.39,
+    "end": 36.58
+  },
+  {
+    "word": "the(2)",
+    "start": 36.58,
+    "end": 36.72
+  },
+  {
+    "word": "denominator",
+    "start": 36.72,
+    "end": 37.8
+  },
+  {
+    "word": "stays",
+    "start": 37.8,
+    "end": 38.52
+  },
+  {
+    "word": "six",
+    "start": 38.52,
+    "end": 38.94
+  },
+  {
+    "word": "one",
+    "start": 39.62,
+    "end": 39.98
+  },
+  {
+    "word": "half",
+    "start": 39.98,
+    "end": 40.29
+  },
+  {
+    "word": "plus",
+    "start": 40.66,
+    "end": 40.99
+  },
+  {
+    "word": "one",
+    "start": 40.99,
+    "end": 41.41
+  },
+  {
+    "word": "third",
+    "start": 41.41,
+    "end": 41.95
+  },
+  {
+    "word": "equals",
+    "start": 42.15,
+    "end": 42.75
+  },
+  {
+    "word": "five",
+    "start": 43.32,
+    "end": 43.46
+  },
+  {
+    "word": "sixths",
+    "start": 43.46,
+    "end": 44.16
+  },
+  {
+    "word": "we",
+    "start": 44.76,
+    "end": 45.0
+  },
+  {
+    "word": "changed",
+    "start": 45.0,
+    "end": 45.72
+  },
+  {
+    "word": "the(2)",
+    "start": 45.72,
+    "end": 45.84
+  },
+  {
+    "word": "size",
+    "start": 45.84,
+    "end": 46.39
+  },
+  {
+    "word": "of",
+    "start": 46.39,
+    "end": 46.51
+  },
+  {
+    "word": "the(2)",
+    "start": 46.51,
+    "end": 46.64
+  },
+  {
+    "word": "pieces(2)",
+    "start": 46.64,
+    "end": 47.27
+  },
+  {
+    "word": "not",
+    "start": 47.44,
+    "end": 47.96
+  },
+  {
+    "word": "the(2)",
+    "start": 47.96,
+    "end": 48.1
+  },
+  {
+    "word": "amount",
+    "start": 48.1,
+    "end": 48.48
+  },
+  {
+    "word": "shaded",
+    "start": 48.48,
+    "end": 49.02
+  },
+  {
+    "word": "try",
+    "start": 49.72,
+    "end": 50.07
+  },
+  {
+    "word": "adding",
+    "start": 50.23,
+    "end": 50.61
+  },
+  {
+    "word": "one",
+    "start": 50.61,
+    "end": 51.07
+  },
+  {
+    "word": "half",
+    "start": 51.07,
+    "end": 51.41
+  },
+  {
+    "word": "and(2)",
+    "start": 51.68,
+    "end": 51.89
+  },
+  {
+    "word": "one",
+    "start": 51.89,
+    "end": 52.31
+  },
+  {
+    "word": "sixth",
+    "start": 52.31,
+    "end": 52.71
+  },
+  {
+    "word": "yourself(3)",
+    "start": 52.88,
+    "end": 53.77
+  }
+]

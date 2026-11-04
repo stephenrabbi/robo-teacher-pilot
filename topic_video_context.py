@@ -5,7 +5,10 @@ import math
 import re
 
 _ROOT = Path(__file__).parent / "classroom" / "assets" / "videos"
-_VIDEOS = {"rounding-nearest-ten": ("Rounding to the nearest ten — worked example: 47", 41.09)}
+_VIDEOS = {
+    "rounding-nearest-ten": ("Rounding to the nearest ten — worked example: 47", 41.09),
+    "adding-unlike-fractions": ("Adding unlike fractions — worked example: 1/2 + 1/3", 54.24),
+}
 
 @lru_cache(maxsize=8)
 def _reference(video_id: str):

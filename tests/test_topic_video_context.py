@@ -8,6 +8,28 @@ from topic_video_context import video_question_reference
 
 client = TestClient(app)
 
+def test_fraction_addition_video_is_selected_without_replacing_other_fraction_media():
+    for lesson in ['Add 1/2 + 1/3.', 'Adding fractions with different denominators.', 'Three sixths plus two sixths.', 'Add the fractions. Multiply each numerator and denominator to make sixths.']:
+        media=tutor.select_lesson_media(lesson, 'English')
+        assert media['kind']=='video' and media['video_id']=='adding-unlike-fractions'
+    for lesson in ['Subtract fractions.', 'Multiply 1/2 and 1/3.', 'What is a numerator?']:
+        assert tutor.select_lesson_media(lesson, 'English').get('video_id')!='adding-unlike-fractions'
+    assert tutor.select_lesson_media('Add fractions.', 'Yoruba').get('video_id')!='adding-unlike-fractions'
+
+def test_fractions_video_context_uses_own_captions_and_is_allowed_for_text_and_audio():
+    reference=video_question_reference('adding-unlike-fractions', 24)
+    assert 'one third' in reference.lower() and 'two sixths' in reference
+    assert 'Paused position: 54.24 seconds' in video_question_reference('adding-unlike-fractions', 999)
+    session=token()
+    with patch.object(classroom_api, 'get_tutor_reply', return_value=('Explanation', .1)) as provider:
+        result=client.post('/api/classroom/chat', json={'message':'Why are the pieces sixths?', 'session_token':session, 'video_context':{'id':'adding-unlike-fractions','time':24}})
+        assert result.status_code==200
+        assert 'Adding unlike fractions' in provider.call_args.args[1]
+    with patch.object(classroom_api, 'get_tutor_audio_reply', return_value=('Explanation', .1)) as provider:
+        result=client.post('/api/classroom/audio', data={'session_token':session,'video_id':'adding-unlike-fractions','video_time':'24'}, files={'audio':('question.webm',b'synthetic voice','audio/webm')})
+        assert result.status_code==200
+        assert 'two sixths' in provider.call_args.kwargs['reference_context']
+
 def token():
     return client.post('/api/classroom/session').json()['session_token']
 

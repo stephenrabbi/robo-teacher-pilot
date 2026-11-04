@@ -879,6 +879,12 @@ def select_lesson_media(text: str, response_language: str = "English") -> dict:
     lesson=text.lower()
     if response_language == "English" and "round" in lesson and re.search(r"\bnearest\s+(?:ten|10)\b", lesson):
         return {"kind":"video","video_id":"rounding-nearest-ten","title":"Rounding to the nearest ten — worked example: 47","source":"Robo-Teacher"}
+    fraction_context = re.search(r"\bfractions?\b|\bdenominators?\b|\bsixths?\b|\d+\s*/\s*\d+", lesson)
+    addition_context = re.search(r"\b(?:add|adding|addition|plus|sum)\b|\+", lesson)
+    # Multiplying numerator and denominator is part of finding equivalent
+    # fractions, so that wording must not exclude an addition explanation.
+    if response_language == "English" and fraction_context and addition_context and not re.search(r"\b(?:subtract|subtraction)\b", lesson):
+        return {"kind":"video","video_id":"adding-unlike-fractions","title":"Adding unlike fractions — worked example: 1/2 + 1/3","source":"Robo-Teacher"}
     catalog=[
         (("fraction","numerator","denominator"),"Fractions Intro","https://phet.colorado.edu/sims/html/fractions-intro/latest/fractions-intro_all.html"),
         (("equation","equal","balance","solve x"),"Equality Explorer","https://phet.colorado.edu/sims/html/equality-explorer-basics/latest/equality-explorer-basics_all.html"),
