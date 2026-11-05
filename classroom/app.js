@@ -695,7 +695,10 @@ function executeHandsFreeIntent(phrase){
   if(stopListeningCommand){
     handsFree.enabled=false;handsFree.processing=false;stopHandsFreeListening();updateHandsFreeStatus();showHandsFreeHeard('Wake-word listening is off.');setLearningStatus('Wake-word teaching off');return;
   }
-  if(currentLesson&&!lessonInterruption)pauseLessonForQuestion('voice');
+  if(currentLesson&&!lessonInterruption){
+    if(teachingStage.mode==='example'&&mediaReplayPlayer?.getCheckpoint)askTopicVideo();
+    else pauseLessonForQuestion('voice');
+  }
   handsFree.processing=true;stopHandsFreeListening();question.value=phrase;form.requestSubmit();
 }
 
