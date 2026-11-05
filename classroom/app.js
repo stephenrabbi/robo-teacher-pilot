@@ -333,10 +333,15 @@ function restoreLessonHistory(snapshot){
   lessonDirector.classList.toggle('lesson-paused',!!lessonInterruption);
 }
 
+function isServiceFailureReply(text){
+  return /^(?:Lots of students are asking me questions right now,|Sorry, I had a small technical hiccup while working on that\.)/.test(String(text||'').trim());
+}
+
 function loadClassroomSnapshot(){
   try{
     const snapshot=JSON.parse(localStorage.getItem('roboTeacherClassroomSnapshot')||'null');
     if(!snapshot||Date.now()-snapshot.savedAt>7*24*60*60*1000||!snapshot.answer||!/^JSS[1-3]$/.test(snapshot.classLevel))throw new Error('expired');
+    if(isServiceFailureReply(snapshot.answer))throw new Error('service-error');
     return snapshot;
   }catch(_error){localStorage.removeItem('roboTeacherClassroomSnapshot');return null}
 }
@@ -517,7 +522,7 @@ function chooseBestSpeechAlternative(result){
 }
 
 function normalizeSpokenIntent(phrase){
-  return phrase.toLowerCase().replace(/\b(?:square route|squared root)\b/g,'square root').replace(/^(?:pulse|pals|paws|pose|pores)$/,'pause').replace(/^(?:duro|dúró|kwusi|kwụsị|kwụsịtụ|dakata|dakatar)$/,'pause').replace(/^(?:continues|continue you|tesiwaju|tẹ̀síwájú|ga nihu|gaa nihu|ci gaba)$/,'continue').replace(/^(?:health|held|help me)$/,'help').trim();
+  return phrase.toLowerCase().replace(/\s+/g,' ').trim().replace(/\b(?:square route|squared root)\b/g,'square root').replace(/^(?:pulse|pals|paws|pose|pores)$/,'pause').replace(/^(?:duro|dúró|kwusi|kwụsị|kwụsịtụ|dakata|dakatar)$/,'pause').replace(/^(?:continues|continue you|tesiwaju|tẹ̀síwájú|ga nihu|gaa nihu|ci gaba)$/,'continue').replace(/^(?:health|held|help me)$/,'help').trim();
 }
 
 function handsFreeWakePattern(){return '(?:teacher|tutor|feature|olukọ|oluko|malam|malami|onye\\s+nkuzi)'}
@@ -533,14 +538,14 @@ function openHandsFreeFollowUpWindow(){
 function handsFreeBargeIn(result){
   const alternatives=Array.from(result).map(item=>(item.transcript||'').trim()).filter(Boolean);
   const wakePattern=handsFreeWakePattern();
-  const command=alternatives.find(transcript=>new RegExp(`^(?:(?:hey\\s+)?(?:robo|robot|robotic)\\s*${wakePattern}[\\s,.:;-]*)?(?:please\\s+)?(?:pause|pulse|pals|paws|pose|pores|duro|dúró|kwusi|kwụsị|kwụsịtụ|dakata|dakatar)$`,'iu').test(transcript));
+  const command=alternatives.find(transcript=>new RegExp(`^(?:(?:hey\\s+)?(?:robo|robot|robotic)[\\s-]*${wakePattern}[\\s,.:;-]*)?(?:please\\s+)?(?:pause|pulse|pals|paws|pose|pores|duro|dúró|kwusi|kwụsị|kwụsịtụ|dakata|dakatar)$`,'iu').test(transcript));
   if(command&&Date.now()<handsFree.ignorePauseUntil)return true;
   if(!teacherPanel.classList.contains('speaking')||Date.now()-handsFree.bargeInAt<1200)return false;
-  const wake=alternatives.find(transcript=>new RegExp(`(?:^|\\s)(?:hey\\s+)?(?:robo|robot|robotic)\\s*${wakePattern}(?=\\s|[,.:;-]|$)`,'iu').test(transcript));
+  const wake=alternatives.find(transcript=>new RegExp(`(?:^|\\s)(?:hey\\s+)?(?:robo|robot|robotic)[\\s-]*${wakePattern}(?=\\s|[,.:;-]|$)`,'iu').test(transcript));
   if(!command&&!wake)return false;
   handsFree.bargeInAt=Date.now();clearHandsFreePhraseBuffer();void pauseTeacherAudio();handsFree.armedUntil=Date.now()+7000;
   if(command){
-    const interpreted=normalizeSpokenIntent(command.toLowerCase().replace(new RegExp(`^(?:(?:hey\\s+)?(?:robo|robot|robotic)\\s*${wakePattern}[\\s,.:;-]*)?(?:please\\s+)?`,'iu'),''));
+    const interpreted=normalizeSpokenIntent(command.toLowerCase().replace(new RegExp(`^(?:(?:hey\\s+)?(?:robo|robot|robotic)[\\s-]*${wakePattern}[\\s,.:;-]*)?(?:please\\s+)?`,'iu'),''));
     handsFree.pending='';handsFree.ignorePauseUntil=Date.now()+1800;openHandsFreeFollowUpWindow();showHandsFreeHeard(`Heard: “${command}” · Teacher paused. Ask your follow-up within 15 seconds, or say “Continue”.`);return true;
   }
   showHandsFreeHeard(`Heard: “${wake}” — teacher paused so I can hear you.`);updateHandsFreeStatus('Ask your question…');return false;
@@ -637,7 +642,7 @@ function changeTeacherVolume(direction){
 function renderHandsFreeHelp(){
   const local={English:{title:'Voice commands',pause:'Pause',continue:'Continue',wake:'Robo-Teacher'},Yoruba:{title:'Àwọn àṣẹ ohùn',pause:'Dúró',continue:'Tẹ̀síwájú',wake:'Robo olùkọ́'},Igbo:{title:'Iwu olu',pause:'Kwụsị',continue:'Gaa n’ihu',wake:'Robo onye nkuzi'},Hausa:{title:'Umarnin murya',pause:'Dakata',continue:'Ci gaba',wake:'Robo malami'}}[language.value];
   handsFreeHelpTitle.textContent=local.title;
-  const commands=[`${local.wake}, ${local.pause}`,local.continue,'Explain it simpler','Repeat that','Show a visual','Check my understanding','Next step / Previous step','Speak slower / Speak faster','Volume up / Volume down','Mute / Unmute'];
+  const commands=[`${local.wake}, ${local.pause}`,local.continue,'Continue with teacher','Explain it simpler','Repeat that','Show a visual','Check my understanding','Next step / Previous step','Speak slower / Speak faster','Volume up / Volume down','Mute / Unmute'];
   handsFreeHelpList.replaceChildren(...commands.map(command=>{const item=document.createElement('li');item.textContent=command;return item}));
 }
 
@@ -649,7 +654,7 @@ function showHandsFreeHelp(show=true){
 }
 
 function isSafeHandsFreeControl(intent){
-  return /^(?:pause|stop|continue|resume|go on|explain (?:that )?again|repeat(?: that)?|say (?:that )?again|show (?:me )?(?:a )?visual|show (?:the )?diagram|explain (?:it |that )?simpler|make (?:it |that )?simpler|simplify (?:it|that)|check my understanding|test me|ask me a question|next|next step|move on|back|previous|previous step|go back|speak slower|slow down|normal speed|speak normally|speak faster|speed up|volume up|turn it up|volume down|turn it down|mute|unmute|help|what can i say|show commands|iranlowo|ìrànlọ́wọ́|nyere m aka|taimako)$/.test(normalizeSpokenIntent(intent));
+  return /^(?:pause|stop|continue|resume|go on|continue with (?:the )?teacher|explain (?:that )?again|repeat(?: that)?|say (?:that )?again|show (?:me )?(?:a )?visual|show (?:the )?diagram|explain (?:it |that )?simpler|make (?:it |that )?simpler|simplify (?:it|that)|check my understanding|test me|ask me a question|next|next step|move on|back|previous|previous step|go back|speak slower|slow down|normal speed|speak normally|speak faster|speed up|volume up|turn it up|volume down|turn it down|mute|unmute|help|what can i say|show commands|iranlowo|ìrànlọ́wọ́|nyere m aka|taimako)$/.test(normalizeSpokenIntent(intent));
 }
 
 function executeHandsFreeIntent(phrase){
@@ -671,6 +676,12 @@ function executeHandsFreeIntent(phrase){
   const unmuteCommand=/^unmute$/.test(command);
   const helpCommand=/^(help|what can i say|show commands|iranlowo|ìrànlọ́wọ́|nyere m aka|taimako)$/.test(normalizeSpokenIntent(command));
   const stopListeningCommand=/^(stop listening|turn off|goodbye)$/.test(command);
+  if(/^continue with (?:the )?teacher$/.test(normalizeSpokenIntent(command))){
+    if(teachingStage.mode==='example'&&mediaReplayPlayer?.getCheckpoint)continueTeacherAfterVideo();
+    else showHandsFreeHeard('This command returns to the teacher from a lesson video.');
+    updateHandsFreeStatus('Listening…');
+    return;
+  }
   if(teacherPanel.classList.contains('speaking')&&!pauseCommand&&!continueCommand&&!replayCommand&&!visualCommand&&!simplerCommand&&!understandingCommand&&!nextStepCommand&&!previousStepCommand&&!slowerCommand&&!normalSpeedCommand&&!fasterCommand&&!volumeUpCommand&&!volumeDownCommand&&!muteCommand&&!unmuteCommand&&!helpCommand&&!stopListeningCommand)return;
   if(pauseCommand){
     if(mediaReplayPlayer?.getCheckpoint)mediaReplayPlayer.pause();else if(teacherPanel.classList.contains('speaking'))void pauseTeacherAudio();else if(currentLesson)pauseLessonForQuestion('voice');
@@ -697,7 +708,10 @@ function executeHandsFreeIntent(phrase){
   if(stopListeningCommand){
     handsFree.enabled=false;handsFree.processing=false;stopHandsFreeListening();updateHandsFreeStatus();showHandsFreeHeard('Wake-word listening is off.');setLearningStatus('Wake-word teaching off');return;
   }
-  if(currentLesson&&!lessonInterruption)pauseLessonForQuestion('voice');
+  if(currentLesson&&!lessonInterruption){
+    if(teachingStage.mode==='example'&&mediaReplayPlayer?.getCheckpoint)askTopicVideo();
+    else pauseLessonForQuestion('voice');
+  }
   handsFree.processing=true;stopHandsFreeListening();question.value=phrase;form.requestSubmit();
 }
 
@@ -705,7 +719,7 @@ function handleHandsFreePhrase(rawPhrase,confidence=0){
   const phrase=rawPhrase.trim();if(!phrase)return;
   const now=Date.now();if(phrase===handsFree.lastPhrase&&now-handsFree.lastAt<1800)return;handsFree.lastPhrase=phrase;handsFree.lastAt=now;
   const normalized=phrase.toLowerCase().replace(/[^a-zà-ž0-9\s()+,.?=\-]/gu,'').trim();
-  const wake=normalized.match(new RegExp(`^(?:hey\\s+)?(?:robo|robot|robotic)\\s*${handsFreeWakePattern()}(?=\\s|[,.:;-]|$)[\\s,.:;-]*(.*)$`,'iu'));
+  const wake=normalized.match(new RegExp(`^(?:hey\\s+)?(?:robo|robot|robotic)[\\s-]*${handsFreeWakePattern()}(?=\\s|[,.:;-]|$)[\\s,.:;-]*(.*)$`,'iu'));
   const pausedControl=teacherSpeechPaused&&/^(?:continue|continues|continue you|resume|go on|tesiwaju|tẹ̀síwájú|ga nihu|gaa nihu|ci gaba)$/.test(normalized);
   const clarificationReply=Boolean(handsFree.pending);
   let intent='';
@@ -1238,6 +1252,7 @@ function openChat(){
 }
 
 function showCanvasAnswer(answer,status='Worked solution',preserveAudioUnlock=false){
+  if(isServiceFailureReply(answer))throw new Error('The AI service is temporarily unavailable. Please try again shortly.');
   // A newly displayed solution always replaces any playing or paused answer.
   stopTeacherAudio(preserveAudioUnlock);
   dismissLessonOverlays();restoreTeacherPanel();
@@ -2052,12 +2067,45 @@ function dismissLessonOverlays(){stopLessonMedia();visualArea.classList.add('hid
 function closeVisualExplanation(){visualArea.classList.add('hidden');restoreTeachingStage()}
 
 let mediaPreparationRequest=0;
+let videoCatalogueRefresh=null;
+async function ensureTopicVideoCatalogue(id){
+  if(typeof id!=='string'||!/^[a-z0-9-]{1,80}$/.test(id))return false;
+  if(window.RoboTeacherVideos?.getTopicVideo(id))return true;
+  if(!videoCatalogueRefresh){
+    videoCatalogueRefresh=new Promise(resolve=>{
+      const script=document.createElement('script');let finished=false;
+      const finish=loaded=>{if(finished)return;finished=true;clearTimeout(timer);script.remove();resolve(loaded)};
+      const timer=setTimeout(()=>finish(false),8000);
+      script.src='/classroom/topic_video.js?refresh='+Date.now();
+      script.onload=()=>finish(true);script.onerror=()=>finish(false);
+      document.head.appendChild(script);
+    }).finally(()=>{videoCatalogueRefresh=null});
+  }
+  return await videoCatalogueRefresh&&Boolean(window.RoboTeacherVideos?.getTopicVideo(id));
+}
 async function openLessonMedia(){
   const lesson=(currentLesson?.text||Array.from(canvasAnswer.querySelectorAll('p')).map(item=>item.innerText.trim()).filter(Boolean).join('\n')||canvasAnswer.innerText).trim();if(!lesson){addMessage('Ask a Maths question first, then I can show an example.','teacher');return;}
   const mediaTicket=lessonController.begin('media-loading');
   const preparationRequest=++mediaPreparationRequest;
   stopTeacherAudio();mediaButton.disabled=true;mediaButton.textContent='Preparing…';setLearningStatus('Preparing a learning example','thinking');
-  try{const token=await ensureSession();if(!lessonController.owns(mediaTicket))return;const response=await fetch('/api/classroom/media',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:lesson,session_token:token,language:language.value})});const data=await response.json();if(!lessonController.owns(mediaTicket))return;if(!response.ok)throw new Error(data.detail||'media');dismissLessonOverlays();renderLessonMedia(data);canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');mediaArea.classList.remove('hidden');enterTeachingStage('example');setLearningStatus('Learning example ready','success');}
+  try{
+    let response;
+    for(let attempt=0;attempt<2;attempt++){
+      const token=await ensureSession();if(!lessonController.owns(mediaTicket))return;
+      response=await fetch('/api/classroom/media',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:lesson,session_token:token,language:language.value})});
+      if(!lessonController.owns(mediaTicket))return;
+      if(response.status!==401||attempt===1)break;
+      if(sessionToken===token)sessionToken=null;
+    }
+    const data=await response.json();if(!lessonController.owns(mediaTicket))return;
+    if(!response.ok)throw new Error(data.detail||'I could not prepare that example. Please try again.');
+    if(data.kind==='video'){
+      const available=await ensureTopicVideoCatalogue(data.video_id);
+      if(!lessonController.owns(mediaTicket))return;
+      if(!available)throw new Error('The video could not load. Your explanation is still here; please try the example again.');
+    }
+    dismissLessonOverlays();renderLessonMedia(data);canvasWork.classList.add('hidden');canvasEmpty.classList.add('hidden');mediaArea.classList.remove('hidden');enterTeachingStage('example');setLearningStatus('Learning example ready','success');
+  }
   catch(error){if(!lessonController.owns(mediaTicket))return;addMessage(error.message||'I could not prepare that example. Please try again.','teacher');setLearningStatus('Example needs another try','attention');}
   finally{if(preparationRequest===mediaPreparationRequest){mediaButton.disabled=false;mediaButton.textContent='Watch or Explore';}}
 }

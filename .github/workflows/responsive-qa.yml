@@ -45,6 +45,8 @@ jobs:
         run: node tests/narrated_example_browser_qa.cjs
       - name: Verify local topic video and timestamp recovery
         run: node tests/topic_video_browser_qa.cjs
+      - name: Verify fractions video playback, captions, and saved position
+        run: node tests/fractions_video_browser_qa.cjs
       - name: Verify subject workspace isolation and media
         run: node tests/subject_teaching_browser_qa.cjs
       - name: Verify Chromium Web Audio suspend and resume

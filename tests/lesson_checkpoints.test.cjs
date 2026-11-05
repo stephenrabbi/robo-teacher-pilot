@@ -78,3 +78,58 @@ test('saved classroom snapshot retains an active example and clears it after lea
  c.saveClassroomSnapshot();assert.equal(stored.workedExample.index,1);assert.equal(stored.workedExample.steps[1],'Exact second');assert.equal(stored.answer,'Main lesson');
  example=null;c.saveClassroomSnapshot();assert.equal(stored.workedExample,null);
 });
+
+test('hands-free video questions capture the video before submitting chat',()=>{
+ const calls=[];
+ const c={
+  teachingStage:{mode:'example'},mediaReplayPlayer:{getCheckpoint:()=>({id:'adding-directed-numbers',time:20})},
+  teacherPanel:{classList:{contains:()=>false}},normalizeSpokenIntent:t=>t,currentLesson:{},
+  lessonInterruption:null,handsFree:{},question:{},
+  askTopicVideo(){calls.push('capture video');c.lessonInterruption={video:c.mediaReplayPlayer.getCheckpoint()};},
+  pauseLessonForQuestion(){calls.push('pause lesson');},stopHandsFreeListening(){},
+  form:{requestSubmit(){calls.push(['submit',c.question.value,c.lessonInterruption?.video]);}},
+ };
+ vm.createContext(c);vm.runInContext(source.slice(source.indexOf('function executeHandsFreeIntent('),source.indexOf('function handleHandsFreePhrase(')),c);
+ c.executeHandsFreeIntent('Where did the dot land?');
+ assert.deepEqual(calls,['capture video',['submit','Where did the dot land?',{id:'adding-directed-numbers',time:20}]]);
+ assert.equal(c.handsFree.processing,true);
+});
+
+test('spoken video handoff closes the video before narrating the restored step',()=>{
+ const calls=[];
+ const c={
+  normalizeSpokenIntent:value=>value,
+  teachingStage:{mode:'example'},
+  mediaReplayPlayer:{getCheckpoint:()=>({id:'adding-directed-numbers',time:20})},
+  currentLesson:{steps:['Temporary example'],index:0},
+  closeLessonMedia(){
+   calls.push('close video');
+   c.teachingStage.mode='lesson';
+   c.currentLesson={steps:['Original lesson step'],index:0};
+  },
+  speakText(text){calls.push(text);},
+  updateHandsFreeStatus(){},
+  showHandsFreeHeard(text){calls.push(text);},
+ };
+ vm.createContext(c);
+ vm.runInContext(source.slice(source.indexOf('function executeHandsFreeIntent('),source.indexOf('function handleHandsFreePhrase(')),c);
+ vm.runInContext(source.slice(source.indexOf('function continueTeacherAfterVideo('),source.indexOf('function restoreTopicVideo(')),c);
+ c.executeHandsFreeIntent('continue with the teacher');
+ assert.deepEqual(calls,['close video','Original lesson step']);
+ c.executeHandsFreeIntent('continue with teacher');
+ assert.match(calls[2],/from a lesson video/);
+ assert.equal(calls.length,3);
+});
+
+test('recognized wake phrase accepts the branded hyphen and repeated spaces',()=>{
+ const calls=[];
+ const c={handsFree:{},teacherSpeechPaused:false,showHandsFreeHeard(){},updateHandsFreeStatus(){},
+  teachingStage:{mode:'example'},mediaReplayPlayer:{getCheckpoint(){}},
+  continueTeacherAfterVideo(){calls.push('handoff');}};
+ vm.createContext(c);
+ vm.runInContext(source.slice(source.indexOf('function normalizeSpokenIntent('),source.indexOf('function clearHandsFreePhraseBuffer(')),c);
+ vm.runInContext(source.slice(source.indexOf('function isSafeHandsFreeControl('),source.indexOf('function enableHandsFree(')),c);
+ c.handleHandsFreePhrase('Robo-Teacher, continue  with the teacher.',.4);
+ c.handleHandsFreePhrase('Robo Teacher, continue with teacher.',.9);
+ assert.deepEqual(calls,['handoff','handoff']);
+});

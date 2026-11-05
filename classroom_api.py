@@ -28,6 +28,8 @@ from practice import answer_practice, change_practice_language, next_question, s
 from practice_progress import build_dashboard, build_teacher_dashboard, recommend_difficulty_for_topic, save_result
 
 from tutor import (
+    RATE_LIMIT_RESPONSE,
+    TECHNICAL_FALLBACK_RESPONSE,
     MAX_AUDIO_BYTES,
     MAX_IMAGE_BYTES,
     SUPPORTED_AUDIO_MIME_TYPES,
@@ -61,7 +63,7 @@ SupportedLanguage = Literal["English", "Yoruba", "Igbo", "Hausa"]
 
 class VideoQuestionContext(BaseModel):
     model_config = {"extra": "forbid"}
-    id: Literal["rounding-nearest-ten"]
+    id: Literal["rounding-nearest-ten", "adding-unlike-fractions", "adding-directed-numbers"]
     time: float = Field(ge=0, le=3600, allow_inf_nan=False)
 
 
@@ -387,6 +389,18 @@ def classroom_chat(question: ClassroomQuestion, request: Request):
         # Log exception type only: never log learner messages, credentials or provider payloads.
         _logger.error("Classroom tutor request failed; exception_type=%s", type(exc).__name__)
         raise HTTPException(status_code=503, detail="Robo-Teacher is temporarily unavailable") from exc
+    return _tutor_result(reply, latency, student_id)
+
+
+def _tutor_result(reply, latency, student_id):
+    # Transient provider failures are not teaching content and must not be saved
+    # or narrated as a successful lesson by the browser.
+    if reply in (RATE_LIMIT_RESPONSE, TECHNICAL_FALLBACK_RESPONSE):
+        raise HTTPException(
+            status_code=503,
+            detail="The AI service is temporarily unavailable. Your question is kept; please try again shortly.",
+            headers={"Retry-After": "10"},
+        )
     return {"reply": reply, "latency_seconds": round(float(latency), 3), "learner_id": student_id}
 
 
@@ -549,7 +563,7 @@ async def classroom_image(
         raise HTTPException(status_code=422, detail="The image could not be processed") from exc
     except Exception as exc:
         raise HTTPException(status_code=503, detail="Robo-Teacher is temporarily unavailable") from exc
-    return {"reply": reply, "latency_seconds": round(float(latency), 3), "learner_id": student_id}
+    return _tutor_result(reply, latency, student_id)
 
 
 @router.post("/whiteboard")
@@ -577,7 +591,7 @@ def classroom_whiteboard(board: ClassroomWhiteboard):
         raise HTTPException(status_code=422, detail="The whiteboard could not be processed") from exc
     except Exception as exc:
         raise HTTPException(status_code=503, detail="Robo-Teacher is temporarily unavailable") from exc
-    return {"reply": reply, "latency_seconds": round(float(latency), 3), "learner_id": student_id}
+    return _tutor_result(reply, latency, student_id)
 
 
 @router.post("/audio")
@@ -585,7 +599,7 @@ async def classroom_audio(
     session_token: str = Form(..., min_length=20, max_length=300),
     audio: UploadFile = File(...),
     language: SupportedLanguage = Form("English"),
-    video_id: Literal["rounding-nearest-ten"] | None = Form(None),
+    video_id: Literal["rounding-nearest-ten", "adding-unlike-fractions", "adding-directed-numbers"] | None = Form(None),
     video_time: float | None = Form(None, ge=0, le=3600, allow_inf_nan=False),
 ):
     student_id = _verify_session(session_token)
@@ -610,4 +624,4 @@ async def classroom_audio(
         raise HTTPException(status_code=422, detail="The recording could not be processed") from exc
     except Exception as exc:
         raise HTTPException(status_code=503, detail="Robo-Teacher is temporarily unavailable") from exc
-    return {"reply": reply, "latency_seconds": round(float(latency), 3), "learner_id": student_id}
+    return _tutor_result(reply, latency, student_id)

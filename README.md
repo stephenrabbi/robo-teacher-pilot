@@ -27,7 +27,7 @@ https://t.me/RoboTeacherAfricaBot
 **Earlier staging environment (not the production link):**  
 https://robo-teacher-v25-staging.onrender.com/classroom-app
 
-> **Production status — 2 November 2026:** Google Cloud Gemini is active in the main classroom. The deployed code baseline is [`5f751fd`](https://github.com/stephenrabbi/robo-teacher-pilot/commit/5f751fd82d92a010e9cd4f8b7d4522b66ea16bd2), including the responsive classroom redesign, lesson checkpoints and Cloud provider integration. The v2.6.1 release is an earlier milestone. Secure cross-device persistence remains separate experimental work, not a verified production feature.
+> **Production status — 4 November 2026:** The live classroom includes narrated topic videos, video follow-up questions, saved playback positions and return to the original teacher-led lesson. The verified deployed code baseline is [`24b6073`](https://github.com/stephenrabbi/robo-teacher-pilot/commit/24b607338711b5b508e1e4de520c763f8657345f). Google Cloud Gemini remains active. Secure cross-device persistence is separate experimental work, not a verified production feature.
 
 ## Subject teaching expansion — 3 November 2026
 
@@ -35,7 +35,24 @@ The **Subjects** button opens early-access English Language and Basic Science te
 
 Subject conversations are separate from Maths mastery records and are held only in bounded, temporary server memory. Uploaded media bytes are not retained in conversation history. This is AI-guided subject teaching; curriculum-mapped practice, diagnostics and progress currently remain Mathematics. Full secondary-school subject and syllabus coverage is still ahead.
 
-## Latest milestones — 2 November 2026
+## Latest milestones — 4 November 2026
+
+| Area | Delivered and verified |
+|---|---|
+| Narrated topic videos | Local videos for rounding to the nearest ten and adding unlike fractions; the fractions example teaches 1/2 + 1/3 = 5/6, with captions and a transcript |
+| Video questions and return | Ask about the video using its trusted transcript and saved position; return from the follow-up restores the video paused |
+| Teacher handoff | **Continue with teacher** closes the video, expands the teacher and reads the original lesson step only after the learner clicks |
+| Same-browser recovery | **Continue previous lesson** restored the fractions video at 7.863127 seconds, paused and ready to play, after reopening the classroom |
+| Recovery fixes | Missing video catalogue reloads once; expired media sessions retry once; stale requests cannot replace a newer lesson |
+| Explanation integrity | Ordinary teaching numbers such as a 500 Naira note no longer become false server-error messages |
+
+**Live acceptance checks:** Chrome played the 54-second fractions video without a media error, accepted a follow-up with the 500 Naira example, and returned to the saved video. Phone-width checks at **360, 390 and 430 pixels** found no horizontal scrolling; question/continue controls were 44 pixels high, and teacher handoff entered the speaking state. These are Chrome viewport simulations, not physical Android or iPhone Safari acceptance. A speaking-state check does not independently assess pronunciation or local-language teaching quality.
+
+Release records: [fractions video PR #197](https://github.com/stephenrabbi/robo-teacher-pilot/pull/197), [video recovery PR #198](https://github.com/stephenrabbi/robo-teacher-pilot/pull/198) and [explanation error-mapping fix PR #199](https://github.com/stephenrabbi/robo-teacher-pilot/pull/199) are merged. Required regression, Python 3.14 runtime and responsive-browser checks passed for the latest fix.
+
+**Next stage:** physical-phone acceptance, expansion of teacher-reviewed topic media, and additional subject modules. Only the two named local topic videos are currently documented here; video coverage is not yet curriculum-wide.
+
+## Earlier milestones — 2 November 2026
 
 | Area | Delivered and verified |
 |---|---|
@@ -49,7 +66,7 @@ Subject conversations are separate from Maths mastery records and are held only 
 
 Release records: [lesson continuity PR #169](https://github.com/stephenrabbi/robo-teacher-pilot/pull/169) and [Cloud integration PR #170](https://github.com/stephenrabbi/robo-teacher-pilot/pull/170). Both are merged. See [Cloud setup and rollback](docs/cloud/google-cloud-provider.md) and [lesson checkpoint design](docs/roadmap/lesson-checkpoints-2026-10-31.md).
 
-**Verification boundary:** the latest combined code passed **424 Python tests** and **10 JavaScript interruption/audio tests**, plus both GitHub workflows. Earlier Chrome checks passed at desktop and phone widths of **393px and 390px**, including a follow-up and return to the exact original step. Those browser checks preceded the Cloud switch. Post-switch browser playback/listening, physical Android/iPhone Safari acceptance and human review of local-language quality remain pending. A narrow successful translation test does not establish teaching accuracy across a language or curriculum.
+**Earlier verification boundary (2 November):** that combined code passed **424 Python tests** and **10 JavaScript interruption/audio tests**, plus both GitHub workflows. Earlier Chrome checks passed at desktop and phone widths of **393px and 390px**, including a follow-up and return to the exact original step. Those browser checks preceded the Cloud switch. Post-switch browser playback/listening, physical Android/iPhone Safari acceptance and human review of local-language quality remain pending. A narrow successful translation test does not establish teaching accuracy across a language or curriculum.
 
 ---
 
@@ -95,6 +112,8 @@ A reviewer can experience the current product without installing anything:
 6. Try **Read answer**, **Show Visual**, a step example, **Practice**, or the whiteboard/image tools. Switch among **English, Yorùbá, Igbo and Hausa**.
 7. Open **Progress** for activity and recommendations; explore the personalised daily learning plan from the learning tools.
 8. Return in the same browser and use the continuation controls. A nickname or learner code alone does not securely recover learning on another device.
+
+**Video walkthrough:** ask `Teach me how to add 1/2 + 1/3.`, choose **Watch step example**, then try **Ask about this video**, **Return to previous lesson** and **Continue with teacher**. To check saved playback, pause midway, reload, and choose **Continue previous lesson** in the same browser.
 
 The live classroom is the clearest representation of the project's present stage.
 

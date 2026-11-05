@@ -177,6 +177,22 @@ def _is_rate_limit_error(e: Exception) -> bool:
     return "429" in text or "RESOURCE_EXHAUSTED" in text or "quota" in text.lower()
 
 
+def _ask_with_capacity_retry(client, history, message, profile, language, class_level):
+    """Retry transient provider capacity limits without discarding lesson context."""
+    for attempt in range(3):
+        try:
+            return _ask(client, history, message, profile, language, class_level)
+        except Exception as exc:
+            if not _is_rate_limit_error(exc):
+                raise
+            # Only fixed labels enter logs; never include provider payloads or prompts.
+            category = "quota" if "quota" in str(exc).lower() else "capacity"
+            logger.warning("Gemini capacity limit category=%s attempt=%d model=%s", category, attempt + 1, GEMINI_MODEL)
+            if attempt == 2:
+                raise
+            time.sleep(1 if attempt == 0 else 2)
+
+
 def _pcm_to_wav(pcm: bytes) -> bytes:
     output = io.BytesIO()
     with wave.open(output, "wb") as wav_file:
@@ -586,7 +602,7 @@ def get_tutor_reply(student_id: str, message: str, response_language: str = "Eng
 
     history = _conversations.get(student_id, [])
     try:
-        text, new_history = _ask(client, history, message, profile, response_language, class_level)
+        text, new_history = _ask_with_capacity_retry(client, history, message, profile, response_language, class_level)
     except Exception as first_error:
         if _is_rate_limit_error(first_error):
             return RATE_LIMIT_RESPONSE, time.time() - start
@@ -863,6 +879,25 @@ def select_lesson_media(text: str, response_language: str = "English") -> dict:
     lesson=text.lower()
     if response_language == "English" and "round" in lesson and re.search(r"\bnearest\s+(?:ten|10)\b", lesson):
         return {"kind":"video","video_id":"rounding-nearest-ten","title":"Rounding to the nearest ten — worked example: 47","source":"Robo-Teacher"}
+    directed_example = re.search(
+        r"(?<![\w./−-])3\s*\+\s*(?:\(\s*[-−]\s*5\s*\)|[-−]\s*5\b)"
+        r"(?![\w/]|\.\d)"
+        r"|\b(?:3|three)\s+plus\s+negative\s+(?:5|five)\b(?![/]|\.\d)",
+        lesson,
+    )
+    if response_language == "English" and directed_example:
+        return {
+            "kind": "video",
+            "video_id": "adding-directed-numbers",
+            "title": "Adding directed numbers — worked example: 3 + (−5)",
+            "source": "Robo-Teacher",
+        }
+    fraction_context = re.search(r"\bfractions?\b|\bdenominators?\b|\bsixths?\b|\d+\s*/\s*\d+", lesson)
+    addition_context = re.search(r"\b(?:add|adding|addition|plus|sum)\b|\+", lesson)
+    # Multiplying numerator and denominator is part of finding equivalent
+    # fractions, so that wording must not exclude an addition explanation.
+    if response_language == "English" and fraction_context and addition_context and not re.search(r"\b(?:subtract|subtraction)\b", lesson):
+        return {"kind":"video","video_id":"adding-unlike-fractions","title":"Adding unlike fractions — worked example: 1/2 + 1/3","source":"Robo-Teacher"}
     catalog=[
         (("fraction","numerator","denominator"),"Fractions Intro","https://phet.colorado.edu/sims/html/fractions-intro/latest/fractions-intro_all.html"),
         (("equation","equal","balance","solve x"),"Equality Explorer","https://phet.colorado.edu/sims/html/equality-explorer-basics/latest/equality-explorer-basics_all.html"),
@@ -921,6 +956,13 @@ def get_tutor_audio_reply(student_id: str, audio_bytes: bytes, mime_type: str, r
         "Only when every essential Maths token is clear should you answer the spoken question as a patient teacher and explain the method step by step in text. "
         "Never invent missing words or digits, and do not reproduce unrelated personal information that may be spoken in the recording."
     )
+    if reference_context:
+        prompt += (
+            " For a video follow-up, identify the exact step or ordinal the learner asks about "
+            "from the recording before using the reference. The paused position and transcript "
+            "provide context only. If the learner asks about an intermediate move, give the "
+            "result of that move first. If the requested move is unclear, ask for clarification."
+        )
     return _media_reply(student_id, audio_bytes, mime_type, prompt + reference_context, profile_message)
 
 

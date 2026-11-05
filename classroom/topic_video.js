@@ -8,7 +8,15 @@
    webm:'/classroom/assets/videos/rounding-nearest-ten.webm',
    captions:'/classroom/assets/videos/rounding-nearest-ten.vtt',
    transcript:'Rounding means choosing the nearest multiple of ten. Let us round forty seven to the nearest ten. Forty seven lies between forty and fifty. The halfway point is forty five. Forty seven is above forty five, so it is closer to fifty. Move up to fifty. Forty seven rounded to the nearest ten is fifty. For whole numbers, a units digit of five or more rounds up; less than five rounds down.'
-  }
+  },
+  'adding-unlike-fractions':{
+   title:'Adding unlike fractions — worked example: 1/2 + 1/3',
+   src:'/classroom/assets/videos/adding-unlike-fractions.mp4',
+   webm:'/classroom/assets/videos/adding-unlike-fractions.webm',
+   captions:'/classroom/assets/videos/adding-unlike-fractions.vtt',
+   transcript:"Let's add one half and one third. The whole bars are the same size, but the pieces are different sizes. First, make equal pieces. Six is a common multiple of two and three. One half equals three sixths. One third equals two sixths. Now add three sixths and two sixths. Three plus two is five. The pieces are still sixths, so the denominator stays six. One half plus one third equals five sixths. We changed the size of the pieces, not the amount shaded. Try adding one half and one sixth yourself."
+  },
+  'adding-directed-numbers':{"title": "Adding directed numbers — worked example: 3 + (−5)", "src": "/classroom/assets/videos/adding-directed-numbers.mp4", "webm": "/classroom/assets/videos/adding-directed-numbers.webm", "captions": "/classroom/assets/videos/adding-directed-numbers.vtt", "transcript": "What happens when we add negative five to three? Start at three. Negative five tells us to move five places left. One. Two. Three. Four. Five. We land on negative two. The plus sign tells us to add. The negative sign on five tells us which direction to move. Start at negative two. Which direction should you move, and where will you land?"}
  };
  function getTopicVideo(id){return Object.hasOwn(catalog,id)?catalog[id]:null;}
  function validCheckpoint(value){return Boolean(value&&getTopicVideo(value.id)&&Number.isFinite(value.time)&&value.time>=0&&value.time<=3600);}
