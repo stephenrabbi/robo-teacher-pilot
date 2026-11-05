@@ -635,7 +635,7 @@ function changeTeacherVolume(direction){
 function renderHandsFreeHelp(){
   const local={English:{title:'Voice commands',pause:'Pause',continue:'Continue',wake:'Robo-Teacher'},Yoruba:{title:'Àwọn àṣẹ ohùn',pause:'Dúró',continue:'Tẹ̀síwájú',wake:'Robo olùkọ́'},Igbo:{title:'Iwu olu',pause:'Kwụsị',continue:'Gaa n’ihu',wake:'Robo onye nkuzi'},Hausa:{title:'Umarnin murya',pause:'Dakata',continue:'Ci gaba',wake:'Robo malami'}}[language.value];
   handsFreeHelpTitle.textContent=local.title;
-  const commands=[`${local.wake}, ${local.pause}`,local.continue,'Explain it simpler','Repeat that','Show a visual','Check my understanding','Next step / Previous step','Speak slower / Speak faster','Volume up / Volume down','Mute / Unmute'];
+  const commands=[`${local.wake}, ${local.pause}`,local.continue,'Continue with teacher','Explain it simpler','Repeat that','Show a visual','Check my understanding','Next step / Previous step','Speak slower / Speak faster','Volume up / Volume down','Mute / Unmute'];
   handsFreeHelpList.replaceChildren(...commands.map(command=>{const item=document.createElement('li');item.textContent=command;return item}));
 }
 
@@ -647,7 +647,7 @@ function showHandsFreeHelp(show=true){
 }
 
 function isSafeHandsFreeControl(intent){
-  return /^(?:pause|stop|continue|resume|go on|explain (?:that )?again|repeat(?: that)?|say (?:that )?again|show (?:me )?(?:a )?visual|show (?:the )?diagram|explain (?:it |that )?simpler|make (?:it |that )?simpler|simplify (?:it|that)|check my understanding|test me|ask me a question|next|next step|move on|back|previous|previous step|go back|speak slower|slow down|normal speed|speak normally|speak faster|speed up|volume up|turn it up|volume down|turn it down|mute|unmute|help|what can i say|show commands|iranlowo|ìrànlọ́wọ́|nyere m aka|taimako)$/.test(normalizeSpokenIntent(intent));
+  return /^(?:pause|stop|continue|resume|go on|continue with (?:the )?teacher|explain (?:that )?again|repeat(?: that)?|say (?:that )?again|show (?:me )?(?:a )?visual|show (?:the )?diagram|explain (?:it |that )?simpler|make (?:it |that )?simpler|simplify (?:it|that)|check my understanding|test me|ask me a question|next|next step|move on|back|previous|previous step|go back|speak slower|slow down|normal speed|speak normally|speak faster|speed up|volume up|turn it up|volume down|turn it down|mute|unmute|help|what can i say|show commands|iranlowo|ìrànlọ́wọ́|nyere m aka|taimako)$/.test(normalizeSpokenIntent(intent));
 }
 
 function executeHandsFreeIntent(phrase){
@@ -669,6 +669,12 @@ function executeHandsFreeIntent(phrase){
   const unmuteCommand=/^unmute$/.test(command);
   const helpCommand=/^(help|what can i say|show commands|iranlowo|ìrànlọ́wọ́|nyere m aka|taimako)$/.test(normalizeSpokenIntent(command));
   const stopListeningCommand=/^(stop listening|turn off|goodbye)$/.test(command);
+  if(/^continue with (?:the )?teacher$/.test(normalizeSpokenIntent(command))){
+    if(teachingStage.mode==='example'&&mediaReplayPlayer?.getCheckpoint)continueTeacherAfterVideo();
+    else showHandsFreeHeard('This command returns to the teacher from a lesson video.');
+    updateHandsFreeStatus('Listening…');
+    return;
+  }
   if(teacherPanel.classList.contains('speaking')&&!pauseCommand&&!continueCommand&&!replayCommand&&!visualCommand&&!simplerCommand&&!understandingCommand&&!nextStepCommand&&!previousStepCommand&&!slowerCommand&&!normalSpeedCommand&&!fasterCommand&&!volumeUpCommand&&!volumeDownCommand&&!muteCommand&&!unmuteCommand&&!helpCommand&&!stopListeningCommand)return;
   if(pauseCommand){
     if(mediaReplayPlayer?.getCheckpoint)mediaReplayPlayer.pause();else if(teacherPanel.classList.contains('speaking'))void pauseTeacherAudio();else if(currentLesson)pauseLessonForQuestion('voice');
