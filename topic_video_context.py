@@ -6,6 +6,7 @@ import re
 
 _ROOT = Path(__file__).parent / "classroom" / "assets" / "videos"
 _VIDEOS = {
+    'adding-directed-numbers': ('Adding directed numbers — worked example: 3 + (−5)', 46.064),
     "rounding-nearest-ten": ("Rounding to the nearest ten — worked example: 47", 41.09),
     "adding-unlike-fractions": ("Adding unlike fractions — worked example: 1/2 + 1/3", 54.24),
 }

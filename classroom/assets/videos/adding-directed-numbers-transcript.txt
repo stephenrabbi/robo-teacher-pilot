@@ -1,0 +1,9 @@
+What happens when we add negative five to three? Start at three.
+Negative five tells us to move five places left.
+One.
+Two.
+Three.
+Four.
+Five. We land on negative two.
+The plus sign tells us to add. The negative sign on five tells us which direction to move.
+Start at negative two. Which direction should you move, and where will you land?
