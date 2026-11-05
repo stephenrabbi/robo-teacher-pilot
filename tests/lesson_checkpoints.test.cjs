@@ -120,3 +120,16 @@ test('spoken video handoff closes the video before narrating the restored step',
  assert.match(calls[2],/from a lesson video/);
  assert.equal(calls.length,3);
 });
+
+test('recognized wake phrase accepts the branded hyphen and repeated spaces',()=>{
+ const calls=[];
+ const c={handsFree:{},teacherSpeechPaused:false,showHandsFreeHeard(){},updateHandsFreeStatus(){},
+  teachingStage:{mode:'example'},mediaReplayPlayer:{getCheckpoint(){}},
+  continueTeacherAfterVideo(){calls.push('handoff');}};
+ vm.createContext(c);
+ vm.runInContext(source.slice(source.indexOf('function normalizeSpokenIntent('),source.indexOf('function clearHandsFreePhraseBuffer(')),c);
+ vm.runInContext(source.slice(source.indexOf('function isSafeHandsFreeControl('),source.indexOf('function enableHandsFree(')),c);
+ c.handleHandsFreePhrase('Robo-Teacher, continue  with the teacher.',.4);
+ c.handleHandsFreePhrase('Robo Teacher, continue with teacher.',.9);
+ assert.deepEqual(calls,['handoff','handoff']);
+});
