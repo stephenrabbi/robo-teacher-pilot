@@ -879,6 +879,14 @@ def select_lesson_media(text: str, response_language: str = "English") -> dict:
     lesson=text.lower()
     if response_language == "English" and "round" in lesson and re.search(r"\bnearest\s+(?:ten|10)\b", lesson):
         return {"kind":"video","video_id":"rounding-nearest-ten","title":"Rounding to the nearest ten — worked example: 47","source":"Robo-Teacher"}
+    directed_example = re.search(r"(?<![\d./−-])3\s*\+\s*\(\s*[-−]5\s*\)", lesson)
+    if response_language == "English" and directed_example:
+        return {
+            "kind": "video",
+            "video_id": "adding-directed-numbers",
+            "title": "Adding directed numbers — worked example: 3 + (−5)",
+            "source": "Robo-Teacher",
+        }
     fraction_context = re.search(r"\bfractions?\b|\bdenominators?\b|\bsixths?\b|\d+\s*/\s*\d+", lesson)
     addition_context = re.search(r"\b(?:add|adding|addition|plus|sum)\b|\+", lesson)
     # Multiplying numerator and denominator is part of finding equivalent

@@ -63,7 +63,7 @@ SupportedLanguage = Literal["English", "Yoruba", "Igbo", "Hausa"]
 
 class VideoQuestionContext(BaseModel):
     model_config = {"extra": "forbid"}
-    id: Literal["rounding-nearest-ten", "adding-unlike-fractions"]
+    id: Literal["rounding-nearest-ten", "adding-unlike-fractions", "adding-directed-numbers"]
     time: float = Field(ge=0, le=3600, allow_inf_nan=False)
 
 
@@ -599,7 +599,7 @@ async def classroom_audio(
     session_token: str = Form(..., min_length=20, max_length=300),
     audio: UploadFile = File(...),
     language: SupportedLanguage = Form("English"),
-    video_id: Literal["rounding-nearest-ten", "adding-unlike-fractions"] | None = Form(None),
+    video_id: Literal["rounding-nearest-ten", "adding-unlike-fractions", "adding-directed-numbers"] | None = Form(None),
     video_time: float | None = Form(None, ge=0, le=3600, allow_inf_nan=False),
 ):
     student_id = _verify_session(session_token)
