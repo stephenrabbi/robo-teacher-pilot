@@ -515,7 +515,7 @@ function chooseBestSpeechAlternative(result){
 }
 
 function normalizeSpokenIntent(phrase){
-  return phrase.toLowerCase().replace(/\b(?:square route|squared root)\b/g,'square root').replace(/^(?:pulse|pals|paws|pose|pores)$/,'pause').replace(/^(?:duro|dúró|kwusi|kwụsị|kwụsịtụ|dakata|dakatar)$/,'pause').replace(/^(?:continues|continue you|tesiwaju|tẹ̀síwájú|ga nihu|gaa nihu|ci gaba)$/,'continue').replace(/^(?:health|held|help me)$/,'help').trim();
+  return phrase.toLowerCase().replace(/\s+/g,' ').trim().replace(/\b(?:square route|squared root)\b/g,'square root').replace(/^(?:pulse|pals|paws|pose|pores)$/,'pause').replace(/^(?:duro|dúró|kwusi|kwụsị|kwụsịtụ|dakata|dakatar)$/,'pause').replace(/^(?:continues|continue you|tesiwaju|tẹ̀síwájú|ga nihu|gaa nihu|ci gaba)$/,'continue').replace(/^(?:health|held|help me)$/,'help').trim();
 }
 
 function handsFreeWakePattern(){return '(?:teacher|tutor|feature|olukọ|oluko|malam|malami|onye\\s+nkuzi)'}
@@ -531,14 +531,14 @@ function openHandsFreeFollowUpWindow(){
 function handsFreeBargeIn(result){
   const alternatives=Array.from(result).map(item=>(item.transcript||'').trim()).filter(Boolean);
   const wakePattern=handsFreeWakePattern();
-  const command=alternatives.find(transcript=>new RegExp(`^(?:(?:hey\\s+)?(?:robo|robot|robotic)\\s*${wakePattern}[\\s,.:;-]*)?(?:please\\s+)?(?:pause|pulse|pals|paws|pose|pores|duro|dúró|kwusi|kwụsị|kwụsịtụ|dakata|dakatar)$`,'iu').test(transcript));
+  const command=alternatives.find(transcript=>new RegExp(`^(?:(?:hey\\s+)?(?:robo|robot|robotic)[\\s-]*${wakePattern}[\\s,.:;-]*)?(?:please\\s+)?(?:pause|pulse|pals|paws|pose|pores|duro|dúró|kwusi|kwụsị|kwụsịtụ|dakata|dakatar)$`,'iu').test(transcript));
   if(command&&Date.now()<handsFree.ignorePauseUntil)return true;
   if(!teacherPanel.classList.contains('speaking')||Date.now()-handsFree.bargeInAt<1200)return false;
-  const wake=alternatives.find(transcript=>new RegExp(`(?:^|\\s)(?:hey\\s+)?(?:robo|robot|robotic)\\s*${wakePattern}(?=\\s|[,.:;-]|$)`,'iu').test(transcript));
+  const wake=alternatives.find(transcript=>new RegExp(`(?:^|\\s)(?:hey\\s+)?(?:robo|robot|robotic)[\\s-]*${wakePattern}(?=\\s|[,.:;-]|$)`,'iu').test(transcript));
   if(!command&&!wake)return false;
   handsFree.bargeInAt=Date.now();clearHandsFreePhraseBuffer();void pauseTeacherAudio();handsFree.armedUntil=Date.now()+7000;
   if(command){
-    const interpreted=normalizeSpokenIntent(command.toLowerCase().replace(new RegExp(`^(?:(?:hey\\s+)?(?:robo|robot|robotic)\\s*${wakePattern}[\\s,.:;-]*)?(?:please\\s+)?`,'iu'),''));
+    const interpreted=normalizeSpokenIntent(command.toLowerCase().replace(new RegExp(`^(?:(?:hey\\s+)?(?:robo|robot|robotic)[\\s-]*${wakePattern}[\\s,.:;-]*)?(?:please\\s+)?`,'iu'),''));
     handsFree.pending='';handsFree.ignorePauseUntil=Date.now()+1800;openHandsFreeFollowUpWindow();showHandsFreeHeard(`Heard: “${command}” · Teacher paused. Ask your follow-up within 15 seconds, or say “Continue”.`);return true;
   }
   showHandsFreeHeard(`Heard: “${wake}” — teacher paused so I can hear you.`);updateHandsFreeStatus('Ask your question…');return false;
@@ -712,7 +712,7 @@ function handleHandsFreePhrase(rawPhrase,confidence=0){
   const phrase=rawPhrase.trim();if(!phrase)return;
   const now=Date.now();if(phrase===handsFree.lastPhrase&&now-handsFree.lastAt<1800)return;handsFree.lastPhrase=phrase;handsFree.lastAt=now;
   const normalized=phrase.toLowerCase().replace(/[^a-zà-ž0-9\s()+,.?=\-]/gu,'').trim();
-  const wake=normalized.match(new RegExp(`^(?:hey\\s+)?(?:robo|robot|robotic)\\s*${handsFreeWakePattern()}(?=\\s|[,.:;-]|$)[\\s,.:;-]*(.*)$`,'iu'));
+  const wake=normalized.match(new RegExp(`^(?:hey\\s+)?(?:robo|robot|robotic)[\\s-]*${handsFreeWakePattern()}(?=\\s|[,.:;-]|$)[\\s,.:;-]*(.*)$`,'iu'));
   const pausedControl=teacherSpeechPaused&&/^(?:continue|continues|continue you|resume|go on|tesiwaju|tẹ̀síwájú|ga nihu|gaa nihu|ci gaba)$/.test(normalized);
   const clarificationReply=Boolean(handsFree.pending);
   let intent='';
