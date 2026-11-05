@@ -956,6 +956,13 @@ def get_tutor_audio_reply(student_id: str, audio_bytes: bytes, mime_type: str, r
         "Only when every essential Maths token is clear should you answer the spoken question as a patient teacher and explain the method step by step in text. "
         "Never invent missing words or digits, and do not reproduce unrelated personal information that may be spoken in the recording."
     )
+    if reference_context:
+        prompt += (
+            " For a video follow-up, identify the exact step or ordinal the learner asks about "
+            "from the recording before using the reference. The paused position and transcript "
+            "provide context only. If the learner asks about an intermediate move, give the "
+            "result of that move first. If the requested move is unclear, ask for clarification."
+        )
     return _media_reply(student_id, audio_bytes, mime_type, prompt + reference_context, profile_message)
 
 
