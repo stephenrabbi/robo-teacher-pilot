@@ -55,7 +55,7 @@ jobs:
         run: node tests/browser_pcm_stream_qa.cjs
       - name: Save visual QA screenshots
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: classroom-responsive-qa
           path: responsive-qa/
