@@ -879,7 +879,12 @@ def select_lesson_media(text: str, response_language: str = "English") -> dict:
     lesson=text.lower()
     if response_language == "English" and "round" in lesson and re.search(r"\bnearest\s+(?:ten|10)\b", lesson):
         return {"kind":"video","video_id":"rounding-nearest-ten","title":"Rounding to the nearest ten — worked example: 47","source":"Robo-Teacher"}
-    directed_example = re.search(r"(?<![\d./−-])3\s*\+\s*\(\s*[-−]5\s*\)", lesson)
+    directed_example = re.search(
+        r"(?<![\w./−-])3\s*\+\s*(?:\(\s*[-−]\s*5\s*\)|[-−]\s*5\b)"
+        r"(?![\w/]|\.\d)"
+        r"|\b(?:3|three)\s+plus\s+negative\s+(?:5|five)\b(?![/]|\.\d)",
+        lesson,
+    )
     if response_language == "English" and directed_example:
         return {
             "kind": "video",

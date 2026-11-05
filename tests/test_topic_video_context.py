@@ -79,3 +79,11 @@ def test_audio_reference_does_not_replace_transcription_safety_rules():
         prompt = provider.call_args.args[3]
         assert 'DO NOT solve the problem' in prompt and 'Do not infer a number' in prompt
         assert 'Complete transcript:' in prompt and 'never be used to guess an unclear spoken number' in prompt
+
+
+def test_directed_numbers_video_accepts_equivalent_notation():
+    for example in ['3 + (-5)', '3 + −5', 'three plus negative five', '3 plus negative 5']:
+        assert tutor.select_lesson_media(example)['video_id'] == 'adding-directed-numbers'
+    for other in ['13 + (-5)', '-3 + (-5)', '3 + -50', '3 + -5.2', '3 + -5/2', '3 - 5']:
+        assert tutor.select_lesson_media(other).get('video_id') != 'adding-directed-numbers'
+    assert tutor.select_lesson_media('3 + (-5)', 'Yoruba').get('video_id') != 'adding-directed-numbers'
