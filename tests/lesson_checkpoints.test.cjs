@@ -78,3 +78,19 @@ test('saved classroom snapshot retains an active example and clears it after lea
  c.saveClassroomSnapshot();assert.equal(stored.workedExample.index,1);assert.equal(stored.workedExample.steps[1],'Exact second');assert.equal(stored.answer,'Main lesson');
  example=null;c.saveClassroomSnapshot();assert.equal(stored.workedExample,null);
 });
+
+test('hands-free video questions capture the video before submitting chat',()=>{
+ const calls=[];
+ const c={
+  teachingStage:{mode:'example'},mediaReplayPlayer:{getCheckpoint:()=>({id:'adding-directed-numbers',time:20})},
+  teacherPanel:{classList:{contains:()=>false}},normalizeSpokenIntent:t=>t,currentLesson:{},
+  lessonInterruption:null,handsFree:{},question:{},
+  askTopicVideo(){calls.push('capture video');c.lessonInterruption={video:c.mediaReplayPlayer.getCheckpoint()};},
+  pauseLessonForQuestion(){calls.push('pause lesson');},stopHandsFreeListening(){},
+  form:{requestSubmit(){calls.push(['submit',c.question.value,c.lessonInterruption?.video]);}},
+ };
+ vm.createContext(c);vm.runInContext(source.slice(source.indexOf('function executeHandsFreeIntent('),source.indexOf('function handleHandsFreePhrase(')),c);
+ c.executeHandsFreeIntent('Where did the dot land?');
+ assert.deepEqual(calls,['capture video',['submit','Where did the dot land?',{id:'adding-directed-numbers',time:20}]]);
+ assert.equal(c.handsFree.processing,true);
+});
