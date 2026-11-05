@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Robo-Teacher Classroom</title>
-  <link rel="stylesheet" href="/classroom/styles.css?v=20261103-handoff1" />
+  <link rel="stylesheet" href="/classroom/styles.css?v=20261103-subjects1" />
   <link rel="stylesheet" href="/classroom/classroom2.css?v=20261030-mobile-classroom1" />
   <link rel="stylesheet" href="/classroom/pitch-edition.css?v=20261028-12" />
   <link rel="stylesheet" href="/classroom/option1-landing.css?v=20261030-classroom-screen1" />
@@ -123,9 +123,18 @@
       <section class="learning-area">
         <div class="lesson-header">
           <div><p id="learnerIdentity" class="eyebrow">ROBO-TEACHER CLASSROOM</p><h2>What would you like to learn today?</h2><p id="learningStatus" class="learning-status" aria-live="polite">Ready to learn</p></div>
-          <div class="lesson-actions"><select id="language" aria-label="Teaching language"><option value="English">English</option><option value="Yoruba">Yorùbá</option><option value="Igbo">Igbo</option><option value="Hausa">Hausa</option></select><button id="changeLearner" type="button">Change learner</button></div>
+          <div class="lesson-actions"><select id="language" aria-label="Teaching language"><option value="English">English</option><option value="Yoruba">Yorùbá</option><option value="Igbo">Igbo</option><option value="Hausa">Hausa</option></select><button id="subjectsButton" type="button" aria-expanded="false" aria-controls="subjectLearning">Subjects</button><button id="changeLearner" type="button">Change learner</button></div>
         </div>
         <div id="canvas" class="teaching-canvas">
+          <section id="subjectLearning" class="subject-learning hidden" aria-labelledby="subjectTitle">
+            <p class="practice-kicker">SUBJECT TEACHING · EARLY ACCESS</p><h3 id="subjectTitle">English and Basic Science</h3>
+            <p>Ask by text, recording or image. AI-guided teaching currently supports JSS1–JSS3 here. Curriculum-mapped practice, diagnostics and progress still cover Mathematics.</p>
+            <label for="teachingSubject">Teaching subject</label><select id="teachingSubject"><option>English Language</option><option>Basic Science</option></select>
+            <p id="subjectStatus" role="status">Choose a subject and ask a question.</p><div id="subjectMessages" class="subject-messages" aria-live="polite"></div>
+            <form id="subjectForm"><label for="subjectQuestion">Your question</label><textarea id="subjectQuestion" rows="3" maxlength="1200" placeholder="What would you like your teacher to explain?"></textarea><div class="subject-actions"><button id="subjectSend" type="submit">Ask teacher</button><button id="subjectMic" type="button">Record question</button><button id="subjectUpload" type="button">Upload question</button></div></form>
+            <input id="subjectFile" type="file" class="visually-hidden" accept="image/jpeg,image/png,image/webp,audio/webm,audio/mp4,audio/ogg,audio/wav,audio/mpeg" />
+            <div class="subject-actions"><button id="subjectRead" type="button" disabled>Read subject answer</button><button id="subjectStop" type="button">Stop voice</button><button id="subjectBack" type="button">Back to Maths</button></div>
+          </section>
           <div id="canvasEmpty" class="canvas-empty"><strong>Let’s work through it together</strong><p>Start your lesson above, or type, speak, or upload a Maths problem.</p><div class="canvas-entry-actions"><button type="button" data-classroom-action="question">Type a question</button><button type="button" data-classroom-action="micButton">Speak a question</button><button type="button" data-classroom-action="uploadButton">Upload a problem</button></div></div>
           <div id="canvasWork" class="canvas-work hidden">
             <img id="problemPreview" alt="Learner's Maths problem" />
@@ -266,13 +275,14 @@
   </script>
   <script src="/classroom/friendly_errors.js?v=20261104-maths-numbers"></script>
   <script src="/classroom/compliance.js?v=20261006-privacy1"></script>
-  <script src="/classroom/lesson_controller.js?v=20261031-1"></script>
+  <script src="/classroom/lesson_controller.js?v=20261103-subjects1"></script>
   <script src="/classroom/coordinate_graph.js?v=20261102-lines1"></script>
   <script src="/classroom/topic_video.js?v=20261105-directed-numbers"></script>
   <script src="/classroom/example_replay.js?v=20261103-handoff1"></script>
   <script src="/classroom/teacher_presence.js?v=20261103-handoff1"></script>
   <script src="/classroom/geometry_visual.js?v=20261102-1"></script>
-  <script src="/classroom/app.js?v=20261105-voice-wake"></script>
+  <script src="/classroom/subject_teaching.js?v=20261103-1"></script>
+  <script src="/classroom/app.js?v=20261105-subjects"></script>
   <script src="/classroom/classroom2-workspace.js?v=20261023-1"></script>
   <script src="/classroom/pitch-edition.js?v=20261028-2" defer></script>
   <script src="/classroom/option1-landing.js?v=20261030-hero-loadfix" defer></script>
