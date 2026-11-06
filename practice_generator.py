@@ -220,7 +220,7 @@ def _geometry(level):
 def _pythagoras(level):
     triples = ((3, 4, 5), (5, 12, 13), (7, 24, 25), (8, 15, 17), (9, 40, 41), (12, 35, 37), (20, 21, 29))
     triple = _pick(triples[:2] if level == "Easy" else triples)
-    scale = _int(1, {"Easy": 3, "Medium": 5}.get(level, 8))
+    scale = _int(1, {"Easy": 25, "Medium": 10}.get(level, 15))
     a, b, c = (side * scale for side in triple)
     return (f"A right-angled triangle has shorter sides {a} cm and {b} cm. Find the hypotenuse.", "Use c² = a² + b².", str(c), f"Step 1: c² = {a}² + {b}² = {a*a+b*b}.\nStep 2: c = √{a*a+b*b}.\nTherefore, the hypotenuse is {c} cm.")
 
