@@ -48,7 +48,7 @@ def generate_question(topic: str, difficulty: str):
         "Fractions, Ratios, Decimals & Percentages": _ratio_percentage,
         "Approximation": _decimals,
         "Algebraic Expressions & Factorisation": _algebraic_expressions,
-        "Algebraic Fractions": _fractions,
+        "Algebraic Fractions": _algebraic_fractions,
         "Linear Inequalities": _linear_inequalities,
         "Linear Graphs": _linear_graphs,
         "Plane Shapes & Scale Drawing": _geometry,
@@ -378,3 +378,18 @@ def _trigonometry(level):
 def _pie_charts(level):
     total = _pick((20, 24, 30, 36, 40, 45, 60)); category = _int(1, total-1); angle = Fraction(category*360,total)
     return (f"In a survey of {total} learners, {category} chose football. Find the angle for football on a pie chart.", "Use category/total × 360°.", _fraction(angle), f"Step 1: Angle = {category}/{total} × 360°.\nStep 2: Simplify and multiply.\nTherefore, the angle is {_fraction(angle)}°.")
+
+
+def _algebraic_fractions(level):
+    numerator = _int(2, 9)
+    denominator = _int(2, 9)
+    common_factor = _int(2, 5) if level == "Easy" else _int(6, 12)
+    top, bottom = numerator * common_factor, denominator * common_factor
+    answer = _fraction(Fraction(top, bottom))
+    return (
+        f"Simplify ({top}x)/({bottom}x), where x is not zero.",
+        "Cancel the common nonzero factor x, then reduce the fraction.",
+        answer,
+        f"Step 1: Cancel x because x is not zero. This leaves {top}/{bottom}.\n"
+        f"Step 2: Reduce the fraction. Therefore, the answer is {answer}.",
+    )
