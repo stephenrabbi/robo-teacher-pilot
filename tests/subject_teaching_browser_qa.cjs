@@ -5,14 +5,15 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
  try{
   fs.mkdirSync('responsive-qa',{recursive:true});
   for(const width of [375,390,768,1280]){
-   const page=await browser.newPage({viewport:{width,height:900}}),sent=[],media=[],spoken=[],errors=[];let delayed=null;
+   const page=await browser.newPage({viewport:{width,height:900}}),sent=[],media=[],spoken=[],errors=[];let delayed=null, sessions=0;
    page.on('pageerror',e=>errors.push(e.message));
    await page.route('**/*',route=>{
     const u=new URL(route.request().url());if(u.origin!=='http://127.0.0.1:8765')return route.abort();
     if(u.pathname==='/')return route.fulfill({json:{status:'ready'}});
-    if(u.pathname==='/api/classroom/session')return route.fulfill({json:{session_token:'synthetic-subject-session'}});
+    if(u.pathname==='/api/classroom/session')return route.fulfill({json:{session_token:'synthetic-subject-session-'+(++sessions)}});
     if(u.pathname==='/api/classroom/subject/chat'){
      const data=route.request().postDataJSON();sent.push(data);
+     if(data.message==='Explain nouns'&&sent.length===1)return route.fulfill({status:401,json:{detail:'Expired session'}});
      if(data.message==='Delayed question'){delayed=route;return;}
      return route.fulfill({json:{reply:data.subject==='Basic Science'?'Plants use light to make food.':'A noun names a person, place or thing.'}});
     }
@@ -30,7 +31,8 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
    await page.locator('#subjectsButton').click();assert.deepEqual(errors,[]);await page.locator('#subjectLearning').waitFor({state:'visible'});
    await page.locator('#subjectQuestion').fill('Explain nouns');await page.locator('#subjectSend').click();
    await page.locator('#subjectRead').waitFor({state:'visible'});await page.waitForFunction(()=>!document.querySelector('#subjectRead').disabled);
-   assert.equal(sent.at(-1).subject,'English Language');const firstId=sent.at(-1).conversation_id;
+   assert.equal(sent.length,2);assert.equal(sessions,2);assert.notEqual(sent[0].session_token,sent[1].session_token);
+   assert.equal(sent[0].conversation_id,sent[1].conversation_id);assert.equal(sent.at(-1).subject,'English Language');const firstId=sent.at(-1).conversation_id;
    await page.locator('#subjectRead').click();await page.waitForFunction(()=>document.querySelector('#teacherPanel').classList.contains('speaking'));
    assert.equal(spoken.at(-1),'A noun names a person, place or thing.');await page.locator('#subjectStop').click();
    await page.locator('#subjectQuestion').fill('Delayed question');await page.locator('#subjectSend').click();

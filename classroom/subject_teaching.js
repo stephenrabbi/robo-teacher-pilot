@@ -20,12 +20,18 @@
    const owns=()=>active&&version===epoch&&!abort.signal.aborted;
    notice('Preparing your explanation…','thinking');
    try{
-    const token=await options.session();if(!owns())return;
-    let body,headers;
-    if(kind==='chat'){headers={'Content-Type':'application/json'};body=JSON.stringify({message:question,subject,language,conversation_id:conversation,session_token:token});}
-    else{body=new FormData();for(const [key,value] of Object.entries({session_token:token,subject,language,conversation_id:conversation,caption:question}))body.append(key,value);body.append('file',blob,kind==='image'?'question-image':'question-recording');}
-    const response=await root.fetch(`/api/classroom/subject/${kind}`,{method:'POST',headers,body,signal:abort.signal});const data=await response.json();if(!owns())return;
-    if(response.status===401)options.invalidSession?.();
+    let response;
+    for(let attempt=0;attempt<2;attempt++){
+     const token=await options.session();if(!owns())return;
+     let body,headers;
+     if(kind==='chat'){headers={'Content-Type':'application/json'};body=JSON.stringify({message:question,subject,language,conversation_id:conversation,session_token:token});}
+     else{body=new FormData();for(const [key,value] of Object.entries({session_token:token,subject,language,conversation_id:conversation,caption:question}))body.append(key,value);body.append('file',blob,kind==='image'?'question-image':'question-recording');}
+     response=await root.fetch(`/api/classroom/subject/${kind}`,{method:'POST',headers,body,signal:abort.signal});
+     if(!owns())return;
+     if(response.status!==401||!options.invalidSession)break;
+     options.invalidSession();
+    }
+    const data=await response.json();if(!owns())return;
     if(!response.ok||typeof data.reply!=='string')throw Error('unavailable');
     append('Your question',question||(kind==='image'?'Image question':'Recorded question'));append(`${subject} · ${language}`,data.reply);
     answer=data.reply;answerLanguage=language;input.value='';notice('Explanation ready. You can ask a follow-up.');
