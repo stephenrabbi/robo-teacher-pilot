@@ -38,7 +38,7 @@
   }
 
   function decorate(element) {
-    if (!(element instanceof Element)) return;
+    if (!(element instanceof Element) || !selectors.some(selector => element.matches(selector))) return;
     const text = element.textContent?.trim();
     if (!text) return;
     if (text === element.dataset.friendlyRendered) return;

@@ -11,7 +11,12 @@
   function tracks(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}options.listening?.(false);}
   function cancel(){epoch++;controller?.abort();controller=null;const old=recorder;recorder=null;if(old&&old.state!=='inactive')old.stop();tracks();busy=false;mic.disabled=false;mic.textContent='Record question';options.stop?.();controls();}
   function reset(clear=true){cancel();conversation=fresh();answer='';answerLanguage='';if(clear){messages.replaceChildren();input.value='';}controls();notice(`Ask ${select.value==='English Language'?'an English Language':'a Basic Science'} question.`);}
-  function append(label,text){const card=panel.ownerDocument.createElement('article'),heading=panel.ownerDocument.createElement('strong'),body=panel.ownerDocument.createElement('p');heading.textContent=label;body.textContent=text;card.append(heading,body);messages.appendChild(card);while(messages.children.length>12)messages.firstElementChild.remove();}
+  function append(label,text){const card=panel.ownerDocument.createElement('article'),heading=panel.ownerDocument.createElement('strong'),body=panel.ownerDocument.createElement('p');heading.textContent=label;if(label==='Your question')body.textContent=text;else{
+   for(const [index,part] of text.split(/\*\*([^*\n]+)\*\*/g).entries()){
+    if(index%2===0)body.append(part);
+    else{const strong=panel.ownerDocument.createElement('strong');strong.textContent=part;body.append(strong);}
+   }
+  }card.append(heading,body);messages.appendChild(card);while(messages.children.length>12)messages.firstElementChild.remove();}
   async function request(kind,question,blob=null){
    if(!active||busy)return;
    if(kind!=='chat'&&question.length>500){notice('Please keep the caption under 500 characters, or send it as a typed question.','attention');return;}
