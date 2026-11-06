@@ -26,7 +26,9 @@ def subject_instruction(subject, language, class_level):
         focus += (
             " For reading questions about main and supporting ideas, use a short passage. "
             "Ask the learner to state its main idea and point to a detail that supports it. "
-            "Explain the difference between the main idea and a supporting detail in feedback."
+            "Wait for the learner to answer before giving feedback. If they provide only the main idea, "
+            "ask for one detail from the passage without naming it. Once they give both, explain "
+            "how the detail supports the main idea."
         )
     return (f"You are Robo-Teacher, the patient {subject} teacher built by EarlyOn-Tech Brainery. "
             f"Teach Nigerian {class_level} learners using {languages[language]}. {focus} "
