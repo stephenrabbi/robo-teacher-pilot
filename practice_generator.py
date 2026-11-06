@@ -55,7 +55,7 @@ def generate_question(topic: str, difficulty: str):
         "Angles & Polygons": _angles,
         "Elevation & Depression": _elevation,
         "Bearings & Distances": _bearings,
-        "Pythagoras & Mensuration": _geometry,
+        "Pythagoras & Mensuration": _pythagoras,
         "Statistics & Data Presentation": _data_presentation,
         "Probability": _probability,
         "Rational & Irrational Numbers": _number_types,
@@ -214,7 +214,14 @@ def _geometry(level):
     if level == "Medium":
         unit=_int(2,10); distance=_int(3,15); answer=unit*distance
         return (f"A map scale is 1 cm to {unit} km. What distance does {distance} cm represent?", f"Multiply {distance} by {unit} km.", str(answer), f"Step 1: Each centimetre represents {unit} km.\nStep 2: {distance} × {unit} = {answer}.\nTherefore, the distance is {answer} km.")
-    triple=_pick(((3,4,5),(5,12,13),(7,24,25),(8,15,17),(9,40,41),(12,35,37),(20,21,29))); scale=_int(1,8); a,b,c=(n*scale for n in triple)
+    return _pythagoras(level)
+
+
+def _pythagoras(level):
+    triples = ((3, 4, 5), (5, 12, 13), (7, 24, 25), (8, 15, 17), (9, 40, 41), (12, 35, 37), (20, 21, 29))
+    triple = _pick(triples[:2] if level == "Easy" else triples)
+    scale = _int(1, {"Easy": 3, "Medium": 5}.get(level, 8))
+    a, b, c = (side * scale for side in triple)
     return (f"A right-angled triangle has shorter sides {a} cm and {b} cm. Find the hypotenuse.", "Use c² = a² + b².", str(c), f"Step 1: c² = {a}² + {b}² = {a*a+b*b}.\nStep 2: c = √{a*a+b*b}.\nTherefore, the hypotenuse is {c} cm.")
 
 
