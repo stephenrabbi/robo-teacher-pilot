@@ -51,7 +51,7 @@ def generate_question(topic: str, difficulty: str):
         "Algebraic Fractions": _algebraic_fractions,
         "Linear Inequalities": _linear_inequalities,
         "Linear Graphs": _linear_graphs,
-        "Plane Shapes & Scale Drawing": _geometry,
+        "Plane Shapes & Scale Drawing": _plane_shapes_and_scale,
         "Angles & Polygons": _angles,
         "Elevation & Depression": _elevation,
         "Bearings & Distances": _bearings,
@@ -399,4 +399,21 @@ def _algebraic_fractions(level):
         answer,
         f"Step 1: Cancel x because x is not zero. This leaves {top}/{bottom}.\n"
         f"Step 2: Reduce the fraction. Therefore, the answer is {answer}.",
+    )
+
+
+def _plane_shapes_and_scale(level):
+    if level != "Challenge":
+        return _geometry(level)
+    kilometres_per_cm = _int(2, 10)
+    map_length = _int(3, 20)
+    actual_distance = kilometres_per_cm * map_length
+    return (
+        f"A map scale is 1 cm to {kilometres_per_cm} km. Two towns are "
+        f"{actual_distance} km apart. How far apart are they on the map in cm?",
+        "Divide the actual distance by the number of kilometres per centimetre.",
+        str(map_length),
+        f"Step 1: Each centimetre represents {kilometres_per_cm} km.\n"
+        f"Step 2: {actual_distance} ÷ {kilometres_per_cm} = {map_length}.\n"
+        f"Therefore, the map distance is {map_length} cm.",
     )
