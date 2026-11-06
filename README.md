@@ -31,7 +31,9 @@ https://robo-teacher-v25-staging.onrender.com/classroom-app
 
 ## Subject teaching expansion — 3 November 2026
 
-The **Subjects** button opens early-access English Language and Basic Science teaching for JSS1–JSS3. Learners can type, upload an educational image or recording, and read answers aloud using the existing Cloud teacher voice. Explanations use the selected teaching language; English examples remain in English. Switching subjects starts a fresh conversation, and returning to Maths preserves the original lesson.
+**Try English from the welcome page.** Tap **English**, enter a nickname, choose JSS1, JSS2, or JSS3, and select **Start Learning Now**. The classroom opens directly to English tutoring. Try asking: “Give me a short passage and ask me to identify the main idea.”
+
+The **Subjects** button inside the classroom also opens early-access English Language and Basic Science teaching for JSS1–JSS3. Learners can type, upload an educational image or recording, and read answers aloud using the existing Cloud teacher voice. Explanations use the selected teaching language; English examples remain in English. Switching subjects starts a fresh conversation, and returning to Maths preserves the original lesson.
 
 Subject conversations are separate from Maths mastery records and are held only in bounded, temporary server memory. Uploaded media bytes are not retained in conversation history. This is AI-guided subject teaching; curriculum-mapped practice, diagnostics and progress currently remain Mathematics. Full secondary-school subject and syllabus coverage is still ahead.
 
@@ -138,7 +140,7 @@ Robo-Teacher's scope includes Mathematics, English, sciences, humanities, social
 | Curriculum area | Delivery status |
 |---|---|
 | Mathematics | JSS1–JSS3 module implemented, with all three term mappings |
-| English Language | Live early-access tutoring for JSS1–JSS3. Mapping lessons and assessments to verified Nigerian curriculum objectives is the next English milestone. |
+| English Language | Live early-access tutoring for JSS1–JSS3, accessible from the **English** tile on the welcome page. Mapping lessons and assessments to verified Nigerian curriculum objectives is the next English milestone. |
 | Basic Science | Live early-access tutoring for JSS1–JSS3. Further development is deferred while Maths and English take priority. |
 | Other language subjects and specialist sciences | Planned subject modules, including Physics, Chemistry and Biology |
 | Humanities and social sciences | Planned subject modules |
