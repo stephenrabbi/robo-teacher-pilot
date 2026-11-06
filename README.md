@@ -8,7 +8,7 @@
 
 Robo-Teacher is an **all-subject AI teaching and learning platform for secondary-school students**, developed by **Earlyon-Tech Brainery**. Its purpose is to give every learner a personal AI teacher across the secondary-school curriculum: a teacher they can talk to, interrupt, question and learn from through explanations, drawings, graphs, demonstrations and videos. The platform is live and designed to complement human teachers.
 
-**The platform today:** a live, multilingual classroom with text and voice interaction, image questions, a Teaching Canvas, visual explanations, practice, diagnostics, progress tracking and teacher dashboards. **JSS1–JSS3 Mathematics is the first implemented curriculum module** used to build and validate these shared teaching capabilities. Additional subject modules are the next expansion; they are not yet all available in the live classroom.
+**The platform today:** learners can use Robo-Teacher for **Mathematics, English Language, and Basic Science across JSS1–JSS3**. Mathematics has curriculum-mapped practice, diagnostics, and progress tracking. English Language and Basic Science are live in early access through the **Subjects** workspace, where learners can ask by text, image, or recording and listen to explanations.
 
 **School reach:** **331 students onboarded across Ise Junior High School and Ise Senior High School, Epe, Lagos State.** Separately, the documented earlier evaluation involved **56 learners from Ise Junior High School, Epe, and Tio College, Ikorodu**, with matched baseline/post-test results and **188 successful logged interactions**. These are different groups and measures: onboarding is not a count of evaluated learners, regularly active users or paying customers. See the evaluation evidence below.
 
@@ -138,12 +138,13 @@ Robo-Teacher's scope includes Mathematics, English, sciences, humanities, social
 | Curriculum area | Delivery status |
 |---|---|
 | Mathematics | JSS1–JSS3 module implemented, with all three term mappings |
-| English and other language subjects | Planned curriculum modules; the existing interface language selector is not a language-subject course |
-| Sciences, including Physics, Chemistry and Biology | Planned subject modules |
+| English Language | Live early-access tutoring for JSS1–JSS3. Mapping lessons and assessments to verified Nigerian curriculum objectives is the next English milestone. |
+| Basic Science | Live early-access tutoring for JSS1–JSS3. Further development is deferred while Maths and English take priority. |
+| Other language subjects and specialist sciences | Planned subject modules, including Physics, Chemistry and Biology |
 | Humanities and social sciences | Planned subject modules |
 | Business, computing and technology subjects | Planned subject modules |
 
-These categories describe the platform's intended coverage. The live curriculum selector remains limited to implemented modules.
+Open **Subjects** in the live classroom to try English Language or Basic Science. Curriculum-mapped practice and diagnostics are currently available in Mathematics.
 
 ### Personalized daily learning journey
 
@@ -478,7 +479,7 @@ Current limitations include:
 - voice quality/availability depends on provider capacity and browser/device support;
 - image tutoring depends on image clarity;
 - conversation context can be limited by service/runtime state;
-- the all-subject platform currently has one implemented curriculum module (JSS1–JSS3 Mathematics); additional modules require development and validation;
+- JSS1–JSS3 Mathematics has a curriculum map, while English Language and Basic Science are live as early-access tutoring;
 - internet access is required for the current live experience;
 - the original pilot did not include a randomized control group;
 - the post-test average remained low in absolute terms despite the observed improvement; and
