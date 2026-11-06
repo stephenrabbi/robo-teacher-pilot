@@ -1,8 +1,7 @@
-/* Single editable source of truth for landing subjects.
-   TODO: connect backend subject routing when additional curricula are implemented. */
+/* Landing subject availability. */
 const ROBO_SUBJECTS = [
   {name:"Maths", icon:"▦", colorKey:"maths", available:true},
-  {name:"English", icon:"▤", colorKey:"english", available:false},
+  {name:"English", icon:"▤", colorKey:"english", available:true},
   {name:"Science", icon:"⚗", colorKey:"science", available:false},
   {name:"Coding", icon:"</>", colorKey:"coding", available:false},
   {name:"Social studies", icon:"◎", colorKey:"social", available:false},
