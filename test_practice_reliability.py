@@ -136,3 +136,23 @@ def test_browser_recovery_does_not_persist_answer_content():
     assert "sessionStorage" not in script
     assert "indexedDB" not in script
     assert "learner_answer" not in script
+
+
+def test_simultaneous_answers_accept_equivalent_labelled_pairs():
+    learner = "synthetic-equation-format"
+    for answer in ("x=2,y=3", "x = 2, y = 3", "y = 3, x = 2",
+                   "x=2 and y=3", "y=6/2,x=4/2", "X=2.0,Y=3.0"):
+        practice.start_practice(learner, "Simultaneous Equations", "Challenge", 5, "JSS3")
+        practice._sessions[learner].expected = "x=2,y=3"
+        assert practice.answer_practice(learner, answer)["correct"] is True
+    practice._sessions.pop(learner)
+
+
+def test_simultaneous_answers_reject_incomplete_or_incorrect_pairs():
+    learner = "synthetic-equation-format"
+    for answer in ("x=3,y=2", "x=2,x=3", "x=2", "2,3",
+                   "x=2,y=3,z=4", "x=2/0,y=3", "x=2,y=3 please"):
+        practice.start_practice(learner, "Simultaneous Equations", "Challenge", 5, "JSS3")
+        practice._sessions[learner].expected = "x=2,y=3"
+        assert practice.answer_practice(learner, answer)["correct"] is False
+    practice._sessions.pop(learner)
