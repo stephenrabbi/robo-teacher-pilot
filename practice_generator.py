@@ -351,6 +351,20 @@ def _elevation(level):
 
 
 def _bearings(level):
+    if level == "Challenge":
+        bearing = _int(0, 359)
+        total = bearing + 180
+        answer = total % 360
+        wrap = (f"Subtract 360°: {total}° − 360° = {answer}°."
+                if total >= 360 else "The result is below 360°, so no full turn is removed.")
+        return (
+            f"The bearing of B from A is {bearing:03d}°. Find the bearing of A from B.",
+            "The reverse bearing is 180° away. Add 180° and subtract 360° if needed.",
+            f"{answer:03d}",
+            f"Step 1: Reverse direction by adding 180°: {bearing}° + 180° = {total}°.\n"
+            f"Step 2: {wrap}\n"
+            f"Therefore, the bearing of A from B is {answer:03d}°.",
+        )
     bearing = _int(1, 35)*10 % 360; turn = _pick((30, 45, 60, 90)); answer = (bearing+turn)%360
     return (f"A learner faces bearing {bearing:03d}° and turns {turn}° clockwise. What is the new bearing?", "Add the clockwise turn and reduce values above 360°.", f"{answer:03d}", f"Step 1: Add: {bearing}° + {turn}° = {bearing+turn}°.\nStep 2: Express the result as a three-figure bearing.\nTherefore, the new bearing is {answer:03d}°.")
 
