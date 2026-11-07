@@ -612,6 +612,11 @@ function continueHandsFreeTeaching(){
 }
 
 function replayCurrentTeachingAudio(){
+  if(subjectClassroom?.isOpen()){
+    const text=subjectClassroom.getAnswer();
+    if(text){setLearningStatus('Repeating this explanation','thinking');void speakText(text,false,false,true);}
+    return;
+  }
   if(readCurrentWorkedExample(false))return;
   const text=currentLesson?.steps[currentLesson.index]?.trim()||canvasAnswer.innerText.trim();
   if(!text){showHandsFreeHeard('There is no explanation to repeat yet.');updateHandsFreeStatus('Listening…');return}
