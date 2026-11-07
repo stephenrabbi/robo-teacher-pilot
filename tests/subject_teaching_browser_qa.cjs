@@ -31,6 +31,16 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
    await page.evaluate(()=>window.eval("lessonChoreography.enabled=true;enterTeachingStage('visual');"));
    await page.locator('#subjectsButton').click();assert.deepEqual(errors,[]);await page.locator('#subjectLearning').waitFor({state:'visible'});
    const starter=page.locator('#subjectReadingStarter');
+   const writingStarter=page.locator('#subjectWritingStarter');
+   assert.equal(await writingStarter.innerText(),({JSS1:'Plan a short paragraph',JSS2:'Build a writing outline',JSS3:'Draft a composition'})[classLevel]);
+   await writingStarter.click();
+   const writingDraft=await page.locator('#subjectQuestion').inputValue();
+   assert.match(writingDraft,/Wait for my/);
+   assert.equal(await starter.isDisabled(),true);
+   assert.equal(await writingStarter.isDisabled(),true);
+   assert.equal(sent.length,0);assert.equal(spoken.length,0);
+   await page.locator('#subjectQuestion').fill('');
+
    assert.equal(await starter.innerText(),({JSS1:'Find the main idea',JSS2:'Explore the writer’s purpose',JSS3:'Spot facts and opinions'})[classLevel]);
    await starter.click();
    assert.match(await page.locator('#subjectQuestion').inputValue(),/Wait for my answer/);
@@ -54,6 +64,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
    await page.waitForTimeout(100);assert.ok(delayed);
    await page.locator('#teachingSubject').selectOption('Basic Science');
    assert.equal(await starter.isHidden(),true);
+   assert.equal(await writingStarter.isHidden(),true);
    await delayed.fulfill({json:{reply:'STALE ENGLISH ANSWER'}}).catch(()=>{});await page.waitForTimeout(100);
    assert.equal(await page.locator('#subjectMessages').innerText(),'');
    await page.locator('#subjectQuestion').fill('How do plants feed?');await page.locator('#subjectSend').click();
