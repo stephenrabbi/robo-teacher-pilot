@@ -324,6 +324,15 @@ def answer_practice(student_id: str, answer: str) -> dict:
     correct = _normalise_answer(answer) == _normalise_answer(state.expected)
     # Classify against the original Maths question, not translated text.
     source_question = state.question_sets["English"][state.question_number - 1][0]
+    if state.topic == "Formulae & Change of Subject":
+        assignment = re.fullmatch(r"\s*([a-z])\s*=\s*(.+)", answer, re.IGNORECASE)
+        if assignment:
+            subject = re.search(r"Make ([a-z]) the subject", source_question)
+            correct = bool(
+                subject
+                and assignment[1].lower() == subject[1]
+                and _normalise_answer(assignment[2]) == _normalise_answer(state.expected)
+            )
     evidence = _question_evidence(source_question, answer, correct, state.topic)
     state.skill_evidence.append(evidence)
     state.attempted += 1
