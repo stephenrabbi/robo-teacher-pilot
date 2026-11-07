@@ -357,6 +357,19 @@ def _bearings(level):
 
 def _probability(level):
     favourable, other = _int(1, 10), _int(2, 12); result = Fraction(favourable, favourable+other)
+    if level == "Challenge":
+        total = favourable + other
+        complement = 1 - result
+        return (
+            f"A bag contains {favourable} red and {other} blue counters. "
+            "One counter is chosen at random. Find the probability that it is not red.",
+            "Use P(not red) = 1 - P(red).",
+            _fraction(complement),
+            f"Step 1: Total counters = {favourable} + {other} = {total}.\n"
+            f"Step 2: P(red) = {favourable}/{total}.\n"
+            f"Step 3: P(not red) = 1 - {favourable}/{total} = {other}/{total}.\n"
+            f"Therefore, the answer is {_fraction(complement)}.",
+        )
     return (f"A bag contains {favourable} red and {other} blue counters. Find the probability of selecting red.", "Use favourable outcomes divided by total outcomes.", _fraction(result), f"Step 1: Total counters = {favourable} + {other} = {favourable+other}.\nStep 2: P(red) = {favourable}/{favourable+other}.\nStep 3: Simplify. Therefore, the answer is {_fraction(result)}.")
 
 
