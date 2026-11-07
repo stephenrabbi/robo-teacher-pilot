@@ -340,7 +340,7 @@ def _averages(level):
             f"Step 2: Average the middle two: ({values[1]} + {values[2]}) ÷ 2.\n"
             f"Therefore, the median is {_fraction(median)}.",
         )
-    x = _int(2, 15); data = [x, _int(1, 20), x, _int(21, 30), x]
+    x = _int(2, 15); data = [x, _pick(value for value in range(1, 21) if value != x), x, _int(21, 30), x]
     return (f"Find the mode of {', '.join(map(str, data))}.", "The mode is the value that occurs most often.", str(x), f"Step 1: Count how often each value occurs.\nStep 2: {x} occurs three times, more than any other value.\nTherefore, the mode is {x}.")
 
 
