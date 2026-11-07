@@ -176,3 +176,22 @@ def test_quadratic_root_marking_accepts_order_and_repeated_root():
         practice._sessions[learner].expected = expected
         assert practice.answer_practice(learner, answer)["correct"] is correct
     practice._sessions.pop(learner)
+
+
+def test_quadratic_factor_marking_accepts_order_but_preserves_both_factors():
+    learner = "synthetic-factor-format"
+    for answer, correct in (
+        ("(x+2)(x+3)", True),
+        ("(x + 3)(x + 2)", True),
+        ("(X+3) * (X+2)", True),
+        ("(x+2) × (x+3)", True),
+        ("(x+2)(x+2)", False),
+        ("(x-2)(x+3)", False),
+        ("(x+2)", False),
+        ("(x+2)(x+3)(x+4)", False),
+        ("(x+2)+(x+3)", False),
+    ):
+        practice.start_practice(learner, "Factorisation & Quadratic Expressions", "Easy", 5, "JSS3")
+        practice._sessions[learner].expected = "(x+2)(x+3)"
+        assert practice.answer_practice(learner, answer)["correct"] is correct
+    practice._sessions.pop(learner)
