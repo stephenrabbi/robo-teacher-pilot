@@ -87,6 +87,18 @@ def _whole_numbers(level):
             return (f"What is {dividend} ÷ {divisor}?", f"Which number multiplied by {divisor} gives {dividend}?", str(answer), f"Step 1: Use the inverse operation.\nStep 2: {divisor} × {answer} = {dividend}.\nTherefore, {dividend} ÷ {divisor} = {answer}.")
         a, b = _int(200, 900), _int(50, 199); answer = a - b
         return (f"Calculate {a} - {b}.", "Subtract by place value and borrow when necessary.", str(answer), f"Step 1: Align the hundreds, tens and ones.\nStep 2: Subtract each column carefully.\nTherefore, {a} - {b} = {answer}.")
+    if _pick((True, False)):
+        name, unit = _pick((("million", 10**6), ("billion", 10**9), ("trillion", 10**12)))
+        count = _int(12, 99)
+        answer = count * unit
+        return (
+            f"Write {count} {name} as a whole number in figures.",
+            f"One {name} is {unit:,}. Multiply by the number of {name}s.",
+            str(answer),
+            f"Step 1: One {name} is {unit:,}.\n"
+            f"Step 2: {count} × {unit:,} = {answer:,}.\n"
+            f"Therefore, {count} {name} is {answer:,}.",
+        )
     a, b, c = _int(12, 30), _int(3, 9), _int(10, 60); answer = a * b - c
     return (f"Calculate ({a} × {b}) - {c}.", "Complete the multiplication first.", str(answer), f"Step 1: {a} × {b} = {a*b}.\nStep 2: {a*b} - {c} = {answer}.\nTherefore, the answer is {answer}.")
 
