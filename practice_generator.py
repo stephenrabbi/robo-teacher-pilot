@@ -411,7 +411,18 @@ def _simultaneous(level):
 
 def _similar_shapes(level):
     scale, side = _int(2, 6), _int(2, 15); image=scale*side
-    return (f"Two shapes are similar. A {side} cm side on the smaller shape corresponds to {image} cm on the larger. Find the scale factor.", "Divide the larger corresponding side by the smaller one.", str(scale), f"Step 1: Scale factor = {image} ÷ {side}.\nStep 2: {image} ÷ {side} = {scale}.\nTherefore, the scale factor is {scale}.")
+    if level == "Challenge":
+        return (
+            f"Two shapes are similar. The scale factor from the smaller shape to the "
+            f"larger shape is {scale}. A side on the larger shape is {image} cm. "
+            "Find the corresponding side on the smaller shape in cm.",
+            "Divide the larger side by the scale factor.",
+            str(side),
+            f"Step 1: Larger side = {scale} × smaller side.\n"
+            f"Step 2: Smaller side = {image} ÷ {scale} = {side}.\n"
+            f"Therefore, the corresponding smaller side is {side} cm.",
+        )
+    return (f"Two shapes are similar. A {side} cm side on the smaller shape corresponds to {image} cm on the larger. Find the scale factor from the smaller shape to the larger shape.", "Divide the larger corresponding side by the smaller one.", str(scale), f"Step 1: Scale factor = {image} ÷ {side}.\nStep 2: {image} ÷ {side} = {scale}.\nTherefore, the scale factor is {scale}.")
 
 
 def _trigonometry(level):
