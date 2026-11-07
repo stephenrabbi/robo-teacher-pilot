@@ -156,3 +156,23 @@ def test_simultaneous_answers_reject_incomplete_or_incorrect_pairs():
         practice._sessions[learner].expected = "x=2,y=3"
         assert practice.answer_practice(learner, answer)["correct"] is False
     practice._sessions.pop(learner)
+
+
+def test_quadratic_root_marking_accepts_order_and_repeated_root():
+    learner = "synthetic-quadratic-format"
+    for expected, answer, correct in (
+        ("-2,-3", "-3, -2", True),
+        ("-2,-3", "x = -2 or x = -3", True),
+        ("-2,-3", "-4/2, -3.0", True),
+        ("-5,-5", "x=-5", True),
+        ("-2,-3", "-2", False),
+        ("-2,-3", "-2,-2", False),
+        ("-2,-3", "-2,3", False),
+        ("-2,-3", "-2,-3,-4", False),
+        ("-2,-3", "-2/0,-3", False),
+        ("-2,-3", "not a root", False),
+    ):
+        practice.start_practice(learner, "Factorisation & Quadratic Expressions", "Medium", 5, "JSS3")
+        practice._sessions[learner].expected = expected
+        assert practice.answer_practice(learner, answer)["correct"] is correct
+    practice._sessions.pop(learner)
