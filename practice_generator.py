@@ -331,7 +331,7 @@ def _averages(level):
     extra = _int(middle+gap+1, middle+gap+8); ordered = values+[extra]; median = Fraction(values[1]+values[2], 2)
     if level == "Medium":
         return (f"Find the median of {', '.join(map(str, ordered))}.", "For four ordered values, average the two middle values.", _fraction(median), f"Step 1: The values are already ordered.\nStep 2: Average the middle two: ({values[1]} + {values[2]}) ÷ 2.\nTherefore, the median is {_fraction(median)}.")
-    x = _int(2, 15); data = [x, _int(1, 20), x, _int(21, 30), x]
+    x = _int(2, 15); data = [x, _pick(value for value in range(1, 21) if value != x), x, _int(21, 30), x]
     return (f"Find the mode of {', '.join(map(str, data))}.", "The mode is the value that occurs most often.", str(x), f"Step 1: Count how often each value occurs.\nStep 2: {x} occurs three times, more than any other value.\nTherefore, the mode is {x}.")
 
 
