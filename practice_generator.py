@@ -370,6 +370,19 @@ def _number_types(level):
 
 def _variation(level):
     x1, y1, x2 = _int(2, 8), _int(3, 12), _int(9, 20); answer = Fraction(y1*x2, x1)
+    if level == "Challenge":
+        constant = x1 * y1
+        answer = Fraction(constant, x2)
+        return (
+            f"y varies inversely as x. If y = {y1} when x = {x1}, "
+            f"find y when x = {x2}. Give an exact answer.",
+            "For inverse variation, xy is constant. Find the constant, then divide by the new x.",
+            _fraction(answer),
+            f"Step 1: xy = k, so k = {x1} × {y1} = {constant}.\n"
+            f"Step 2: y = k/x = {constant}/{x2} = {_fraction(answer)}.\n"
+            f"Check: x increased, so y decreased from {y1} to {_fraction(answer)}.\n"
+            f"Therefore, y = {_fraction(answer)}.",
+        )
     return (f"y varies directly as x. If y = {y1} when x = {x1}, find y when x = {x2}.", "For direct variation, y/x is constant.", _fraction(answer), f"Step 1: k = y/x = {y1}/{x1}.\nStep 2: y = kx = {y1}/{x1} × {x2}.\nTherefore, y = {_fraction(answer)}.")
 
 
