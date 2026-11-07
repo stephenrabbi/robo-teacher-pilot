@@ -34,7 +34,7 @@ def generate_question(topic: str, difficulty: str):
         "Estimation": _decimals,
         "Decimals & Approximation": _decimals,
         "Number Bases (Binary)": _number_bases,
-        "Number Bases": _number_bases,
+        "Number Bases": _jss3_number_bases,
         "Positive & Negative Integers": _directed,
         "Introductory Algebra": _algebraic_expressions,
         "Simple Equations": _algebra,
@@ -259,6 +259,22 @@ def _number_bases(level):
         return (f"Convert {binary}₂ to base ten.", "Multiply each digit by its place value, a power of 2.", str(value), f"Step 1: Expand {binary}₂ using powers of 2.\nStep 2: Add the occupied place values.\nTherefore, {binary}₂ = {value}₁₀.")
     a, b = _int(3, 15), _int(2, 12); result = a + b
     return (f"Calculate {format(a, 'b')}₂ + {format(b, 'b')}₂. Give your answer in base two.", "You may convert to base ten, add, then convert back.", format(result, "b"), f"Step 1: Convert: {format(a, 'b')}₂ = {a} and {format(b, 'b')}₂ = {b}.\nStep 2: Add: {a} + {b} = {result}.\nStep 3: Convert back. Therefore, the answer is {format(result, 'b')}₂.")
+
+
+def _jss3_number_bases(level):
+    if level != "Challenge" or _pick((True, False)):
+        return _number_bases(level)
+    a, b = _pick(( (5, 4), (6, 4), (6, 5), (7, 4), (7, 5), (7, 6) ))
+    difference = a - b
+    return (
+        f"Calculate {a:b}₂ - {b:b}₂. Give your answer in base two.",
+        "Subtract in base two, borrowing when needed, or check using base ten.",
+        f"{difference:b}",
+        f"Step 1: {a:b}₂ = {a} and {b:b}₂ = {b} in base ten.\n"
+        f"Step 2: {a} - {b} = {difference}.\n"
+        f"Step 3: Convert back: {difference} in base ten is {difference:b}₂.\n"
+        f"Therefore, the answer is {difference:b}₂.",
+    )
 
 
 def _algebraic_expressions(level):
