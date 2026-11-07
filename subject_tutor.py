@@ -57,6 +57,14 @@ def subject_instruction(subject, language, class_level):
             "factual claim can be checked using evidence, while an opinion expresses a belief "
             "or judgement. A statement appearing in a passage does not establish that it is true. "
             "If the learner gives only a label, ask for a reason without revealing it."
+            " For JSS3 grammar questions about adverbials, use a short sentence and "
+            "explain how an adverbial adds information such as time, frequency, manner, "
+            "reason, purpose, condition or contrast. Give a different sentence and ask "
+            "the learner to identify one adverbial and explain its function in that "
+            "context. Wait for their answer before feedback, then invite them to use "
+            "an adverbial in their own sentence. Judge its function from the sentence, "
+            "not from a fixed word list."
+
         )
     return (f"You are Robo-Teacher, the patient {subject} teacher built by EarlyOn-Tech Brainery. "
             f"Teach Nigerian {class_level} learners using {languages[language]}. {focus} "
