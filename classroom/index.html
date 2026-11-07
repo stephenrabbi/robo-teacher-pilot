@@ -131,7 +131,7 @@
             <p>Ask by text, recording or image. AI-guided teaching currently supports JSS1–JSS3 here. Curriculum-mapped practice, diagnostics and progress still cover Mathematics.</p>
             <label for="teachingSubject">Teaching subject</label><select id="teachingSubject"><option>English Language</option><option>Basic Science</option></select>
             <p id="subjectStatus" role="status">Choose a subject and ask a question.</p><div id="subjectMessages" class="subject-messages" aria-live="polite"></div>
-            <form id="subjectForm"><div class="subject-actions"><button id="subjectReadingStarter" type="button" hidden>Try reading practice</button></div><label for="subjectQuestion">Your question</label><textarea id="subjectQuestion" rows="3" maxlength="1200" placeholder="What would you like your teacher to explain?"></textarea><div class="subject-actions"><button id="subjectSend" type="submit">Ask teacher</button><button id="subjectMic" type="button">Record question</button><button id="subjectUpload" type="button">Upload question</button></div></form>
+            <form id="subjectForm"><div class="subject-actions"><button id="subjectReadingStarter" type="button" hidden>Try reading practice</button><button id="subjectWritingStarter" type="button" hidden>Try writing practice</button></div><label for="subjectQuestion">Your question</label><textarea id="subjectQuestion" rows="3" maxlength="1200" placeholder="What would you like your teacher to explain?"></textarea><div class="subject-actions"><button id="subjectSend" type="submit">Ask teacher</button><button id="subjectMic" type="button">Record question</button><button id="subjectUpload" type="button">Upload question</button></div></form>
             <input id="subjectFile" type="file" class="visually-hidden" accept="image/jpeg,image/png,image/webp,audio/webm,audio/mp4,audio/ogg,audio/wav,audio/mpeg" />
             <div class="subject-actions"><button id="subjectRead" type="button" disabled>Read subject answer</button><button id="subjectStop" type="button">Stop voice</button><button id="subjectBack" type="button">Back to Maths</button></div>
           </section>
@@ -281,7 +281,7 @@
   <script src="/classroom/example_replay.js?v=20261103-handoff1"></script>
   <script src="/classroom/teacher_presence.js?v=20261103-handoff1"></script>
   <script src="/classroom/geometry_visual.js?v=20261102-1"></script>
-  <script src="/classroom/subject_teaching.js?v=20261107-reading-starter"></script>
+  <script src="/classroom/subject_teaching.js?v=20261107-writing-starter"></script>
   <script src="/classroom/app.js?v=20261107-reading-starter"></script>
   <script src="/classroom/classroom2-workspace.js?v=20261023-1"></script>
   <script src="/classroom/pitch-edition.js?v=20261028-2" defer></script>
