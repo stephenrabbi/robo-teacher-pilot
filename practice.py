@@ -288,6 +288,14 @@ def _normalise_answer(answer: str) -> str:
         return clean
 
 
+def _quadratic_factors(answer: str):
+    factors = re.fullmatch(
+        r"\s*\(\s*x\s*\+\s*(\d+)\s*\)\s*(?:[×*]\s*)?\(\s*x\s*\+\s*(\d+)\s*\)\s*",
+        answer.lower(),
+    )
+    return sorted(map(int, factors.groups())) if factors else None
+
+
 def _quadratic_roots(answer: str):
     parts = re.split(r",|\bor\b", answer.strip().lower().replace("−", "-"))
     if not 1 <= len(parts) <= 2:
@@ -342,6 +350,10 @@ def answer_practice(student_id: str, answer: str) -> dict:
         submitted_roots = _quadratic_roots(answer)
         expected_roots = _quadratic_roots(state.expected)
         correct = submitted_roots is not None and submitted_roots == expected_roots
+    if state.topic == "Factorisation & Quadratic Expressions" and state.difficulty == "Easy":
+        submitted_factors = _quadratic_factors(answer)
+        expected_factors = _quadratic_factors(state.expected)
+        correct = submitted_factors is not None and submitted_factors == expected_factors
     # Classify against the original Maths question, not translated text.
     source_question = state.question_sets["English"][state.question_number - 1][0]
     evidence = _question_evidence(source_question, answer, correct, state.topic)
