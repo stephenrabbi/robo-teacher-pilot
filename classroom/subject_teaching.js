@@ -2,12 +2,29 @@
 (function(root){
  'use strict';
  function createSubjectClassroom(panel,options){
-  const q=s=>panel.querySelector(s),select=q('#teachingSubject'),input=q('#subjectQuestion'),form=q('#subjectForm'),messages=q('#subjectMessages'),status=q('#subjectStatus'),send=q('#subjectSend'),upload=q('#subjectUpload'),file=q('#subjectFile'),mic=q('#subjectMic'),read=q('#subjectRead'),stop=q('#subjectStop');
+  const q=s=>panel.querySelector(s),select=q('#teachingSubject'),input=q('#subjectQuestion'),form=q('#subjectForm'),messages=q('#subjectMessages'),status=q('#subjectStatus'),send=q('#subjectSend'),upload=q('#subjectUpload'),file=q('#subjectFile'),mic=q('#subjectMic'),read=q('#subjectRead'),stop=q('#subjectStop'),starter=q('#subjectReadingStarter');
   let active=false,epoch=0,controller=null,conversation='',answer='',answerLanguage='',busy=false,recorder=null,stream=null,owner='';
+  // NERDC English Studies reading objectives, printed pages 2, 25 and 49.
+  const readingStarters={
+   JSS1:['Find the main idea','Give me a short passage. Ask me to identify its main idea and one supporting detail. Wait for my answer before giving feedback.'],
+   JSS2:["Explore the writer’s purpose","Give me a short passage. Ask me to identify the writer's purpose and one word or expression that supports it. Wait for my answer before giving feedback."],
+   JSS3:['Spot facts and opinions','Give me a short passage containing facts and opinions. Ask me to classify one statement and explain my reason. Wait for my answer before giving feedback.'],
+  };
   const fresh=()=>{const bytes=new Uint8Array(16);root.crypto.getRandomValues(bytes);return Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');};
   const notice=(text,state='')=>{status.textContent=text;if(active)options.status?.(text,state);};
   const getAnswer=()=>!busy&&recorder?.state!=='recording'&&answerLanguage===options.language()?answer:'';
-  function controls(){const locked=busy||recorder?.state==='recording';send.disabled=locked;upload.disabled=locked;input.disabled=locked;read.disabled=!getAnswer();options.answer?.(active?getAnswer():'');}
+  function controls(){
+   const locked=busy||recorder?.state==='recording';
+   send.disabled=locked;
+   upload.disabled=locked;
+   input.disabled=locked;
+   read.disabled=!getAnswer();
+   options.answer?.(active?getAnswer():'');
+   const reading=readingStarters[options.classLevel?.()];
+   starter.hidden=select.value!=='English Language'||!reading;
+   starter.textContent=reading?.[0]||'Try reading practice';
+   starter.disabled=locked||!!input.value.trim();
+  }
   function tracks(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}options.listening?.(false);}
   function cancel(){epoch++;controller?.abort();controller=null;const old=recorder;recorder=null;if(old&&old.state!=='inactive')old.stop();tracks();busy=false;mic.disabled=false;mic.textContent='Record question';options.stop?.();controls();}
   function reset(clear=true){cancel();conversation=fresh();answer='';answerLanguage='';if(clear){messages.replaceChildren();input.value='';}controls();notice(`Ask ${select.value==='English Language'?'an English Language':'a Basic Science'} question.`);}
@@ -38,6 +55,13 @@
    }catch(error){if(owns())notice('I could not prepare that answer. Your typed question is kept; please try again.','attention');}
    finally{if(owns()){controller=null;busy=false;mic.disabled=false;controls();}}
   }
+  input.addEventListener('input',controls);
+  starter.addEventListener('click',()=>{
+   const reading=readingStarters[options.classLevel?.()];
+   if(!active||busy||recorder?.state==='recording'||input.value.trim()||select.value!=='English Language'||!reading)return;
+   input.value=reading[1];controls();input.focus();
+   notice('Your reading question is ready. Tap Ask teacher to begin.');
+  });
   form.addEventListener('submit',event=>{event.preventDefault();const text=input.value.trim();if(text)void request('chat',text);});
   upload.addEventListener('click',()=>file.click());
   file.addEventListener('change',()=>{const blob=file.files?.[0];if(!blob)return;const kind=blob.type.startsWith('image/')?'image':'audio';const limit=kind==='image'?8:12;if(blob.size>limit*1024*1024){notice(`Choose a file smaller than ${limit} MB.`,'attention');file.value='';return;}if(kind==='audio')Promise.resolve(options.prepareAudio?.()).catch(()=>{});void request(kind,input.value.trim(),blob);file.value='';});
