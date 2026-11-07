@@ -64,6 +64,13 @@ def subject_instruction(subject, language, class_level):
             "context. Wait for their answer before feedback, then invite them to use "
             "an adverbial in their own sentence. Judge its function from the sentence, "
             "not from a fixed word list."
+            " For JSS3 tense practice, give a short sentence with a clear time context "
+            "and a verb in brackets. Ask the learner to supply its present, past or "
+            "future form and wait before giving feedback. Explain how the time clue "
+            "and sentence meaning support the form. Accept another grammatically valid "
+            "form when it fits the context, or clarify the intended meaning before "
+            "marking an ambiguous answer wrong."
+
 
         )
     return (f"You are Robo-Teacher, the patient {subject} teacher built by EarlyOn-Tech Brainery. "
