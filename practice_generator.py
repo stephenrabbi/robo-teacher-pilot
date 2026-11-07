@@ -110,6 +110,19 @@ def _fractions(level):
                 f"Therefore, {numerator}/{smaller_denominator} is larger; "
                 f"in simplest form it is {_fraction(answer)}.",
             )
+        if _pick((True, False)):
+            numerator, denominator, factor = _int(1, 5), _int(6, 12), _int(2, 9)
+            target_denominator = denominator * factor
+            answer = numerator * factor
+            return (
+                f"Complete {numerator}/{denominator} = x/{target_denominator}. Find x.",
+                "Find how the denominator changed, then multiply the numerator by the same factor.",
+                str(answer),
+                f"Step 1: {target_denominator} ÷ {denominator} = {factor}.\n"
+                f"Step 2: Multiply both numerator and denominator by {factor}.\n"
+                f"Step 3: x = {numerator} × {factor} = {answer}.\n"
+                f"Therefore, {numerator}/{denominator} = {answer}/{target_denominator}.",
+            )
         d = _pick((4, 5, 6, 8, 10, 12)); a, b = _int(1, d//2), _int(1, d//2); result = Fraction(a+b, d)
         return (f"Calculate {a}/{d} + {b}/{d}. Give the simplest fraction.", "Keep the common denominator and add the numerators.", _fraction(result), f"Step 1: The denominators are both {d}.\nStep 2: Add the numerators: {a} + {b} = {a+b}.\nStep 3: Simplify {a+b}/{d}. Therefore, the answer is {_fraction(result)}.")
     if level == "Medium":
