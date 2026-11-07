@@ -381,6 +381,19 @@ def _quadratics(level):
 
 
 def _formulae(level):
+    if level == "Challenge":
+        base, height = _int(2, 15), _int(2, 20)
+        area = Fraction(base * height, 2)
+        return (
+            f"Make h the subject of A = bh/2, then find h when A = {_fraction(area)} "
+            f"and b = {base}.",
+            "Multiply both sides by 2, then divide by b.",
+            str(height),
+            "Step 1: Multiply both sides by 2: 2A = bh.\n"
+            "Step 2: Divide by b, where b is not zero: h = 2A/b.\n"
+            f"Step 3: h = (2 × {_fraction(area)}) ÷ {base} = {height}.\n"
+            f"Therefore, h = {height}.",
+        )
     length, width = _int(4, 20), _int(2, 15); perimeter=2*(length+width)
     return (f"Make l the subject of P = 2(l + w), then find l when P = {perimeter} and w = {width}.", "Divide by 2, then subtract w.", str(length), f"Step 1: P/2 = l + w, so l = P/2 - w.\nStep 2: l = {perimeter}/2 - {width} = {length}.\nTherefore, l = {length}.")
 
