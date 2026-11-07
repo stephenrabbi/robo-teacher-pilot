@@ -31,7 +31,7 @@ def generate_question(topic: str, difficulty: str):
         "Geometry & Mensuration": _geometry,
         "Statistics & Probability": _statistics_probability,
         "Factors, Multiples, LCM & HCF": _factors_roots,
-        "Estimation": _decimals,
+        "Estimation": _estimation,
         "Decimals & Approximation": _decimals,
         "Number Bases (Binary)": _number_bases,
         "Number Bases": _number_bases,
@@ -138,6 +138,55 @@ def _factors_roots(level):
         return (f"Find the HCF of {a} and {b}.", "List factors or use prime factorisation.", str(answer), f"Step 1: Find the prime factors of both numbers.\nStep 2: Multiply the shared prime factors.\nTherefore, HCF({a}, {b}) = {answer}.")
     a,b=_int(3,12),_int(4,15); answer=math.lcm(a,b)
     return (f"Find the LCM of {a} and {b}.", "Use the highest powers in their prime factorisations.", str(answer), f"Step 1: Prime-factorise {a} and {b}.\nStep 2: Use each required prime at its highest power.\nTherefore, LCM({a}, {b}) = {answer}.")
+
+
+def _estimation(level):
+    if level == "Challenge" and _pick((True, False)):
+        count, amount = _int(10, 40), _int(50, 80)
+        kind = _pick(("distance", "capacity", "mass"))
+        scenarios = {
+            "distance": (
+                f"A learner estimates a distance using {count} equal steps of about {amount} cm each. Estimate the distance in metres.",
+                "cm", "metres", 100, "step length is approximate",
+            ),
+            "capacity": (
+                f"A container holds about {count} small cups of {amount} mL each. Estimate its capacity in litres.",
+                "mL", "litres", 1000, "number of cups is approximate",
+            ),
+            "mass": (
+                f"A box contains {count} packets with an approximate mass of {amount} g each. Estimate their total mass in kilograms.",
+                "g", "kilograms", 1000, "packet mass is approximate",
+            ),
+        }
+        question, source_unit, result_unit, divisor, reason = scenarios[kind]
+        quantity = count * amount
+        estimate = Fraction(quantity, divisor)
+        return (
+            question,
+            f"Multiply the count by the amount per item, then divide by {divisor} to convert {source_unit} to {result_unit}.",
+            _fraction(estimate),
+            f"Step 1: Estimated {kind} = {count} × {amount} = {quantity} {source_unit}.\n"
+            f"Step 2: Divide by {divisor}: {quantity}/{divisor} = {_fraction(estimate)} {result_unit}.\n"
+            f"Step 3: This is an estimate because the {reason}.\n"
+            f"Therefore, the estimated {kind} is {_fraction(estimate)} {result_unit}.",
+        )
+    unit = {"Easy": 10, "Medium": 100, "Challenge": 1000}[level]
+    value = _int(101, 99999)
+    lower = value // unit * unit
+    upper = lower + unit
+    midpoint = lower + unit // 2
+    if value >= midpoint:
+        answer, direction = upper, "up"
+    else:
+        answer, direction = lower, "down"
+    return (
+        f"A library has {value:,} books. Round this count to the nearest {unit:,}.",
+        "Find the halfway point between the surrounding multiples. At halfway or above, round up.",
+        str(answer),
+        f"Step 1: The surrounding multiples of {unit:,} are {lower:,} and {upper:,}.\n"
+        f"Step 2: The halfway point is {midpoint:,}. Round {direction}.\n"
+        f"Therefore, the estimated count is {answer:,} books.",
+    )
 
 
 def _decimals(level):
