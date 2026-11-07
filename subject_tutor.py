@@ -21,7 +21,7 @@ def subject_instruction(subject, language, class_level):
              if subject == "English Language" else
              "Teach foundational biology, matter, energy, the environment and safe scientific reasoning. Explain observations and evidence. Do not give hazardous experimental procedures, medical diagnoses or personalised treatment; keep these questions educational and refer practical safety decisions to a qualified adult.")
     if subject == "English Language" and class_level == "JSS1":
-        # NERDC combined English Studies curriculum, JSS1 Reading, page 2.
+        # NERDC combined English Studies curriculum, JSS1 Reading, pages 2 and 4.
         # https://nerdc.gov.ng/content_manager/jss/jss1-3_english_studies.pdf
         focus += (
             " For reading questions about main and supporting ideas, use a short passage. "
@@ -29,6 +29,12 @@ def subject_instruction(subject, language, class_level):
             "Wait for the learner to answer before giving feedback. If they provide only the main idea, "
             "ask for one detail from the passage without naming it. Once they give both, explain "
             "how the detail supports the main idea."
+            " For reading questions about the author's mood, use a short fictional passage. "
+            "Ask the learner to name the mood and point to a word or expression that suggests "
+            "it. Wait for their answer before feedback. If they give only a mood, ask for "
+            "evidence without naming it. Explain how the language suggests the mood and "
+            "accept other plausible moods supported by passage evidence."
+
         )
     if subject == "English Language" and class_level == "JSS2":
         # NERDC English Studies, JSS2 Reading, printed page 25.
