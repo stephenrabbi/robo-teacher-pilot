@@ -27,7 +27,7 @@ class SimilarShapesPracticeTests(unittest.TestCase):
                 practice_generator, "_int", side_effect=[3, 5]
             ):
                 question, _, answer, _ = practice_generator.generate_question("Similar Shapes", level)
-                self.assertIn("Find the scale factor", question)
+                self.assertIn("Find the scale factor from the smaller shape to the larger shape", question)
                 self.assertEqual(answer, "3")
 
 
