@@ -20,7 +20,7 @@ class DecimalToFractionTests(unittest.TestCase):
                 self.assertIn(f"{value}/100", explanation)
 
     def test_existing_addition_is_retained(self):
-        with patch.object(practice_generator, "_pick", side_effect=[False, 2, 4]), patch.object(
+        with patch.object(practice_generator, "_pick", side_effect=[False, 2, 4, False]), patch.object(
             practice_generator, "_int", side_effect=[1, 1]
         ):
             question, _, answer, _ = practice_generator.generate_question("Fractions", "Medium")
