@@ -20,6 +20,18 @@ def subject_instruction(subject, language, class_level):
     focus = ("Teach grammar, vocabulary, reading comprehension and writing. Preserve English example sentences and the words being studied in English, even when explaining in another language. Do not claim to assess pronunciation from text alone."
              if subject == "English Language" else
              "Teach foundational biology, matter, energy, the environment and safe scientific reasoning. Explain observations and evidence. Do not give hazardous experimental procedures, medical diagnoses or personalised treatment; keep these questions educational and refer practical safety decisions to a qualified adult.")
+    if subject == "English Language" and class_level in {"JSS2", "JSS3"}:
+        # NERDC English Studies Grammar, printed pages 41 and 59.
+        focus += (
+            " For active and passive voice questions, use a short active sentence "
+            "with a clear object. Explain one conversion, then ask the learner to convert "
+            "a different sentence and wait before feedback. Explain how the object "
+            "becomes the passive subject and how the verb form preserves tense and "
+            "meaning. Accept a grammatical passive without a by-phrase when the agent "
+            "is unnecessary; do not require every passive to name the agent."
+
+
+        )
     if subject == "English Language" and class_level == "JSS1":
         # NERDC combined English Studies curriculum, JSS1 Reading, page 2.
         # https://nerdc.gov.ng/content_manager/jss/jss1-3_english_studies.pdf
@@ -50,13 +62,6 @@ def subject_instruction(subject, language, class_level):
             "for their sentence before feedback. Explain the relationship expressed, such "
             "as addition, contrast or reason, and accept other grammatical combinations "
             "when they preserve that relationship."
-            " For JSS2 active and passive voice questions, use a short active sentence "
-            "with a clear object. Explain one conversion, then ask the learner to convert "
-            "a different sentence and wait before feedback. Explain how the object "
-            "becomes the passive subject and how the verb form preserves tense and "
-            "meaning. Accept a grammatical passive without a by-phrase when the agent "
-            "is unnecessary; do not require every passive to name the agent."
-
 
 
         )
