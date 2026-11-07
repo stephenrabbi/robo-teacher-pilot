@@ -31,7 +31,7 @@ def generate_question(topic: str, difficulty: str):
         "Geometry & Mensuration": _geometry,
         "Statistics & Probability": _statistics_probability,
         "Factors, Multiples, LCM & HCF": _factors_roots,
-        "Estimation": _decimals,
+        "Estimation": _estimation,
         "Decimals & Approximation": _decimals,
         "Number Bases (Binary)": _number_bases,
         "Number Bases": _number_bases,
@@ -138,6 +138,26 @@ def _factors_roots(level):
         return (f"Find the HCF of {a} and {b}.", "List factors or use prime factorisation.", str(answer), f"Step 1: Find the prime factors of both numbers.\nStep 2: Multiply the shared prime factors.\nTherefore, HCF({a}, {b}) = {answer}.")
     a,b=_int(3,12),_int(4,15); answer=math.lcm(a,b)
     return (f"Find the LCM of {a} and {b}.", "Use the highest powers in their prime factorisations.", str(answer), f"Step 1: Prime-factorise {a} and {b}.\nStep 2: Use each required prime at its highest power.\nTherefore, LCM({a}, {b}) = {answer}.")
+
+
+def _estimation(level):
+    unit = {"Easy": 10, "Medium": 100, "Challenge": 1000}[level]
+    value = _int(101, 99999)
+    lower = value // unit * unit
+    upper = lower + unit
+    midpoint = lower + unit // 2
+    if value >= midpoint:
+        answer, direction = upper, "up"
+    else:
+        answer, direction = lower, "down"
+    return (
+        f"A library has {value:,} books. Round this count to the nearest {unit:,}.",
+        "Find the halfway point between the surrounding multiples. At halfway or above, round up.",
+        str(answer),
+        f"Step 1: The surrounding multiples of {unit:,} are {lower:,} and {upper:,}.\n"
+        f"Step 2: The halfway point is {midpoint:,}. Round {direction}.\n"
+        f"Therefore, the estimated count is {answer:,} books.",
+    )
 
 
 def _decimals(level):
