@@ -2239,7 +2239,7 @@ form.addEventListener('submit',async(e)=>{
 
 // Separate early-subject workspace shares the teacher, not Maths lesson state.
 subjectClassroom=window.RoboTeacherSubjects.createSubjectClassroom(subjectLearning,{
-  session:ensureSession,invalidSession:()=>{sessionToken=null;},language:()=>language.value,prepareAudio:prepareTeacherAudio,
+  session:ensureSession,invalidSession:()=>{sessionToken=null;},language:()=>language.value,classLevel:()=>learnerClass.value,prepareAudio:prepareTeacherAudio,
   stop:()=>stopTeacherAudio(),speak:text=>{if(subjectClassroom?.isOpen())void speakText(text,false,false,true);},
   status:setLearningStatus,listening:value=>{subjectRecording=value;syncTeacherPresence();},
   answer:text=>{if(subjectClassroom?.isOpen())readAnswerButton.disabled=!text;},
