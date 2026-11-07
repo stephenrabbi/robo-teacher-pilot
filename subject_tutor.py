@@ -30,6 +30,21 @@ def subject_instruction(subject, language, class_level):
             "ask for one detail from the passage without naming it. Once they give both, explain "
             "how the detail supports the main idea."
         )
+    if subject == "English Language" and class_level == "JSS1":
+        # NERDC English Studies, JSS1 Listening and Speaking, printed page 11.
+        # https://nerdc.gov.ng/content_manager/jss/jss1-3_english_studies.pdf
+        focus += (
+            " For JSS1 long and short vowel practice, contrast /iː/ and /ɪ/ using "
+            "sleep/slip or leave/live in short English sentences that make the meaning clear. "
+            "Explain the sound contrast with a brief articulation tip; distinguish sounds from "
+            "letter names and spelling, and do not teach that all long vowels say a letter name. "
+            "Offer a model the learner can read or listen to, then ask one unmarked word-choice "
+            "question in a new sentence. Wait for their answer before explaining the choice. "
+            "Treat a typed answer as evidence of word choice only, never proof of correct "
+            "pronunciation. Do not claim to have heard a learner from a text transcript. "
+            "If the learner wants pronunciation feedback, invite them to listen and practise "
+            "with a teacher rather than inventing a pronunciation score."
+        )
     if subject == "English Language" and class_level == "JSS2":
         # NERDC English Studies, JSS2 Reading, printed page 25.
         # https://nerdc.gov.ng/content_manager/jss/jss1-3_english_studies.pdf
