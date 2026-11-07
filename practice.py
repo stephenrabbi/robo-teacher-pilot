@@ -288,6 +288,30 @@ def _normalise_answer(answer: str) -> str:
         return clean
 
 
+def _quadratic_factors(answer: str):
+    factors = re.fullmatch(
+        r"\s*\(\s*x\s*\+\s*(\d+)\s*\)\s*(?:[×*]\s*)?\(\s*x\s*\+\s*(\d+)\s*\)\s*",
+        answer.lower(),
+    )
+    return sorted(map(int, factors.groups())) if factors else None
+
+
+def _quadratic_roots(answer: str):
+    parts = re.split(r",|\bor\b", answer.strip().lower().replace("−", "-"))
+    if not 1 <= len(parts) <= 2:
+        return None
+    roots = set()
+    for part in parts:
+        value = re.fullmatch(r"\s*(?:x\s*=\s*)?([+-]?(?:\d+(?:\.\d+)?|\.\d+)(?:\s*/\s*[+-]?\d+)?)\s*", part)
+        if not value:
+            return None
+        try:
+            roots.add(Fraction(re.sub(r"\s*/\s*", "/", value[1])))
+        except (ValueError, ZeroDivisionError):
+            return None
+    return roots
+
+
 def _question_evidence(question: str, answer: str, correct: bool, topic: str) -> dict:
     """Store a skill tag and only demonstrable error patterns, never answers."""
     expression = re.fullmatch(r"(?:Calculate|What is)\s+(\d+)\s*/\s*(\d+)\s*([+-])\s*(\d+)\s*/\s*(\d+)\s*\.(?:\s+Give the simplest fraction\.)?", question.strip(), re.IGNORECASE)
@@ -322,6 +346,14 @@ def answer_practice(student_id: str, answer: str) -> dict:
     if state.answered:
         raise RuntimeError("Question already answered")
     correct = _normalise_answer(answer) == _normalise_answer(state.expected)
+    if state.topic == "Factorisation & Quadratic Expressions" and state.difficulty != "Easy":
+        submitted_roots = _quadratic_roots(answer)
+        expected_roots = _quadratic_roots(state.expected)
+        correct = submitted_roots is not None and submitted_roots == expected_roots
+    if state.topic == "Factorisation & Quadratic Expressions" and state.difficulty == "Easy":
+        submitted_factors = _quadratic_factors(answer)
+        expected_factors = _quadratic_factors(state.expected)
+        correct = submitted_factors is not None and submitted_factors == expected_factors
     # Classify against the original Maths question, not translated text.
     source_question = state.question_sets["English"][state.question_number - 1][0]
     evidence = _question_evidence(source_question, answer, correct, state.topic)
