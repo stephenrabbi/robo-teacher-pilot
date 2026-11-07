@@ -7,6 +7,15 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
   for(const width of [375,390,768,1280]){
    const page=await browser.newPage({viewport:{width,height:900}}),sent=[],media=[],spoken=[],errors=[];let delayed=null;
    page.on('pageerror',e=>errors.push(e.message));
+   await page.addInitScript(()=>{
+    Object.defineProperty(navigator,'mediaDevices',{value:{getUserMedia:async()=>({getTracks:()=>[{stop(){}}]})}});
+    window.MediaRecorder=class extends EventTarget{
+     constructor(){super();this.state='inactive';this.mimeType='audio/webm';}
+     start(){this.state='recording';}
+     stop(){this.state='inactive';this.dispatchEvent(new MessageEvent('dataavailable',{data:new Blob(['synthetic recording'],{type:this.mimeType})}));this.dispatchEvent(new Event('stop'));}
+    };
+   });
+
    await page.route('**/*',route=>{
     const u=new URL(route.request().url());if(u.origin!=='http://127.0.0.1:8765')return route.abort();
     if(u.pathname==='/')return route.fulfill({json:{status:'ready'}});
@@ -49,6 +58,15 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
    await page.waitForFunction(()=>document.querySelector('#teacherPanel').classList.contains('speaking'));
    assert.equal(spoken.length,beforeSpeedChange+1);
    assert.equal(spoken.at(-1),'A noun names a person, place or thing.');
+   await page.locator('#subjectStop').click();
+   await page.locator('#subjectQuestion').fill('Please explain the verb in my recording.');
+   await page.locator('#subjectMic').click();
+   await page.getByRole('button',{name:'Stop recording',exact:true}).waitFor();
+   const recordingResponse=page.waitForResponse(response=>new URL(response.url()).pathname==='/api/classroom/subject/audio');
+   await page.locator('#subjectMic').click();
+   await recordingResponse;
+   assert.match(media.at(-1).body,/Please explain the verb in my recording\./);
+   await page.waitForFunction(()=>!document.querySelector('#subjectSend').disabled);
    await page.locator('#subjectStop').click();
    await page.locator('#subjectQuestion').fill('Delayed question');await page.locator('#subjectSend').click();
    await page.waitForTimeout(100);assert.ok(delayed);
