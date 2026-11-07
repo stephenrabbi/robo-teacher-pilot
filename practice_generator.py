@@ -142,18 +142,33 @@ def _factors_roots(level):
 
 def _estimation(level):
     if level == "Challenge" and _pick((True, False)):
-        steps, step_cm = _int(10, 40), _int(50, 80)
-        distance_cm = steps * step_cm
-        distance_m = Fraction(distance_cm, 100)
+        count, amount = _int(10, 40), _int(50, 80)
+        kind = _pick(("distance", "capacity", "mass"))
+        scenarios = {
+            "distance": (
+                f"A learner estimates a distance using {count} equal steps of about {amount} cm each. Estimate the distance in metres.",
+                "cm", "metres", 100, "step length is approximate",
+            ),
+            "capacity": (
+                f"A container holds about {count} small cups of {amount} mL each. Estimate its capacity in litres.",
+                "mL", "litres", 1000, "number of cups is approximate",
+            ),
+            "mass": (
+                f"A box contains {count} packets with an approximate mass of {amount} g each. Estimate their total mass in kilograms.",
+                "g", "kilograms", 1000, "packet mass is approximate",
+            ),
+        }
+        question, source_unit, result_unit, divisor, reason = scenarios[kind]
+        quantity = count * amount
+        estimate = Fraction(quantity, divisor)
         return (
-            f"A learner estimates a distance using {steps} equal steps of about "
-            f"{step_cm} cm each. Estimate the distance in metres.",
-            "Multiply the step count by the approximate step length, then convert centimetres to metres.",
-            _fraction(distance_m),
-            f"Step 1: Estimated distance = {steps} × {step_cm} = {distance_cm} cm.\n"
-            f"Step 2: Divide by 100: {distance_cm}/100 = {_fraction(distance_m)} metres.\n"
-            "Step 3: This is an estimate because the step length is approximate.\n"
-            f"Therefore, the estimated distance is {_fraction(distance_m)} metres.",
+            question,
+            f"Multiply the count by the amount per item, then divide by {divisor} to convert {source_unit} to {result_unit}.",
+            _fraction(estimate),
+            f"Step 1: Estimated {kind} = {count} × {amount} = {quantity} {source_unit}.\n"
+            f"Step 2: Divide by {divisor}: {quantity}/{divisor} = {_fraction(estimate)} {result_unit}.\n"
+            f"Step 3: This is an estimate because the {reason}.\n"
+            f"Therefore, the estimated {kind} is {_fraction(estimate)} {result_unit}.",
         )
     unit = {"Easy": 10, "Medium": 100, "Challenge": 1000}[level]
     value = _int(101, 99999)
