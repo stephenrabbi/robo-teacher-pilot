@@ -8,9 +8,14 @@ and are never persisted by this module.
 from __future__ import annotations
 
 import re
+from fractions import Fraction
 
 
 MISCONCEPTIONS = {
+    "fraction_denominator_addition": {
+        "label": "Adding denominators when adding fractions",
+        "strategy": "Use equal-sized fraction parts. Show why denominators name the size of each part, convert to a common denominator, then add only the numerators. Use a familiar sharing example.",
+    },
     "fraction_structure": {
         "label": "Fraction structure confusion",
         "strategy": "Use a visual fraction model, make the denominator meaning explicit, and work one equivalent-fraction step at a time.",
@@ -191,6 +196,17 @@ def classify_misconception(
     The classifier is deterministic and topic-bounded. It never calls a model and
     it never returns or stores the transient learner answer text.
     """
+    # Diagnose this specific error only when the selected value proves it.
+    pair = re.search(r"(\d+)\s*/\s*(\d+)\s*\+\s*(\d+)\s*/\s*(\d+)", question)
+    choice = re.fullmatch(r"\s*(\d+)\s*/\s*(\d+)\s*", selected_choice)
+    if pair and choice:
+        a, b, c, d = map(int, pair.groups())
+        n, denominator = map(int, choice.groups())
+        if b and d and denominator:
+            wrong = Fraction(a + c, b + d)
+            if Fraction(n, denominator) == wrong and wrong != Fraction(a, b) + Fraction(c, d):
+                item = MISCONCEPTIONS["fraction_denominator_addition"]
+                return {"category": "fraction_denominator_addition", **item}
     source = " ".join((question, selected_choice, correct_choice, feedback)).lower()
     source = re.sub(r"\s+", " ", source).strip()
     for category, patterns in _RULES:

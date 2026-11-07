@@ -48,7 +48,10 @@ def test_wrong_understanding_answer_reteaches_same_lesson_more_simply():
     assert body["correct"] is False
     assert "Let's try it another way:" in body["feedback"]
     assert "Put 2 counters beside 2 more counters. Count all 4." in body["feedback"]
-    simplify.assert_called_once_with(lesson, "English", "JSS1")
+    assert simplify.call_count == 1
+    assert simplify.call_args.args[0].startswith(lesson)
+    assert "Teaching focus:" in simplify.call_args.args[0]
+    assert simplify.call_args.args[1:] == ("English", "JSS1")
 
 
 def test_correct_understanding_answer_does_not_call_reteach():
@@ -101,3 +104,31 @@ def test_reteach_is_cached_for_repeat_submission_of_same_check():
             assert "Count 2, then count 2 more: 4." in marked.json()["feedback"]
 
     simplify.assert_called_once()
+
+
+def test_followup_rejects_same_question_and_does_not_access_another_learner_check():
+    _reset_state()
+    session = client.post('/api/classroom/session', json={'class_level':'JSS2'}).json()
+    check = _start_check(session, 'Two plus two equals four.')
+    generated = {'question':'What is 2 + 2?', 'choices':['3','4','5'], 'correct_index':1, 'feedback':'Add.'}
+    payload = {'session_token':session['session_token'], 'text':'Count counters.', 'language':'English', 'previous_check_id':check['check_id']}
+    with patch.object(classroom_api, 'generate_understanding_check', return_value=generated) as generate:
+        response = client.post('/api/classroom/understanding/start', json=payload)
+    assert response.status_code == 503
+    assert 'NEW transfer question' in generate.call_args.args[0]
+    other = client.post('/api/classroom/session',json={'class_level':'JSS2'}).json()
+    payload['session_token'] = other['session_token']
+    with patch.object(classroom_api, 'generate_understanding_check') as generate:
+        assert client.post('/api/classroom/understanding/start',json=payload).status_code == 404
+    generate.assert_not_called()
+
+
+def test_followup_accepts_different_question():
+    _reset_state()
+    session = client.post('/api/classroom/session',json={'class_level':'JSS2'}).json()
+    check = _start_check(session,'Two plus two equals four.')
+    generated = {'question':'What is 3 + 2?', 'choices':['4','5','6'], 'correct_index':1, 'feedback':'Count five.'}
+    with patch.object(classroom_api,'generate_understanding_check',return_value=generated):
+        result = client.post('/api/classroom/understanding/start',json={'session_token':session['session_token'],'text':'Count counters.','language':'English','previous_check_id':check['check_id']})
+    assert result.status_code == 200
+    assert result.json()['check_id'] != check['check_id']

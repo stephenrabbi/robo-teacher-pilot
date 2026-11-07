@@ -2,9 +2,11 @@
   if (typeof understandingForm === 'undefined' || !understandingForm) return;
 
   let masteryRetryActive = false;
+  let checkGeneration = 0;
 
   const copy = {
     English: {
+      teacherHelp: 'Ask your teacher for help with this topic. Your difficulty has been flagged in Teacher View.',
       correct: 'Correct!',
       mastered: 'Mastery confirmed.',
       masteredStatus: 'Mastery confirmed',
@@ -20,6 +22,7 @@
       retryFailed: 'I could not prepare the follow-up check right now. You can return to the lesson and try again.'
     },
     Yoruba: {
+      teacherHelp: 'Béèrè fún olùkọ́ rẹ láti ràn ọ́ lọ́wọ́ lórí kókó yìí.',
       correct: 'Ó tọ́!',
       mastered: 'O ti lóye rẹ̀.',
       masteredStatus: 'O ti lóye rẹ̀',
@@ -35,6 +38,7 @@
       retryFailed: 'Mi ò lè pèsè ìbéèrè míì báyìí. Padà sí ẹ̀kọ́ náà kí o sì tún gbìyànjú.'
     },
     Igbo: {
+      teacherHelp: 'Rịọ onye nkuzi gị ka o nyere gị aka n’isiokwu a.',
       correct: 'Ọ dị mma!',
       mastered: 'Ị ghọtala ya.',
       masteredStatus: 'Ị ghọtala ya',
@@ -50,6 +54,7 @@
       retryFailed: 'Enweghị m ike ịkwadebe ajụjụ ọzọ ugbu a. Laghachi n’ihe ọmụmụ ma nwaa ọzọ.'
     },
     Hausa: {
+      teacherHelp: 'Nemi taimakon malaminka a kan wannan batu.',
       correct: 'Daidai!',
       mastered: 'Ka fahimta.',
       masteredStatus: 'Ka fahimta',
@@ -72,6 +77,7 @@
 
   function resetMasteryRetry() {
     masteryRetryActive = false;
+    checkGeneration += 1;
   }
 
   function prepareNewUnderstandingCheck() {
@@ -101,13 +107,14 @@
     });
   }
 
-  async function prepareMasteryRetry(reteachText) {
+  async function prepareMasteryRetry(reteachText, previousCheckId) {
     const token = await ensureSession();
     const response = await fetch('/api/classroom/understanding/start', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
         text: reteachText,
+        previous_check_id: previousCheckId,
         session_token: token,
         language: language.value
       })
@@ -141,6 +148,8 @@
     const submitButton = understandingForm.querySelector('button[type="submit"]');
     const wasRetry = masteryRetryActive;
     const answeredCheckId = understandingCheckId;
+    const answeredGeneration = checkGeneration;
+    const isCurrentCheck = () => answeredGeneration === checkGeneration && answeredCheckId === understandingCheckId;
     const questionText = understandingQuestion.textContent || '';
     const choiceLabels = Array.from(understandingChoices.querySelectorAll('label span')).map(item => item.textContent || '');
     const selectedText = choiceLabels[Number(selected.value)] || '';
@@ -159,12 +168,15 @@
         })
       });
       const data = await response.json();
+      if (!isCurrentCheck()) return;
       if (!response.ok) throw new Error(data.detail || 'answer');
+      if (!data.correct) data.feedback = String(data.feedback || '').replace(/^Correct[!:.]\s*/i, '');
 
       recordLearningSignal(data.correct ? 'correct' : 'incorrect');
       const correctText = choiceLabels[Number(data.correct_index)] || '';
+      let masteryResult = null;
       if (typeof window.roboTeacherMasteryRecord === 'function') {
-        void window.roboTeacherMasteryRecord({
+        masteryResult = await window.roboTeacherMasteryRecord({
           correct: data.correct,
           stage: wasRetry ? 'reteach' : 'initial',
           checkId: answeredCheckId,
@@ -174,6 +186,7 @@
           feedback: data.correct ? '' : (data.feedback || '')
         });
       }
+      if (!isCurrentCheck()) return;
       understandingChoices.querySelectorAll('label').forEach((label, index) => {
         label.classList.toggle('correct-choice', index === data.correct_index);
         label.querySelector('input').disabled = true;
@@ -191,9 +204,18 @@
       understandingFeedback.textContent = `Not quite. ${data.feedback}`;
       understandingFeedback.className = 'practice-feedback incorrect';
 
+      const needsTeacher = Boolean(masteryResult?.summary?.teacher_support_topics?.includes(masteryResult.topic));
       if (wasRetry) {
         setLearningStatus(text.needsReviewStatus, 'attention');
-        understandingFeedback.textContent = `${text.needsReview} ${data.feedback}`;
+        understandingFeedback.textContent = `${needsTeacher ? text.teacherHelp : text.needsReview} ${data.feedback}`;
+        submitButton.textContent = text.checked;
+        resetMasteryRetry();
+        return;
+      }
+
+      if (needsTeacher) {
+        setLearningStatus(text.needsReviewStatus, 'attention');
+        understandingFeedback.textContent = `${needsTeacher ? text.teacherHelp : text.needsReview} ${data.feedback}`;
         submitButton.textContent = text.checked;
         resetMasteryRetry();
         return;
@@ -201,13 +223,15 @@
 
       setLearningStatus(text.retryPreparing, 'thinking');
       submitButton.textContent = text.preparingButton;
-      const retry = await prepareMasteryRetry(data.feedback);
+      const retry = await prepareMasteryRetry(data.feedback, answeredCheckId);
+      if (!isCurrentCheck()) return;
       renderRetryCheck(retry);
       masteryRetryActive = true;
       submitButton.disabled = false;
       submitButton.textContent = text.retryButton;
       setLearningStatus(text.retryReady, 'attention');
     } catch (error) {
+      if (!isCurrentCheck()) return;
       understandingFeedback.textContent = masteryRetryActive ? text.retryFailed : (error.message || 'I could not check that answer. Please try again.');
       understandingFeedback.className = 'practice-feedback incorrect';
       submitButton.disabled = false;
