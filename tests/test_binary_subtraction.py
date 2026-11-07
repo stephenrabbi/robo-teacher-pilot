@@ -29,6 +29,18 @@ class BinarySubtractionTests(unittest.TestCase):
                     self.assertIn("Multiply in base two", hint)
                     self.assertIn(f"{a} × {b} = {a*b}", explanation)
 
+    def test_exact_binary_division_and_multiplication_check(self):
+        for dividend, divisor in ((4, 2), (4, 4), (5, 5), (6, 2), (6, 3), (6, 6), (7, 7)):
+            with self.subTest(dividend=dividend, divisor=divisor), patch.object(
+                practice_generator, "_pick", side_effect=[False, "divide", (dividend, divisor)]
+            ):
+                question, hint, answer, explanation = practice_generator.generate_question("Number Bases", "Challenge")
+                quotient = int(answer, 2)
+                self.assertEqual(quotient * divisor, dividend)
+                self.assertIn(f"{dividend:b}₂ ÷ {divisor:b}₂", question)
+                self.assertIn("Divide in base two", hint)
+                self.assertIn(f"Check: {quotient} × {divisor} = {dividend}", explanation)
+
     def test_existing_number_base_paths_are_retained(self):
         for topic, level in (("Number Bases", "Easy"), ("Number Bases", "Medium"),
                              ("Number Bases", "Challenge"), ("Number Bases (Binary)", "Challenge")):
