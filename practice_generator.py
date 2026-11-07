@@ -264,6 +264,19 @@ def _number_bases(level):
 def _jss3_number_bases(level):
     if level != "Challenge" or _pick((True, False)):
         return _number_bases(level)
+    operation = _pick(("subtract", "multiply"))
+    if operation == "multiply":
+        a, b = _int(2, 3), _int(2, 3)
+        product = a * b
+        return (
+            f"Calculate {a:b}₂ × {b:b}₂. Give your answer in base two.",
+            "Multiply in base two, or check using base ten and convert back.",
+            f"{product:b}",
+            f"Step 1: {a:b}₂ = {a} and {b:b}₂ = {b} in base ten.\n"
+            f"Step 2: {a} × {b} = {product}.\n"
+            f"Step 3: Convert back: {product} in base ten is {product:b}₂.\n"
+            f"Therefore, the answer is {product:b}₂.",
+        )
     a, b = _pick(( (5, 4), (6, 4), (6, 5), (7, 4), (7, 5), (7, 6) ))
     difference = a - b
     return (
