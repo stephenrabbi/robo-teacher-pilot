@@ -30,7 +30,7 @@ def generate_question(topic: str, difficulty: str):
         "Inequalities & Graphs": _inequalities_graphs,
         "Geometry & Mensuration": _geometry,
         "Statistics & Probability": _statistics_probability,
-        "Factors, Multiples, LCM & HCF": _factors_roots,
+        "Factors, Multiples, LCM & HCF": _jss1_factors,
         "Estimation": _decimals,
         "Decimals & Approximation": _decimals,
         "Number Bases (Binary)": _number_bases,
@@ -138,6 +138,22 @@ def _factors_roots(level):
         return (f"Find the HCF of {a} and {b}.", "List factors or use prime factorisation.", str(answer), f"Step 1: Find the prime factors of both numbers.\nStep 2: Multiply the shared prime factors.\nTherefore, HCF({a}, {b}) = {answer}.")
     a,b=_int(3,12),_int(4,15); answer=math.lcm(a,b)
     return (f"Find the LCM of {a} and {b}.", "Use the highest powers in their prime factorisations.", str(answer), f"Step 1: Prime-factorise {a} and {b}.\nStep 2: Use each required prime at its highest power.\nTherefore, LCM({a}, {b}) = {answer}.")
+
+
+def _jss1_factors(level):
+    if level != "Challenge" or _pick((True, False)):
+        return _factors_roots(level)
+    a, b, c = _int(3, 15), _int(3, 15), _int(3, 15)
+    first_lcm = math.lcm(a, b)
+    answer = math.lcm(first_lcm, c)
+    return (
+        f"Find the LCM of {a}, {b} and {c}.",
+        "Find the LCM of the first two numbers, then the LCM of that result and the third.",
+        str(answer),
+        f"Step 1: LCM({a}, {b}) = {first_lcm}.\n"
+        f"Step 2: LCM({first_lcm}, {c}) = {answer}.\n"
+        f"Therefore, the LCM of all three numbers is {answer}.",
+    )
 
 
 def _decimals(level):
