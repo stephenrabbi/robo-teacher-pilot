@@ -53,7 +53,7 @@ test('capturing an active example preserves the original lesson and active examp
 });
 function voiceHarness(){
  const calls=[];let resumed=0;
- const c={teachingStage:{mode:'example'},mediaReplayPlayer:{getStep:()=>({index:1,text:'Exact example step'})},lessonInterruption:null,lessonHistory:[],teacherSpeechPaused:false,currentLesson:{text:'Main lesson',index:0,steps:['Main lesson step']},stopTeacherAudio(){},lessonDirector:{classList:{remove(){}}},canvasStatus:{},setLearningStatus(){},renderCurrentLessonStep(){},speakText(...args){calls.push(args)},resumeTeacherAudio(){resumed++},restoreLessonCheckpoint(checkpoint){c.teachingStage.mode=checkpoint.example?'example':'lesson'},canvasAnswer:{innerText:'Main lesson'},showHandsFreeHeard(){},updateHandsFreeStatus(){}};
+ const c={subjectClassroom:null,teachingStage:{mode:'example'},mediaReplayPlayer:{getStep:()=>({index:1,text:'Exact example step'})},lessonInterruption:null,lessonHistory:[],teacherSpeechPaused:false,currentLesson:{text:'Main lesson',index:0,steps:['Main lesson step']},stopTeacherAudio(){},lessonDirector:{classList:{remove(){}}},canvasStatus:{},setLearningStatus(){},renderCurrentLessonStep(){},speakText(...args){calls.push(args)},resumeTeacherAudio(){resumed++},restoreLessonCheckpoint(checkpoint){c.teachingStage.mode=checkpoint.example?'example':'lesson'},canvasAnswer:{innerText:'Main lesson'},showHandsFreeHeard(){},updateHandsFreeStatus(){}};
  vm.createContext(c);vm.runInContext(source.slice(source.indexOf('function resumeBookmarkedLessonByVoice('),source.indexOf('function setTeacherSpeechPace(')),c);
  return {c,calls,resumed:()=>resumed};
 }
@@ -61,6 +61,16 @@ test('hands-free continue and repeat read the active example while preserving it
  const h=voiceHarness();h.c.continueHandsFreeTeaching();h.c.replayCurrentTeachingAudio();assert.equal(h.calls.length,2);
  for(const call of h.calls){assert.equal(call[0],'Exact example step');assert.equal(call[2],false);assert.equal(call[3],true);}
  h.c.teacherSpeechPaused=true;h.c.continueHandsFreeTeaching();assert.equal(h.resumed(),1);assert.equal(h.calls.length,2);
+});
+test('voice replay reads the active subject answer before a saved Maths example',()=>{
+ const h=voiceHarness();h.c.subjectClassroom={isOpen:()=>true,getAnswer:()=>'English explanation'};
+ h.c.replayCurrentTeachingAudio();
+ assert.equal(h.calls.length,1);assert.equal(h.calls[0][0],'English explanation');
+ assert.equal(h.calls[0][2],false);assert.equal(h.calls[0][3],true);
+});
+test('voice replay does not fall back to Maths when the subject answer is unavailable',()=>{
+ const h=voiceHarness();h.c.subjectClassroom={isOpen:()=>true,getAnswer:()=>''};
+ h.c.replayCurrentTeachingAudio();assert.equal(h.calls.length,0);
 });
 test('voice return restores a pending example checkpoint before older history',()=>{
  const h=voiceHarness();h.c.teachingStage.mode='lesson';h.c.lessonInterruption={example:{index:1}};h.c.lessonHistory.push({text:'Older'});
