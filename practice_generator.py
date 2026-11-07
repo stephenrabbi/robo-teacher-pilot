@@ -96,7 +96,35 @@ def _fractions(level):
         d = _pick((4, 5, 6, 8, 10, 12)); a, b = _int(1, d//2), _int(1, d//2); result = Fraction(a+b, d)
         return (f"Calculate {a}/{d} + {b}/{d}. Give the simplest fraction.", "Keep the common denominator and add the numerators.", _fraction(result), f"Step 1: The denominators are both {d}.\nStep 2: Add the numerators: {a} + {b} = {a+b}.\nStep 3: Simplify {a+b}/{d}. Therefore, the answer is {_fraction(result)}.")
     if level == "Medium":
+        if _pick((True, False)):
+            hundredths = _int(1, 99)
+            decimal = f"{hundredths/100:.2f}"
+            answer = Fraction(hundredths, 100)
+            common = math.gcd(hundredths, 100)
+            return (
+                f"Write {decimal} as a fraction in simplest form.",
+                "Two decimal places mean hundredths. Write over 100, then simplify.",
+                _fraction(answer),
+                f"Step 1: {decimal} = {hundredths}/100.\n"
+                f"Step 2: HCF({hundredths}, 100) = {common}. Divide numerator and denominator by {common}.\n"
+                f"Therefore, the simplest fraction is {_fraction(answer)}.",
+            )
         d1, d2 = _pick((2, 3, 4, 5, 6)), _pick((4, 6, 8, 10, 12)); a, b = _int(1, d1-1), _int(1, d2-1); result = Fraction(a,d1)+Fraction(b,d2)
+        if _pick((True, False)):
+            if Fraction(a, d1) < Fraction(b, d2):
+                a, d1, b, d2 = b, d2, a, d1
+            common = math.lcm(d1, d2)
+            left, right = a * (common // d1), b * (common // d2)
+            difference = Fraction(a, d1) - Fraction(b, d2)
+            return (
+                f"Calculate {a}/{d1} - {b}/{d2}. Give the simplest fraction.",
+                "Use a common denominator, then subtract the numerators.",
+                _fraction(difference),
+                f"Step 1: A common denominator is {common}.\n"
+                f"Step 2: {a}/{d1} = {left}/{common} and {b}/{d2} = {right}/{common}.\n"
+                f"Step 3: ({left} - {right})/{common} = {left-right}/{common}.\n"
+                f"Therefore, the simplest answer is {_fraction(difference)}.",
+            )
         common = math.lcm(d1,d2)
         return (f"Calculate {a}/{d1} + {b}/{d2}. Give the simplest fraction.", f"Use {common} as a common denominator.", _fraction(result), f"Step 1: Use the common denominator {common}.\nStep 2: Convert both fractions and add their numerators.\nStep 3: Simplify the result. Therefore, the answer is {_fraction(result)}.")
     a,b,c,d = _int(2,9),_int(3,10),_int(2,9),_int(3,10); result=Fraction(a,b)*Fraction(c,d)
