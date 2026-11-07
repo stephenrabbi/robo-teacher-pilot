@@ -87,6 +87,7 @@
    close(){active=false;cancel();mic.disabled=false;},
    reset(){active=false;owner='';reset();},
    languageChanged(){cancel();conversation=fresh();controls();notice('New replies will use the selected teaching language. Ask your question again to get a new-language answer.');},
+   voiceFailed(message){if(active)notice(message+' Your written subject answer is still available.','attention');},
    isOpen(){return active;},getAnswer,
   };
  }

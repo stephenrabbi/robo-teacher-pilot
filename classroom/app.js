@@ -1117,7 +1117,8 @@ async function speakText(text,preserveAudioUnlock=false,displayCanvasAvatar=true
           ? 'The voice session expired. Please tap Read answer again.'
           : 'Audio playback was interrupted. Please retry Read answer, or use Chrome with sound enabled.';
     teacherVoiceStatus.textContent='Voice unavailable';
-    addMessage(guidance+' The written answer is still available on the Teaching Canvas.','teacher');
+    if(typeof subjectClassroom!=='undefined'&&subjectClassroom?.isOpen())subjectClassroom.voiceFailed(guidance.replaceAll('Read answer','Read subject answer'));
+    else addMessage(guidance+' The written answer is still available on the Teaching Canvas.','teacher');
     return false;
   }
 }
