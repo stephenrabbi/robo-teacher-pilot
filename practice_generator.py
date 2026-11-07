@@ -386,6 +386,19 @@ def _formulae(level):
 
 
 def _fraction_equations(level):
+    if level == "Challenge":
+        denominator, total, constant = _int(2, 9), _int(2, 20), _int(1, 10)
+        numerator = denominator * total
+        solution = numerator - constant
+        return (
+            f"Solve (x + {constant})/{denominator} = {total}.",
+            "Multiply both sides by the denominator, then subtract the constant.",
+            str(solution),
+            f"Step 1: Multiply both sides by {denominator}: x + {constant} = {numerator}.\n"
+            f"Step 2: Subtract {constant}: x = {numerator} - {constant} = {solution}.\n"
+            f"Step 3: Check: ({solution} + {constant})/{denominator} = {total}.\n"
+            f"Therefore, x = {solution}.",
+        )
     denominator, x = _int(2, 9), _int(2, 20); constant = _int(1, 10); total = x + constant
     return (f"Solve x/{denominator} + {constant} = {total}.", f"Subtract {constant}, then multiply by {denominator}.", str(x*denominator), f"Step 1: x/{denominator} = {total} - {constant} = {x}.\nStep 2: Multiply both sides by {denominator}.\nTherefore, x = {x*denominator}.")
 
