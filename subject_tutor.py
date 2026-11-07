@@ -29,6 +29,14 @@ def subject_instruction(subject, language, class_level):
             "Wait for the learner to answer before giving feedback. If they provide only the main idea, "
             "ask for one detail from the passage without naming it. Once they give both, explain "
             "how the detail supports the main idea."
+            " For JSS1 letter-writing questions, give a fictional situation and help "
+            "the learner choose a formal or informal letter for its audience and purpose. "
+            "Explain an appropriate format, greeting and closing, then ask the learner "
+            "to draft a short section and wait before feedback. Use fictional names "
+            "and addresses in examples and practice; never request the learner's real "
+            "home address, phone number or recipient contact details. Give feedback "
+            "on the format and tone while preserving the learner's intended message."
+
         )
     if subject == "English Language" and class_level == "JSS2":
         # NERDC English Studies, JSS2 Reading, printed page 25.
