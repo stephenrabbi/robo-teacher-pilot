@@ -374,6 +374,20 @@ def _fraction_equations(level):
 
 
 def _simultaneous(level):
+    if level == "Challenge":
+        x, y = _int(1, 15), _int(1, 15)
+        coefficient = _int(2, 5)
+        total = x + y
+        weighted_total = coefficient * x + y
+        return (
+            f"Solve x + y = {total} and {coefficient}x + y = {weighted_total}.",
+            "Subtract the first equation from the second to eliminate y.",
+            f"x={x},y={y}",
+            f"Step 1: Subtract: {coefficient - 1}x = {weighted_total} − {total} = {(coefficient - 1) * x}.\n"
+            f"Step 2: Divide by {coefficient - 1} to get x = {x}.\n"
+            f"Step 3: Substitute into x + y = {total}. Then y = {total} − {x} = {y}.\n"
+            f"Therefore, x = {x}, y = {y}.",
+        )
     x, y = _int(1, 15), _int(1, 15); total=x+y; difference=x-y
     return (f"Solve x + y = {total} and x - y = {difference}.", "Add the equations to eliminate y.", f"x={x},y={y}", f"Step 1: Add the equations: 2x = {total+difference}.\nStep 2: x = {x}. Substitute into x + y = {total}.\nStep 3: y = {y}. Therefore, x = {x}, y = {y}.")
 
