@@ -42,6 +42,14 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
    await page.locator('#teacherPanel .voice-settings summary').click();
    await page.locator('#subjectRead').click();await page.waitForFunction(()=>document.querySelector('#teacherPanel').classList.contains('speaking'));
    assert.equal(spoken.at(-1),'A noun names a person, place or thing.');
+   const beforePause=spoken.length;
+   assert.equal(await page.locator('#subjectRead').innerText(),'Pause subject answer');
+   await page.locator('#subjectRead').click();
+   await page.waitForFunction(()=>document.querySelector('#teacherPanel').classList.contains('paused'));
+   assert.equal(await page.locator('#subjectRead').innerText(),'Continue subject answer');
+   await page.locator('#subjectRead').click();
+   await page.waitForFunction(()=>document.querySelector('#teacherPanel').classList.contains('speaking'));
+   assert.equal(spoken.length,beforePause);
    const beforeSpeedChange=spoken.length;
    const speedSpeech=page.waitForResponse(response=>new URL(response.url()).pathname==='/api/classroom/speech');
    await page.locator('#teacherSpeed').selectOption('slower');

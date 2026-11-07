@@ -80,13 +80,14 @@
    }catch(error){if(active&&version===epoch){tracks();notice('The microphone could not start. You can type or upload your question.','attention');}}
    finally{if(active&&version===epoch)mic.disabled=false;}
   });
-  read.addEventListener('click',()=>{const text=getAnswer();if(active&&text)options.speak?.(text);});stop.addEventListener('click',()=>options.stop?.());
+  read.addEventListener('click',()=>{const text=getAnswer();if(active&&text){if(options.read)options.read();else options.speak?.(text);}});stop.addEventListener('click',()=>options.stop?.());
   select.addEventListener('change',()=>reset());
   return {
    open(key){active=true;if(owner!==key){owner=key;reset();}else{controls();notice(`Continue your ${select.value} conversation.`);}input.focus();},
    close(){active=false;cancel();mic.disabled=false;},
    reset(){active=false;owner='';reset();},
    languageChanged(){cancel();conversation=fresh();controls();notice('New replies will use the selected teaching language. Ask your question again to get a new-language answer.');},
+   setReadState(state){read.textContent=state==='speaking'?'Pause subject answer':state==='paused'?'Continue subject answer':'Read subject answer';},
    isOpen(){return active;},getAnswer,
   };
  }
