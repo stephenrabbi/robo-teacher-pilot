@@ -21,20 +21,26 @@ class EstimationPracticeTests(unittest.TestCase):
                     self.assertIn("halfway point", explanation)
                     self.assertIn("books", explanation)
 
-    def test_step_estimates_convert_centimetres_to_metres(self):
-        for steps in range(10, 41):
-            for step_cm in range(50, 81):
-                with patch.object(practice_generator, "_pick", return_value=True), patch.object(
-                    practice_generator, "_int", side_effect=[steps, step_cm]
-                ):
-                    question, hint, answer, explanation = practice_generator.generate_question(
-                        "Estimation", "Challenge"
-                    )
-                    self.assertEqual(Fraction(answer), Fraction(steps * step_cm, 100))
-                    self.assertIn(f"{steps} equal steps", question)
-                    self.assertIn(f"about {step_cm} cm", question)
-                    self.assertIn("centimetres to metres", hint)
-                    self.assertIn("step length is approximate", explanation)
+    def test_measurement_estimates_use_the_correct_unit_conversion(self):
+        for kind, divisor, source_unit, result_unit in (
+            ("distance", 100, "cm", "metres"),
+            ("capacity", 1000, "mL", "litres"),
+            ("mass", 1000, "g", "kilograms"),
+        ):
+            for count in range(10, 41):
+                for amount in range(50, 81):
+                    with patch.object(practice_generator, "_pick", side_effect=[True, kind]), patch.object(
+                        practice_generator, "_int", side_effect=[count, amount]
+                    ):
+                        question, hint, answer, explanation = practice_generator.generate_question(
+                            "Estimation", "Challenge"
+                        )
+                        self.assertEqual(Fraction(answer), Fraction(count * amount, divisor))
+                        self.assertIn(f"{amount} {source_unit}", question)
+                        self.assertIn(result_unit, question)
+                        self.assertIn(f"divide by {divisor}", hint)
+                        self.assertIn("is approximate", explanation)
+                        self.assertIn(f"{count * amount} {source_unit}", explanation)
 
     def test_decimals_topic_keeps_its_existing_generator(self):
         with patch.object(practice_generator, "_decimals", return_value=("existing",)) as decimals:
