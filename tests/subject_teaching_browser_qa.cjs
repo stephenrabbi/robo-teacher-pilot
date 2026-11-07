@@ -25,10 +25,18 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
    });
    await page.goto('http://127.0.0.1:8765/classroom/index.html');
    if(await page.getByRole('button',{name:'Essential only',exact:true}).isVisible())await page.getByRole('button',{name:'Essential only',exact:true}).click();
+   const classLevel=({375:'JSS1',390:'JSS2',768:'JSS3',1280:'JSS1'})[width];
+   await page.evaluate(level=>window.eval(`learnerClass.value='${level}'`),classLevel);
    await page.evaluate(()=>window.eval("learnerNickname.value='SyntheticSubjectQA';learnerCode.value='TEST-SUBJECT-QA';enterClassroomView();canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');startLessonDirector('Original Maths lesson',0,['Original Maths step retained']);"));
    await page.evaluate(()=>window.eval("lessonChoreography.enabled=true;enterTeachingStage('visual');"));
    await page.locator('#subjectsButton').click();assert.deepEqual(errors,[]);await page.locator('#subjectLearning').waitFor({state:'visible'});
-   await page.locator('#subjectQuestion').fill('Explain nouns');await page.locator('#subjectSend').click();
+   const starter=page.locator('#subjectReadingStarter');
+   assert.equal(await starter.innerText(),({JSS1:'Find the main idea',JSS2:'Explore the writer’s purpose',JSS3:'Spot facts and opinions'})[classLevel]);
+   await starter.click();
+   assert.match(await page.locator('#subjectQuestion').inputValue(),/Wait for my answer/);
+   assert.equal(sent.length,0);assert.equal(spoken.length,0);
+   assert.equal(await starter.isDisabled(),true);
+   await page.locator('#subjectSend').click();
    await page.locator('#subjectRead').waitFor({state:'visible'});await page.waitForFunction(()=>!document.querySelector('#subjectRead').disabled);
    assert.equal(sent.at(-1).subject,'English Language');const firstId=sent.at(-1).conversation_id;
    await page.locator('#teacherPanel .voice-settings summary').click();
@@ -45,6 +53,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
    await page.locator('#subjectQuestion').fill('Delayed question');await page.locator('#subjectSend').click();
    await page.waitForTimeout(100);assert.ok(delayed);
    await page.locator('#teachingSubject').selectOption('Basic Science');
+   assert.equal(await starter.isHidden(),true);
    await delayed.fulfill({json:{reply:'STALE ENGLISH ANSWER'}}).catch(()=>{});await page.waitForTimeout(100);
    assert.equal(await page.locator('#subjectMessages').innerText(),'');
    await page.locator('#subjectQuestion').fill('How do plants feed?');await page.locator('#subjectSend').click();
