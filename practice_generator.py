@@ -93,6 +93,23 @@ def _whole_numbers(level):
 
 def _fractions(level):
     if level == "Easy":
+        if _pick((True, False)):
+            numerator, smaller_denominator, larger_denominator = _int(1, 5), _int(6, 12), _int(13, 20)
+            first, second = smaller_denominator, larger_denominator
+            if _pick((True, False)):
+                first, second = second, first
+            answer = Fraction(numerator, smaller_denominator)
+            return (
+                f"Which is larger: {numerator}/{first} or {numerator}/{second}? "
+                "Give the larger fraction in simplest form.",
+                "With equal numerators, compare the sizes of the fractional parts.",
+                _fraction(answer),
+                f"Step 1: Both fractions have numerator {numerator}.\n"
+                f"Step 2: {smaller_denominator} is smaller than {larger_denominator}, so "
+                f"each 1/{smaller_denominator} part is larger than a 1/{larger_denominator} part.\n"
+                f"Therefore, {numerator}/{smaller_denominator} is larger; "
+                f"in simplest form it is {_fraction(answer)}.",
+            )
         d = _pick((4, 5, 6, 8, 10, 12)); a, b = _int(1, d//2), _int(1, d//2); result = Fraction(a+b, d)
         return (f"Calculate {a}/{d} + {b}/{d}. Give the simplest fraction.", "Keep the common denominator and add the numerators.", _fraction(result), f"Step 1: The denominators are both {d}.\nStep 2: Add the numerators: {a} + {b} = {a+b}.\nStep 3: Simplify {a+b}/{d}. Therefore, the answer is {_fraction(result)}.")
     if level == "Medium":
