@@ -5,7 +5,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
  try{
   fs.mkdirSync('responsive-qa',{recursive:true});
   for(const width of [375,390,768,1280]){
-   const page=await browser.newPage({viewport:{width,height:900}}),sent=[],media=[],spoken=[],errors=[];let delayed=null;
+   const page=await browser.newPage({viewport:{width,height:900}}),sent=[],media=[],spoken=[],errors=[];let delayed=null,failSpeech=false;
    page.on('pageerror',e=>errors.push(e.message));
    await page.route('**/*',route=>{
     const u=new URL(route.request().url());if(u.origin!=='http://127.0.0.1:8765')return route.abort();
@@ -19,7 +19,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
     if(['/api/classroom/subject/image','/api/classroom/subject/audio'].includes(u.pathname)){
      media.push({path:u.pathname,body:route.request().postDataBuffer().toString()});return route.fulfill({json:{reply:'Educational media explanation.'}});
     }
-    if(u.pathname==='/api/classroom/speech'){spoken.push(route.request().postDataJSON().text);return route.fulfill({contentType:'audio/L16',body:Buffer.alloc(480000)});}
+    if(u.pathname==='/api/classroom/speech'){if(failSpeech)return route.fulfill({status:400,json:{detail:'Synthetic voice failure'}});spoken.push(route.request().postDataJSON().text);return route.fulfill({contentType:'audio/L16',body:Buffer.alloc(480000)});}
     if(u.pathname.startsWith('/api/'))return route.fulfill({status:503,json:{detail:'Not used'}});
     return route.continue();
    });
@@ -49,6 +49,17 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
    await page.waitForFunction(()=>document.querySelector('#teacherPanel').classList.contains('speaking'));
    assert.equal(spoken.length,beforeSpeedChange+1);
    assert.equal(spoken.at(-1),'A noun names a person, place or thing.');
+   await page.locator('#subjectStop').click();
+   const mathsMessages=await page.locator('#messages').innerText();
+   failSpeech=true;await page.locator('#subjectRead').click();
+   await page.waitForFunction(()=>document.querySelector('#subjectStatus').textContent.includes('Your written subject answer is still available.'));
+   assert.match(await page.locator('#subjectStatus').innerText(),/Read subject answer/);
+   assert.match(await page.locator('#subjectMessages').innerText(),/A noun names a person, place or thing/);
+   assert.equal(await page.locator('#subjectRead').isEnabled(),true);
+   assert.equal(await page.locator('#messages').innerText(),mathsMessages);
+   failSpeech=false;
+   await page.locator('#subjectRead').click();
+   await page.waitForFunction(()=>document.querySelector('#teacherPanel').classList.contains('speaking'));
    await page.locator('#subjectStop').click();
    await page.locator('#subjectQuestion').fill('Delayed question');await page.locator('#subjectSend').click();
    await page.waitForTimeout(100);assert.ok(delayed);
