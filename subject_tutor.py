@@ -39,6 +39,13 @@ def subject_instruction(subject, language, class_level):
             "that supports it. Wait for their answer before giving feedback. "
             "If they give only a purpose, ask for evidence without revealing it. "
             "In feedback, explain how the chosen words suggest the writer's intention."
+            " For JSS2 grammar questions about pronouns, use a short passage with a clear "
+            "noun reference. Explain one example, then give a different sentence and ask "
+            "the learner to identify one pronoun and the noun it refers to. Wait for "
+            "their answer before feedback. Explain its function in that sentence. If "
+            "the reference is ambiguous, acknowledge the ambiguity and ask for context "
+            "instead of insisting on one unsupported interpretation."
+
         )
     if subject == "English Language" and class_level == "JSS3":
         # NERDC English Studies, JSS3 Reading, printed page 49.
