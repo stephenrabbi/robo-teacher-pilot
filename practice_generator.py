@@ -361,11 +361,22 @@ def _probability(level):
 
 
 def _number_types(level):
+    if _pick((True, False)):
+        value = _int(2, 12)
+        square = value * value
+        return (
+            f"Is √{square} rational or irrational?",
+            "Check whether the number under the square root is a perfect square.",
+            "rational",
+            f"Step 1: {square} = {value} × {value}, so √{square} = {value}.\n"
+            f"Step 2: {value} can be written as {value}/1, a ratio of integers.\n"
+            f"Therefore, √{square} is rational.",
+        )
     while True:
         root = _int(2, 99)
         if math.isqrt(root) ** 2 != root:
             break
-    return (f"Is √{root} rational or irrational?", "A square root of a whole number is rational only when the number is a perfect square.", "irrational", f"Step 1: {root} is not a perfect square.\nStep 2: Its square root cannot be written as a terminating or recurring fraction.\nTherefore, √{root} is irrational.")
+    return (f"Is √{root} rational or irrational?", "A square root of a whole number is rational only when the number is a perfect square.", "irrational", f"Step 1: {root} is not a perfect square.\nStep 2: Its square root cannot be written as a ratio of integers.\nTherefore, √{root} is irrational.")
 
 
 def _variation(level):
