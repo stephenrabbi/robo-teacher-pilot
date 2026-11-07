@@ -422,7 +422,7 @@ def _similar_shapes(level):
             f"Step 2: Smaller side = {image} ÷ {scale} = {side}.\n"
             f"Therefore, the corresponding smaller side is {side} cm.",
         )
-    return (f"Two shapes are similar. A {side} cm side on the smaller shape corresponds to {image} cm on the larger. Find the scale factor.", "Divide the larger corresponding side by the smaller one.", str(scale), f"Step 1: Scale factor = {image} ÷ {side}.\nStep 2: {image} ÷ {side} = {scale}.\nTherefore, the scale factor is {scale}.")
+    return (f"Two shapes are similar. A {side} cm side on the smaller shape corresponds to {image} cm on the larger. Find the scale factor from the smaller shape to the larger shape.", "Divide the larger corresponding side by the smaller one.", str(scale), f"Step 1: Scale factor = {image} ÷ {side}.\nStep 2: {image} ÷ {side} = {scale}.\nTherefore, the scale factor is {scale}.")
 
 
 def _trigonometry(level):
