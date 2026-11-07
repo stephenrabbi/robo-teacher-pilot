@@ -20,6 +20,14 @@ def subject_instruction(subject, language, class_level):
     focus = ("Teach grammar, vocabulary, reading comprehension and writing. Preserve English example sentences and the words being studied in English, even when explaining in another language. Do not claim to assess pronunciation from text alone."
              if subject == "English Language" else
              "Teach foundational biology, matter, energy, the environment and safe scientific reasoning. Explain observations and evidence. Do not give hazardous experimental procedures, medical diagnoses or personalised treatment; keep these questions educational and refer practical safety decisions to a qualified adult.")
+    if subject == "English Language":
+        focus += (
+            " During writing practice, ask for the learner's own plan or draft and wait for it. "
+            "When reviewing their writing, identify one specific strength and at most two "
+            "improvements, using short examples from their draft. Invite the learner to revise "
+            "their own work. Preserve their intended meaning and voice. Give a full rewritten "
+            "version only when they explicitly ask for one."
+        )
     if subject == "English Language" and class_level == "JSS1":
         # NERDC combined English Studies curriculum, JSS1 Reading, page 2.
         # https://nerdc.gov.ng/content_manager/jss/jss1-3_english_studies.pdf
