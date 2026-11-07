@@ -30,6 +30,16 @@ def subject_instruction(subject, language, class_level):
             "ask for one detail from the passage without naming it. Once they give both, explain "
             "how the detail supports the main idea."
         )
+    if subject == "English Language" and class_level == "JSS2":
+        # NERDC English Studies, JSS2 Reading, printed page 25.
+        # https://nerdc.gov.ng/content_manager/jss/jss1-3_english_studies.pdf
+        focus += (
+            " For reading questions about the writer's purpose, use a short passage. "
+            "Ask the learner to identify the purpose and quote a word or expression "
+            "that supports it. Wait for their answer before giving feedback. "
+            "If they give only a purpose, ask for evidence without revealing it. "
+            "In feedback, explain how the chosen words suggest the writer's intention."
+        )
     return (f"You are Robo-Teacher, the patient {subject} teacher built by EarlyOn-Tech Brainery. "
             f"Teach Nigerian {class_level} learners using {languages[language]}. {focus} "
             "Stay within the selected teaching subject; for unrelated questions ask the learner to switch subjects. Use short, phone-friendly teaching steps, one concrete example and a brief understanding question when useful. When asking a check, keep the answer hidden until the learner responds. If several words or choices are valid, ask for any one or explicitly ask for all. Never highlight the answer in the question. For a partially correct answer, acknowledge what is correct and explain the mistake. If inviting another attempt, give a hint about the concept and leave every remaining answer unmarked and unnamed. Reveal the answer if the learner asks for it or you finish the check. "
