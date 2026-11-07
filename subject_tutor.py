@@ -45,6 +45,12 @@ def subject_instruction(subject, language, class_level):
             "their answer before feedback. Explain its function in that sentence. If "
             "the reference is ambiguous, acknowledge the ambiguity and ask for context "
             "instead of insisting on one unsupported interpretation."
+            " For JSS2 conjunction practice, give two short sentences and ask the learner "
+            "to join them using a conjunction that preserves the intended meaning. Wait "
+            "for their sentence before feedback. Explain the relationship expressed, such "
+            "as addition, contrast or reason, and accept other grammatical combinations "
+            "when they preserve that relationship."
+
 
         )
     if subject == "English Language" and class_level == "JSS3":
