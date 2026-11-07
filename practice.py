@@ -241,12 +241,27 @@ def start_practice(student_id: str, topic: str, difficulty: str, question_count:
 
 
 def _normalise_answer(answer: str) -> str:
-    clean = answer.strip().lower().replace(",", "").replace("₦", "").replace("%", "")
+    clean = answer.strip().lower().replace("₦", "").replace("%", "")
     clean = clean.translate(str.maketrans({
         "⁰": "0", "¹": "1", "²": "2", "³": "3", "⁴": "4",
         "⁵": "5", "⁶": "6", "⁷": "7", "⁸": "8", "⁹": "9",
         "⁻": "-", "−": "-",
     }))
+    number = r"[+-]?(?:\d+(?:\.\d+)?|\.\d+)(?:\s*/\s*[+-]?\d+)?"
+    pair = re.fullmatch(
+        rf"([xy])\s*=\s*({number})\s*(?:,|and)\s*([xy])\s*=\s*({number})",
+        clean,
+    )
+    if pair and pair[1] != pair[3]:
+        try:
+            values = {
+                pair[1]: Fraction(re.sub(r"\s*/\s*", "/", pair[2])),
+                pair[3]: Fraction(re.sub(r"\s*/\s*", "/", pair[4])),
+            }
+            return f"x={values['x']},y={values['y']}"
+        except (ValueError, ZeroDivisionError):
+            return clean
+    clean = clean.replace(",", "")
     clean = re.sub(r"^x\s*=\s*", "", clean)
     scientific = re.fullmatch(
         r"\s*([+-]?(?:\d+(?:\.\d*)?|\.\d+))\s*(?:\*|×|x)\s*10\s*\^?\s*([+-]?\d+)\s*",
