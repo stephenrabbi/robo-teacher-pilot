@@ -908,6 +908,7 @@ function prepareSpeechText(text){
 }
 
 function setTeacherSpeaking(speaking){
+  if(typeof subjectClassroom!=='undefined')subjectClassroom?.setReadState?.(speaking?'speaking':'idle');
   if(typeof mediaReplayPlayer!=='undefined'&&mediaReplayPlayer?.setVoiceState)mediaReplayPlayer.setVoiceState(speaking?'speaking':'idle');
   teacherPanel.classList.toggle('speaking',speaking);
   if(speaking)startAvatarMotion(teacherPanel);else stopAvatarMotion(teacherPanel);
@@ -927,6 +928,7 @@ async function pauseTeacherAudio(){
   lessonController.begin('paused');
   teacherSpeechPaused=true;
   teacherPanel.classList.remove('speaking');teacherPanel.classList.add('paused');teacherVoiceStatus.textContent='Paused';
+  if(typeof subjectClassroom!=='undefined')subjectClassroom?.setReadState?.('paused');
   if(typeof mediaReplayPlayer!=='undefined'&&mediaReplayPlayer?.setVoiceState)mediaReplayPlayer.setVoiceState('paused');
   if(showVoiceAnswerAvatar)canvasVoiceAvatarStatus.textContent='Paused';
   stopAvatarMotion(teacherPanel);
@@ -2241,6 +2243,7 @@ form.addEventListener('submit',async(e)=>{
 subjectClassroom=window.RoboTeacherSubjects.createSubjectClassroom(subjectLearning,{
   session:ensureSession,invalidSession:()=>{sessionToken=null;},language:()=>language.value,classLevel:()=>learnerClass.value,prepareAudio:prepareTeacherAudio,
   stop:()=>stopTeacherAudio(),speak:text=>{if(subjectClassroom?.isOpen())void speakText(text,false,false,true);},
+  read:()=>readAnswerButton.click(),
   status:setLearningStatus,listening:value=>{subjectRecording=value;syncTeacherPresence();},
   answer:text=>{if(subjectClassroom?.isOpen())readAnswerButton.disabled=!text;},
 });

@@ -68,25 +68,28 @@
   mic.addEventListener('click',async()=>{
    if(recorder?.state==='recording'){recorder.stop();return;}
    if(busy)return;
+   const caption=input.value.trim();
+   if(caption.length>500){notice('Please keep the recording instruction under 500 characters, or send it as a typed question.','attention');return;}
    if(!root.navigator.mediaDevices?.getUserMedia||!root.MediaRecorder){notice('Recording is unavailable here. Type a question or upload a recording.','attention');return;}
    const version=epoch;options.stop?.();mic.disabled=true;
    try{
     await options.prepareAudio?.();const opened=await root.navigator.mediaDevices.getUserMedia({audio:true});if(!active||version!==epoch||busy){opened.getTracks().forEach(t=>t.stop());return;}stream=opened;
     const chunks=[],capture=new root.MediaRecorder(stream);recorder=capture;
     capture.addEventListener('dataavailable',event=>{if(event.data.size)chunks.push(event.data);});
-    capture.addEventListener('stop',()=>{if(recorder===capture){tracks();recorder=null;mic.textContent='Record question';}if(active&&version===epoch){controls();const blob=new Blob(chunks,{type:(capture.mimeType||'audio/webm').split(';')[0]});if(blob.size&&blob.size<=12*1024*1024)void request('audio','',blob);else notice('The recording was empty or too large. Please try a shorter question.','attention');}});
+    capture.addEventListener('stop',()=>{if(recorder===capture){tracks();recorder=null;mic.textContent='Record question';}if(active&&version===epoch){controls();const blob=new Blob(chunks,{type:(capture.mimeType||'audio/webm').split(';')[0]});if(blob.size&&blob.size<=12*1024*1024)void request('audio',caption,blob);else notice('The recording was empty or too large. Please try a shorter question.','attention');}});
     capture.addEventListener('error',()=>{if(active&&version===epoch){cancel();notice('Recording was interrupted. Please repeat or type the question.','attention');}});
     capture.start();controls();mic.textContent='Stop recording';options.listening?.(true);notice('Listening to your question…','listening');
    }catch(error){if(active&&version===epoch){tracks();notice('The microphone could not start. You can type or upload your question.','attention');}}
    finally{if(active&&version===epoch)mic.disabled=false;}
   });
-  read.addEventListener('click',()=>{const text=getAnswer();if(active&&text)options.speak?.(text);});stop.addEventListener('click',()=>options.stop?.());
+  read.addEventListener('click',()=>{const text=getAnswer();if(active&&text){if(options.read)options.read();else options.speak?.(text);}});stop.addEventListener('click',()=>options.stop?.());
   select.addEventListener('change',()=>reset());
   return {
    open(key){active=true;if(owner!==key){owner=key;reset();}else{controls();notice(`Continue your ${select.value} conversation.`);}input.focus();},
    close(){active=false;cancel();mic.disabled=false;},
    reset(){active=false;owner='';reset();},
    languageChanged(){cancel();conversation=fresh();controls();notice('New replies will use the selected teaching language. Ask your question again to get a new-language answer.');},
+   setReadState(state){read.textContent=state==='speaking'?'Pause subject answer':state==='paused'?'Continue subject answer':'Read subject answer';},
    isOpen(){return active;},getAnswer,
   };
  }
