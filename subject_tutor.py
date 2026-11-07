@@ -20,6 +20,18 @@ def subject_instruction(subject, language, class_level):
     focus = ("Teach grammar, vocabulary, reading comprehension and writing. Preserve English example sentences and the words being studied in English, even when explaining in another language. Do not claim to assess pronunciation from text alone."
              if subject == "English Language" else
              "Teach foundational biology, matter, energy, the environment and safe scientific reasoning. Explain observations and evidence. Do not give hazardous experimental procedures, medical diagnoses or personalised treatment; keep these questions educational and refer practical safety decisions to a qualified adult.")
+    if subject == "English Language" and class_level in {"JSS2", "JSS3"}:
+        # NERDC English Studies Grammar, printed pages 41 and 59.
+        focus += (
+            " For active and passive voice questions, use a short active sentence "
+            "with a clear object. Explain one conversion, then ask the learner to convert "
+            "a different sentence and wait before feedback. Explain how the object "
+            "becomes the passive subject and how the verb form preserves tense and "
+            "meaning. Accept a grammatical passive without a by-phrase when the agent "
+            "is unnecessary; do not require every passive to name the agent."
+
+
+        )
     if subject == "English Language" and class_level == "JSS1":
         # NERDC combined English Studies curriculum, JSS1 Reading, page 2.
         # https://nerdc.gov.ng/content_manager/jss/jss1-3_english_studies.pdf
@@ -39,6 +51,19 @@ def subject_instruction(subject, language, class_level):
             "that supports it. Wait for their answer before giving feedback. "
             "If they give only a purpose, ask for evidence without revealing it. "
             "In feedback, explain how the chosen words suggest the writer's intention."
+            " For JSS2 grammar questions about pronouns, use a short passage with a clear "
+            "noun reference. Explain one example, then give a different sentence and ask "
+            "the learner to identify one pronoun and the noun it refers to. Wait for "
+            "their answer before feedback. Explain its function in that sentence. If "
+            "the reference is ambiguous, acknowledge the ambiguity and ask for context "
+            "instead of insisting on one unsupported interpretation."
+            " For JSS2 conjunction practice, give two short sentences and ask the learner "
+            "to join them using a conjunction that preserves the intended meaning. Wait "
+            "for their sentence before feedback. Explain the relationship expressed, such "
+            "as addition, contrast or reason, and accept other grammatical combinations "
+            "when they preserve that relationship."
+
+
         )
     if subject == "English Language" and class_level == "JSS3":
         # NERDC English Studies, JSS3 Reading, printed page 49.
@@ -50,6 +75,21 @@ def subject_instruction(subject, language, class_level):
             "factual claim can be checked using evidence, while an opinion expresses a belief "
             "or judgement. A statement appearing in a passage does not establish that it is true. "
             "If the learner gives only a label, ask for a reason without revealing it."
+            " For JSS3 grammar questions about adverbials, use a short sentence and "
+            "explain how an adverbial adds information such as time, frequency, manner, "
+            "reason, purpose, condition or contrast. Give a different sentence and ask "
+            "the learner to identify one adverbial and explain its function in that "
+            "context. Wait for their answer before feedback, then invite them to use "
+            "an adverbial in their own sentence. Judge its function from the sentence, "
+            "not from a fixed word list."
+            " For JSS3 tense practice, give a short sentence with a clear time context "
+            "and a verb in brackets. Ask the learner to supply its present, past or "
+            "future form and wait before giving feedback. Explain how the time clue "
+            "and sentence meaning support the form. Accept another grammatically valid "
+            "form when it fits the context, or clarify the intended meaning before "
+            "marking an ambiguous answer wrong."
+
+
         )
     return (f"You are Robo-Teacher, the patient {subject} teacher built by EarlyOn-Tech Brainery. "
             f"Teach Nigerian {class_level} learners using {languages[language]}. {focus} "
