@@ -34,7 +34,7 @@ def generate_question(topic: str, difficulty: str):
         "Estimation": _decimals,
         "Decimals & Approximation": _decimals,
         "Number Bases (Binary)": _number_bases,
-        "Number Bases": _number_bases,
+        "Number Bases": _jss3_number_bases,
         "Positive & Negative Integers": _directed,
         "Introductory Algebra": _algebraic_expressions,
         "Simple Equations": _algebra,
@@ -259,6 +259,60 @@ def _number_bases(level):
         return (f"Convert {binary}₂ to base ten.", "Multiply each digit by its place value, a power of 2.", str(value), f"Step 1: Expand {binary}₂ using powers of 2.\nStep 2: Add the occupied place values.\nTherefore, {binary}₂ = {value}₁₀.")
     a, b = _int(3, 15), _int(2, 12); result = a + b
     return (f"Calculate {format(a, 'b')}₂ + {format(b, 'b')}₂. Give your answer in base two.", "You may convert to base ten, add, then convert back.", format(result, "b"), f"Step 1: Convert: {format(a, 'b')}₂ = {a} and {format(b, 'b')}₂ = {b}.\nStep 2: Add: {a} + {b} = {result}.\nStep 3: Convert back. Therefore, the answer is {format(result, 'b')}₂.")
+
+
+def _jss3_number_bases(level):
+    if level != "Challenge" or _pick((True, False)):
+        return _number_bases(level)
+    operation = _pick(("subtract", "multiply", "divide", "remainder"))
+    if operation == "remainder":
+        dividend, divisor = _pick(((5, 2), (7, 2), (4, 3), (5, 3), (7, 3)))
+        quotient, remainder = divmod(dividend, divisor)
+        return (
+            f"When {dividend:b}₂ is divided by {divisor:b}₂, what is the remainder? "
+            "Give only the remainder in base two.",
+            "Find the largest whole quotient whose product with the divisor does not exceed the dividend.",
+            f"{remainder:b}",
+            f"Step 1: In base ten, {dividend} = {divisor} × {quotient} + {remainder}.\n"
+            f"Step 2: The remainder is {remainder}, which is less than the divisor {divisor}.\n"
+            f"Step 3: In base two, quotient = {quotient:b}₂ and remainder = {remainder:b}₂.\n"
+            f"Therefore, the requested remainder is {remainder:b}₂.",
+        )
+    if operation == "divide":
+        dividend, divisor = _pick(((4, 2), (4, 4), (5, 5), (6, 2), (6, 3), (6, 6), (7, 7)))
+        quotient = dividend // divisor
+        return (
+            f"Calculate {dividend:b}₂ ÷ {divisor:b}₂. Give your answer in base two.",
+            "Divide in base two, or check using base ten and convert back.",
+            f"{quotient:b}",
+            f"Step 1: {dividend:b}₂ = {dividend} and {divisor:b}₂ = {divisor} in base ten.\n"
+            f"Step 2: {dividend} ÷ {divisor} = {quotient}. Check: {quotient} × {divisor} = {dividend}.\n"
+            f"Step 3: Convert back: {quotient} in base ten is {quotient:b}₂.\n"
+            f"Therefore, the answer is {quotient:b}₂.",
+        )
+    if operation == "multiply":
+        a, b = _int(2, 3), _int(2, 3)
+        product = a * b
+        return (
+            f"Calculate {a:b}₂ × {b:b}₂. Give your answer in base two.",
+            "Multiply in base two, or check using base ten and convert back.",
+            f"{product:b}",
+            f"Step 1: {a:b}₂ = {a} and {b:b}₂ = {b} in base ten.\n"
+            f"Step 2: {a} × {b} = {product}.\n"
+            f"Step 3: Convert back: {product} in base ten is {product:b}₂.\n"
+            f"Therefore, the answer is {product:b}₂.",
+        )
+    a, b = _pick(( (5, 4), (6, 4), (6, 5), (7, 4), (7, 5), (7, 6) ))
+    difference = a - b
+    return (
+        f"Calculate {a:b}₂ - {b:b}₂. Give your answer in base two.",
+        "Subtract in base two, borrowing when needed, or check using base ten.",
+        f"{difference:b}",
+        f"Step 1: {a:b}₂ = {a} and {b:b}₂ = {b} in base ten.\n"
+        f"Step 2: {a} - {b} = {difference}.\n"
+        f"Step 3: Convert back: {difference} in base ten is {difference:b}₂.\n"
+        f"Therefore, the answer is {difference:b}₂.",
+    )
 
 
 def _algebraic_expressions(level):
