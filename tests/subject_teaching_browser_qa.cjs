@@ -8,7 +8,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
    const page=await browser.newPage({viewport:{width,height:900}}),sent=[],media=[],spoken=[],errors=[];let delayed=null;
    page.on('pageerror',e=>errors.push(e.message));
    await page.addInitScript(()=>{
-    Object.defineProperty(navigator,'mediaDevices',{value:{getUserMedia:async()=>({getTracks:()=>[{stop(){}}]})}});
+    Object.defineProperty(navigator,'mediaDevices',{value:{getUserMedia:async()=>{window.__micOpenCount=(window.__micOpenCount||0)+1;return {getTracks:()=>[{stop(){}}]};}}});
     window.MediaRecorder=class extends EventTarget{
      constructor(){super();this.state='inactive';this.mimeType='audio/webm';}
      start(){this.state='recording';}
@@ -59,6 +59,12 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
    assert.equal(spoken.length,beforeSpeedChange+1);
    assert.equal(spoken.at(-1),'A noun names a person, place or thing.');
    await page.locator('#subjectStop').click();
+   const overlongInstruction='a'.repeat(501);
+   await page.locator('#subjectQuestion').fill(overlongInstruction);
+   await page.locator('#subjectMic').click();
+   assert.match(await page.locator('#subjectStatus').innerText(),/under 500 characters/);
+   assert.equal(await page.locator('#subjectQuestion').inputValue(),overlongInstruction);
+   assert.equal(await page.evaluate(()=>window.__micOpenCount||0),0);
    await page.locator('#subjectQuestion').fill('Please explain the verb in my recording.');
    await page.locator('#subjectMic').click();
    await page.getByRole('button',{name:'Stop recording',exact:true}).waitFor();
@@ -66,6 +72,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
    await page.locator('#subjectMic').click();
    await recordingResponse;
    assert.match(media.at(-1).body,/Please explain the verb in my recording\./);
+   assert.equal(await page.evaluate(()=>window.__micOpenCount),1);
    await page.waitForFunction(()=>!document.querySelector('#subjectSend').disabled);
    await page.locator('#subjectStop').click();
    await page.locator('#subjectQuestion').fill('Delayed question');await page.locator('#subjectSend').click();
