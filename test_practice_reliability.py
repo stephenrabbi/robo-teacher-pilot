@@ -156,3 +156,28 @@ def test_simultaneous_answers_reject_incomplete_or_incorrect_pairs():
         practice._sessions[learner].expected = "x=2,y=3"
         assert practice.answer_practice(learner, answer)["correct"] is False
     practice._sessions.pop(learner)
+
+
+def test_formula_marking_accepts_only_the_requested_subject_label():
+    learner = "synthetic-formula-format"
+    for variable in ("l", "h"):
+        for answer, correct in (
+            ("8", True),
+            (f"{variable} = 8", True),
+            (f"{variable.upper()} = 16/2", True),
+            (f"{variable} = 8.0", True),
+            (f"{variable} = 9", False),
+            ("x = 8", False),
+            ("y = 8", False),
+            (f"{variable} = 8, x = 9", False),
+        ):
+            practice.start_practice(learner, "Formulae & Change of Subject", "Easy", 5, "JSS3")
+            state = practice._sessions[learner]
+            state.expected = "8"
+            original = state.question_sets["English"][0]
+            state.question_sets["English"][0] = (
+                f"Make {variable} the subject of a formula, then find {variable}.",
+                *original[1:],
+            )
+            assert practice.answer_practice(learner, answer)["correct"] is correct
+    practice._sessions.pop(learner)
