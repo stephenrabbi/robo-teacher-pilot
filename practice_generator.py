@@ -141,6 +141,20 @@ def _factors_roots(level):
 
 
 def _estimation(level):
+    if level == "Challenge" and _pick((True, False)):
+        steps, step_cm = _int(10, 40), _int(50, 80)
+        distance_cm = steps * step_cm
+        distance_m = Fraction(distance_cm, 100)
+        return (
+            f"A learner estimates a distance using {steps} equal steps of about "
+            f"{step_cm} cm each. Estimate the distance in metres.",
+            "Multiply the step count by the approximate step length, then convert centimetres to metres.",
+            _fraction(distance_m),
+            f"Step 1: Estimated distance = {steps} × {step_cm} = {distance_cm} cm.\n"
+            f"Step 2: Divide by 100: {distance_cm}/100 = {_fraction(distance_m)} metres.\n"
+            "Step 3: This is an estimate because the step length is approximate.\n"
+            f"Therefore, the estimated distance is {_fraction(distance_m)} metres.",
+        )
     unit = {"Easy": 10, "Medium": 100, "Challenge": 1000}[level]
     value = _int(101, 99999)
     lower = value // unit * unit
