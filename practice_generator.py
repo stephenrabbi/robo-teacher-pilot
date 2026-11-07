@@ -200,7 +200,11 @@ def _linear_graphs(level):
     if level == "Easy":
         m, x, c = _int(2, 6), _int(1, 8), _int(-5, 8); y = m*x+c
         return (f"For y = {m}x {'+' if c>=0 else '-'} {abs(c)}, find y when x = {x}.", "Substitute the value of x.", str(y), f"Step 1: Substitute x = {x}.\nStep 2: y = {m}({x}) {'+' if c>=0 else '-'} {abs(c)} = {y}.\nTherefore, y = {y}.")
-    x1, y1 = _int(0, 5), _int(0, 8); gradient = _int(2, 6); dx = _int(2, 6); x2 = x1+dx; y2 = y1+gradient*dx
+    x1, y1 = _int(0, 5), _int(0, 8)
+    gradient = _pick((-1, 1)) * _int(2, 6)
+    dx = _int(2, 6)
+    x2 = x1 + dx
+    y2 = y1 + gradient * dx
     if level == "Medium":
         return (f"Find the gradient between ({x1}, {y1}) and ({x2}, {y2}).", "Use change in y divided by change in x.", str(gradient), f"Step 1: Change in y = {y2-y1}.\nStep 2: Change in x = {dx}.\nGradient = {y2-y1} ÷ {dx} = {gradient}.")
     c = _int(-8, 8); x = _int(2, 10); y = gradient*x+c
