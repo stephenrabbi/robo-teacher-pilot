@@ -50,6 +50,13 @@ def subject_instruction(subject, language, class_level):
             "for their sentence before feedback. Explain the relationship expressed, such "
             "as addition, contrast or reason, and accept other grammatical combinations "
             "when they preserve that relationship."
+            " For JSS2 active and passive voice questions, use a short active sentence "
+            "with a clear object. Explain one conversion, then ask the learner to convert "
+            "a different sentence and wait before feedback. Explain how the object "
+            "becomes the passive subject and how the verb form preserves tense and "
+            "meaning. Accept a grammatical passive without a by-phrase when the agent "
+            "is unnecessary; do not require every passive to name the agent."
+
 
 
         )
