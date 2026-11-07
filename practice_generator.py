@@ -100,6 +100,16 @@ def _fractions(level):
         common = math.lcm(d1,d2)
         return (f"Calculate {a}/{d1} + {b}/{d2}. Give the simplest fraction.", f"Use {common} as a common denominator.", _fraction(result), f"Step 1: Use the common denominator {common}.\nStep 2: Convert both fractions and add their numerators.\nStep 3: Simplify the result. Therefore, the answer is {_fraction(result)}.")
     a,b,c,d = _int(2,9),_int(3,10),_int(2,9),_int(3,10); result=Fraction(a,b)*Fraction(c,d)
+    if _pick((True, False)):
+        quotient = Fraction(a, b) / Fraction(c, d)
+        return (
+            f"Calculate {a}/{b} ÷ {c}/{d}. Give the simplest fraction.",
+            "Keep the first fraction and multiply by the reciprocal of the second.",
+            _fraction(quotient),
+            f"Step 1: The reciprocal of {c}/{d} is {d}/{c}.\n"
+            f"Step 2: {a}/{b} × {d}/{c} = {a*d}/{b*c}.\n"
+            f"Step 3: Simplify. Therefore, the answer is {_fraction(quotient)}.",
+        )
     return (f"Calculate {a}/{b} × {c}/{d}. Give the simplest fraction.", "Multiply the numerators and denominators, then simplify.", _fraction(result), f"Step 1: Multiply: ({a} × {c})/({b} × {d}) = {a*c}/{b*d}.\nStep 2: Simplify the fraction.\nTherefore, the answer is {_fraction(result)}.")
 
 
