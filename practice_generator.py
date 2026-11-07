@@ -52,7 +52,7 @@ def generate_question(topic: str, difficulty: str):
         "Linear Inequalities": _linear_inequalities,
         "Linear Graphs": _linear_graphs,
         "Plane Shapes & Scale Drawing": _plane_shapes_and_scale,
-        "Angles & Polygons": _angles,
+        "Angles & Polygons": _polygon_angles,
         "Elevation & Depression": _elevation,
         "Bearings & Distances": _bearings,
         "Pythagoras & Mensuration": _pythagoras,
@@ -293,6 +293,23 @@ def _angles(level):
     if level == "Medium":
         return (f"Find the sum of the interior angles of a {sides}-sided polygon.", "Use (n - 2) × 180°.", str(total), f"Step 1: n = {sides}.\nStep 2: ({sides} - 2) × 180° = {total}°.\nTherefore, the sum is {total}°.")
     return (f"The interior angles of a polygon add to {total}°. How many sides does it have?", "Use (n - 2) × 180° and solve for n.", str(sides), f"Step 1: n - 2 = {total} ÷ 180 = {sides-2}.\nStep 2: Add 2, so n = {sides}.\nTherefore, it has {sides} sides.")
+
+
+def _polygon_angles(level):
+    if level != "Challenge" or _pick((True, False)):
+        return _angles(level)
+    sides = _pick((3, 4, 5, 6, 8, 9, 10, 12, 15, 18, 20, 24, 30, 36))
+    exterior_angle = 360 // sides
+    return (
+        f"Each exterior angle of a regular polygon is {exterior_angle}°. "
+        "How many sides does it have?",
+        "The exterior angles add to 360°. Divide by one exterior angle.",
+        str(sides),
+        "Step 1: The exterior angles of a polygon add to 360°.\n"
+        f"Step 2: In a regular polygon they are equal, so n × {exterior_angle}° = 360°.\n"
+        f"Step 3: n = 360 ÷ {exterior_angle} = {sides}.\n"
+        f"Therefore, the polygon has {sides} sides.",
+    )
 
 
 def _data_presentation(level):
