@@ -41,6 +41,19 @@ class BinarySubtractionTests(unittest.TestCase):
                 self.assertIn("Divide in base two", hint)
                 self.assertIn(f"Check: {quotient} × {divisor} = {dividend}", explanation)
 
+    def test_binary_division_remainders(self):
+        for dividend, divisor in ((5, 2), (7, 2), (4, 3), (5, 3), (7, 3)):
+            with self.subTest(dividend=dividend, divisor=divisor), patch.object(
+                practice_generator, "_pick", side_effect=[False, "remainder", (dividend, divisor)]
+            ):
+                question, hint, answer, explanation = practice_generator.generate_question("Number Bases", "Challenge")
+                remainder = int(answer, 2)
+                self.assertEqual(remainder, dividend % divisor)
+                self.assertLess(remainder, divisor)
+                self.assertIn("Give only the remainder in base two", question)
+                self.assertIn("whole quotient", hint)
+                self.assertIn(f"{dividend} = {divisor} × {dividend//divisor} + {remainder}", explanation)
+
     def test_existing_number_base_paths_are_retained(self):
         for topic, level in (("Number Bases", "Easy"), ("Number Bases", "Medium"),
                              ("Number Bases", "Challenge"), ("Number Bases (Binary)", "Challenge")):
