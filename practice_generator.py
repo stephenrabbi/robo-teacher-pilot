@@ -192,6 +192,18 @@ def _linear_inequalities(level):
     if level == "Medium":
         coefficient = _int(2, 6); c = _int(1, 10); bound = coefficient * (x + 1) + c
         return (f"Solve {coefficient}x + {c} < {bound}. What is the greatest whole-number value of x?", f"Subtract {c}, then divide by {coefficient}.", str(x), f"Step 1: {coefficient}x < {bound-c}.\nStep 2: x < {x+1}.\nThe greatest whole-number value is {x}.")
+    if _pick((True, False)):
+        coefficient, constant = _int(2, 6), _int(1, 10)
+        bound = constant - coefficient * x
+        return (
+            f"Solve -{coefficient}x + {constant} ≤ {bound}. "
+            "What is the least whole-number value of x?",
+            "Subtract the constant, then divide by the negative coefficient and reverse the inequality sign.",
+            str(x),
+            f"Step 1: -{coefficient}x ≤ {bound} - {constant} = {-coefficient*x}.\n"
+            f"Step 2: Divide by -{coefficient} and reverse ≤ to ≥, giving x ≥ {x}.\n"
+            f"Therefore, the least whole-number value is {x}.",
+        )
     coefficient = _int(2, 6); c = _int(1, 10); bound = coefficient * x - c
     return (f"Solve {coefficient}x - {c} ≥ {bound}. What is the least whole-number value of x?", f"Add {c}, then divide by {coefficient}.", str(x), f"Step 1: {coefficient}x ≥ {bound+c}.\nStep 2: x ≥ {x}.\nThe least whole-number value is {x}.")
 
