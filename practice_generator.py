@@ -341,8 +341,29 @@ def _standard_form(level):
         return (f"Write {value:,} in standard form.", "Move the decimal point until the first number is between 1 and 10.", f"{coefficient/10:g}*10^{exponent}", f"Step 1: Move the decimal point {exponent} places left.\nStep 2: This gives {coefficient/10:g} × 10^{exponent}.\nTherefore, the answer is {coefficient/10:g} × 10^{exponent}.")
     if level == "Medium":
         return (f"Write {coefficient/10:g} × 10^{exponent} as an ordinary number.", "Move the decimal point to the right by the exponent.", str(value), f"Step 1: The exponent {exponent} means move the decimal point {exponent} places right.\nStep 2: This gives {value}.\nTherefore, the answer is {value:,}.")
-    multiplier = _int(2, 8); product = coefficient*multiplier/10
-    return (f"Calculate ({coefficient/10:g} × 10^{exponent}) × {multiplier}. Give the answer in standard form.", "Multiply the decimal coefficients and keep the power of ten.", f"{product:g}*10^{exponent}", f"Step 1: {coefficient/10:g} × {multiplier} = {product:g}.\nStep 2: Keep × 10^{exponent}.\nTherefore, the answer is {product:g} × 10^{exponent}.")
+    multiplier = _int(2, 8)
+    product_tenths = coefficient * multiplier
+    product = product_tenths / 10
+    answer_coefficient = product
+    answer_exponent = exponent
+    adjustment = "Keep the power of ten."
+    if product_tenths >= 100:
+        answer_coefficient = product_tenths / 100
+        answer_exponent += 1
+        adjustment = (
+            f"Divide {product:g} by 10 to get {answer_coefficient:g}, "
+            f"and increase the exponent from {exponent} to {answer_exponent}."
+        )
+    return (
+        f"Calculate ({coefficient/10:g} × 10^{exponent}) × {multiplier}. "
+        "Give the answer in standard form.",
+        "Multiply the coefficients, then ensure the result has a coefficient from 1 up to but not including 10.",
+        f"{answer_coefficient:g}*10^{answer_exponent}",
+        f"Step 1: {coefficient/10:g} × {multiplier} = {product:g}.\n"
+        f"Step 2: {adjustment}\n"
+        f"Therefore, the answer is {answer_coefficient:g} × 10^{answer_exponent}.",
+    )
+
 
 
 def _elevation(level):
