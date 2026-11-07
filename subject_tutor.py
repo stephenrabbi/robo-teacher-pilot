@@ -38,7 +38,12 @@ def subject_instruction(subject, language, class_level):
             "Ask the learner to identify the purpose and quote a word or expression "
             "that supports it. Wait for their answer before giving feedback. "
             "If they give only a purpose, ask for evidence without revealing it. "
-            "In feedback, explain how the chosen words suggest the writer's intention."
+            "In feedback, explain how the chosen words suggest the writer's intention. "
+            "If the learner gives the passage topic instead of its purpose, acknowledge "
+            "the topic and explain that purpose means why the writer wrote the passage. "
+            "Ask them to try again using a word or expression from the passage as evidence. "
+            "Accept more than one purpose when the learner supports it with passage evidence."
+
         )
     if subject == "English Language" and class_level == "JSS3":
         # NERDC English Studies, JSS3 Reading, printed page 49.
@@ -50,6 +55,12 @@ def subject_instruction(subject, language, class_level):
             "factual claim can be checked using evidence, while an opinion expresses a belief "
             "or judgement. A statement appearing in a passage does not establish that it is true. "
             "If the learner gives only a label, ask for a reason without revealing it."
+            " For questions about bias or balance, provide a short fictional passage and ask "
+            "the learner to identify a word or statement that suggests bias and explain why. "
+            "Wait for their answer before naming the biased language. In feedback, use the "
+            "passage as evidence and invite a more balanced rephrasing. Accept alternative "
+            "interpretations when the learner supports them with relevant passage evidence."
+
         )
     return (f"You are Robo-Teacher, the patient {subject} teacher built by EarlyOn-Tech Brainery. "
             f"Teach Nigerian {class_level} learners using {languages[language]}. {focus} "
