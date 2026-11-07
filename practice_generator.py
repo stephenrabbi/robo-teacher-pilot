@@ -264,7 +264,20 @@ def _number_bases(level):
 def _jss3_number_bases(level):
     if level != "Challenge" or _pick((True, False)):
         return _number_bases(level)
-    operation = _pick(("subtract", "multiply", "divide"))
+    operation = _pick(("subtract", "multiply", "divide", "remainder"))
+    if operation == "remainder":
+        dividend, divisor = _pick(((5, 2), (7, 2), (4, 3), (5, 3), (7, 3)))
+        quotient, remainder = divmod(dividend, divisor)
+        return (
+            f"When {dividend:b}₂ is divided by {divisor:b}₂, what is the remainder? "
+            "Give only the remainder in base two.",
+            "Find the largest whole quotient whose product with the divisor does not exceed the dividend.",
+            f"{remainder:b}",
+            f"Step 1: In base ten, {dividend} = {divisor} × {quotient} + {remainder}.\n"
+            f"Step 2: The remainder is {remainder}, which is less than the divisor {divisor}.\n"
+            f"Step 3: In base two, quotient = {quotient:b}₂ and remainder = {remainder:b}₂.\n"
+            f"Therefore, the requested remainder is {remainder:b}₂.",
+        )
     if operation == "divide":
         dividend, divisor = _pick(((4, 2), (4, 4), (5, 5), (6, 2), (6, 3), (6, 6), (7, 7)))
         quotient = dividend // divisor
