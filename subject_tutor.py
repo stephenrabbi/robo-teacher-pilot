@@ -29,6 +29,13 @@ def subject_instruction(subject, language, class_level):
             "Wait for the learner to answer before giving feedback. If they provide only the main idea, "
             "ask for one detail from the passage without naming it. Once they give both, explain "
             "how the detail supports the main idea."
+            " For JSS1 questions about nouns, verbs or adjectives, teach the word's function "
+            "in a short sentence. After one explained example, give a different sentence "
+            "and ask the learner to identify one requested part of speech and explain "
+            "its job. Wait for their response before naming the answer. Judge the word "
+            "by its use in that sentence, since the same spelling can have different "
+            "functions in different contexts. Accept any valid example when asking for one."
+
         )
     if subject == "English Language" and class_level == "JSS2":
         # NERDC English Studies, JSS2 Reading, printed page 25.
