@@ -32,7 +32,15 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
    await page.locator('#subjectRead').waitFor({state:'visible'});await page.waitForFunction(()=>!document.querySelector('#subjectRead').disabled);
    assert.equal(sent.at(-1).subject,'English Language');const firstId=sent.at(-1).conversation_id;
    await page.locator('#subjectRead').click();await page.waitForFunction(()=>document.querySelector('#teacherPanel').classList.contains('speaking'));
-   assert.equal(spoken.at(-1),'A noun names a person, place or thing.');await page.locator('#subjectStop').click();
+   assert.equal(spoken.at(-1),'A noun names a person, place or thing.');
+   const beforeSpeedChange=spoken.length;
+   const speedSpeech=page.waitForResponse(response=>new URL(response.url()).pathname==='/api/classroom/speech');
+   await page.locator('#teacherSpeed').selectOption('slower');
+   await speedSpeech;
+   await page.waitForFunction(()=>document.querySelector('#teacherPanel').classList.contains('speaking'));
+   assert.equal(spoken.length,beforeSpeedChange+1);
+   assert.equal(spoken.at(-1),'A noun names a person, place or thing.');
+   await page.locator('#subjectStop').click();
    await page.locator('#subjectQuestion').fill('Delayed question');await page.locator('#subjectSend').click();
    await page.waitForTimeout(100);assert.ok(delayed);
    await page.locator('#teachingSubject').selectOption('Basic Science');
