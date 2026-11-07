@@ -264,7 +264,19 @@ def _number_bases(level):
 def _jss3_number_bases(level):
     if level != "Challenge" or _pick((True, False)):
         return _number_bases(level)
-    operation = _pick(("subtract", "multiply"))
+    operation = _pick(("subtract", "multiply", "divide"))
+    if operation == "divide":
+        dividend, divisor = _pick(((4, 2), (4, 4), (5, 5), (6, 2), (6, 3), (6, 6), (7, 7)))
+        quotient = dividend // divisor
+        return (
+            f"Calculate {dividend:b}₂ ÷ {divisor:b}₂. Give your answer in base two.",
+            "Divide in base two, or check using base ten and convert back.",
+            f"{quotient:b}",
+            f"Step 1: {dividend:b}₂ = {dividend} and {divisor:b}₂ = {divisor} in base ten.\n"
+            f"Step 2: {dividend} ÷ {divisor} = {quotient}. Check: {quotient} × {divisor} = {dividend}.\n"
+            f"Step 3: Convert back: {quotient} in base ten is {quotient:b}₂.\n"
+            f"Therefore, the answer is {quotient:b}₂.",
+        )
     if operation == "multiply":
         a, b = _int(2, 3), _int(2, 3)
         product = a * b
