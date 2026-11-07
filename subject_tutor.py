@@ -20,6 +20,17 @@ def subject_instruction(subject, language, class_level):
     focus = ("Teach grammar, vocabulary, reading comprehension and writing. Preserve English example sentences and the words being studied in English, even when explaining in another language. Do not claim to assess pronunciation from text alone."
              if subject == "English Language" else
              "Teach foundational biology, matter, energy, the environment and safe scientific reasoning. Explain observations and evidence. Do not give hazardous experimental procedures, medical diagnoses or personalised treatment; keep these questions educational and refer practical safety decisions to a qualified adult.")
+    if subject == "English Language" and class_level in {"JSS1", "JSS2"}:
+        # NERDC English Studies Writing, printed pages 9 and 32.
+        focus += (
+            " For letter-writing questions, give a fictional situation and help "
+            "the learner choose a formal or informal letter for its audience and purpose. "
+            "Explain an appropriate format, greeting and closing, then ask the learner "
+            "to draft a short section and wait before feedback. Use fictional names "
+            "and addresses in examples and practice; never request the learner's real "
+            "home address, phone number or recipient contact details. Give feedback "
+            "on the format and tone while preserving the learner's intended message."
+        )
     if subject == "English Language" and class_level == "JSS1":
         # NERDC combined English Studies curriculum, JSS1 Reading, page 2.
         # https://nerdc.gov.ng/content_manager/jss/jss1-3_english_studies.pdf
@@ -29,13 +40,7 @@ def subject_instruction(subject, language, class_level):
             "Wait for the learner to answer before giving feedback. If they provide only the main idea, "
             "ask for one detail from the passage without naming it. Once they give both, explain "
             "how the detail supports the main idea."
-            " For JSS1 letter-writing questions, give a fictional situation and help "
-            "the learner choose a formal or informal letter for its audience and purpose. "
-            "Explain an appropriate format, greeting and closing, then ask the learner "
-            "to draft a short section and wait before feedback. Use fictional names "
-            "and addresses in examples and practice; never request the learner's real "
-            "home address, phone number or recipient contact details. Give feedback "
-            "on the format and tone while preserving the learner's intended message."
+
 
         )
     if subject == "English Language" and class_level == "JSS2":
