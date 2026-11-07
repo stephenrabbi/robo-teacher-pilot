@@ -38,7 +38,12 @@ def subject_instruction(subject, language, class_level):
             "Ask the learner to identify the purpose and quote a word or expression "
             "that supports it. Wait for their answer before giving feedback. "
             "If they give only a purpose, ask for evidence without revealing it. "
-            "In feedback, explain how the chosen words suggest the writer's intention."
+            "In feedback, explain how the chosen words suggest the writer's intention. "
+            "If the learner gives the passage topic instead of its purpose, acknowledge "
+            "the topic and explain that purpose means why the writer wrote the passage. "
+            "Ask them to try again using a word or expression from the passage as evidence. "
+            "Accept more than one purpose when the learner supports it with passage evidence."
+
         )
     if subject == "English Language" and class_level == "JSS3":
         # NERDC English Studies, JSS3 Reading, printed page 49.
