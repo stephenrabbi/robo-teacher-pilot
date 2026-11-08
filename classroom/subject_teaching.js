@@ -17,7 +17,7 @@
    const locked=busy||recorder?.state==='recording';
    send.disabled=locked;
    upload.disabled=locked;
-   input.disabled=locked;
+   input.disabled=recorder?.state==='recording';
    read.disabled=!getAnswer();
    options.answer?.(active?getAnswer():'');
    const reading=readingStarters[options.classLevel?.()];
