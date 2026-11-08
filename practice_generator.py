@@ -327,7 +327,7 @@ def _data_presentation(level):
 def _averages(level):
     middle = _int(4, 20); gap = _int(1, 5); values = [middle-gap, middle, middle+gap]
     if level == "Easy":
-        return (f"Find the mean of {values[0]}, {values[1]} and {values[2]}.", "Add the numbers and divide by 3.", str(middle), f"Step 1: Their sum is {sum(values)}.\nStep 2: {sum(values)} ÷ 3 = {middle}.\nTherefore, the mean is {middle}.")
+        return (f"Find the mean of {values[0]}, {values[1]} and {values[2]}.", "Add the numbers and divide by 3.", str(middle), f"Step 1: Add the three values: {values[0]} + {values[1]} + {values[2]} = {sum(values)}.\nStep 2: {sum(values)} ÷ 3 = {middle}.\nTherefore, the mean is {middle}.")
     extra = _int(middle+gap+1, middle+gap+8); ordered = values+[extra]; median = Fraction(values[1]+values[2], 2)
     if level == "Medium":
         return (f"Find the median of {', '.join(map(str, ordered))}.", "For four ordered values, average the two middle values.", _fraction(median), f"Step 1: The values are already ordered.\nStep 2: Average the middle two: ({values[1]} + {values[2]}) ÷ 2.\nTherefore, the median is {_fraction(median)}.")
