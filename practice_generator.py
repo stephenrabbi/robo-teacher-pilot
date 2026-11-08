@@ -448,6 +448,15 @@ def _plane_shapes_and_scale(level):
     kilometres_per_cm = _int(2, 10)
     map_length = _int(3, 20)
     actual_distance = kilometres_per_cm * map_length
+    if _pick((False, True)):
+        return (
+            f"A map scale is 1 cm to {kilometres_per_cm} km. Two towns are {map_length} cm apart on the map. Find their actual distance in km.",
+            "Multiply the map distance by the kilometres represented by each centimetre.",
+            str(actual_distance),
+            f"Step 1: Each centimetre on the map represents {kilometres_per_cm} km.\n"
+            f"Step 2: {map_length} × {kilometres_per_cm} = {actual_distance}.\n"
+            f"Therefore, the actual distance is {actual_distance} km.",
+        )
     return (
         f"A map scale is 1 cm to {kilometres_per_cm} km. Two towns are "
         f"{actual_distance} km apart. How far apart are they on the map in cm?",
