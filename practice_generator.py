@@ -165,6 +165,17 @@ def _directed(level):
 def _commercial(level):
     if level == "Easy":
         cost=_int(5,30)*100; profit=_int(1,10)*50; selling=cost+profit
+        if _pick((False, True)):
+            loss = min(profit, cost - 50)
+            selling = cost - loss
+            return (
+                f"An item costs ₦{cost:,} and sells for ₦{selling:,}. Find the loss.",
+                "Selling price is below cost price. Subtract selling price from cost price.",
+                str(loss),
+                f"Step 1: The selling price is lower, so there is a loss. Loss = cost price − selling price.\n"
+                f"Step 2: ₦{cost:,} − ₦{selling:,} = ₦{loss:,}.\n"
+                f"Therefore, the loss is ₦{loss:,}.",
+            )
         return (f"An item costs ₦{cost:,} and sells for ₦{selling:,}. Find the profit.", "Subtract cost price from selling price.", str(profit), f"Step 1: Profit = selling price - cost price.\nStep 2: ₦{selling:,} - ₦{cost:,} = ₦{profit:,}.\nTherefore, the profit is ₦{profit:,}.")
     principal=_int(10,50)*1000; rate=_pick((5,8,10,12)); years=_int(1,4); interest=principal*rate*years//100
     if level == "Medium":
