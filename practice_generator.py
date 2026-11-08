@@ -424,7 +424,7 @@ def _trigonometry(level):
 
 def _pie_charts(level):
     total = _pick((20, 24, 30, 36, 40, 45, 60)); category = _int(1, total-1); angle = Fraction(category*360,total)
-    return (f"In a survey of {total} learners, {category} chose football. Find the angle for football on a pie chart.", "Use category/total × 360°.", _fraction(angle), f"Step 1: Angle = {category}/{total} × 360°.\nStep 2: Simplify and multiply.\nTherefore, the angle is {_fraction(angle)}°.")
+    return (f"In a survey of {total} learners, {category} chose football. Find the angle for football on a pie chart.", "Use category/total × 360°.", _fraction(angle), f"Step 1: The fraction choosing football is {category}/{total} = {_fraction(Fraction(category,total))}.\nStep 2: Multiply by a full turn: {_fraction(Fraction(category,total))} × 360° = {_fraction(angle)}°.\nTherefore, the angle is {_fraction(angle)}°.")
 
 
 def _algebraic_fractions(level):
