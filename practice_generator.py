@@ -168,6 +168,16 @@ def _commercial(level):
         return (f"An item costs ₦{cost:,} and sells for ₦{selling:,}. Find the profit.", "Subtract cost price from selling price.", str(profit), f"Step 1: Profit = selling price - cost price.\nStep 2: ₦{selling:,} - ₦{cost:,} = ₦{profit:,}.\nTherefore, the profit is ₦{profit:,}.")
     principal=_int(10,50)*1000; rate=_pick((5,8,10,12)); years=_int(1,4); interest=principal*rate*years//100
     if level == "Medium":
+        if _pick((False, True)):
+            amount = principal + interest
+            return (
+                f"₦{principal:,} earns simple interest at {rate}% per year for {years} years. Find the total amount (principal plus interest).",
+                "First calculate simple interest using I = PRT/100, then add the principal.",
+                str(amount),
+                f"Step 1: Interest = {principal:,} × {rate} × {years} ÷ 100 = ₦{interest:,}.\n"
+                f"Step 2: Amount = principal + interest = ₦{principal:,} + ₦{interest:,} = ₦{amount:,}.\n"
+                f"Therefore, the total amount is ₦{amount:,}.",
+            )
         return (f"Find the simple interest on ₦{principal:,} at {rate}% per year for {years} years.", "Use I = PRT/100.", str(interest), f"Step 1: I = {principal:,} × {rate} × {years} ÷ 100.\nStep 2: I = {interest:,}.\nTherefore, the interest is ₦{interest:,}.")
     price=_int(10,50)*500; discount=_pick((10,15,20,25)); selling=price*(100-discount)//100
     return (f"An item marked ₦{price:,} has a {discount}% discount. Find the selling price.", "Find the discount, then subtract it.", str(selling), f"Step 1: Discount = {discount}% of ₦{price:,} = ₦{price*discount//100:,}.\nStep 2: Subtract the discount.\nTherefore, the selling price is ₦{selling:,}.")
