@@ -170,7 +170,7 @@ def _commercial(level):
     if level == "Medium":
         return (f"Find the simple interest on ₦{principal:,} at {rate}% per year for {years} years.", "Use I = PRT/100.", str(interest), f"Step 1: I = {principal:,} × {rate} × {years} ÷ 100.\nStep 2: I = {interest:,}.\nTherefore, the interest is ₦{interest:,}.")
     price=_int(10,50)*500; discount=_pick((10,15,20,25)); selling=price*(100-discount)//100
-    return (f"An item marked ₦{price:,} has a {discount}% discount. Find the selling price.", "Find the discount, then subtract it.", str(selling), f"Step 1: Discount = {discount}% of ₦{price:,} = ₦{price*discount//100:,}.\nStep 2: Subtract the discount.\nTherefore, the selling price is ₦{selling:,}.")
+    return (f"An item marked ₦{price:,} has a {discount}% discount. Find the selling price.", "Find the discount, then subtract it.", str(selling), f"Step 1: Discount = {discount}% of ₦{price:,} = ₦{price*discount//100:,}.\nStep 2: Selling price = marked price − discount = ₦{price:,} − ₦{price*discount//100:,} = ₦{selling:,}.\nTherefore, the selling price is ₦{selling:,}.")
 
 
 def _inequalities_graphs(level):
