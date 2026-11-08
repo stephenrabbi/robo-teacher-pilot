@@ -31,7 +31,8 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
    await page.locator('#mediaButton').click();const video=page.locator('#mediaReplay video');
    await video.waitFor({state:'visible'});await page.waitForFunction(()=>{const v=document.querySelector('#mediaReplay video');if(v?.error)throw Error('Video decode failed: '+v.error.code);return v&&v.readyState>=1;},{},{timeout:15000});
    assert.equal(await video.evaluate(v=>v.paused),true);assert.ok(await video.evaluate(v=>v.duration>40&&v.duration<43));
-   await video.evaluate(v=>v.play());await page.waitForTimeout(250);assert.ok(await video.evaluate(v=>v.currentTime>0));
+   await video.evaluate(v=>v.play());
+   await page.waitForFunction(()=>{const v=document.querySelector('#mediaReplay video');if(v?.error)throw Error('Video decode failed: '+v.error.code);return v&&!v.paused&&v.currentTime>0;},null,{timeout:10000});
    await video.evaluate(v=>{v.pause();v.currentTime=12.25;});await page.waitForFunction(()=>Math.abs(document.querySelector('#mediaReplay video').currentTime-12.25)<.1);
    await page.locator('#mediaArea').screenshot({path:`responsive-qa/topic-video-${width}.png`});
    const box=await video.boundingBox();assert.ok(box.width>0&&box.x>=0&&box.x+box.width<=width);
