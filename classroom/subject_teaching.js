@@ -38,7 +38,7 @@
    if(!active||busy)return;
    if(kind!=='chat'&&question.length>500){notice('Please keep the caption under 500 characters, or send it as a typed question.','attention');return;}
    if(!conversation)conversation=fresh();options.stop?.();busy=true;controls();mic.disabled=true;
-   const version=epoch,subject=select.value,language=options.language(),abort=new AbortController();controller=abort;
+   const draftAtSend=input.value,version=epoch,subject=select.value,language=options.language(),abort=new AbortController();controller=abort;
    const owns=()=>active&&version===epoch&&!abort.signal.aborted;
    notice('Preparing your explanation…','thinking');
    try{
@@ -50,7 +50,7 @@
     if(response.status===401)options.invalidSession?.();
     if(!response.ok||typeof data.reply!=='string')throw Error('unavailable');
     append('Your question',question||(kind==='image'?'Image question':'Recorded question'));append(`${subject} · ${language}`,data.reply);
-    answer=data.reply;answerLanguage=language;input.value='';notice('Explanation ready. You can ask a follow-up.');
+    answer=data.reply;answerLanguage=language;if(input.value===draftAtSend)input.value='';notice('Explanation ready. You can ask a follow-up.');
     if(kind==='audio')options.speak?.(answer);
    }catch(error){if(owns())notice('I could not prepare that answer. Your typed question is kept; please try again.','attention');}
    finally{if(owns()){controller=null;busy=false;mic.disabled=false;controls();}}

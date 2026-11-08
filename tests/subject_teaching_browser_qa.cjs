@@ -52,6 +52,14 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
    await page.locator('#subjectStop').click();
    await page.locator('#subjectQuestion').fill('Delayed question');await page.locator('#subjectSend').click();
    await page.waitForTimeout(100);assert.ok(delayed);
+   await page.locator('#subjectQuestion').fill('My next English question');
+   await delayed.fulfill({json:{reply:'Delayed English explanation.'}});
+   await page.waitForFunction(()=>document.querySelector('#subjectMessages').textContent.includes('Delayed English explanation.'));
+   assert.equal(await page.locator('#subjectQuestion').inputValue(),'My next English question');
+   await page.waitForFunction(()=>!document.querySelector('#subjectSend').disabled);
+   delayed=null;
+   await page.locator('#subjectQuestion').fill('Delayed question');await page.locator('#subjectSend').click();
+   await page.waitForTimeout(100);assert.ok(delayed);
    await page.locator('#teachingSubject').selectOption('Basic Science');
    assert.equal(await starter.isHidden(),true);
    await delayed.fulfill({json:{reply:'STALE ENGLISH ANSWER'}}).catch(()=>{});await page.waitForTimeout(100);
