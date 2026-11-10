@@ -1,0 +1,26 @@
+name: Robo-Teacher Supabase read-only health
+
+on:
+  schedule:
+    # Three spaced checks daily, UTC; GitHub's schedule may be delayed.
+    - cron: "13 2,10,18 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: robo-supabase-readonly-health
+  cancel-in-progress: false
+
+jobs:
+  database-health:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Query one non-sensitive Supabase table
+        env:
+          SUPABASE_HEALTH_API_KEY: ${{ secrets.ROBO_SUPABASE_HEALTH_API_KEY }}
+          SUPABASE_HEALTH_PROJECT_REF: gpshctxxgjvzplrbegwf
+        run: python3 scripts/check_robo_supabase_health.py
