@@ -31,7 +31,7 @@ def main() -> int:
 
     endpoint = (
         f"https://{EXPECTED_PROJECT}.supabase.co/rest/v1/"
-        "robo_schools?select=id&limit=1"
+        "rpc/robo_system_health_v1"
     )
     req = Request(
         endpoint,
@@ -50,13 +50,13 @@ def main() -> int:
             print(f"ERROR: Supabase returned HTTP {status}", file=sys.stderr)
             return 1
         result = json.loads(payload)
-        if not isinstance(result, list):
+        if result != "ok":
             print("ERROR: Unexpected Supabase response format", file=sys.stderr)
             return 1
-        print("OK: Authenticated read-only database request succeeded; no records altered.")
+        print("OK: Read-only health RPC returned ok; no private records accessed.")
         return 0
     except HTTPError as exc:
-        print(f"ERROR: Supabase returned HTTP {exc.code} (check RLS, API key and project status).", file=sys.stderr)
+        print(f"ERROR: Supabase returned HTTP {exc.code} (check RPC access, API key and project status).", file=sys.stderr)
     except (URLError, TimeoutError) as exc:
         print(f"ERROR: Supabase connection failed: {type(exc).__name__}", file=sys.stderr)
     except (ValueError, OSError) as exc:
