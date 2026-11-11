@@ -145,8 +145,20 @@ def _decimals(level):
         a,b=_int(10,99),_int(10,99); answer=(a+b)/10
         return (f"Calculate {a/10:.1f} + {b/10:.1f}.", "Align the decimal points.", f"{answer:g}", f"Step 1: Align the decimal points.\nStep 2: Add the tenths and whole numbers.\nTherefore, the answer is {answer:g}.")
     if level == "Medium":
-        whole=_int(2,30); hundredths=_int(10,99); value=whole+hundredths/1000; answer=round(value,2)
-        return (f"Round {value:.3f} to 2 decimal places.", "Check the third decimal digit.", f"{answer:.2f}", f"Step 1: Look at the third decimal digit in {value:.3f}.\nStep 2: Round the second decimal digit correctly.\nTherefore, the answer is {answer:.2f}.")
+        whole = _int(2, 30)
+        fractional_thousandths = _int(10, 99)
+        value = f"{whole}.{fractional_thousandths:03d}"
+        kept, third_digit = divmod(whole * 1000 + fractional_thousandths, 10)
+        rounded = kept + (third_digit >= 5)
+        answer = f"{rounded // 100}.{rounded % 100:02d}"
+        rule = "Round up by one hundredth." if third_digit >= 5 else "Keep the hundredths digit."
+        return (
+            f"Round {value} to 2 decimal places.",
+            "Check the third decimal digit.",
+            answer,
+            f"Step 1: The third decimal digit in {value} is {third_digit}.\n"
+            f"Step 2: {rule}\nTherefore, the answer is {answer}.",
+        )
     a=_int(101,999)/10; b=_int(11,99)/10; estimate=round(a,-1)*round(b)
     return (f"Estimate {a:.1f} × {b:.1f} by rounding each number to 1 significant figure.", "Round both numbers before multiplying.", f"{estimate:g}", f"Step 1: {a:.1f} rounds to {round(a,-1):g}.\nStep 2: {b:.1f} rounds to {round(b):g}.\nTherefore, the estimate is {estimate:g}.")
 
