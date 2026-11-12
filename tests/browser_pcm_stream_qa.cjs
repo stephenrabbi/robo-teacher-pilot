@@ -88,7 +88,9 @@ const assert = require('node:assert/strict');
     await page.waitForFunction(()=>window.eval(
       'teacherStreamComplete && activeMathsNarration && teacherAudioContext.currentTime-activeMathsNarration.chunks[0].start>.2'
     ));
-    await page.evaluate(()=>window.eval("executeHandsFreeIntent('Why do we add to both sides?')"));
+    await page.evaluate(()=>window.eval(`handsFreeBargeIn([{transcript:'Robo-Teacher, why do we add to both sides?'}])`));
+    await page.waitForFunction(()=>window.eval('teacherSpeechPaused && teacherAudioContext.state==="suspended"'));
+    await page.evaluate(()=>window.eval(`handleHandsFreePhrase('Robo-Teacher, why do we add to both sides?',.99)`));
     await page.waitForFunction(()=>window.eval('Boolean(handsFree.resumeOffer)'));
     const offset=await page.evaluate(()=>window.eval(
       'mathsNarrationCheckpoints.get(handsFree.resumeOffer.interruptedLesson).chunks[0].offset'
