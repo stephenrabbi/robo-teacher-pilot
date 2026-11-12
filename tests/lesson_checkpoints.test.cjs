@@ -143,3 +143,33 @@ test('recognized wake phrase accepts the branded hyphen and repeated spaces',()=
  c.handleHandsFreePhrase('Robo Teacher, continue with teacher.',.9);
  assert.deepEqual(calls,['handoff','handoff']);
 });
+
+test('a spoken follow-up allows Continue without a wake word only for its current Maths lesson',()=>{
+ const answer={},interruptedLesson={};
+ const calls=[];
+ let now=1000;
+ const c={Date:{now:()=>now},handsFree:{resumeOffer:{answer,interruptedLesson,expiresAt:16000}},
+  currentLesson:answer,lessonHistory:[interruptedLesson],teacherSpeechPaused:false,
+  subjectClassroom:{isOpen:()=>false},teachingStage:{mode:'lesson'},
+  teacherPanel:{classList:{contains:()=>false}},showHandsFreeHeard(){},updateHandsFreeStatus(){},
+  continueHandsFreeTeaching(){calls.push('resume');}};
+ vm.createContext(c);
+ vm.runInContext(source.slice(source.indexOf('function normalizeSpokenIntent('),source.indexOf('function clearHandsFreePhraseBuffer(')),c);
+ vm.runInContext(source.slice(source.indexOf('function isSafeHandsFreeControl('),source.indexOf('function enableHandsFree(')),c);
+ c.handleHandsFreePhrase('Continue.',.9);
+ assert.deepEqual(calls,['resume']);
+ assert.equal(c.handsFree.resumeOffer,null);
+
+ c.handsFree.resumeOffer={answer,interruptedLesson,expiresAt:16000};
+ now=4000;
+ c.subjectClassroom.isOpen=()=>true;
+ c.handleHandsFreePhrase('Resume',.9);
+ now=7000;
+ c.subjectClassroom.isOpen=()=>false;
+ c.currentLesson={};
+ c.handleHandsFreePhrase('Resume',.9);
+ now=17000;
+ c.currentLesson=answer;
+ c.handleHandsFreePhrase('Resume',.9);
+ assert.deepEqual(calls,['resume']);
+});

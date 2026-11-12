@@ -276,7 +276,7 @@ const lessonController=window.RoboTeacherLessonController.createLessonController
 const lessonChoreography={enabled:false,visited:new Set(),timer:null};
 let learnerMemoryId='';
 let adaptiveMemory={replays:0,simplifications:0,questions:0,correct:0,incorrect:0};
-const handsFree={enabled:false,recognition:null,processing:false,restartTimer:null,restartAttempts:0,lastError:'',startedAt:0,hasStarted:false,listening:false,phraseTimer:null,phraseBuffer:'',bufferConfidence:0,pending:'',lastPhrase:'',lastAt:0,armedUntil:0,bargeInAt:0,ignorePauseUntil:0};
+const handsFree={enabled:false,recognition:null,processing:false,restartTimer:null,restartAttempts:0,lastError:'',startedAt:0,hasStarted:false,listening:false,phraseTimer:null,phraseBuffer:'',bufferConfidence:0,pending:'',lastPhrase:'',lastAt:0,armedUntil:0,bargeInAt:0,ignorePauseUntil:0,resumeOffer:null};
 let languageSwitchRequest=0;
 let teacherAudioKeepAlive=null;
 let understandingCheckId=null;
@@ -693,6 +693,7 @@ function executeHandsFreeIntent(phrase){
     openHandsFreeFollowUpWindow();return;
   }
   if(continueCommand){
+    handsFree.resumeOffer=null;
     continueHandsFreeTeaching();
     updateHandsFreeStatus('Listening…');return;
   }
@@ -725,13 +726,18 @@ function handleHandsFreePhrase(rawPhrase,confidence=0){
   const now=Date.now();if(phrase===handsFree.lastPhrase&&now-handsFree.lastAt<1800)return;handsFree.lastPhrase=phrase;handsFree.lastAt=now;
   const normalized=phrase.toLowerCase().replace(/[^a-zà-ž0-9\s()+,.?=\-]/gu,'').trim();
   const wake=normalized.match(new RegExp(`^(?:hey\\s+)?(?:robo|robot|robotic)[\\s-]*${handsFreeWakePattern()}(?=\\s|[,.:;-]|$)[\\s,.:;-]*(.*)$`,'iu'));
-  const pausedControl=teacherSpeechPaused&&/^(?:continue|continues|continue you|resume|go on|tesiwaju|tẹ̀síwájú|ga nihu|gaa nihu|ci gaba)$/.test(normalized);
+  const continueIntent=normalizeSpokenIntent(normalized.replace(/[,.?!:;]+$/,'').trim());
+  const wantsToContinue=/^(?:continue|resume|go on)$/.test(continueIntent);
+  const offer=handsFree.resumeOffer;
+  const canResumeAfterAnswer=offer&&now<offer.expiresAt&&currentLesson===offer.answer&&lessonHistory[lessonHistory.length-1]===offer.interruptedLesson
+    &&!subjectClassroom?.isOpen()&&teachingStage.mode==='lesson'&&!teacherPanel.classList.contains('speaking');
+  const pausedControl=wantsToContinue&&(teacherSpeechPaused||canResumeAfterAnswer);
   const clarificationReply=Boolean(handsFree.pending);
   let intent='';
   if(wake){
     intent=wake[1].trim().replace(/[,.?!:;]+$/,'').trim();handsFree.armedUntil=now+7000;
   }else if(pausedControl){
-    intent=normalized;
+    intent=continueIntent;
   }else if(clarificationReply){
     intent=normalized.replace(/[,.?!:;]+$/,'').trim();
   }else if(now<handsFree.armedUntil){
@@ -768,7 +774,10 @@ function enableHandsFree(){
 }
 
 handsFreeToggle.addEventListener('click',()=>{
-  if(!handsFree.enabled){enableHandsFree();return}
+  if(!handsFree.enabled){
+    if(window.SpeechRecognition||window.webkitSpeechRecognition)void prepareTeacherAudio().catch(()=>{});
+    handsFree.resumeOffer=null;enableHandsFree();return;
+  }
   handsFree.enabled=false;handsFree.processing=false;handsFree.restartAttempts=0;handsFree.lastError='';handsFree.pending='';clearHandsFreePhraseBuffer();stopHandsFreeListening();updateHandsFreeStatus();showHandsFreeHeard('');setLearningStatus('Wake-word teaching off');
 });
 
@@ -2227,8 +2236,18 @@ form.addEventListener('submit',async(e)=>{
     if(interruptedLesson){lessonHistory.push(interruptedLesson);lessonInterruption=null;lessonDirector.classList.remove('lesson-paused')}
     canvasWork.classList.add('text-only');problemPreview.hidden=true;
     backToWhiteboard.classList.add('hidden');
-    showCanvasAnswer(data.reply,'Worked solution');
-    if(handsFree.enabled)void speakText(data.reply,true,true);
+    const spokenFollowUp=handsFree.processing&&Boolean(interruptedLesson);
+    showCanvasAnswer(data.reply,'Worked solution',handsFree.enabled);
+    if(handsFree.enabled){
+      const answer=currentLesson;
+      const recognition=handsFree.recognition;
+      void speakText(data.reply,true,true,false,spokenFollowUp).then(played=>{
+        if(!spokenFollowUp||!played||!handsFree.enabled||handsFree.recognition!==recognition||currentLesson!==answer)return;
+        if(subjectClassroom?.isOpen()||teachingStage.mode!=='lesson'||lessonHistory[lessonHistory.length-1]!==interruptedLesson)return;
+        handsFree.resumeOffer={answer,interruptedLesson,expiresAt:Date.now()+15000};
+        showHandsFreeHeard('Say “Continue” within 15 seconds to return to your Maths lesson.');
+      });
+    }
     thinking.textContent='I’ve placed the complete worked solution on the Teaching Canvas.';if(question.value.trim()===text)question.value='';clearPendingChatRecovery();
   }catch(err){
     if(isConnectionFailure(err)){

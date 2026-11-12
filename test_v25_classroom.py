@@ -1433,7 +1433,8 @@ def test_hands_free_teaching_pauses_questions_and_resumes_bookmarked_step():
     assert 'function resumeBookmarkedLessonByVoice()' in script
     assert 'const lesson=lessonHistory.pop()' in script
     assert 'void speakText(step,true,true)' in script
-    assert "if(handsFree.enabled)void speakText(data.reply,true,true)" in script
+    assert 'const spokenFollowUp=handsFree.processing&&Boolean(interruptedLesson)' in script
+    assert 'speakText(data.reply,true,true,false,spokenFollowUp)' in script
     assert '.hands-free-toggle[aria-pressed="true"]' in styles
 
 
@@ -1515,7 +1516,7 @@ def test_hands_free_continue_resumes_audio_or_the_bookmarked_lesson_context():
     assert 'if(lessonHistory.length||lessonInterruption){resumeBookmarkedLessonByVoice();return}' in script
     assert 'if(teacherSpeechPaused){void resumeTeacherAudio();return}' in script
     assert "if(teacherPanel.classList.contains('speaking'))void pauseTeacherAudio()" in script
-    assert 'const pausedControl=teacherSpeechPaused&&' in script
+    assert 'const pausedControl=wantsToContinue&&(teacherSpeechPaused||canResumeAfterAnswer)' in script
     assert 'continueHandsFreeTeaching();' in script
 
 
