@@ -304,6 +304,7 @@ try{pendingChatRecovery=JSON.parse(sessionStorage.getItem('roboTeacherPendingCha
 
 // Keep interactive visual controls with the checkpoint for this page session.
 const lessonVisualCheckpoints=new WeakMap();
+let activeCoordinateGraph=null;
 
 // A checkpoint preserves the exact rendered steps, including translated steps.
 // Audio resumes from the start of this step; sample-level playback is separate.
@@ -319,6 +320,7 @@ function captureLessonCheckpoint(includeNarration=false){
     if(video){const base=teachingStage.checkpoint||checkpoint;checkpoint={...base,steps:base.steps.slice(),video,step:`${base.step}\nVideo paused at ${Math.floor(video.time)} seconds: ${window.RoboTeacherVideos.getTopicVideo(video.id)?.title||'topic video'}`};}
   }
   if(typeof teachingStage!=='undefined'&&teachingStage.mode==='visual'&&!visualArea.classList.contains('hidden')){
+    if(activeCoordinateGraph)checkpoint.coordinateGraph=activeCoordinateGraph.checkpoint();
     lessonVisualCheckpoints.set(checkpoint,{
       title:visualTitle.textContent,caption:visualCaption.textContent,kind:visualGraphic.dataset.kind,
       nodes:Array.from(visualGraphic.childNodes),
@@ -364,7 +366,8 @@ function refreshResumeLearning(){savedClassroomSnapshot=loadClassroomSnapshot();
 function saveClassroomSnapshot(){
   const nickname=learnerNickname.value.trim(),answer=currentLesson?.text||canvasAnswer.innerText.trim();
   if(nickname.length<2||!answer)return;
-  savedClassroomSnapshot={nickname,learnerCode:learnerCode.value.trim().toUpperCase(),classLevel:learnerClass.value,language:language.value,lessonSteps:currentLesson?.steps?.slice()||null,lessonHistory:lessonHistory.slice(-20),lessonInterruption,workedExample:captureLessonCheckpoint()?.example||null,topicVideo:captureLessonCheckpoint()?.video||null,answer,lessonIndex:currentLesson?.index||0,canvasStatus:canvasStatus.textContent,savedAt:Date.now()};
+  const checkpoint=captureLessonCheckpoint();
+  savedClassroomSnapshot={nickname,learnerCode:learnerCode.value.trim().toUpperCase(),classLevel:learnerClass.value,language:language.value,lessonSteps:currentLesson?.steps?.slice()||null,lessonHistory:lessonHistory.slice(-20),lessonInterruption,workedExample:checkpoint?.example||null,topicVideo:checkpoint?.video||null,coordinateGraph:checkpoint?.coordinateGraph||null,answer,lessonIndex:currentLesson?.index||0,canvasStatus:canvasStatus.textContent,savedAt:Date.now()};
   localStorage.setItem('roboTeacherClassroomSnapshot',JSON.stringify(savedClassroomSnapshot));refreshResumeLearning();
 }
 
@@ -885,7 +888,7 @@ resumeLearningButton.addEventListener('click',async()=>{
   try{
     learnerNickname.value=snapshot.nickname;learnerCode.value=snapshot.learnerCode||'';learnerClass.value=snapshot.classLevel;practiceClass.value=snapshot.classLevel;language.value=snapshot.language||'English';localStorage.setItem('roboTeacherLanguage',language.value);updatePracticeTopics();
     if(!learnerCode.value){refreshResumeLearning();return}await ensureSession();learnerIdentity.textContent=`${snapshot.nickname.toUpperCase()} · ${learnerCode.value} · ${snapshot.classLevel} CLASSROOM`;enterClassroomView();
-    dismissLessonOverlays();canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');canvasStatus.textContent=snapshot.canvasStatus||'Previous lesson restored';const autoTeachWasEnabled=lessonChoreography.enabled;lessonChoreography.enabled=false;restoreLessonHistory(snapshot);startLessonDirector(snapshot.answer,snapshot.lessonIndex||0,snapshot.lessonSteps);if(snapshot.workedExample)restoreWorkedExample(snapshot.workedExample);else if(snapshot.topicVideo)restoreTopicVideo(snapshot.topicVideo);lessonChoreography.enabled=autoTeachWasEnabled;readAnswerButton.disabled=false;setActiveMode(chatButton);setLearningStatus('Previous lesson restored','success');
+    dismissLessonOverlays();canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');canvasStatus.textContent=snapshot.canvasStatus||'Previous lesson restored';const autoTeachWasEnabled=lessonChoreography.enabled;lessonChoreography.enabled=false;restoreLessonHistory(snapshot);startLessonDirector(snapshot.answer,snapshot.lessonIndex||0,snapshot.lessonSteps);if(snapshot.workedExample)restoreWorkedExample(snapshot.workedExample);else if(snapshot.topicVideo)restoreTopicVideo(snapshot.topicVideo);else if(snapshot.coordinateGraph)restoreCoordinateVisual(snapshot.coordinateGraph);lessonChoreography.enabled=autoTeachWasEnabled;readAnswerButton.disabled=false;setActiveMode(chatButton);setLearningStatus('Previous lesson restored','success');
     void practiceRequest('progress',{class_level:snapshot.classLevel}).then(data=>{currentProgress=data}).catch(()=>{});
     if(pendingChatRecovery)setTimeout(retryPendingChat,300);keepTeachingCanvasVisible();
   }catch(_error){onboardingError.textContent='I could not restore the previous lesson. Check your connection and try again.';onboardingError.classList.remove('hidden')}
@@ -2152,13 +2155,19 @@ async function showVisualExplanation(){
   finally{if(preparationRequest===visualPreparationRequest){visualButton.disabled=false;visualButton.textContent='Show Visual';}}
 }
 
-function renderVisualAid(data){
+function renderVisualAid(data,savedGraph){
+  activeCoordinateGraph=null;
   visualTitle.textContent=data.title;visualCaption.textContent=data.caption;visualGraphic.replaceChildren();visualGraphic.dataset.kind=data.kind;
   if(data.kind==='square_grid'){const total=Math.round(data.items[0].value),side=Math.round(Math.sqrt(total)),grid=document.createElement('div');grid.className='square-grid';grid.style.setProperty('--grid-side',String(side));for(let index=0;index<total;index++){const cell=document.createElement('span');cell.setAttribute('aria-hidden','true');grid.appendChild(cell)}const label=document.createElement('strong');label.textContent=`${side} × ${side} = ${total}`;visualGraphic.append(grid,label);return;}
   if(data.kind==='fraction'){const numerator=Math.round(data.items[0].value),denominator=Math.round(data.items[1].value),model=document.createElement('div');model.className='fraction-model';model.style.setProperty('--fraction-parts',String(denominator));for(let index=0;index<denominator;index++){const part=document.createElement('span');if(index<numerator)part.className='shaded';model.appendChild(part)}const label=document.createElement('strong');label.textContent=`${numerator}/${denominator}`;visualGraphic.append(model,label);return;}
   if(data.kind==='balance'){const beam=document.createElement('div');beam.className='balance-model';data.items.slice(0,2).forEach(item=>{const side=document.createElement('div'),value=document.createElement('strong'),label=document.createElement('span');value.textContent=String(item.value);label.textContent=item.label;side.append(value,label);beam.appendChild(side)});visualGraphic.appendChild(beam);return;}
   if(data.kind==='geometry'){window.RoboTeacherGeometry.renderGeometry(visualGraphic,data.items?.[0]?.label);return;}
-  if(data.kind==='coordinate'){window.RoboTeacherGraphs.renderCoordinateGraph(visualGraphic,data.items,data.title);return;}
+  if(data.kind==='coordinate'){
+    const items=data.items.slice(0,8).map(item=>({label:String(item.label).slice(0,160)}));
+    const graph=window.RoboTeacherGraphs.renderCoordinateGraph(visualGraphic,items,data.title,{saved:savedGraph,onChange:saveClassroomSnapshot});
+    if(graph)activeCoordinateGraph={checkpoint:()=>({title:data.title,caption:data.caption,items,state:graph.checkpoint()})};
+    return;
+  }
   const max=Math.max(...data.items.map(item=>Math.abs(item.value)),1);
   data.items.forEach((item,index)=>{const node=document.createElement('div');node.className='visual-item';const mark=document.createElement('strong');const label=document.createElement('span');label.textContent=item.label;if(data.kind==='steps')mark.textContent=String(index+1);else if(data.kind==='bars'){mark.style.width=`${Math.max(12,Math.abs(item.value)/max*100)}%`;mark.textContent=String(item.value)}else mark.textContent=String(item.value);node.append(mark,label);visualGraphic.appendChild(node);});
 }
@@ -2169,7 +2178,22 @@ function stopLessonMedia(){currentWorkedExample=null;if(mediaReplayPlayer){media
 
 function dismissLessonOverlays(){stopLessonMedia();visualArea.classList.add('hidden');understandingArea.classList.add('hidden')}
 
+function restoreCoordinateVisual(saved){
+  if(!saved||typeof saved.title!=='string'||saved.title.length>300||typeof saved.caption!=='string'||saved.caption.length>1000||
+     !Array.isArray(saved.items)||saved.items.length>8||!saved.items.every(item=>typeof item?.label==='string'&&item.label.length<=160)||
+     !window.RoboTeacherGraphs.coordinateLayout(saved.items))return false;
+  clearTimeout(lessonChoreography.timer);
+  dismissLessonOverlays();
+  renderVisualAid({...saved,kind:'coordinate'},saved.state);
+  canvasWork.classList.add('hidden');
+  canvasEmpty.classList.add('hidden');
+  visualArea.classList.remove('hidden');
+  enterTeachingStage('visual');
+  return true;
+}
+
 function restoreLessonVisual(checkpoint){
+  if(checkpoint.coordinateGraph&&restoreCoordinateVisual(checkpoint.coordinateGraph))return;
   const visual=lessonVisualCheckpoints.get(checkpoint);
   if(!visual)return;
   clearTimeout(lessonChoreography.timer);
@@ -2177,6 +2201,7 @@ function restoreLessonVisual(checkpoint){
   visualTitle.textContent=visual.title;
   visualCaption.textContent=visual.caption;
   visualGraphic.dataset.kind=visual.kind;
+  activeCoordinateGraph=null;
   visualGraphic.replaceChildren(...visual.nodes);
   canvasWork.classList.add('hidden');
   canvasEmpty.classList.add('hidden');

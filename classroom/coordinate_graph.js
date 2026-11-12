@@ -30,7 +30,7 @@
     if(!ordered.every(p=>Math.abs((p.x-first.x)/scale*(dy/scale)-(p.y-first.y)/scale*(dx/scale))<=1e-12))return null;
     return {first,last,vertical:dx===0,slope:dx===0?null:dy/dx};
   }
-  function renderCoordinateGraph(container,items,title='Coordinate plot'){
+  function renderCoordinateGraph(container,items,title='Coordinate plot',{saved,onChange}={}){
     const layout=coordinateLayout(items),doc=container.ownerDocument;
     container.replaceChildren();
     if(!layout){const note=doc.createElement('p');note.textContent='No readable coordinate pairs were provided. Return to the explanation and check the points.';container.appendChild(note);return;}
@@ -55,9 +55,9 @@
     const caption=doc.createElement('caption');caption.textContent='Points from this explanation';table.appendChild(caption);
     const header=doc.createElement('tr');for(const label of ['Point','x','y']){const th=doc.createElement('th');th.textContent=label;th.setAttribute('scope','col');header.appendChild(th);}table.appendChild(header);
     for(const p of layout.points){const row=doc.createElement('tr');for(const value of [p.label,p.x,p.y]){const cell=doc.createElement('td');cell.textContent=String(value);row.appendChild(cell);}table.appendChild(row);}
-    let visible=layout.points.length;
+    let visible=layout.points.length,mode='all';
     const alignment=straightLine(layout.points);
-    const button=(label,action)=>{const b=doc.createElement('button');b.type='button';b.textContent=label;b.addEventListener('click',action);controls.appendChild(b);return b;};
+    const button=(label,action)=>{const b=doc.createElement('button');b.type='button';b.textContent=label;b.addEventListener('click',()=>{action();onChange?.();});controls.appendChild(b);return b;};
     const draw=()=>{
       lineLayer.replaceChildren();
       if(join)join.setAttribute('aria-pressed','false');
@@ -67,25 +67,33 @@
       else status.textContent=`${visible} of ${layout.points.length} points shown.`;
       next.disabled=visible>=layout.points.length;
     };
-    button('Plot step by step',()=>{visible=0;draw();});
-    const next=button('Plot next point',()=>{
+    button('Plot step by step',()=>{visible=0;mode='guided';draw();});
+    const plotNext=()=>{
       if(visible>=layout.points.length)return;
-      const p=layout.points[visible++];draw();
+      const p=layout.points[visible++];mode='guided';draw();
       node('line',{x1:180,y1:180,x2:p.px,y2:180,class:'graph-guide'},undefined,guides);
       node('line',{x1:p.px,y1:180,x2:p.px,y2:p.py,class:'graph-guide'},undefined,guides);
       status.textContent=`Point ${p.label}: x = ${p.x}, y = ${p.y}. Move ${Math.abs(p.x)} ${p.x<0?'left':'right'} from the origin, then ${Math.abs(p.y)} ${p.y<0?'down':'up'}. ${visible} of ${layout.points.length} points shown.`;
-    });
-    button('Show all points',()=>{visible=layout.points.length;draw();});
-    const join=button('Explain straight line',()=>{
-      visible=layout.points.length;draw();
+    };
+    const next=button('Plot next point',plotNext);
+    button('Show all points',()=>{visible=layout.points.length;mode='all';draw();});
+    const explainLine=()=>{
+      visible=layout.points.length;mode='line';draw();
       if(!alignment){status.textContent='These points do not establish one straight line. Keep them as separate points; check the lesson before choosing how to join them.';return;}
       const {first,last,vertical,slope}=alignment;
       node('line',{x1:first.px,y1:first.py,x2:last.px,y2:last.py,class:'graph-joined-line'},undefined,lineLayer);
       join.setAttribute('aria-pressed','true');
       status.textContent=vertical?`All plotted points have x = ${first.x}, so they lie on a vertical straight line. Its gradient is undefined. Only the segment between the outermost given points is shown.`:`The plotted points lie on a straight line. Gradient = change in y / change in x = (${last.y} - ${first.y}) / (${last.x} - ${first.x}) = ${short(slope)}. Only the segment between the outermost given points is shown.`;
-    });
+    };
+    const join=button('Explain straight line',explainLine);
     join.setAttribute('aria-pressed','false');
-    container.append(svg,controls,status,table);draw();
+    container.append(svg,controls,status,table);
+    if(saved?.mode==='line')explainLine();
+    else if(saved?.mode==='guided'&&Number.isInteger(saved.visible)&&saved.visible>=0&&saved.visible<=layout.points.length){
+      mode='guided';visible=Math.max(0,saved.visible-1);
+      if(saved.visible)plotNext();else draw();
+    }else draw();
+    return {checkpoint:()=>({mode,visible})};
   }
   if(typeof module==='object'&&module.exports)module.exports={coordinateLayout,straightLine,renderCoordinateGraph};
   else root.RoboTeacherGraphs={coordinateLayout,straightLine,renderCoordinateGraph};
