@@ -68,3 +68,21 @@ test('complete Maths narration resumes from the original buffer offset',async()=
  assert.deepEqual(starts,[[first,30.06,1],[second,31.06,0]]);
  assert.equal(ctx.mathsNarrationCheckpoints.size,0);
 });
+
+test('mouth cues follow buffered audio offsets and stay closed in playback gaps',()=>{
+ const ctx={};
+ vm.createContext(ctx);
+ vm.runInContext(src.slice(src.indexOf('const mathsMouthShapes='),src.indexOf('function renderMathsMouthCue(')),ctx);
+ const cues=ctx.parseMathsMouthCues(JSON.stringify([
+  {start:0,end:1,value:'A'},{start:1,end:2,value:'F'},{start:2,end:3,value:'E'}
+ ]));
+ assert.equal(cues.length,3);
+ assert.equal(ctx.parseMathsMouthCues('[{"start":0,"end":1,"value":"__proto__"}]'),null);
+ assert.equal(ctx.parseMathsMouthCues('[{"start":0,"end":2,"value":"F"},{"start":1,"end":3,"value":"E"}]'),null);
+ const narration={cues,chunks:[{start:20,timeline:1,offset:.5,buffer:{duration:2}}]};
+ assert.equal(ctx.mathsMouthCueAt(narration,19.9),'X');
+ assert.equal(ctx.mathsMouthCueAt(narration,20.25),'F');
+ assert.equal(ctx.mathsMouthCueAt(narration,20.75),'E');
+ assert.equal(ctx.mathsMouthCueAt(narration,21.5),'X');
+ assert.equal(ctx.mathsMouthCueAt({chunks:[]},20),null);
+});
