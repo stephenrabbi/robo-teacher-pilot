@@ -1,54 +1,31 @@
-"""Optional offline mouth timing for short Maths narration."""
+"""Load audio and cues prepared together for a known Maths narration."""
+import gzip
 import json
-import subprocess
-import tempfile
-import wave
-from itertools import chain
+from functools import lru_cache
 from pathlib import Path
-from threading import BoundedSemaphore
 
 _SAMPLE_RATE = 24_000
-_MAX_AUDIO_BYTES = _SAMPLE_RATE * 2 * 8
-_ANALYSER_SLOT = BoundedSemaphore(1)
+_NARRATION_DIR = Path(__file__).with_name("classroom_narration")
+_PREPARED = {("Add two to both sides of the equation.", "English", "female", "normal"): "add-two-both-sides"}
 
 
-def prepare_cued_audio(chunks, executable):
-    """Return the original PCM and, when available, its validated cue header."""
-    if not executable or not _ANALYSER_SLOT.acquire(blocking=False):
-        return chunks, None
+def prepared_maths_narration(text, language, voice_gender, pace):
+    key = _PREPARED.get((text, language, voice_gender, pace))
+    return _load_prepared(key) if key else None
+
+
+@lru_cache(maxsize=len(_PREPARED))
+def _load_prepared(key):
     try:
-        buffered = bytearray()
-        for chunk in chunks:
-            if len(buffered) + len(chunk) > _MAX_AUDIO_BYTES:
-                return chain((bytes(buffered), chunk), chunks), None
-            buffered.extend(chunk)
-        pcm = bytes(buffered)
-        return iter((pcm,)), _mouth_cue_header(pcm, executable)
-    finally:
-        _ANALYSER_SLOT.release()
-
-
-def _mouth_cue_header(pcm, executable):
-    if not pcm or len(pcm) % 2:
+        with gzip.open(_NARRATION_DIR / f"{key}.pcm.gz", "rb") as audio:
+            pcm = audio.read(_SAMPLE_RATE * 2 * 8 + 1)
+        cues = json.loads((_NARRATION_DIR / f"{key}.cues.json").read_text(encoding="utf-8"))
+    except (OSError, EOFError, ValueError):
         return None
-    try:
-        with tempfile.TemporaryDirectory(prefix="robo-maths-mouth-") as folder:
-            audio = Path(folder) / "speech.wav"
-            output = Path(folder) / "cues.json"
-            with wave.open(str(audio), "wb") as wav:
-                wav.setparams((1, 2, _SAMPLE_RATE, 0, "NONE", "not compressed"))
-                wav.writeframes(pcm)
-            subprocess.run(
-                [executable, "-q", "-r", "phonetic", "--threads", "1", "-f", "json", "-o", str(output), str(audio)],
-                check=True, timeout=3, stdin=subprocess.DEVNULL,
-                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-            )
-            if output.stat().st_size > 16_000:
-                return None
-            data = json.loads(output.read_text(encoding="utf-8"))
-    except (OSError, ValueError, subprocess.SubprocessError):
+    if not pcm or len(pcm) % 2 or len(pcm) > _SAMPLE_RATE * 2 * 8:
         return None
-    return _validated_header(data, len(pcm) / (_SAMPLE_RATE * 2))
+    header = _validated_header({"mouthCues": cues}, len(pcm) / (_SAMPLE_RATE * 2))
+    return (pcm, header) if header else None
 
 
 def _validated_header(data, duration):

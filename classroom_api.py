@@ -20,7 +20,7 @@ from typing import Literal
 from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
-from maths_mouth_cues import prepare_cued_audio
+from maths_mouth_cues import prepared_maths_narration
 from curriculum import ALL_TOPICS, CLASS_TOPICS, CURRICULUM
 from diagnostic import answer_diagnostic, change_diagnostic_language, next_diagnostic, start_diagnostic
 from diagnostic_progress import save_diagnostic_result
@@ -415,13 +415,15 @@ def classroom_speech(speech: ClassroomSpeech):
     _enforce_rate_limit(student_id, "speech", 30)
     text = speech.text.strip()
     headers = {"Cache-Control": "no-store", "X-Audio-Sample-Rate": "24000"}
-    executable = os.getenv("MATHS_MOUTH_CUE_EXECUTABLE") if speech.mouth_cues and len(text) <= 280 else None
+    if speech.mouth_cues:
+        prepared = prepared_maths_narration(text, speech.language, speech.voice_gender, speech.pace)
+        if prepared:
+            audio, cues = prepared
+            headers["X-Robo-Mouth-Cues"] = cues
+            return StreamingResponse(iter((audio,)), media_type="audio/l16;rate=24000;channels=1", headers=headers)
 
     def speech_response(chunks):
-        audio, cues = prepare_cued_audio(chunks, executable)
-        if cues:
-            headers["X-Robo-Mouth-Cues"] = cues
-        return StreamingResponse(audio, media_type="audio/l16;rate=24000;channels=1", headers=headers)
+        return StreamingResponse(chunks, media_type="audio/l16;rate=24000;channels=1", headers=headers)
 
     try:
         # Do not send HTTP 200 until Gemini has produced actual audio. This

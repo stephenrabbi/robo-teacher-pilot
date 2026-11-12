@@ -1,28 +1,28 @@
+import gzip
+import json
 import unittest
-from unittest.mock import patch
 
-from maths_mouth_cues import _validated_header, prepare_cued_audio
+from maths_mouth_cues import _NARRATION_DIR, _validated_header, prepared_maths_narration
 
 
 class TestMathsMouthCues(unittest.TestCase):
-    def test_disabled_does_not_read_pcm_ahead(self):
-        source = iter((b"ab", b"cd"))
-        audio, header = prepare_cued_audio(source, None)
-        self.assertIs(audio, source)
-        self.assertIsNone(header)
+    def test_prepared_cues_match_original_pcm(self):
+        pcm, header = prepared_maths_narration(
+            "Add two to both sides of the equation.", "English", "female", "normal"
+        )
+        self.assertEqual(pcm, gzip.decompress((_NARRATION_DIR / "add-two-both-sides.pcm.gz").read_bytes()))
+        self.assertGreater(len(json.loads(header)), 1)
+        self.assertLessEqual(json.loads(header)[-1]["end"], len(pcm) / 48_000)
 
-    def test_large_stream_preserves_every_byte_without_analysis(self):
-        chunks = (bytes(384_000), b"ab", b"cd")
-        with patch("maths_mouth_cues._mouth_cue_header") as analyse:
-            audio, header = prepare_cued_audio(iter(chunks), "rhubarb")
-        analyse.assert_not_called()
-        self.assertEqual(b"".join(audio), b"".join(chunks))
-        self.assertIsNone(header)
-
-    def test_unavailable_analyser_returns_original_pcm(self):
-        audio, header = prepare_cued_audio(iter((b"ab", b"cd")), "/missing/rhubarb")
-        self.assertEqual(b"".join(audio), b"abcd")
-        self.assertIsNone(header)
+    def test_settings_and_text_must_match_the_recording(self):
+        text = "Add two to both sides of the equation."
+        for request in (
+            ("Add three to both sides.", "English", "female", "normal"),
+            (text, "Yoruba", "female", "normal"),
+            (text, "English", "male", "normal"),
+            (text, "English", "female", "slower"),
+        ):
+            self.assertIsNone(prepared_maths_narration(*request))
 
     def test_rejects_unknown_and_overlapping_cues(self):
         first = {"start": 0, "end": .5, "value": "X"}
