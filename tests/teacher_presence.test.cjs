@@ -14,6 +14,9 @@ test('listening requires an active microphone state rather than a label alone',(
 test('visual, example and check have distinct focus cues',()=>{
  for(const stage of ['visual','example','check']){const cue=teacherPresence({stage});assert.equal(cue.state,stage);assert.equal(cue.icon,'→');}
  assert.match(teacherPresence({activity:'attention'}).label,/attention/);
+ assert.equal(teacherPresence({wakeListening:true}).state,'listening');
+ assert.equal(teacherPresence({stage:'visual',wakeListening:true}).state,'visual');
+ assert.equal(teacherPresence({stage:'visual',wakeListening:true,listening:true}).state,'listening');
 });
 test('rendering updates only cue content and panel state',()=>{
  const doc={createElement(){return {setAttribute(k,v){this[k]=v}}}};
