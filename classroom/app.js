@@ -300,6 +300,9 @@ const savedLanguage=localStorage.getItem('roboTeacherLanguage');
 
 try{pendingChatRecovery=JSON.parse(sessionStorage.getItem('roboTeacherPendingChat')||'null')}catch(_error){sessionStorage.removeItem('roboTeacherPendingChat')}
 
+// Keep interactive visual controls with the checkpoint for this page session.
+const lessonVisualCheckpoints=new WeakMap();
+
 // A checkpoint preserves the exact rendered steps, including translated steps.
 // Audio resumes from the start of this step; sample-level playback is separate.
 function captureLessonCheckpoint(){
@@ -313,6 +316,12 @@ function captureLessonCheckpoint(){
     const video=mediaReplayPlayer.getCheckpoint();
     if(video){const base=teachingStage.checkpoint||checkpoint;checkpoint={...base,steps:base.steps.slice(),video,step:`${base.step}\nVideo paused at ${Math.floor(video.time)} seconds: ${window.RoboTeacherVideos.getTopicVideo(video.id)?.title||'topic video'}`};}
   }
+  if(typeof teachingStage!=='undefined'&&teachingStage.mode==='visual'&&!visualArea.classList.contains('hidden')){
+    lessonVisualCheckpoints.set(checkpoint,{
+      title:visualTitle.textContent,caption:visualCaption.textContent,kind:visualGraphic.dataset.kind,
+      nodes:Array.from(visualGraphic.childNodes),
+    });
+  }
   return checkpoint;
 }
 
@@ -321,6 +330,7 @@ function restoreLessonCheckpoint(checkpoint){
   startLessonDirector(checkpoint.text,checkpoint.index,checkpoint.steps);
   if(checkpoint.example&&typeof restoreWorkedExample==='function')restoreWorkedExample(checkpoint.example);
   else if(checkpoint.video&&typeof restoreTopicVideo==='function')restoreTopicVideo(checkpoint.video);
+  else if(typeof restoreLessonVisual==='function')restoreLessonVisual(checkpoint);
 }
 
 function restoreLessonHistory(snapshot){
@@ -2087,6 +2097,21 @@ function restoreTeacherPanel(){setTeacherPanelMinimized(false)}
 function stopLessonMedia(){currentWorkedExample=null;if(mediaReplayPlayer){mediaReplayPlayer.dispose();mediaReplayPlayer=null}mediaFrame.removeAttribute('src');mediaArea.classList.add('hidden')}
 
 function dismissLessonOverlays(){stopLessonMedia();visualArea.classList.add('hidden');understandingArea.classList.add('hidden')}
+
+function restoreLessonVisual(checkpoint){
+  const visual=lessonVisualCheckpoints.get(checkpoint);
+  if(!visual)return;
+  clearTimeout(lessonChoreography.timer);
+  dismissLessonOverlays();
+  visualTitle.textContent=visual.title;
+  visualCaption.textContent=visual.caption;
+  visualGraphic.dataset.kind=visual.kind;
+  visualGraphic.replaceChildren(...visual.nodes);
+  canvasWork.classList.add('hidden');
+  canvasEmpty.classList.add('hidden');
+  visualArea.classList.remove('hidden');
+  enterTeachingStage('visual');
+}
 
 function closeVisualExplanation(){visualArea.classList.add('hidden');restoreTeachingStage()}
 
