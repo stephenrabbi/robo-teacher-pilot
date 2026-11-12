@@ -1251,15 +1251,15 @@ async function speakText(text,preserveAudioUnlock=false,displayCanvasAvatar=true
     const token=await ensureSession();
     if(requestId!==teacherSpeechRequest)return;
     const settings=mathsNarrationSettings();
-    const response=await requestTeacherSpeech({text:prepareSpeechText(text),session_token:token,language:language.value,voice_gender:teacherPanel.dataset.voiceGender==='male'?'male':'female',pace:teacherSpeechPace},teacherSpeechController.signal,requestId);
-    if(response.status===401){sessionToken=null;throw new Error('session')}
-    if(!response.ok)throw new Error(response.status===429?'voice-rate-limited':response.status===503?'voice-service-unavailable':'voice-http-error');
-    if(!response.body)throw new Error('stream unavailable');
-    if(requestId!==teacherSpeechRequest)return;
     const step=currentLesson?.steps[currentLesson.index];
     const narration=teachingStage.mode==='lesson'&&!subjectClassroom?.isOpen()&&step&&(text===step||text===canvasAnswer.textContent)
       ? {lesson:currentLesson,index:currentLesson.index,settings,chunks:[]}
       : null;
+    const response=await requestTeacherSpeech({text:prepareSpeechText(text),session_token:token,language:language.value,voice_gender:teacherPanel.dataset.voiceGender==='male'?'male':'female',pace:teacherSpeechPace,mouth_cues:Boolean(narration)},teacherSpeechController.signal,requestId);
+    if(response.status===401){sessionToken=null;throw new Error('session')}
+    if(!response.ok)throw new Error(response.status===429?'voice-rate-limited':response.status===503?'voice-service-unavailable':'voice-http-error');
+    if(!response.body)throw new Error('stream unavailable');
+    if(requestId!==teacherSpeechRequest)return;
     if(narration&&typeof parseMathsMouthCues==='function'){
       narration.cues=parseMathsMouthCues(response.headers.get('X-Robo-Mouth-Cues'));
       if(narration.cues)prepareMathsMouthImages(narration.cues);

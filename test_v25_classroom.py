@@ -195,6 +195,24 @@ def test_natural_speech_endpoint_uses_female_avatar_voice():
     assert tts.call_args.args[1:] == ('English', 'female', 'normal')
 
 
+def test_maths_speech_returns_cue_header_with_original_pcm(monkeypatch):
+    session = client.post('/api/classroom/session').json()
+    pcm = bytes(48_000)
+    cues = '[{"start":0,"end":1,"value":"X"}]'
+    monkeypatch.setenv('MATHS_MOUTH_CUE_EXECUTABLE', '/test/rhubarb')
+    with patch.object(classroom_api, 'stream_tutor_speech', return_value=iter([pcm])), \
+         patch('maths_mouth_cues._mouth_cue_header', return_value=cues) as analyse:
+        response = client.post('/api/classroom/speech', json={
+            'text': 'Add two to both sides.',
+            'session_token': session['session_token'],
+            'mouth_cues': True,
+        })
+    assert response.status_code == 200
+    assert response.content == pcm
+    assert response.headers['X-Robo-Mouth-Cues'] == cues
+    analyse.assert_called_once_with(pcm, '/test/rhubarb')
+
+
 def test_empty_stream_uses_stable_gemini_tts_fallback():
     session = client.post('/api/classroom/session').json()
     with patch.object(classroom_api, 'stream_tutor_speech', return_value=iter(())), \
