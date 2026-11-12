@@ -1008,16 +1008,25 @@ function stopAvatarMotion(rig=activeAvatarRig){
 }
 
 function startAvatarMotion(rig){
-  if(!rig||!teacherAudioAnalyser)return;
-  if(activeAvatarRig!==rig)stopAvatarMotion();activeAvatarRig=rig;rig.classList.add('avatar-speaking');
-  const samples=new Uint8Array(teacherAudioAnalyser.fftSize);const started=performance.now();
+  if(!rig||!teacherAudioAnalyser||activeAvatarRig===rig)return;
+  stopAvatarMotion();activeAvatarRig=rig;rig.classList.add('avatar-speaking');
+  const mathsAvatar=rig===teacherPanel&&!subjectClassroom?.isOpen();
+  const samples=new Uint8Array(teacherAudioAnalyser.fftSize);
+  let previousFrame=performance.now();
   const update=now=>{
     if(activeAvatarRig!==rig)return;
     teacherAudioAnalyser.getByteTimeDomainData(samples);let energy=0;
     for(const sample of samples){const level=(sample-128)/128;energy+=level*level}
     const rms=Math.sqrt(energy/samples.length);const target=Math.max(0,Math.min(1,(rms-.012)*8.5));
-    avatarEnergy+=(target>avatarEnergy ? .58 : .2)*(target-avatarEnergy);
-    const pulse=.86+.14*Math.sin(now*.041);const mouth=Math.round(Math.max(0,Math.min(1,avatarEnergy*pulse))*120)/120;
+    const elapsed=Math.max(0,now-previousFrame);
+    previousFrame=now;
+    if(mathsAvatar){
+      const timeConstant=target>avatarEnergy?18:55;
+      avatarEnergy+=(1-Math.exp(-elapsed/timeConstant))*(target-avatarEnergy);
+      if(target===0&&avatarEnergy<.025)avatarEnergy=0;
+    }else avatarEnergy+=(target>avatarEnergy ? .58 : .2)*(target-avatarEnergy);
+    const pulse=mathsAvatar?1:.86+.14*Math.sin(now*.041);
+    const mouth=Math.round(Math.max(0,Math.min(1,avatarEnergy*pulse))*120)/120;
     const motion=.55+.45*avatarEnergy;
     const nod=Math.sin(now*.0047)*1.8*motion;
     const turn=Math.sin(now*.0029)*1.2*motion;
