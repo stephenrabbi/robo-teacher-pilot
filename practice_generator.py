@@ -147,8 +147,21 @@ def _decimals(level):
     if level == "Medium":
         whole=_int(2,30); hundredths=_int(10,99); value=whole+hundredths/1000; answer=round(value,2)
         return (f"Round {value:.3f} to 2 decimal places.", "Check the third decimal digit.", f"{answer:.2f}", f"Step 1: Look at the third decimal digit in {value:.3f}.\nStep 2: Round the second decimal digit correctly.\nTherefore, the answer is {answer:.2f}.")
-    a=_int(101,999)/10; b=_int(11,99)/10; estimate=round(a,-1)*round(b)
-    return (f"Estimate {a:.1f} × {b:.1f} by rounding each number to 1 significant figure.", "Round both numbers before multiplying.", f"{estimate:g}", f"Step 1: {a:.1f} rounds to {round(a,-1):g}.\nStep 2: {b:.1f} rounds to {round(b):g}.\nTherefore, the estimate is {estimate:g}.")
+    a_tenths = _int(101, 999)
+    b_tenths = _int(11, 99)
+    # In tenths, the rounding units are 100 for a and 10 for b.
+    rounded_a = ((a_tenths + 50) // 100) * 10
+    rounded_b = (b_tenths + 5) // 10
+    estimate = rounded_a * rounded_b
+    return (
+        f"Estimate {a_tenths/10:.1f} × {b_tenths/10:.1f} by rounding each number to 1 significant figure.",
+        "Keep the first significant digit and round up if the next digit is 5 or more.",
+        str(estimate),
+        f"Step 1: {a_tenths/10:.1f} rounds to {rounded_a}.\n"
+        f"Step 2: {b_tenths/10:.1f} rounds to {rounded_b}.\n"
+        f"Step 3: Multiply the rounded values: {rounded_a} × {rounded_b} = {estimate}.\n"
+        f"Therefore, the estimate is {estimate}.",
+    )
 
 
 def _directed(level):
