@@ -33,10 +33,38 @@ test('cancellation during audio preparation does not consume the stream',async()
 test('example narration keeps the stage open while normal lesson reading returns to the lesson',async()=>{
  for(const keepOpen of [true,false]){
   let closed=0,restored=0,played=0,payload;
-  const ctx={teachingStage:{mode:'example'},lessonController:{begin(){}},stopLessonMedia(){closed++},restoreTeachingStage(){restored++},stopTeacherAudio(){},setCanvasVoiceAvatar(){},teacherVoiceStatus:{},readAnswerButton:{setAttribute(){}},setLearningStatus(){},teacherSpeechRequest:1,teacherSpeechController:null,AbortController,startAudioKeepAlive:async()=>{},ensureSession:async()=> 'synthetic',prepareSpeechText:t=>t,language:{value:'Yoruba'},teacherPanel:{dataset:{voiceGender:'female'}},teacherSpeechPace:1,requestTeacherSpeech:async p=>{payload=p;return {ok:true,status:200,body:{}}},playPcmStream:async()=>{played++},addMessage(){throw Error('Unexpected speech failure')}};
+  const ctx={currentLesson:null,subjectClassroom:null,mathsNarrationSettings:()=> 'Yoruba:female:normal',teachingStage:{mode:'example'},lessonController:{begin(){}},stopLessonMedia(){closed++},restoreTeachingStage(){restored++},stopTeacherAudio(){},setCanvasVoiceAvatar(){},teacherVoiceStatus:{},readAnswerButton:{setAttribute(){}},setLearningStatus(){},teacherSpeechRequest:1,teacherSpeechController:null,AbortController,startAudioKeepAlive:async()=>{},ensureSession:async()=> 'synthetic',prepareSpeechText:t=>t,language:{value:'Yoruba'},teacherPanel:{dataset:{voiceGender:'female'}},teacherSpeechPace:1,requestTeacherSpeech:async p=>{payload=p;return {ok:true,status:200,body:{}}},playPcmStream:async()=>{played++},addMessage(){throw Error('Unexpected speech failure')}};
   vm.createContext(ctx);vm.runInContext(src.slice(src.indexOf('async function speakText('),src.indexOf("readAnswerButton.addEventListener('click'")),ctx);
   await ctx.speakText('Current example step',false,false,keepOpen);
   assert.equal(played,1);assert.equal(closed,keepOpen?0:1);assert.equal(restored,keepOpen?0:1);
   assert.equal(payload.text,'Current example step');assert.equal(payload.language,'Yoruba');
  }
+});
+
+test('complete Maths narration resumes from the original buffer offset',async()=>{
+ const lesson={index:1};
+ const first={duration:2},second={duration:3};
+ const checkpoint={};
+ const starts=[];
+ const context={state:'running',currentTime:11,createBufferSource(){
+  return {connect(){},addEventListener(){},start(time,offset){starts.push([this.buffer,time,offset]);}};
+ }};
+ const ctx={activeMathsNarration:{lesson,index:1,settings:'English:female:normal',chunks:[
+  {buffer:first,start:10,offset:0},{buffer:second,start:12,offset:0},
+ ]},currentLesson:lesson,teacherStreamComplete:false,teacherAudioContext:context,
+ teachingStage:{mode:'lesson'},mathsNarrationCheckpoints:new Map(),language:{value:'English'},
+ teacherPanel:{dataset:{voiceGender:'female'}},teacherSpeechPace:'normal',teacherSpeechRequest:1,
+ prepareTeacherAudio:async()=>context,ensureAvatarAnalyser(){},teacherAudioSources:new Set(),
+ lessonController:{begin(){}},setCanvasVoiceAvatar(){},readAnswerButton:{},setTeacherSpeaking(){},
+ speakText(){throw Error('The buffered narration should not request fresh speech');}};
+ vm.createContext(ctx);
+ vm.runInContext(src.slice(src.indexOf('function rememberMathsNarration('),src.indexOf('async function playPcmStream(')),ctx);
+ ctx.rememberMathsNarration(checkpoint);
+ assert.equal(ctx.mathsNarrationCheckpoints.size,0);
+ ctx.teacherStreamComplete=true;
+ ctx.rememberMathsNarration(checkpoint);
+ context.currentTime=30;
+ await ctx.resumeMathsNarration(checkpoint,'Saved step');
+ assert.deepEqual(starts,[[first,30.06,1],[second,31.06,0]]);
+ assert.equal(ctx.mathsNarrationCheckpoints.size,0);
 });

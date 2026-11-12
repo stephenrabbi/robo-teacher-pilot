@@ -6,7 +6,7 @@ const source=fs.readFileSync('classroom/app.js','utf8');
 function harness(){
  const ctx={currentLesson:{text:'Original lesson',index:1,steps:['Intro','Translated graph step','Check']},lessonHistory:[],lessonInterruption:null,lessonDirector:{classList:{toggle(){}}},startLessonDirector(text,index,steps){ctx.currentLesson={text,index,steps}}};
  vm.createContext(ctx);
- vm.runInContext(source.slice(source.indexOf('function captureLessonCheckpoint(){'),source.indexOf('function loadClassroomSnapshot(){')),ctx);
+ vm.runInContext(source.slice(source.indexOf('function captureLessonCheckpoint('),source.indexOf('function loadClassroomSnapshot(){')),ctx);
  return ctx;
 }
 test('nested questions return through exact steps without aliasing',()=>{
