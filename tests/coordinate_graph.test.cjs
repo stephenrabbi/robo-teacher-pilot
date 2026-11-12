@@ -60,3 +60,19 @@ test('noncollinear points are never joined and vertical lines have undefined gra
   assert.match(c.children[2].textContent,expected);assert.equal(c.children[0].children.find(n=>n.attributes['data-graph-line']).children.length,count);
  }
 });
+
+test('restoring a guided graph keeps its latest point and guides',()=>{
+ const points=items('-1,-1','0,1','1,3');
+ const original=container();let changes=0;
+ const graph=renderCoordinateGraph(original,points,'Graph',{onChange:()=>changes++});
+ original.children[1].children[0].click();
+ original.children[1].children[1].click();
+ const restored=container();
+ const reopened=renderCoordinateGraph(restored,points,'Graph',{saved:graph.checkpoint()});
+ assert.deepEqual(reopened.checkpoint(),{mode:'guided',visible:1});
+ assert.match(restored.children[2].textContent,/Point A.*1 left.*1 down/);
+ assert.equal(restored.children[0].children.filter(n=>n.kind==='g')[1].children.length,2);
+ restored.children[1].children[1].click();
+ assert.deepEqual(reopened.checkpoint(),{mode:'guided',visible:2});
+ assert.equal(changes,2);
+});
