@@ -10,7 +10,10 @@ const assert = require('node:assert/strict');
     await page.evaluate(() => {const el=document.getElementById('privacyConsentBanner'); if(el)el.style.display='none';});
     const result = await page.evaluate(async () => {
       const bytes=new Uint8Array(24000*8), view=new DataView(bytes.buffer);
-      for(let i=0;i<24000*4;i++)view.setInt16(i*2,Math.round(900*Math.sin(2*Math.PI*220*i/24000)),true);
+      for(let i=0;i<24000*4;i++){
+        if(i>=24000*1.4&&i<24000*2.4)continue;
+        view.setInt16(i*2,Math.round(7000*Math.sin(2*Math.PI*220*i/24000)),true);
+      }
       window.__syntheticPcmChunks=[bytes.slice(0,1001),bytes.slice(1001,21007),bytes.slice(21007)];
       return await window.eval(`(async()=>{
         teacherSpeechRequest+=1;
@@ -33,6 +36,8 @@ const assert = require('node:assert/strict');
     console.log('Robo-Teacher PCM stream:',JSON.stringify(result));
     assert.equal(result.sampleRate,24000);
     assert.equal(result.completed,true);
+    const mouth=()=>page.locator('#teacherPanel').evaluate(el=>Number(el.style.getPropertyValue('--mouth-open')));
+    await page.waitForFunction(()=>Number(document.getElementById('teacherPanel').style.getPropertyValue('--mouth-open'))>.15);
     // Test the real app's Read Answer handler against the actual Web Audio context.
     await page.locator('#readAnswer').click();
     const paused = await page.evaluate(() => window.eval(`({
@@ -44,6 +49,7 @@ const assert = require('node:assert/strict');
     assert.equal(paused.paused, true);
     assert.equal(paused.state, 'suspended');
     assert.equal(paused.label, 'Continue reading the answer');
+    assert.equal(await mouth(),0);
     await page.waitForTimeout(150);
     const whilePaused = await page.evaluate(() => window.eval('teacherAudioContext.currentTime'));
     assert(Math.abs(whilePaused - paused.currentTime) < 0.01, 'Audio advanced while paused');
@@ -57,7 +63,11 @@ const assert = require('node:assert/strict');
     assert.equal(resumed.paused, false);
     assert.equal(resumed.state, 'running');
     assert.equal(resumed.label, 'Pause reading the answer');
-    console.log('App PCM stream Read Answer Pause/Continue on real Web Audio: PASS');
+    await page.waitForFunction(()=>Number(document.getElementById('teacherPanel').style.getPropertyValue('--mouth-open'))>.15);
+    await page.waitForFunction(()=>window.eval('teacherAudioContext.currentTime>1.85'));
+    assert.equal(await mouth(),0,'The Maths avatar should close its mouth during silence');
+    await page.waitForFunction(()=>Number(document.getElementById('teacherPanel').style.getPropertyValue('--mouth-open'))>.15);
+    console.log('App PCM stream Read Answer Pause/Continue and avatar motion on real Web Audio: PASS');
     // Exercise the classroom question and resume handlers with real Web Audio
     // and deterministic responses. The recognition transcript is synthetic.
     const originalStep='Add two to both sides of the equation.';
