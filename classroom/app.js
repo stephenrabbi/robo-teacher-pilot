@@ -1026,7 +1026,7 @@ function startAvatarMotion(rig){
       if(target===0&&avatarEnergy<.025)avatarEnergy=0;
     }else avatarEnergy+=(target>avatarEnergy ? .58 : .2)*(target-avatarEnergy);
     const pulse=mathsAvatar?1:.86+.14*Math.sin(now*.041);
-    const mouth=Math.round(avatarEnergy*pulse*120)/120;
+    const mouth=Math.round(Math.max(0,Math.min(1,avatarEnergy*pulse))*120)/120;
     const motion=.55+.45*avatarEnergy;
     const nod=Math.sin(now*.0047)*1.8*motion;
     const turn=Math.sin(now*.0029)*1.2*motion;
