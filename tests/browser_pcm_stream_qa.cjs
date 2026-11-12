@@ -58,6 +58,52 @@ const assert = require('node:assert/strict');
     assert.equal(resumed.state, 'running');
     assert.equal(resumed.label, 'Pause reading the answer');
     console.log('App PCM stream Read Answer Pause/Continue on real Web Audio: PASS');
+    // Exercise the classroom question and resume handlers with real Web Audio
+    // and deterministic responses. The recognition transcript is synthetic.
+    const originalStep='Add two to both sides of the equation.';
+    const followUp='Adding the same number keeps both sides equal.';
+    const speechRequests=[];
+    await page.route('**/*',route=>{
+      const url=new URL(route.request().url());
+      if(url.origin!=='http://127.0.0.1:8765')return route.abort();
+      if(url.pathname==='/')return route.fulfill({json:{status:'ready'}});
+      if(url.pathname==='/api/classroom/session')return route.fulfill({json:{session_token:'synthetic-narration-session'}});
+      if(url.pathname==='/api/classroom/chat')return route.fulfill({json:{reply:followUp}});
+      if(url.pathname==='/api/classroom/speech'){
+        const {text}=route.request().postDataJSON();
+        speechRequests.push(text);
+        return route.fulfill({contentType:'audio/L16',body:Buffer.alloc(text===originalStep?24000*2*4:24000)});
+      }
+      return route.continue();
+    });
+    await page.evaluate(step=>window.eval(`(()=>{
+      stopTeacherAudio();
+      learnerNickname.value='Synthetic Narration QA';
+      learnerCode.value='TEST-NARRATION-QA';
+      enterClassroomView();
+      showCanvasAnswer(${JSON.stringify(step)});
+      handsFree.enabled=true;
+    })()`),originalStep);
+    await page.locator('#readAnswer').click();
+    await page.waitForFunction(()=>window.eval(
+      'teacherStreamComplete && activeMathsNarration && teacherAudioContext.currentTime-activeMathsNarration.chunks[0].start>.2'
+    ));
+    await page.evaluate(()=>window.eval(`handsFreeBargeIn([{transcript:'Robo-Teacher, why do we add to both sides?'}])`));
+    await page.waitForFunction(()=>window.eval('teacherSpeechPaused && teacherAudioContext.state==="suspended"'));
+    await page.evaluate(()=>window.eval(`handleHandsFreePhrase('Robo-Teacher, why do we add to both sides?',.99)`));
+    await page.waitForFunction(()=>window.eval('Boolean(handsFree.resumeOffer)'));
+    const offset=await page.evaluate(()=>window.eval(
+      'mathsNarrationCheckpoints.get(handsFree.resumeOffer.interruptedLesson).chunks[0].offset'
+    ));
+    assert.ok(offset>.2&&offset<4,'Expected an interruption inside the original narration');
+    await page.evaluate(()=>window.eval("handleHandsFreePhrase('Continue',.99)"));
+    await page.waitForFunction(()=>window.eval(
+      'activeMathsNarration?.chunks[0]?.offset>0 && teacherPanel.classList.contains("speaking")'
+    ));
+    assert.equal(await page.evaluate(()=>window.eval('activeMathsNarration.chunks[0].offset')),offset);
+    assert.equal(await page.locator('#canvasAnswer').innerText(),originalStep);
+    assert.deepEqual(speechRequests,[originalStep,followUp]);
+    console.log('Maths narration resumed at the saved audio offset without another speech request: PASS');
     console.log('App PCM stream browser test: PASS');
   } finally { await browser.close(); }
 })().catch(err=>{console.error(err);process.exitCode=1});
