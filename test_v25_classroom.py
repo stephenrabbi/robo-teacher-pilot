@@ -109,7 +109,7 @@ def test_ui_refinement_exposes_clear_modes_and_activity_status():
     assert 'teacherAudioContext.suspend()' in script
     assert 'teacherAudioContext.resume()' in script
     assert "teacherSpeechPaused){await resumeTeacherAudio()" in script
-    assert 'async function playPcmStream(response,requestId)' in script
+    assert 'async function playPcmStream(response,requestId,narration=null)' in script
     assert "const reader=response.body.getReader()" in script
     assert "teacherPanel.classList.add('paused')" in script
     assert "teacherPanel.classList.remove('paused')" in script

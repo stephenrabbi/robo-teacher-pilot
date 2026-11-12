@@ -250,6 +250,8 @@ let teacherAudioContext=null;
 let teacherAudioAnalyser=null;
 let teacherAudioGain=null;
 const teacherAudioSources=new Set();
+let activeMathsNarration=null;
+const mathsNarrationCheckpoints=new Map();
 const founderAudioSources=new Set();
 let teacherStreamComplete=false;
 let founderStreamComplete=false;
@@ -305,7 +307,7 @@ const lessonVisualCheckpoints=new WeakMap();
 
 // A checkpoint preserves the exact rendered steps, including translated steps.
 // Audio resumes from the start of this step; sample-level playback is separate.
-function captureLessonCheckpoint(){
+function captureLessonCheckpoint(includeNarration=false){
   if(!currentLesson)return null;
   let checkpoint={text:currentLesson.text,index:currentLesson.index,steps:currentLesson.steps.slice(),step:currentLesson.steps[currentLesson.index]};
   if(typeof teachingStage!=='undefined'&&teachingStage.mode==='example'&&typeof currentWorkedExample!=='undefined'&&currentWorkedExample&&typeof mediaReplayPlayer!=='undefined'){
@@ -322,6 +324,7 @@ function captureLessonCheckpoint(){
       nodes:Array.from(visualGraphic.childNodes),
     });
   }
+  if(includeNarration)rememberMathsNarration(checkpoint);
   return checkpoint;
 }
 
@@ -365,7 +368,7 @@ function saveClassroomSnapshot(){
   localStorage.setItem('roboTeacherClassroomSnapshot',JSON.stringify(savedClassroomSnapshot));refreshResumeLearning();
 }
 
-function clearClassroomSnapshot(){lessonController.begin('idle');lessonHistory.length=0;lessonInterruption=null;currentLesson=null;teachingStage.checkpoint=null;teachingStage.lesson=null;clearPendingChatRecovery();savedClassroomSnapshot=null;localStorage.removeItem('roboTeacherClassroomSnapshot');resumeLearningButton.classList.add('hidden')}
+function clearClassroomSnapshot(){mathsNarrationCheckpoints.clear();lessonController.begin('idle');lessonHistory.length=0;lessonInterruption=null;currentLesson=null;teachingStage.checkpoint=null;teachingStage.lesson=null;clearPendingChatRecovery();savedClassroomSnapshot=null;localStorage.removeItem('roboTeacherClassroomSnapshot');resumeLearningButton.classList.add('hidden')}
 
 refreshResumeLearning();
 
@@ -595,6 +598,7 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
 
 function resumeBookmarkedLessonByVoice(){
   const interrupted=lessonInterruption;
+  const narrationCheckpoint=interrupted||lessonHistory[lessonHistory.length-1];
   stopTeacherAudio();lessonInterruption=null;lessonDirector.classList.remove('lesson-paused');
   if(interrupted)restoreLessonCheckpoint(interrupted);
   else if(lessonHistory.length){
@@ -602,7 +606,8 @@ function resumeBookmarkedLessonByVoice(){
   }else if(currentLesson)renderCurrentLessonStep();
   if(readCurrentWorkedExample(true))return;
   const step=currentLesson?.steps[currentLesson.index];
-  if(step)void speakText(step,true,true);else void resumeTeacherAudio();
+  if(step&&typeof resumeMathsNarration==='function'&&mathsNarrationCheckpoints.has(narrationCheckpoint))void resumeMathsNarration(narrationCheckpoint,step);
+  else if(step)void speakText(step,true,true);else void resumeTeacherAudio();
 }
 
 function readCurrentWorkedExample(preserveAudioUnlock=true){
@@ -1034,6 +1039,7 @@ async function startAudioKeepAlive(){
 }
 
 function stopTeacherAudio(preserveAudioUnlock=false){
+  activeMathsNarration=null;
   if(typeof teacherPlaybackCompletion!=='undefined'&&teacherPlaybackCompletion){teacherPlaybackCompletion.resolve(false);teacherPlaybackCompletion=null;}
   teacherSpeechRequest+=1;
   if(teacherSpeechController){teacherSpeechController.abort();teacherSpeechController=null}
@@ -1056,7 +1062,61 @@ async function prepareTeacherAudio(){
   return teacherAudioContext;
 }
 
-async function playPcmStream(response,requestId){
+function rememberMathsNarration(checkpoint){
+  const narration=activeMathsNarration;
+  // An incomplete stream has no trustworthy remainder. Replay the step in that case.
+  if(!teacherStreamComplete||!narration||narration.lesson!==currentLesson||narration.index!==currentLesson.index||teachingStage.mode!=='lesson')return;
+  const position=teacherAudioContext.currentTime;
+  const remaining=narration.chunks.filter(chunk=>chunk.start+chunk.buffer.duration-chunk.offset>position);
+  if(!remaining.length||remaining.at(-1).start+remaining.at(-1).buffer.duration-remaining.at(-1).offset-position>90)return;
+  const chunks=remaining.map(chunk=>({
+    buffer:chunk.buffer,
+    offset:chunk.offset+Math.max(0,position-chunk.start),
+    delay:Math.max(0,chunk.start-position),
+  }));
+  mathsNarrationCheckpoints.set(checkpoint,{settings:narration.settings,chunks});
+  if(mathsNarrationCheckpoints.size>3)mathsNarrationCheckpoints.delete(mathsNarrationCheckpoints.keys().next().value);
+}
+
+function mathsNarrationSettings(){
+  return [language.value,teacherPanel.dataset.voiceGender,teacherSpeechPace].join(':');
+}
+
+async function resumeMathsNarration(checkpoint,step){
+  const saved=mathsNarrationCheckpoints.get(checkpoint);
+  mathsNarrationCheckpoints.delete(checkpoint);
+  if(!saved||saved.settings!==mathsNarrationSettings())return speakText(step,true,true);
+  const requestId=teacherSpeechRequest;
+  try{
+    const context=await prepareTeacherAudio();
+    if(requestId!==teacherSpeechRequest)return;
+    if(context.state!=='running')throw new Error('Audio unavailable');
+    const start=context.currentTime+.06;
+    activeMathsNarration={lesson:currentLesson,index:currentLesson.index,settings:saved.settings,chunks:[]};
+    for(const chunk of saved.chunks){
+      const source=context.createBufferSource();
+      source.buffer=chunk.buffer;
+      source.connect(ensureAvatarAnalyser(context));
+      teacherAudioSources.add(source);
+      source.addEventListener('ended',()=>{
+        teacherAudioSources.delete(source);
+        if(requestId===teacherSpeechRequest&&!teacherAudioSources.size&&!teacherSpeechPaused)stopTeacherAudio();
+      },{once:true});
+      const startAt=start+chunk.delay;
+      source.start(startAt,chunk.offset);
+      activeMathsNarration.chunks.push({buffer:chunk.buffer,start:startAt,offset:chunk.offset});
+    }
+    teacherStreamComplete=true;
+    lessonController.begin('speech');
+    setCanvasVoiceAvatar(true);
+    readAnswerButton.disabled=false;
+    setTeacherSpeaking(true);
+  }catch(_error){
+    if(requestId===teacherSpeechRequest)return speakText(step,true,true);
+  }
+}
+
+async function playPcmStream(response,requestId,narration=null){
   const context=await prepareTeacherAudio();if(requestId!==teacherSpeechRequest)return;const reader=response.body.getReader();let pending=new Uint8Array(0);let nextStart=context.currentTime+.06;let receivedAudio=false;
   const finishIfDone=()=>{if(teacherStreamComplete&&!teacherAudioSources.size&&!teacherSpeechPaused&&requestId===teacherSpeechRequest){if(typeof teacherPlaybackCompletion!=='undefined'&&teacherPlaybackCompletion){teacherPlaybackCompletion.resolve(true);teacherPlaybackCompletion=null;}stopTeacherAudio()}};
   while(requestId===teacherSpeechRequest){
@@ -1077,6 +1137,10 @@ async function playPcmStream(response,requestId){
     const source=context.createBufferSource();source.buffer=buffer;source.connect(ensureAvatarAnalyser(context));teacherAudioSources.add(source);
     source.addEventListener('ended',()=>{teacherAudioSources.delete(source);finishIfDone()},{once:true});
     const startAt=Math.max(nextStart,context.currentTime+.025);source.start(startAt);nextStart=startAt+buffer.duration;
+    if(narration){
+      narration.chunks.push({buffer,start:startAt,offset:0});
+      if(nextStart-narration.chunks[0].start>90){activeMathsNarration=null;narration=null;}
+    }
   }
   if(requestId===teacherSpeechRequest&&!receivedAudio)throw new Error('empty voice stream');
   if(requestId===teacherSpeechRequest){teacherStreamComplete=true;finishIfDone();}
@@ -1117,11 +1181,18 @@ async function speakText(text,preserveAudioUnlock=false,displayCanvasAvatar=true
     if(!preserveAudioUnlock||!teacherAudioKeepAlive)await startAudioKeepAlive();
     const token=await ensureSession();
     if(requestId!==teacherSpeechRequest)return;
+    const settings=mathsNarrationSettings();
     const response=await requestTeacherSpeech({text:prepareSpeechText(text),session_token:token,language:language.value,voice_gender:teacherPanel.dataset.voiceGender==='male'?'male':'female',pace:teacherSpeechPace},teacherSpeechController.signal,requestId);
     if(response.status===401){sessionToken=null;throw new Error('session')}
     if(!response.ok)throw new Error(response.status===429?'voice-rate-limited':response.status===503?'voice-service-unavailable':'voice-http-error');
     if(!response.body)throw new Error('stream unavailable');
-    await playPcmStream(response,requestId);
+    if(requestId!==teacherSpeechRequest)return;
+    const step=currentLesson?.steps[currentLesson.index];
+    const narration=teachingStage.mode==='lesson'&&!subjectClassroom?.isOpen()&&step&&(text===step||text===canvasAnswer.textContent)
+      ? {lesson:currentLesson,index:currentLesson.index,settings,chunks:[]}
+      : null;
+    activeMathsNarration=narration;
+    await playPcmStream(response,requestId,narration);
     if(playback)return await playback;
   }catch(error){
     if(error.name==='AbortError'||requestId!==teacherSpeechRequest)return;
@@ -1441,7 +1512,7 @@ watchStepExample.addEventListener('click',openLessonMedia);
 checkStepUnderstanding.addEventListener('click',startUnderstandingCheck);
 function pauseLessonForQuestion(source='text'){
   if(!currentLesson)return;
-  const checkpoint=captureLessonCheckpoint();
+  const checkpoint=captureLessonCheckpoint(true);
   lessonController.begin('question');clearTimeout(lessonChoreography.timer);stopLessonMedia();
   if(!lessonInterruption){lessonInterruption=checkpoint;recordLearningSignal('questions')}
   stopTeacherAudio();
@@ -2246,7 +2317,7 @@ async function handleImage(file,source='upload'){
 form.addEventListener('submit',async(e)=>{
   e.preventDefault();const text=question.value.trim();if(!text||sendButton.disabled)return;
   const recovery=pendingChatRecovery?.text===text?pendingChatRecovery:null;
-  const interruptedLesson=recovery?.interruptedLesson||lessonInterruption||captureLessonCheckpoint();
+  const interruptedLesson=recovery?.interruptedLesson||lessonInterruption||captureLessonCheckpoint(true);
   const interruptedStep=interruptedLesson?.step||currentLesson?.steps?.[interruptedLesson?.index]||interruptedLesson?.text||'';
   const lessonQuestion=interruptedLesson?`The learner paused this lesson step: "${interruptedStep}"\n\nTheir question is: ${text}`:text;
   const requestText=`${adaptivePromptContext()}\n\n${lessonQuestion}`;
