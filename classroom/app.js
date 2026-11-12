@@ -1176,7 +1176,8 @@ function syncTeacherPresence(activity=teacherPresenceActivity){
   if(!window.RoboTeacherPresence)return;
   window.RoboTeacherPresence.renderTeacherPresence(teacherPanel,document.getElementById('teacherCue'),{
     activity,stage:teachingStage.mode,speaking:teacherPanel.classList.contains('speaking'),paused:teacherSpeechPaused,
-    listening:Boolean(mediaRecorder?.state==='recording'||handsFree.listening||(typeof subjectRecording!=='undefined'&&subjectRecording)),
+    listening:Boolean(mediaRecorder?.state==='recording'||(handsFree.listening&&Date.now()<handsFree.armedUntil)||(typeof subjectRecording!=='undefined'&&subjectRecording)),
+    wakeListening:handsFree.listening,
   });
 }
 

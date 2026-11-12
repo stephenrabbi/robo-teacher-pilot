@@ -18,7 +18,7 @@ const fs=require('node:fs');
   for(const width of [375,390,768,1280])for(shape of ['rectangle','circle','triangle']){
    await page.setViewportSize({width,height:900});await page.goto('http://127.0.0.1:8765/classroom/index.html');
    if(await page.getByRole('button',{name:'Essential only',exact:true}).isVisible())await page.getByRole('button',{name:'Essential only',exact:true}).click();
-   await page.evaluate(()=>window.eval("learnerNickname.value='SyntheticGeometryQA';enterClassroomView();canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');startLessonDirector('Original geometry lesson',0,['Exact original geometry explanation']);"));
+   await page.evaluate(()=>window.eval("learnerNickname.value='SyntheticGeometryQA';enterClassroomView();canvasEmpty.classList.add('hidden');canvasWork.classList.remove('hidden');startLessonDirector('Original geometry lesson',0,['Exact original geometry explanation']);handsFree.listening=true;"));
    await page.locator('#showStepVisual').click();await page.locator('.geometry-diagram').waitFor({state:'visible'});
    assert.equal(await page.locator('#teacherPanel').getAttribute('data-pose'),'presenting');
    const pose=page.locator('#teacherPanel .teacher-presenting-pose');await pose.waitFor({state:'visible'});
@@ -27,7 +27,7 @@ const fs=require('node:fs');
    await page.locator('#teacherPanel').screenshot({path:`responsive-qa/presenter-live-${shape}-${width}.png`});
    if(shape==='rectangle'){
     const arm=pose.locator('.presenter-arm');
-    await arm.evaluate(el=>{const a=el.getAnimations()[0];if(!a)throw Error('Gesture animation missing');a.pause();a.currentTime=3000;});
+    await arm.evaluate(el=>{const a=el.getAnimations()[0];if(!a)throw Error('Gesture animation missing');a.pause();const timing=a.effect.getTiming();if(timing.iterations!==1)throw Error('Gesture must play once');a.currentTime=timing.duration*.6;});
     assert.notEqual(await arm.evaluate(el=>getComputedStyle(el).transform),'none');
     assert.equal(await pose.locator('.presenter-body').evaluate(el=>getComputedStyle(el).transform),'none');
     await page.locator('#teacherPanel').screenshot({path:`responsive-qa/presenter-motion-${width}.png`});
@@ -41,7 +41,10 @@ const fs=require('node:fs');
     await page.waitForFunction(()=>document.getElementById('teacherPanel').dataset.gestureMotion==='on');
     await page.locator('#teacherPanel .voice-settings summary').click();
    }
-   await page.evaluate(()=>window.eval("setTeacherSpeaking(true)"));
+   await page.evaluate(()=>window.eval("handsFree.armedUntil=Date.now()+7000;syncTeacherPresence();"));
+   assert.equal(await page.locator('#teacherPanel').getAttribute('data-teaching-state'),'listening');
+   assert.equal(await pose.isVisible(),false);
+   await page.evaluate(()=>window.eval("handsFree.armedUntil=0;setTeacherSpeaking(true);"));
    assert.equal(await page.locator('#teacherPanel').getAttribute('data-pose'),'portrait');
    assert.equal(await pose.isVisible(),false);
    await page.evaluate(()=>window.eval("setTeacherSpeaking(false)"));
