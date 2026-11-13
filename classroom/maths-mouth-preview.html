@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Maths teacher lip-sync preview</title>
+  <style>
+    body { margin: 0; background: #eef4fb; color: #102744; font: 1rem system-ui, sans-serif; }
+    main { max-width: 30rem; margin: 2rem auto; padding: 1rem; }
+    .portrait-frame { position: relative; width: min(100%, 20rem); margin: 1rem 0; }
+    .portrait-frame img { display: block; width: 100%; border-radius: 1rem; }
+    #portrait { position: absolute; inset: 0; mask-image: radial-gradient(ellipse 17% 13% at 50% 77%, black 75%, transparent); }
+    audio { width: 100%; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Maths teacher lip-sync preview</h1>
+    <div class="portrait-frame">
+      <img src="./assets/maths-mouth-0-0.webp" alt="Robo-Teacher Maths teacher">
+      <img id="portrait" src="./assets/maths-mouth-0-0.webp" alt="" aria-hidden="true">
+    </div>
+    <p>Add two to both sides of the equation.</p>
+    <audio controls aria-label="Play prepared Maths narration"></audio>
+    <p id="status" role="status">Loading narration…</p>
+  </main>
+  <script type="module">
+    const audio = document.querySelector('audio');
+    const portrait = document.querySelector('#portrait');
+    const status = document.querySelector('#status');
+    const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+    const shapes = { X:'0-0', A:'1-0', B:'2-0', C:'0-1', D:'0-1', E:'2-1', F:'1-1', G:'2-0', H:'0-1' };
+    const asset = shape => new URL('./assets/maths-mouth-' + shape + '.webp', location.href).href;
+    const fixture = '../classroom_narration/add-two-both-sides';
+    let frame = 0;
+    let cues = [];
+
+    async function fetchAsset(url) {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Preview asset unavailable');
+      return response;
+    }
+
+    function updatePortrait() {
+      cancelAnimationFrame(frame);
+      const cue = audio.paused || reducedMotion.matches
+        ? null : cues.find(({start, end}) => start <= audio.currentTime && audio.currentTime < end);
+      const src = asset(shapes[cue?.value] ?? shapes.X);
+      if (portrait.src !== src) portrait.src = src;
+      if (!audio.paused && !audio.ended) frame = requestAnimationFrame(updatePortrait);
+    }
+
+    for (const event of ['play', 'pause', 'seeked', 'ended']) audio.addEventListener(event, updatePortrait);
+    reducedMotion.addEventListener('change', updatePortrait);
+
+    try {
+      const [cueResponse, pcmResponse] = await Promise.all([
+        fetchAsset(fixture + '.cues.json'), fetchAsset(fixture + '.pcm.gz')
+      ]);
+      cues = await cueResponse.json();
+      const pcm = await new Response(pcmResponse.body.pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
+      const header = new DataView(new ArrayBuffer(44));
+      const ascii = (offset, value) => [...value].forEach((letter, i) => header.setUint8(offset + i, letter.charCodeAt(0)));
+      ascii(0, 'RIFF');
+      header.setUint32(4, 36 + pcm.byteLength, true);
+      ascii(8, 'WAVEfmt ');
+      header.setUint32(16, 16, true);
+      header.setUint16(20, 1, true);
+      header.setUint16(22, 1, true);
+      header.setUint32(24, 24000, true);
+      header.setUint32(28, 48000, true);
+      header.setUint16(32, 2, true);
+      header.setUint16(34, 16, true);
+      ascii(36, 'data');
+      header.setUint32(40, pcm.byteLength, true);
+      await Promise.all([...new Set(cues.map(cue => shapes[cue.value]))].map(shape => {
+        const image = new Image();
+        image.src = asset(shape);
+        return image.decode();
+      }));
+      const url = URL.createObjectURL(new Blob([header.buffer, pcm], {type:'audio/wav'}));
+      audio.src = url;
+      window.addEventListener('pagehide', event => { if (!event.persisted) URL.revokeObjectURL(url); });
+      status.textContent = '';
+    } catch {
+      status.textContent = 'The preview could not load its narration or mouth-shape assets.';
+    }
+  </script>
+</body>
+</html>

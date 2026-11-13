@@ -53,6 +53,9 @@ jobs:
         run: node tests/web_audio_engine_qa.cjs
       - name: Verify production PCM stream decoder with synthetic audio
         run: node tests/browser_pcm_stream_qa.cjs
+      - name: Verify the staged Maths avatar with real speech responses
+        if: github.event.pull_request.number == 283
+        run: node tests/hosted_maths_avatar_qa.cjs
       - name: Save visual QA screenshots
         if: always()
         uses: actions/upload-artifact@v4

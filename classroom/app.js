@@ -1440,6 +1440,16 @@ function showCanvasAnswer(answer,status='Worked solution',preserveAudioUnlock=fa
   keepTeachingCanvasVisible();
 }
 
+document.getElementById('startEquationLesson')?.addEventListener('click', () => {
+  const steps = [
+    'Solve x − 2 = 5.',
+    'Add two to both sides of the equation.',
+    'The left side simplifies to x. The right side is 5 + 2 = 7, so x = 7.',
+    'Check: Substitute 7 for x. The left side is 7 − 2 = 5, which matches the right side.'
+  ];
+  showCanvasAnswer(steps.join('\n\n'), 'Simple equations');
+});
+
 function keepTeachingCanvasVisible(){
   if(document.activeElement===question)question.blur();
   setTimeout(()=>teachingCanvas.scrollIntoView({block:'start',behavior:'smooth'}),220);

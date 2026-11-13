@@ -80,34 +80,53 @@ const assert = require('node:assert/strict');
       if(url.pathname==='/api/classroom/session')return route.fulfill({json:{session_token:'synthetic-narration-session'}});
       if(url.pathname==='/api/classroom/chat')return route.fulfill({json:{reply:followUp}});
       if(url.pathname==='/api/classroom/speech'){
-        const {text}=route.request().postDataJSON();
+        const {text,mouth_cues}=route.request().postDataJSON();
         speechRequests.push(text);
         const headers={'Content-Type':'audio/L16'};
-        if(text===originalStep)headers['X-Robo-Mouth-Cues']=JSON.stringify([
+        if(text===originalStep&&mouth_cues===true)headers['X-Robo-Mouth-Cues']=JSON.stringify([
           {start:0,end:.1,value:'X'},{start:.1,end:2,value:'F'},{start:2,end:4,value:'E'}
         ]);
-        return route.fulfill({headers,body:Buffer.alloc(text===originalStep?24000*2*4:24000)});
+        const pcm=Buffer.alloc(text===originalStep?24000*2*4:24000*2*2);
+        if(text===followUp){
+          for(let sample=0;sample<pcm.length/2;sample++){
+            pcm.writeInt16LE(Math.round(7000*Math.sin(2*Math.PI*220*sample/24000)),sample*2);
+          }
+        }
+        return route.fulfill({headers,body:pcm});
       }
       return route.continue();
     });
-    await page.evaluate(step=>window.eval(`(()=>{
+    await page.evaluate(()=>window.eval(`(()=>{
       stopTeacherAudio();
       learnerNickname.value='Synthetic Narration QA';
       learnerCode.value='TEST-NARRATION-QA';
       enterClassroomView();
-      showCanvasAnswer(${JSON.stringify(step)});
       handsFree.enabled=true;
-    })()`),originalStep);
+    })()`));
+    await page.locator('#startEquationLesson').click();
+    await page.locator('#nextLessonStep').click();
+    assert.equal(await page.locator('#canvasAnswer').innerText(),originalStep);
     await page.locator('#readAnswer').click();
     await page.waitForFunction(()=>window.eval(
       'teacherStreamComplete && activeMathsNarration && teacherAudioContext.currentTime-activeMathsNarration.chunks[0].start>.2'
     ));
     await page.waitForFunction(()=>document.getElementById('teacherPanel').dataset.mouthCue==='F');
     assert.equal(await page.locator('#teacherPanel .maths-mouth-cue').isVisible(),true);
+    const mouthMask = await page.locator('#teacherPanel .maths-mouth-cue')
+      .evaluate(overlay => getComputedStyle(overlay).maskImage);
+    assert.match(mouthMask, /^radial-gradient\((?:ellipse )?17% 13% at 50% 77%/);
+    await page.emulateMedia({reducedMotion:'reduce'});
+    assert.equal(await page.locator('#teacherPanel .maths-mouth-cue').isVisible(),false);
+    await page.emulateMedia({reducedMotion:'no-preference'});
+    assert.equal(await page.locator('#teacherPanel .maths-mouth-cue').isVisible(),true);
     await page.evaluate(()=>window.eval(`handsFreeBargeIn([{transcript:'Robo-Teacher, why do we add to both sides?'}])`));
     await page.waitForFunction(()=>window.eval('teacherSpeechPaused && teacherAudioContext.state==="suspended"'));
     assert.equal(await page.locator('#teacherPanel').getAttribute('data-mouth-cue'),null);
     await page.evaluate(()=>window.eval(`handleHandsFreePhrase('Robo-Teacher, why do we add to both sides?',.99)`));
+    await page.waitForFunction(()=>{
+      const panel=document.getElementById('teacherPanel');
+      return Number(panel.style.getPropertyValue('--mouth-open'))>.15&&!panel.hasAttribute('data-mouth-cue');
+    });
     await page.waitForFunction(()=>window.eval('Boolean(handsFree.resumeOffer)'));
     const offset=await page.evaluate(()=>window.eval(
       'mathsNarrationCheckpoints.get(handsFree.resumeOffer.interruptedLesson).chunks[0].offset'
@@ -121,7 +140,35 @@ const assert = require('node:assert/strict');
     assert.equal(await page.locator('#canvasAnswer').innerText(),originalStep);
     await page.waitForFunction(()=>document.getElementById('teacherPanel').dataset.mouthCue==='F');
     assert.deepEqual(speechRequests,[originalStep,followUp]);
+    const resumedCues = await page.evaluate(() => {
+      const narration = {
+        cues: [{start:0,end:1,value:'B'}, {start:1,end:2,value:'F'}, {start:2,end:3,value:'E'}],
+        chunks: [
+          {start:10,timeline:1,offset:.5,buffer:{duration:1}},
+          {start:10.5,timeline:2,offset:0,buffer:{duration:1}}
+        ]
+      };
+      return [9.9, 10, 10.49, 10.5, 11.5].map(time => mathsMouthCueAt(narration,time));
+    });
+    assert.deepEqual(resumedCues,['X','F','F','E','X']);
     console.log('Maths narration resumed at the saved audio offset without another speech request: PASS');
     console.log('App PCM stream browser test: PASS');
+    const preview = await browser.newPage();
+    await preview.goto('http://127.0.0.1:8765/classroom/maths-mouth-preview.html');
+    await preview.waitForFunction(() => {
+      const recording = document.querySelector('audio');
+      return Number.isFinite(recording.duration) && recording.duration > 0;
+    });
+    const duration = await preview.locator('audio').evaluate(recording => recording.duration);
+    assert.ok(duration >= 3.88 && duration < 4, 'Expected the prepared narration recording');
+    await preview.locator('audio').evaluate(async recording => {
+      recording.currentTime = 0.85;
+      await recording.play();
+    });
+    await preview.waitForFunction(() => document.querySelector('#portrait').src.endsWith('maths-mouth-1-1.webp'));
+    await preview.emulateMedia({reducedMotion:'reduce'});
+    await preview.waitForFunction(() => document.querySelector('#portrait').src.endsWith('maths-mouth-0-0.webp'));
+    assert.equal(await preview.locator('audio').evaluate(recording => recording.paused), false);
+    console.log('Prepared Maths preview plays and respects reduced motion: PASS');
   } finally { await browser.close(); }
 })().catch(err=>{console.error(err);process.exitCode=1});
