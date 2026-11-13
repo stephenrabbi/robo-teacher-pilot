@@ -84,24 +84,27 @@ const assert = require('node:assert/strict');
       if(url.pathname==='/api/classroom/session')return route.fulfill({json:{session_token:'synthetic-narration-session'}});
       if(url.pathname==='/api/classroom/chat')return route.fulfill({json:{reply:followUp}});
       if(url.pathname==='/api/classroom/speech'){
-        const {text}=route.request().postDataJSON();
+        const {text,mouth_cues}=route.request().postDataJSON();
         speechRequests.push(text);
         const headers={'Content-Type':'audio/L16'};
-        if(text===originalStep)headers['X-Robo-Mouth-Cues']=JSON.stringify([
+        if(text===originalStep&&mouth_cues)headers['X-Robo-Mouth-Cues']=JSON.stringify([
           {start:0,end:.1,value:'X'},{start:.1,end:2,value:'F'},{start:2,end:4,value:'E'}
         ]);
         return route.fulfill({headers,body:Buffer.alloc(text===originalStep?24000*2*4:24000)});
       }
       return route.continue();
     });
-    await page.evaluate(step=>window.eval(`(()=>{
+    await page.evaluate(()=>window.eval(`(()=>{
       stopTeacherAudio();
       learnerNickname.value='Synthetic Narration QA';
       learnerCode.value='TEST-NARRATION-QA';
       enterClassroomView();
-      showCanvasAnswer(${JSON.stringify(step)});
+      lessonChoreography.enabled=false;
       handsFree.enabled=true;
-    })()`),originalStep);
+    })()`));
+    await page.locator('#simpleEquationsExample').click();
+    await page.locator('#nextLessonStep').click();
+    assert.equal(await page.locator('#canvasAnswer').innerText(),originalStep);
     await page.locator('#readAnswer').click();
     await page.waitForFunction(()=>window.eval(
       'teacherStreamComplete && activeMathsNarration && teacherAudioContext.currentTime-activeMathsNarration.chunks[0].start>.2'
