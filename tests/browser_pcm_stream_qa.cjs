@@ -38,6 +38,10 @@ const assert = require('node:assert/strict');
     assert.equal(result.completed,true);
     const mouth=()=>page.locator('#teacherPanel').evaluate(el=>Number(el.style.getPropertyValue('--mouth-open')));
     await page.waitForFunction(()=>Number(document.getElementById('teacherPanel').style.getPropertyValue('--mouth-open'))>.15);
+    const speakingOverlay = page.locator('#teacherPanel .avatar-head-speaking');
+    await page.emulateMedia({reducedMotion:'reduce'});
+    assert.equal(await speakingOverlay.evaluate(el => getComputedStyle(el).opacity), '0');
+    await page.emulateMedia({reducedMotion:'no-preference'});
     // Test the real app's Read Answer handler against the actual Web Audio context.
     await page.locator('#readAnswer').click();
     const paused = await page.evaluate(() => window.eval(`({
