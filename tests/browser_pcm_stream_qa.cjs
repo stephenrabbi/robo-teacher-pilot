@@ -138,6 +138,17 @@ const assert = require('node:assert/strict');
     assert.equal(await page.locator('#canvasAnswer').innerText(),originalStep);
     await page.waitForFunction(()=>document.getElementById('teacherPanel').dataset.mouthCue==='F');
     assert.deepEqual(speechRequests,[originalStep,followUp]);
+    const resumedCues = await page.evaluate(() => {
+      const narration = {
+        cues: [{start:0,end:1,value:'B'}, {start:1,end:2,value:'F'}, {start:2,end:3,value:'E'}],
+        chunks: [
+          {start:10,timeline:1,offset:.5,buffer:{duration:1}},
+          {start:10.5,timeline:2,offset:0,buffer:{duration:1}}
+        ]
+      };
+      return [9.9, 10, 10.49, 10.5, 11.5].map(time => mathsMouthCueAt(narration,time));
+    });
+    assert.deepEqual(resumedCues,['X','F','F','E','X']);
     console.log('Maths narration resumed at the saved audio offset without another speech request: PASS');
     console.log('App PCM stream browser test: PASS');
     const preview = await browser.newPage();
