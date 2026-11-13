@@ -473,3 +473,20 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .media-replay>button.topic-video-continue{background:#0757c9;border-color:#0757c9;color:#fff}
 
 .subject-learning{display:grid;gap:12px;padding:18px;border:1px solid #c9d8ee;border-radius:16px;background:#fff;color:#17355e}.subject-learning h3,.subject-learning p{margin:0}.subject-learning>p{line-height:1.5}.subject-learning select,.subject-learning textarea{width:100%;max-width:100%;font:inherit;padding:10px;border:1px solid #a9bedc;border-radius:10px;color:#17355e;background:#fff}.subject-learning form{display:grid;gap:8px}.subject-actions{display:flex;flex-wrap:wrap;gap:8px}.subject-actions button{min-height:44px;padding:9px 13px;border:1px solid #a9bedc;border-radius:10px;background:#edf5ff;color:#17355e;font-weight:700;cursor:pointer}.subject-actions button[type=submit]{background:#0757c9;color:#fff}.subject-actions button:disabled{opacity:.5;cursor:default}.subject-messages{display:grid;gap:10px}.subject-messages article{padding:12px;border:1px solid #d1dff2;border-radius:12px;background:#f5f9ff;min-width:0}.subject-messages p{white-space:pre-wrap;overflow-wrap:anywhere;margin-top:6px;line-height:1.5}.subject-mode>#messages,.subject-mode>#chatForm,.subject-mode .class-tools button:not([data-mode]){display:none!important}.subject-mode #subjectsButton{background:#0757c9;color:white}.lesson-actions{flex-wrap:wrap}@media(max-width:600px){.subject-learning{padding:12px}.subject-actions button{flex:1 1 130px}}
+
+/* Timed poses cover the same portrait box as the normal speaking frame. */
+.avatar-stage .maths-mouth-cue{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top;visibility:hidden;pointer-events:none;mask-image:radial-gradient(ellipse 17% 13% at 50% 77%,black 75%,transparent)}
+.avatar-rig[data-mouth-cue] .maths-mouth-cue{visibility:visible;border-radius:inherit}
+@media(prefers-reduced-motion:reduce){.avatar-rig[data-mouth-cue] .maths-mouth-cue{visibility:hidden}.avatar-speaking .avatar-head-speaking{opacity:0}}
+/* Keep the mask aligned with the square portrait when object-fit crops the image. */
+.teacher-avatar-stage{container-type:size}
+.teacher-avatar-stage .maths-mouth-cue{
+  border:1px solid var(--line);
+  border-radius:18px;
+  mask-size:max(100cqw,100cqh) max(100cqw,100cqh);
+  mask-position:center top;
+  mask-origin:content-box;
+  mask-repeat:no-repeat;
+}
+.avatar-rig[data-mouth-cue] .avatar-head-motion,.avatar-rig[data-mouth-cue] .avatar-speaking-frame{visibility:hidden}
+.canvas-voice-avatar[data-mouth-cue] .canvas-avatar-stage{transform:none}

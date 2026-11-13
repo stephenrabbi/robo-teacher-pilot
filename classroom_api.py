@@ -20,6 +20,7 @@ from typing import Literal
 from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
+from maths_mouth_cues import prepared_maths_narration
 from curriculum import ALL_TOPICS, CLASS_TOPICS, CURRICULUM
 from diagnostic import answer_diagnostic, change_diagnostic_language, next_diagnostic, start_diagnostic
 from diagnostic_progress import save_diagnostic_result
@@ -94,6 +95,7 @@ class ClassroomSpeech(BaseModel):
     language: SupportedLanguage = "English"
     voice_gender: Literal["female", "male"] = "female"
     pace: Literal["slower", "normal", "faster"] = "normal"
+    mouth_cues: bool = False
 
 
 class PracticeStart(BaseModel):
@@ -413,17 +415,23 @@ def classroom_speech(speech: ClassroomSpeech):
     _enforce_rate_limit(student_id, "speech", 30)
     text = speech.text.strip()
     headers = {"Cache-Control": "no-store", "X-Audio-Sample-Rate": "24000"}
+    if speech.mouth_cues:
+        prepared = prepared_maths_narration(text, speech.language, speech.voice_gender, speech.pace)
+        if prepared:
+            audio, cues = prepared
+            headers["X-Robo-Mouth-Cues"] = cues
+            return StreamingResponse(iter((audio,)), media_type="audio/l16;rate=24000;channels=1", headers=headers)
+
+    def speech_response(chunks):
+        return StreamingResponse(chunks, media_type="audio/l16;rate=24000;channels=1", headers=headers)
+
     try:
         # Do not send HTTP 200 until Gemini has produced actual audio. This
         # prevents an empty provider stream from making the browser flash
         # "Pause" and then silently stop.
         audio_stream = iter(stream_tutor_speech(text, speech.language, speech.voice_gender, speech.pace))
         first_chunk = next(audio_stream)
-        return StreamingResponse(
-            chain((first_chunk,), audio_stream),
-            media_type="audio/l16;rate=24000;channels=1",
-            headers=headers,
-        )
+        return speech_response(chain((first_chunk,), audio_stream))
     except Exception:
         try:
             # Keep Gemini 3.1 streaming as the primary voice, then use the
@@ -431,11 +439,7 @@ def classroom_speech(speech: ClassroomSpeech):
             # the preview stream returns no audio.
             fallback_stream = iter(stream_stable_tutor_speech(text, speech.language, speech.voice_gender, speech.pace))
             first_fallback_chunk = next(fallback_stream)
-            return StreamingResponse(
-                chain((first_fallback_chunk,), fallback_stream),
-                media_type="audio/l16;rate=24000;channels=1",
-                headers=headers,
-            )
+            return speech_response(chain((first_fallback_chunk,), fallback_stream))
         except Exception as exc:
             raise HTTPException(status_code=503, detail="The natural teacher voice is temporarily unavailable") from exc
 

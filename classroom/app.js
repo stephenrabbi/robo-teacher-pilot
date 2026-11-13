@@ -986,8 +986,61 @@ function ensureAvatarAnalyser(context){
   teacherAudioAnalyser=context.createAnalyser();teacherAudioAnalyser.fftSize=256;teacherAudioAnalyser.smoothingTimeConstant=.38;teacherAudioGain=context.createGain();teacherAudioGain.gain.value=teacherVolumeValue(teacherVolumeLevel);teacherAudioAnalyser.connect(teacherAudioGain);teacherAudioGain.connect(context.destination);return teacherAudioAnalyser;
 }
 
+const mathsMouthShapes={X:'0-0',A:'1-0',B:'2-0',C:'0-1',D:'0-1',E:'2-1',F:'1-1',G:'2-0',H:'0-1'};
+const mathsMouthImages=new Map();
+
+function parseMathsMouthCues(header){
+  if(!header||header.length>12000)return null;
+  try{
+    const cues=JSON.parse(header);
+    if(!Array.isArray(cues)||!cues.length||cues.length>240)return null;
+    let end=0;
+    for(const cue of cues){
+      if(!cue||!Object.hasOwn(mathsMouthShapes,cue.value)||!Number.isFinite(cue.start)||!Number.isFinite(cue.end)||
+        cue.start<end||cue.end<=cue.start||cue.end>90)return null;
+      end=cue.end;
+    }
+    return cues;
+  }catch(_error){return null}
+}
+
+function prepareMathsMouthImages(cues){
+  for(const {value} of cues){
+    const shape=mathsMouthShapes[value];
+    if(mathsMouthImages.has(shape))continue;
+    const image=new Image();
+    image.src=`/classroom/assets/maths-mouth-${shape}.webp`;
+    mathsMouthImages.set(shape,image);
+  }
+}
+
+function mathsMouthCueAt(narration,position){
+  if(!narration?.cues)return null;
+  const chunk=narration.chunks.find(item=>item.start<=position&&position<item.start+item.buffer.duration-item.offset);
+  if(!chunk)return 'X';
+  const audioTime=chunk.timeline+chunk.offset+position-chunk.start;
+  return narration.cues.find(cue=>cue.start<=audioTime&&audioTime<cue.end)?.value||'X';
+}
+
+function renderMathsMouthCue(rig,cue){
+  const image=mathsMouthImages.get(mathsMouthShapes[cue]);
+  if(!image?.naturalWidth){delete rig.dataset.mouthCue;return}
+  const stage=rig.querySelector('.avatar-stage');
+  if(!stage)return;
+  let overlay=stage.querySelector('.maths-mouth-cue');
+  if(!overlay){
+    overlay=document.createElement('img');
+    overlay.className='maths-mouth-cue';
+    overlay.alt='';
+    overlay.setAttribute('aria-hidden','true');
+    stage.appendChild(overlay);
+  }
+  if(overlay.src!==image.src)overlay.src=image.src;
+  rig.dataset.mouthCue=cue;
+}
+
 function resetAvatarRig(rig){
-  if(!rig)return;rig.classList.remove('avatar-speaking');
+  if(!rig)return;rig.classList.remove('avatar-speaking');delete rig.dataset.mouthCue;
   rig.style.setProperty('--mouth-open','0');rig.style.setProperty('--head-x','0px');rig.style.setProperty('--head-y','0px');rig.style.setProperty('--head-turn','0deg');rig.style.setProperty('--breath','1');
 }
 
@@ -1030,10 +1083,13 @@ function startAvatarMotion(rig){
     const motion=.55+.45*avatarEnergy;
     const nod=Math.sin(now*.0047)*1.8*motion;
     const turn=Math.sin(now*.0029)*1.2*motion;
+    const cue=mathsAvatar?mathsMouthCueAt(activeMathsNarration,teacherAudioContext.currentTime):null;
+    if(mathsAvatar)renderMathsMouthCue(rig,cue);
     rig.style.setProperty('--mouth-open',mouth.toFixed(3));
     rig.style.setProperty('--head-y',`${nod.toFixed(2)}px`);
     rig.style.setProperty('--head-turn',`${turn.toFixed(2)}deg`);
     if(rig===teacherPanel&&showVoiceAnswerAvatar){
+      if(mathsAvatar)renderMathsMouthCue(canvasVoiceAvatar,cue);
       canvasVoiceAvatar.style.setProperty('--mouth-open',mouth.toFixed(3));
       canvasVoiceAvatar.style.setProperty('--head-y',`${nod.toFixed(2)}px`);
       canvasVoiceAvatar.style.setProperty('--head-turn',`${turn.toFixed(2)}deg`);
@@ -1084,9 +1140,9 @@ function rememberMathsNarration(checkpoint){
   const chunks=remaining.map(chunk=>({
     buffer:chunk.buffer,
     offset:chunk.offset+Math.max(0,position-chunk.start),
-    delay:Math.max(0,chunk.start-position),
+    delay:Math.max(0,chunk.start-position),timeline:chunk.timeline,
   }));
-  mathsNarrationCheckpoints.set(checkpoint,{settings:narration.settings,chunks});
+  mathsNarrationCheckpoints.set(checkpoint,{settings:narration.settings,cues:narration.cues,chunks});
   if(mathsNarrationCheckpoints.size>3)mathsNarrationCheckpoints.delete(mathsNarrationCheckpoints.keys().next().value);
 }
 
@@ -1104,7 +1160,7 @@ async function resumeMathsNarration(checkpoint,step){
     if(requestId!==teacherSpeechRequest)return;
     if(context.state!=='running')throw new Error('Audio unavailable');
     const start=context.currentTime+.06;
-    activeMathsNarration={lesson:currentLesson,index:currentLesson.index,settings:saved.settings,chunks:[]};
+    activeMathsNarration={lesson:currentLesson,index:currentLesson.index,settings:saved.settings,cues:saved.cues,chunks:[]};
     for(const chunk of saved.chunks){
       const source=context.createBufferSource();
       source.buffer=chunk.buffer;
@@ -1116,7 +1172,7 @@ async function resumeMathsNarration(checkpoint,step){
       },{once:true});
       const startAt=start+chunk.delay;
       source.start(startAt,chunk.offset);
-      activeMathsNarration.chunks.push({buffer:chunk.buffer,start:startAt,offset:chunk.offset});
+      activeMathsNarration.chunks.push({buffer:chunk.buffer,start:startAt,offset:chunk.offset,timeline:chunk.timeline});
     }
     teacherStreamComplete=true;
     lessonController.begin('speech');
@@ -1129,7 +1185,7 @@ async function resumeMathsNarration(checkpoint,step){
 }
 
 async function playPcmStream(response,requestId,narration=null){
-  const context=await prepareTeacherAudio();if(requestId!==teacherSpeechRequest)return;const reader=response.body.getReader();let pending=new Uint8Array(0);let nextStart=context.currentTime+.06;let receivedAudio=false;
+  const context=await prepareTeacherAudio();if(requestId!==teacherSpeechRequest)return;const reader=response.body.getReader();let pending=new Uint8Array(0);let nextStart=context.currentTime+.06;let receivedAudio=false;let timeline=0;
   const finishIfDone=()=>{if(teacherStreamComplete&&!teacherAudioSources.size&&!teacherSpeechPaused&&requestId===teacherSpeechRequest){if(typeof teacherPlaybackCompletion!=='undefined'&&teacherPlaybackCompletion){teacherPlaybackCompletion.resolve(true);teacherPlaybackCompletion=null;}stopTeacherAudio()}};
   while(requestId===teacherSpeechRequest){
     const {done,value}=await reader.read();
@@ -1150,7 +1206,8 @@ async function playPcmStream(response,requestId,narration=null){
     source.addEventListener('ended',()=>{teacherAudioSources.delete(source);finishIfDone()},{once:true});
     const startAt=Math.max(nextStart,context.currentTime+.025);source.start(startAt);nextStart=startAt+buffer.duration;
     if(narration){
-      narration.chunks.push({buffer,start:startAt,offset:0});
+      narration.chunks.push({buffer,start:startAt,offset:0,timeline});
+      timeline+=buffer.duration;
       if(nextStart-narration.chunks[0].start>90){activeMathsNarration=null;narration=null;}
     }
   }
@@ -1194,15 +1251,19 @@ async function speakText(text,preserveAudioUnlock=false,displayCanvasAvatar=true
     const token=await ensureSession();
     if(requestId!==teacherSpeechRequest)return;
     const settings=mathsNarrationSettings();
-    const response=await requestTeacherSpeech({text:prepareSpeechText(text),session_token:token,language:language.value,voice_gender:teacherPanel.dataset.voiceGender==='male'?'male':'female',pace:teacherSpeechPace},teacherSpeechController.signal,requestId);
-    if(response.status===401){sessionToken=null;throw new Error('session')}
-    if(!response.ok)throw new Error(response.status===429?'voice-rate-limited':response.status===503?'voice-service-unavailable':'voice-http-error');
-    if(!response.body)throw new Error('stream unavailable');
-    if(requestId!==teacherSpeechRequest)return;
     const step=currentLesson?.steps[currentLesson.index];
     const narration=teachingStage.mode==='lesson'&&!subjectClassroom?.isOpen()&&step&&(text===step||text===canvasAnswer.textContent)
       ? {lesson:currentLesson,index:currentLesson.index,settings,chunks:[]}
       : null;
+    const response=await requestTeacherSpeech({text:prepareSpeechText(text),session_token:token,language:language.value,voice_gender:teacherPanel.dataset.voiceGender==='male'?'male':'female',pace:teacherSpeechPace,mouth_cues:Boolean(narration)},teacherSpeechController.signal,requestId);
+    if(response.status===401){sessionToken=null;throw new Error('session')}
+    if(!response.ok)throw new Error(response.status===429?'voice-rate-limited':response.status===503?'voice-service-unavailable':'voice-http-error');
+    if(!response.body)throw new Error('stream unavailable');
+    if(requestId!==teacherSpeechRequest)return;
+    if(narration&&typeof parseMathsMouthCues==='function'){
+      narration.cues=parseMathsMouthCues(response.headers.get('X-Robo-Mouth-Cues'));
+      if(narration.cues)prepareMathsMouthImages(narration.cues);
+    }
     activeMathsNarration=narration;
     await playPcmStream(response,requestId,narration);
     if(playback)return await playback;
@@ -1378,6 +1439,16 @@ function showCanvasAnswer(answer,status='Worked solution',preserveAudioUnlock=fa
   readAnswerButton.disabled=!answer.trim();setActiveMode(chatButton);setLearningStatus('Answer ready');
   keepTeachingCanvasVisible();
 }
+
+document.getElementById('startEquationLesson')?.addEventListener('click', () => {
+  const steps = [
+    'Solve x − 2 = 5.',
+    'Add two to both sides of the equation.',
+    'The left side simplifies to x. The right side is 5 + 2 = 7, so x = 7.',
+    'Check: Substitute 7 for x. The left side is 7 − 2 = 5, which matches the right side.'
+  ];
+  showCanvasAnswer(steps.join('\n\n'), 'Simple equations');
+});
 
 function keepTeachingCanvasVisible(){
   if(document.activeElement===question)question.blur();
