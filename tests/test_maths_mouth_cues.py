@@ -59,3 +59,36 @@ class TestMathsNarrationSpeechRoute(unittest.IsolatedAsyncioTestCase):
             self.assertNotIn("X-Robo-Mouth-Cues", fallback.headers)
             self.assertEqual(b"".join([chunk async for chunk in fallback.body_iterator]), b"\0\0")
             provider.assert_called_once_with(text, "English", "female", "normal")
+
+
+    async def test_prepared_audio_over_http_with_a_real_classroom_session(self):
+        from fastapi import FastAPI
+        from httpx import ASGITransport, AsyncClient
+
+        from classroom_api import router
+
+        app = FastAPI()
+        app.include_router(router)
+        text = "Add two to both sides of the equation."
+        expected_audio, expected_cues = prepared_maths_narration(
+            text, "English", "female", "normal"
+        )
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://testserver") as client:
+            session = await client.post("/api/classroom/session", json={
+                "nickname": "Maths Narration QA", "class_level": "JSS2"
+            })
+            session.raise_for_status()
+            payload = {"text": text, "mouth_cues": True}
+            invalid = await client.post("/api/classroom/speech", json={
+                **payload, "session_token": "invalid-synthetic-session-token"
+            })
+            self.assertEqual(invalid.status_code, 401)
+
+            speech = await client.post("/api/classroom/speech", json={
+                **payload, "session_token": session.json()["session_token"]
+            })
+            speech.raise_for_status()
+            self.assertEqual(speech.headers["content-type"], "audio/l16;rate=24000;channels=1")
+            self.assertEqual(speech.headers["X-Audio-Sample-Rate"], "24000")
+            self.assertEqual(speech.headers["X-Robo-Mouth-Cues"], expected_cues)
+            self.assertEqual(speech.content, expected_audio)
