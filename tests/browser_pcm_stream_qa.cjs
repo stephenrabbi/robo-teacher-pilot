@@ -38,6 +38,10 @@ const assert = require('node:assert/strict');
     assert.equal(result.completed,true);
     const mouth=()=>page.locator('#teacherPanel').evaluate(el=>Number(el.style.getPropertyValue('--mouth-open')));
     await page.waitForFunction(()=>Number(document.getElementById('teacherPanel').style.getPropertyValue('--mouth-open'))>.15);
+    const speakingOverlay = page.locator('#teacherPanel .avatar-head-speaking');
+    await page.emulateMedia({reducedMotion:'reduce'});
+    assert.equal(await speakingOverlay.evaluate(el => getComputedStyle(el).opacity), '0');
+    await page.emulateMedia({reducedMotion:'no-preference'});
     // Test the real app's Read Answer handler against the actual Web Audio context.
     await page.locator('#readAnswer').click();
     const paused = await page.evaluate(() => window.eval(`({
@@ -103,6 +107,11 @@ const assert = require('node:assert/strict');
       'teacherStreamComplete && activeMathsNarration && teacherAudioContext.currentTime-activeMathsNarration.chunks[0].start>.2'
     ));
     await page.waitForFunction(()=>document.getElementById('teacherPanel').dataset.mouthCue==='F');
+    assert.equal(await page.locator('#teacherPanel .maths-mouth-cue').isVisible(),true);
+    await page.emulateMedia({reducedMotion:'reduce'});
+    assert.equal(await page.locator('#teacherPanel .maths-mouth-cue').isVisible(),false);
+    assert.equal(await page.locator('#teacherPanel .avatar-head-motion').isVisible(),true);
+    await page.emulateMedia({reducedMotion:'no-preference'});
     assert.equal(await page.locator('#teacherPanel .maths-mouth-cue').isVisible(),true);
     await page.evaluate(()=>window.eval(`handsFreeBargeIn([{transcript:'Robo-Teacher, why do we add to both sides?'}])`));
     await page.waitForFunction(()=>window.eval('teacherSpeechPaused && teacherAudioContext.state==="suspended"'));

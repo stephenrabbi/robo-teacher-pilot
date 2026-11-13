@@ -133,7 +133,7 @@ body{background:radial-gradient(circle at 10% 4%,#fff2c9 0,transparent 24%),radi
 .canvas-voice-avatar>span{display:block;padding:5px 2px 2px;font-size:12px;font-weight:800}
 .canvas-work.voice-avatar-visible{padding-right:140px;min-height:148px}
 @media(max-width:600px){.canvas-voice-avatar{right:10px;bottom:10px;width:92px}.canvas-work.voice-avatar-visible{padding-right:0;padding-bottom:116px;min-height:0}}
-@media(prefers-reduced-motion:reduce){.avatar-head-motion,.canvas-avatar-stage{transform:none!important}}
+@media(prefers-reduced-motion:reduce){.avatar-head-motion,.canvas-avatar-stage{transform:none!important}.avatar-speaking .avatar-head-speaking{opacity:0}}
 
 /* Teacher-owned learner-code roster; names never leave this browser. */
 .device-timing-check{margin:14px 0;padding:14px;border:1px solid #d6e1ef;border-radius:12px;background:#f7f9fc;color:#10203a}.device-timing-check h4{margin:0 0 6px}.device-timing-check p{margin:0 0 10px;font-size:13px;line-height:1.5}.device-timing-check button{min-height:40px;padding:8px 12px;border:1px solid #0757c9;border-radius:9px;background:#eaf3ff;color:#0757c9;font-weight:800;cursor:pointer}.device-timing-check pre{overflow-x:auto;white-space:pre-wrap;overflow-wrap:anywhere;margin:10px 0 0;font:12px/1.6 ui-monospace,monospace}
@@ -476,7 +476,9 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 
 /* Timed poses cover the same portrait box as the normal speaking frame. */
 .avatar-stage .maths-mouth-cue{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top;visibility:hidden;pointer-events:none}
-.avatar-rig[data-mouth-cue] .maths-mouth-cue{visibility:visible;border-radius:inherit}
 .teacher-avatar-stage .maths-mouth-cue{border:1px solid var(--line);border-radius:18px}
-.avatar-rig[data-mouth-cue] .avatar-head-motion,.avatar-rig[data-mouth-cue] .avatar-speaking-frame{visibility:hidden}
-.canvas-voice-avatar[data-mouth-cue] .canvas-avatar-stage{transform:none}
+@media(prefers-reduced-motion:no-preference){
+  .avatar-rig[data-mouth-cue] .maths-mouth-cue{visibility:visible;border-radius:inherit}
+  .avatar-rig[data-mouth-cue] .avatar-head-motion,.avatar-rig[data-mouth-cue] .avatar-speaking-frame{visibility:hidden}
+  .canvas-voice-avatar[data-mouth-cue] .canvas-avatar-stage{transform:none}
+}
