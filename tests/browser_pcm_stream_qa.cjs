@@ -118,11 +118,11 @@ const assert = require('node:assert/strict');
     await page.waitForFunction(()=>window.eval('teacherSpeechPaused && teacherAudioContext.state==="suspended"'));
     assert.equal(await page.locator('#teacherPanel').getAttribute('data-mouth-cue'),null);
     await page.evaluate(()=>window.eval(`handleHandsFreePhrase('Robo-Teacher, why do we add to both sides?',.99)`));
-    await page.waitForFunction(()=>window.eval('Boolean(handsFree.resumeOffer)'));
     await page.waitForFunction(()=>{
       const panel=document.getElementById('teacherPanel');
       return Number(panel.style.getPropertyValue('--mouth-open'))>.15&&!panel.hasAttribute('data-mouth-cue');
     });
+    await page.waitForFunction(()=>window.eval('Boolean(handsFree.resumeOffer)'));
     const offset=await page.evaluate(()=>window.eval(
       'mathsNarrationCheckpoints.get(handsFree.resumeOffer.interruptedLesson).chunks[0].offset'
     ));
