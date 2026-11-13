@@ -86,7 +86,11 @@ const assert = require('node:assert/strict');
       if(url.pathname==='/api/classroom/speech'){
         const {text}=route.request().postDataJSON();
         speechRequests.push(text);
-        return route.fulfill({contentType:'audio/L16',body:Buffer.alloc(text===originalStep?24000*2*4:24000)});
+        const headers={'Content-Type':'audio/L16'};
+        if(text===originalStep)headers['X-Robo-Mouth-Cues']=JSON.stringify([
+          {start:0,end:.1,value:'X'},{start:.1,end:2,value:'F'},{start:2,end:4,value:'E'}
+        ]);
+        return route.fulfill({headers,body:Buffer.alloc(text===originalStep?24000*2*4:24000)});
       }
       return route.continue();
     });
@@ -102,8 +106,16 @@ const assert = require('node:assert/strict');
     await page.waitForFunction(()=>window.eval(
       'teacherStreamComplete && activeMathsNarration && teacherAudioContext.currentTime-activeMathsNarration.chunks[0].start>.2'
     ));
+    await page.waitForFunction(()=>document.getElementById('teacherPanel').dataset.mouthCue==='F');
+    assert.equal(await page.locator('#teacherPanel .maths-mouth-cue').isVisible(),true);
+    await page.emulateMedia({reducedMotion:'reduce'});
+    assert.equal(await page.locator('#teacherPanel .maths-mouth-cue').isVisible(),false);
+    assert.equal(await page.locator('#teacherPanel .avatar-head-motion:not(.avatar-head-speaking)').isVisible(),true);
+    await page.emulateMedia({reducedMotion:'no-preference'});
+    assert.equal(await page.locator('#teacherPanel .maths-mouth-cue').isVisible(),true);
     await page.evaluate(()=>window.eval(`handsFreeBargeIn([{transcript:'Robo-Teacher, why do we add to both sides?'}])`));
     await page.waitForFunction(()=>window.eval('teacherSpeechPaused && teacherAudioContext.state==="suspended"'));
+    assert.equal(await page.locator('#teacherPanel').getAttribute('data-mouth-cue'),null);
     await page.evaluate(()=>window.eval(`handleHandsFreePhrase('Robo-Teacher, why do we add to both sides?',.99)`));
     await page.waitForFunction(()=>window.eval('Boolean(handsFree.resumeOffer)'));
     const offset=await page.evaluate(()=>window.eval(
@@ -116,6 +128,7 @@ const assert = require('node:assert/strict');
     ));
     assert.equal(await page.evaluate(()=>window.eval('activeMathsNarration.chunks[0].offset')),offset);
     assert.equal(await page.locator('#canvasAnswer').innerText(),originalStep);
+    await page.waitForFunction(()=>document.getElementById('teacherPanel').dataset.mouthCue==='F');
     assert.deepEqual(speechRequests,[originalStep,followUp]);
     console.log('Maths narration resumed at the saved audio offset without another speech request: PASS');
     console.log('App PCM stream browser test: PASS');
