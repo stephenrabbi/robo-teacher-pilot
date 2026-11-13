@@ -1,6 +1,9 @@
 // Test real app PCM stream decoder using locally generated synthetic audio.
 const { chromium } = require('playwright');
 const assert = require('node:assert/strict');
+const { readFileSync } = require('node:fs');
+const { join } = require('node:path');
+const { gunzipSync } = require('node:zlib');
 (async () => {
   const browser = await chromium.launch({headless:true,args:['--autoplay-policy=no-user-gesture-required']});
   try {
@@ -76,6 +79,10 @@ const assert = require('node:assert/strict');
     // and deterministic responses. The recognition transcript is synthetic.
     const originalStep='Add two to both sides of the equation.';
     const followUp='Adding the same number keeps both sides equal.';
+    const recordings=join(__dirname,'..','classroom_narration');
+    const preparedAudio=gunzipSync(readFileSync(join(recordings,'add-two-both-sides.pcm.gz')));
+    const preparedCues=JSON.parse(readFileSync(join(recordings,'add-two-both-sides.cues.json'),'utf8'));
+    const duration=preparedAudio.length/(24000*2);
     const speechRequests=[];
     await page.route('**/*',route=>{
       const url=new URL(route.request().url());
@@ -87,10 +94,11 @@ const assert = require('node:assert/strict');
         const {text,mouth_cues}=route.request().postDataJSON();
         speechRequests.push(text);
         const headers={'Content-Type':'audio/L16'};
-        if(text===originalStep&&mouth_cues)headers['X-Robo-Mouth-Cues']=JSON.stringify([
-          {start:0,end:.1,value:'X'},{start:.1,end:2,value:'F'},{start:2,end:4,value:'E'}
-        ]);
-        return route.fulfill({headers,body:Buffer.alloc(text===originalStep?24000*2*4:24000)});
+        if(text===originalStep&&mouth_cues){
+          headers['X-Robo-Mouth-Cues']=JSON.stringify(preparedCues);
+          return route.fulfill({headers,body:preparedAudio});
+        }
+        return route.fulfill({headers,body:Buffer.alloc(24000)});
       }
       return route.continue();
     });
@@ -109,7 +117,10 @@ const assert = require('node:assert/strict');
     await page.waitForFunction(()=>window.eval(
       'teacherStreamComplete && activeMathsNarration && teacherAudioContext.currentTime-activeMathsNarration.chunks[0].start>.2'
     ));
-    await page.waitForFunction(()=>document.getElementById('teacherPanel').dataset.mouthCue==='F');
+    await page.waitForFunction(()=>{
+      const cue=document.getElementById('teacherPanel').dataset.mouthCue;
+      return cue&&cue!=='X';
+    });
     assert.equal(await page.locator('#teacherPanel .maths-mouth-cue').isVisible(),true);
     await page.emulateMedia({reducedMotion:'reduce'});
     assert.equal(await page.locator('#teacherPanel .maths-mouth-cue').isVisible(),false);
@@ -124,14 +135,20 @@ const assert = require('node:assert/strict');
     const offset=await page.evaluate(()=>window.eval(
       'mathsNarrationCheckpoints.get(handsFree.resumeOffer.interruptedLesson).chunks[0].offset'
     ));
-    assert.ok(offset>.2&&offset<4,'Expected an interruption inside the original narration');
+    assert.ok(offset>.2&&offset<duration,'Expected an interruption inside the original narration');
     await page.evaluate(()=>window.eval("handleHandsFreePhrase('Continue',.99)"));
     await page.waitForFunction(()=>window.eval(
       'activeMathsNarration?.chunks[0]?.offset>0 && teacherPanel.classList.contains("speaking")'
     ));
     assert.equal(await page.evaluate(()=>window.eval('activeMathsNarration.chunks[0].offset')),offset);
     assert.equal(await page.locator('#canvasAnswer').innerText(),originalStep);
-    await page.waitForFunction(()=>document.getElementById('teacherPanel').dataset.mouthCue==='F');
+    await page.waitForFunction(cues=>window.eval(`(()=>{
+      const chunk=activeMathsNarration?.chunks[0];
+      if(!chunk)return false;
+      const time=chunk.timeline+chunk.offset+teacherAudioContext.currentTime-chunk.start;
+      const expected=${JSON.stringify(cues)}.find(cue=>cue.start+.05<time&&time<cue.end-.05);
+      return expected&&expected.value!=='X'&&teacherPanel.dataset.mouthCue===expected.value;
+    })()`),preparedCues);
     assert.deepEqual(speechRequests,[originalStep,followUp]);
     console.log('Maths narration resumed at the saved audio offset without another speech request: PASS');
     console.log('App PCM stream browser test: PASS');
