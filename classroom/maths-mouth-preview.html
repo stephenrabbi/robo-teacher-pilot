@@ -7,14 +7,19 @@
   <style>
     body { margin: 0; background: #eef4fb; color: #102744; font: 1rem system-ui, sans-serif; }
     main { max-width: 30rem; margin: 2rem auto; padding: 1rem; }
-    img { display: block; width: min(100%, 20rem); margin: 1rem 0; border-radius: 1rem; }
+    .portrait-frame { position: relative; width: min(100%, 20rem); margin: 1rem 0; }
+    .portrait-frame img { display: block; width: 100%; border-radius: 1rem; }
+    #portrait { position: absolute; inset: 0; mask-image: radial-gradient(ellipse 17% 13% at 50% 77%, black 75%, transparent); }
     audio { width: 100%; }
   </style>
 </head>
 <body>
   <main>
     <h1>Maths teacher lip-sync preview</h1>
-    <img id="portrait" src="./assets/maths-mouth-0-0.webp" alt="Robo-Teacher Maths teacher">
+    <div class="portrait-frame">
+      <img src="./assets/maths-mouth-0-0.webp" alt="Robo-Teacher Maths teacher">
+      <img id="portrait" src="./assets/maths-mouth-0-0.webp" alt="" aria-hidden="true">
+    </div>
     <p>Add two to both sides of the equation.</p>
     <audio controls aria-label="Play prepared Maths narration"></audio>
     <p id="status" role="status">Loading narration…</p>
