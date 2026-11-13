@@ -110,7 +110,7 @@ const assert = require('node:assert/strict');
     assert.equal(await page.locator('#teacherPanel .maths-mouth-cue').isVisible(),true);
     await page.emulateMedia({reducedMotion:'reduce'});
     assert.equal(await page.locator('#teacherPanel .maths-mouth-cue').isVisible(),false);
-    assert.equal(await page.locator('#teacherPanel .avatar-head-motion').isVisible(),true);
+    assert.equal(await page.locator('#teacherPanel .avatar-head-motion:not(.avatar-head-speaking)').isVisible(),true);
     await page.emulateMedia({reducedMotion:'no-preference'});
     assert.equal(await page.locator('#teacherPanel .maths-mouth-cue').isVisible(),true);
     await page.evaluate(()=>window.eval(`handsFreeBargeIn([{transcript:'Robo-Teacher, why do we add to both sides?'}])`));
