@@ -107,6 +107,7 @@ const assert = require('node:assert/strict');
     await page.emulateMedia({reducedMotion:'reduce'});
     assert.equal(await page.locator('#teacherPanel .maths-mouth-cue').isVisible(),false);
     await page.emulateMedia({reducedMotion:'no-preference'});
+    assert.equal(await page.locator('#teacherPanel .maths-mouth-cue').isVisible(),true);
     await page.evaluate(()=>window.eval(`handsFreeBargeIn([{transcript:'Robo-Teacher, why do we add to both sides?'}])`));
     await page.waitForFunction(()=>window.eval('teacherSpeechPaused && teacherAudioContext.state==="suspended"'));
     assert.equal(await page.locator('#teacherPanel').getAttribute('data-mouth-cue'),null);
