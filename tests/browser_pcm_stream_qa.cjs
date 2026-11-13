@@ -111,6 +111,10 @@ const { gunzipSync } = require('node:zlib');
       handsFree.enabled=true;
     })()`));
     await page.locator('#simpleEquationsExample').click();
+    await page.waitForFunction(()=>window.eval(
+      'mathsMouthImages.size===6 && Array.from(mathsMouthImages.values()).every(image=>image.naturalWidth>0)'
+    ));
+    assert.deepEqual(speechRequests,[]);
     await page.locator('#nextLessonStep').click();
     assert.equal(await page.locator('#canvasAnswer').innerText(),originalStep);
     await page.locator('#readAnswer').click();

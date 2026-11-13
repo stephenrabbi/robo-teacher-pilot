@@ -1004,7 +1004,7 @@ function parseMathsMouthCues(header){
   }catch(_error){return null}
 }
 
-function prepareMathsMouthImages(cues){
+function prepareMathsMouthImages(cues=Object.keys(mathsMouthShapes).map(value=>({value}))){
   for(const {value} of cues){
     const shape=mathsMouthShapes[value];
     if(mathsMouthImages.has(shape))continue;
@@ -1683,6 +1683,7 @@ language.addEventListener('change',async()=>{
 languageButton.addEventListener('click',()=>language.focus());
 chatButton.addEventListener('click',openChat);
 document.getElementById('simpleEquationsExample').addEventListener('click',()=>{
+  if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches)prepareMathsMouthImages();
   openChat();
   showCanvasAnswer([
     'Solve x − 2 = 5. The goal is to get x on its own.',
