@@ -137,5 +137,22 @@ const assert = require('node:assert/strict');
     assert.deepEqual(speechRequests,[originalStep,followUp]);
     console.log('Maths narration resumed at the saved audio offset without another speech request: PASS');
     console.log('App PCM stream browser test: PASS');
+    const preview = await browser.newPage();
+    await preview.goto('http://127.0.0.1:8765/classroom/maths-mouth-preview.html');
+    await preview.waitForFunction(() => {
+      const recording = document.querySelector('audio');
+      return Number.isFinite(recording.duration) && recording.duration > 0;
+    });
+    const duration = await preview.locator('audio').evaluate(recording => recording.duration);
+    assert.ok(duration >= 3.88 && duration < 4, 'Expected the prepared narration recording');
+    await preview.locator('audio').evaluate(async recording => {
+      recording.currentTime = 0.85;
+      await recording.play();
+    });
+    await preview.waitForFunction(() => document.querySelector('#portrait').src.endsWith('maths-mouth-1-1.webp'));
+    await preview.emulateMedia({reducedMotion:'reduce'});
+    await preview.waitForFunction(() => document.querySelector('#portrait').src.endsWith('maths-mouth-0-0.webp'));
+    assert.equal(await preview.locator('audio').evaluate(recording => recording.paused), false);
+    console.log('Prepared Maths preview plays and respects reduced motion: PASS');
   } finally { await browser.close(); }
 })().catch(err=>{console.error(err);process.exitCode=1});
