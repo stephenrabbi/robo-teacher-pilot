@@ -48,7 +48,7 @@ class TestMathsNarrationSpeechRoute(unittest.IsolatedAsyncioTestCase):
             patch("classroom_api._enforce_rate_limit"),
             patch("classroom_api.stream_tutor_speech", return_value=iter([b"\0\0"])) as provider,
         ):
-            settings = dict(text=text, session_token="test-token", language="English",
+            settings = dict(text=text, session_token="synthetic-maths-speech-token", language="English",
                             voice_gender="female", pace="normal")
             prepared = classroom_speech(ClassroomSpeech(**settings, mouth_cues=True))
             self.assertEqual(prepared.headers["X-Robo-Mouth-Cues"], cues)
