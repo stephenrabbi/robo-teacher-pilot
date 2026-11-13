@@ -31,6 +31,17 @@ const { chromium } = require('playwright');
           return cue && cue !== 'X';
         });
         assert.equal((await response.body()).length, 186240);
+        const audioClock = () => page.evaluate(() => teacherAudioContext.currentTime);
+        await page.locator('#readAnswer').click();
+        await page.waitForFunction(() => teacherSpeechPaused && teacherAudioContext.state === 'suspended');
+        assert.equal(await page.locator('#teacherPanel').getAttribute('data-mouth-cue'), null);
+        const pausedAt = await audioClock();
+        await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+        assert.equal(await audioClock(), pausedAt);
+
+        await page.locator('#readAnswer').click();
+        await page.waitForFunction(position => teacherAudioContext.currentTime > position + 0.05, pausedAt);
+        await page.waitForFunction(() => Boolean(document.getElementById('teacherPanel').dataset.mouthCue));
         console.log(`Hosted prepared narration and avatar passed at ${viewport.width}px`);
       } finally {
         await page.close();
