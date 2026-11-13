@@ -33,3 +33,29 @@ class TestMathsMouthCues(unittest.TestCase):
             {"start": .5, "end": 1.2, "value": "F"},
         ):
             self.assertIsNone(_validated_header({"mouthCues": [first, cue]}, 1))
+
+
+class TestMathsNarrationSpeechRoute(unittest.IsolatedAsyncioTestCase):
+    async def test_prepared_audio_and_uncued_fallback(self):
+        from unittest.mock import patch
+
+        from classroom_api import ClassroomSpeech, classroom_speech
+
+        text = "Add two to both sides of the equation."
+        audio, cues = prepared_maths_narration(text, "English", "female", "normal")
+        with (
+            patch("classroom_api._verify_session", return_value="maths-audio-test"),
+            patch("classroom_api._enforce_rate_limit"),
+            patch("classroom_api.stream_tutor_speech", return_value=iter([b"\0\0"])) as provider,
+        ):
+            settings = dict(text=text, session_token="test-token", language="English",
+                            voice_gender="female", pace="normal")
+            prepared = classroom_speech(ClassroomSpeech(**settings, mouth_cues=True))
+            self.assertEqual(prepared.headers["X-Robo-Mouth-Cues"], cues)
+            self.assertEqual(b"".join([chunk async for chunk in prepared.body_iterator]), audio)
+            provider.assert_not_called()
+
+            fallback = classroom_speech(ClassroomSpeech(**settings))
+            self.assertNotIn("X-Robo-Mouth-Cues", fallback.headers)
+            self.assertEqual(b"".join([chunk async for chunk in fallback.body_iterator]), b"\0\0")
+            provider.assert_called_once_with(text, "English", "female", "normal")
