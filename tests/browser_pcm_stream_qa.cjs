@@ -110,6 +110,9 @@ const assert = require('node:assert/strict');
     ));
     await page.waitForFunction(()=>document.getElementById('teacherPanel').dataset.mouthCue==='F');
     assert.equal(await page.locator('#teacherPanel .maths-mouth-cue').isVisible(),true);
+    const mouthMask = await page.locator('#teacherPanel .maths-mouth-cue')
+      .evaluate(overlay => getComputedStyle(overlay).maskImage);
+    assert.match(mouthMask, /^radial-gradient\(ellipse 17% 13% at 50% 77%/);
     await page.emulateMedia({reducedMotion:'reduce'});
     assert.equal(await page.locator('#teacherPanel .maths-mouth-cue').isVisible(),false);
     await page.emulateMedia({reducedMotion:'no-preference'});
