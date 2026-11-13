@@ -86,7 +86,13 @@ const assert = require('node:assert/strict');
         if(text===originalStep)headers['X-Robo-Mouth-Cues']=JSON.stringify([
           {start:0,end:.1,value:'X'},{start:.1,end:2,value:'F'},{start:2,end:4,value:'E'}
         ]);
-        return route.fulfill({headers,body:Buffer.alloc(text===originalStep?24000*2*4:24000)});
+        const pcm=Buffer.alloc(text===originalStep?24000*2*4:24000*2*2);
+        if(text===followUp){
+          for(let sample=0;sample<pcm.length/2;sample++){
+            pcm.writeInt16LE(Math.round(7000*Math.sin(2*Math.PI*220*sample/24000)),sample*2);
+          }
+        }
+        return route.fulfill({headers,body:pcm});
       }
       return route.continue();
     });
@@ -113,6 +119,10 @@ const assert = require('node:assert/strict');
     assert.equal(await page.locator('#teacherPanel').getAttribute('data-mouth-cue'),null);
     await page.evaluate(()=>window.eval(`handleHandsFreePhrase('Robo-Teacher, why do we add to both sides?',.99)`));
     await page.waitForFunction(()=>window.eval('Boolean(handsFree.resumeOffer)'));
+    await page.waitForFunction(()=>{
+      const panel=document.getElementById('teacherPanel');
+      return Number(panel.style.getPropertyValue('--mouth-open'))>.15&&!panel.hasAttribute('data-mouth-cue');
+    });
     const offset=await page.evaluate(()=>window.eval(
       'mathsNarrationCheckpoints.get(handsFree.resumeOffer.interruptedLesson).chunks[0].offset'
     ));
