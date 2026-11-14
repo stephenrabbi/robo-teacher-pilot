@@ -140,6 +140,9 @@ const { gunzipSync } = require('node:zlib');
       'mathsNarrationCheckpoints.get(handsFree.resumeOffer.interruptedLesson).chunks[0].offset'
     ));
     assert.ok(offset>.2&&offset<duration,'Expected an interruption inside the original narration');
+    assert.equal(await page.locator('#canvasAnswer').innerText(), followUp);
+    assert.equal(await page.locator('#teacherPanel').getAttribute('data-mouth-cue'), null,
+      'A follow-up answer without a cue track must not reuse the saved lesson cues');
     await page.evaluate(()=>window.eval("handleHandsFreePhrase('Continue',.99)"));
     await page.waitForFunction(()=>window.eval(
       'activeMathsNarration?.chunks[0]?.offset>0 && teacherPanel.classList.contains("speaking")'
