@@ -482,3 +482,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   .avatar-rig[data-mouth-cue] .avatar-head-motion,.avatar-rig[data-mouth-cue] .avatar-speaking-frame{visibility:hidden}
   .canvas-voice-avatar[data-mouth-cue] .canvas-avatar-stage{transform:none}
 }
+
+/* Subtle pointing cue follows Maths narration; it never replaces the talking portrait. */
+.canvas-work.teacher-pointing-step .canvas-answer{position:relative;box-shadow:inset 4px 0 0 #0757c9;transition:box-shadow .15s ease}
+.canvas-work.teacher-pointing-step .canvas-answer::before{content:'\2192';position:absolute;left:0;top:0;color:#0757c9;font-size:20px;font-weight:800;transform:translateX(-70%);pointer-events:none}
+@media(prefers-reduced-motion:reduce){.canvas-work.teacher-pointing-step .canvas-answer{transition:none}}
