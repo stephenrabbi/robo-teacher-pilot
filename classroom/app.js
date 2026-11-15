@@ -934,9 +934,19 @@ function prepareSpeechText(text){
     .trim();
 }
 
+function syncMathsStepPointing(){
+  // Draw attention to the current worked step without replacing the talking
+  // portrait, losing mouth cues, or persisting a gesture after interruption.
+  const guiding=teacherPanel.classList.contains('speaking')&&!teacherSpeechPaused&&
+    teachingStage.mode==='lesson'&&Boolean(currentLesson)&&
+    !(typeof subjectClassroom!=='undefined'&&subjectClassroom?.isOpen());
+  canvasWork.classList.toggle('teacher-pointing-step',guiding);
+}
+
 function setTeacherSpeaking(speaking){
   if(typeof mediaReplayPlayer!=='undefined'&&mediaReplayPlayer?.setVoiceState)mediaReplayPlayer.setVoiceState(speaking?'speaking':'idle');
   teacherPanel.classList.toggle('speaking',speaking);
+  syncMathsStepPointing();
   if(speaking)startAvatarMotion(teacherPanel);else stopAvatarMotion(teacherPanel);
   if(speaking)teacherPanel.classList.remove('paused');
   teacherVoiceStatus.textContent=speaking?'Speaking…':'Ready';
@@ -954,6 +964,7 @@ async function pauseTeacherAudio(){
   lessonController.begin('paused');
   teacherSpeechPaused=true;
   teacherPanel.classList.remove('speaking');teacherPanel.classList.add('paused');teacherVoiceStatus.textContent='Paused';
+  syncMathsStepPointing();
   if(typeof mediaReplayPlayer!=='undefined'&&mediaReplayPlayer?.setVoiceState)mediaReplayPlayer.setVoiceState('paused');
   if(showVoiceAnswerAvatar)canvasVoiceAvatarStatus.textContent='Paused';
   stopAvatarMotion(teacherPanel);
@@ -1532,6 +1543,7 @@ function setTeachingStageMode(mode){
   const labels={lesson:'Lesson',visual:'Visual',example:'Example',check:'Check'};
   lessonController.begin(mode);
   teachingStage.mode=mode;teachingCanvas.dataset.stageMode=mode;
+  syncMathsStepPointing();
   teachingStageMode.textContent=labels[mode]||'Lesson';
   syncTeacherPresence();
 }
