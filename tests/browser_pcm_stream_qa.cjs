@@ -124,6 +124,11 @@ const { gunzipSync } = require('node:zlib');
     ));
     assert.equal(await page.locator('#canvasWork').evaluate(el=>el.classList.contains('teacher-pointing-step')),true,
       'Speaking a Maths lesson should point to its current step');
+    assert.equal(await page.locator('#teacherPanel').getAttribute('data-teaching-gesture'),'pointing');
+    assert.equal(await page.locator('#teacherPanel .teacher-presenting-pose').isVisible(),true,
+      'The presenting arm should appear alongside the speaking portrait');
+    assert.equal(await page.locator('#teacherPanel .teacher-portrait').isVisible(),true,
+      'The lip-synchronised portrait must remain visible during the gesture');
     await page.waitForFunction(()=>{
       const cue=document.getElementById('teacherPanel').dataset.mouthCue;
       return cue&&cue!=='X';
@@ -138,6 +143,9 @@ const { gunzipSync } = require('node:zlib');
     await page.waitForFunction(()=>window.eval('teacherSpeechPaused && teacherAudioContext.state==="suspended"'));
     assert.equal(await page.locator('#canvasWork').evaluate(el=>el.classList.contains('teacher-pointing-step')),false,
       'Interruption must clear the current-step pointing cue');
+    assert.equal(await page.locator('#teacherPanel').getAttribute('data-teaching-gesture'),'idle');
+    assert.equal(await page.locator('#teacherPanel .teacher-presenting-pose').isVisible(),false,
+      'The animated arm must disappear on interruption');
     assert.equal(await page.locator('#teacherPanel').getAttribute('data-mouth-cue'),null);
     await page.evaluate(()=>window.eval(`handleHandsFreePhrase('Robo-Teacher, why do we add to both sides?',.99)`));
     await page.waitForFunction(()=>window.eval('Boolean(handsFree.resumeOffer)'));
@@ -160,6 +168,9 @@ const { gunzipSync } = require('node:zlib');
     assert.equal(await page.locator('#canvasAnswer').innerText(),originalStep);
     assert.equal(await page.locator('#canvasWork').evaluate(el=>el.classList.contains('teacher-pointing-step')),true,
       'Returning to Maths narration must restore the step pointer');
+    assert.equal(await page.locator('#teacherPanel').getAttribute('data-teaching-gesture'),'pointing');
+    assert.equal(await page.locator('#teacherPanel .teacher-presenting-pose').isVisible(),true,
+      'The presenting arm returns after narration resumes');
     await page.waitForFunction(cues=>window.eval(`(()=>{
       const chunk=activeMathsNarration?.chunks[0];
       if(!chunk)return false;
