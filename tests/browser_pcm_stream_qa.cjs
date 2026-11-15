@@ -167,7 +167,9 @@ const { gunzipSync } = require('node:zlib');
     // It must still animate from audio energy and resume from saved PCM samples.
     omitTimedCues=true;
     await page.evaluate(()=>window.eval('stopTeacherAudio()'));
-    await page.locator('#simpleEquationsExample').click();
+    // This resets test state after the first example; the example shortcut is
+    // hidden while a lesson is open, so dispatch its handler directly in QA.
+    await page.evaluate(()=>document.getElementById('simpleEquationsExample').click());
     await page.locator('#nextLessonStep').click();
     assert.equal(await page.locator('#canvasAnswer').innerText(),originalStep);
     await page.locator('#readAnswer').click();
