@@ -487,3 +487,24 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .canvas-work.teacher-pointing-step .canvas-answer{position:relative;box-shadow:inset 4px 0 0 #0757c9;transition:box-shadow .15s ease}
 .canvas-work.teacher-pointing-step .canvas-answer::before{content:'\2192';position:absolute;left:0;top:0;color:#0757c9;font-size:20px;font-weight:800;transform:translateX(-70%);pointer-events:none}
 @media(prefers-reduced-motion:reduce){.canvas-work.teacher-pointing-step .canvas-answer{transition:none}}
+
+/* First voiced hand-gesture milestone: a small presenter is shown beside the
+   original talking portrait. It does not replace the lip-synchronised face. */
+#classroom #teacherPanel{position:relative}
+#classroom #teacherPanel:not(.minimized)[data-pose=portrait][data-teaching-gesture=pointing] .teacher-presenting-pose{
+  display:block;position:absolute;right:22px;bottom:56px;z-index:3;
+  width:118px;height:112px;padding:3px;border:1px solid var(--line);
+  border-radius:14px;background:#102744;box-shadow:0 6px 18px #07162d55;
+  pointer-events:none
+}
+#classroom #teacherPanel[data-teaching-gesture=pointing][data-gesture-motion=on] .presenter-arm{
+  animation:presenter-arm-gesture 1.4s ease-in-out infinite
+}
+@media(max-width:900px){
+  #classroom #teacherPanel:not(.minimized)[data-pose=portrait][data-teaching-gesture=pointing] .teacher-presenting-pose{
+    width:82px;height:76px;right:12px;bottom:45px
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  #classroom #teacherPanel[data-teaching-gesture=pointing] .presenter-arm{animation:none!important;transform:none!important}
+}

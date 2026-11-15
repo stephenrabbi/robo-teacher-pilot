@@ -941,6 +941,9 @@ function syncMathsStepPointing(){
     teachingStage.mode==='lesson'&&Boolean(currentLesson)&&
     !(typeof subjectClassroom!=='undefined'&&subjectClassroom?.isOpen());
   canvasWork.classList.toggle('teacher-pointing-step',guiding);
+  // The compact presenter is independent of the talking portrait, so mouth
+  // synchronisation remains visible while the teaching arm gestures.
+  teacherPanel.dataset.teachingGesture=guiding?'pointing':'idle';
 }
 
 function setTeacherSpeaking(speaking){
