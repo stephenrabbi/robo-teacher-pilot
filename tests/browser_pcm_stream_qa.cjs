@@ -84,6 +84,7 @@ const { gunzipSync } = require('node:zlib');
     const preparedCues=JSON.parse(readFileSync(join(recordings,'add-two-both-sides.cues.json'),'utf8'));
     const duration=preparedAudio.length/(24000*2);
     const speechRequests=[];
+    let omitTimedCues=false;
     await page.route('**/*',route=>{
       const url=new URL(route.request().url());
       if(url.origin!=='http://127.0.0.1:8765')return route.abort();
@@ -95,7 +96,7 @@ const { gunzipSync } = require('node:zlib');
         speechRequests.push(text);
         const headers={'Content-Type':'audio/L16'};
         if(text===originalStep&&mouth_cues){
-          headers['X-Robo-Mouth-Cues']=JSON.stringify(preparedCues);
+          if(!omitTimedCues)headers['X-Robo-Mouth-Cues']=JSON.stringify(preparedCues);
           return route.fulfill({headers,body:preparedAudio});
         }
         return route.fulfill({headers,body:Buffer.alloc(24000)});
@@ -162,6 +163,47 @@ const { gunzipSync } = require('node:zlib');
     })()`),preparedCues);
     assert.deepEqual(speechRequests,[originalStep,followUp]);
     console.log('Maths narration resumed at the saved audio offset without another speech request: PASS');
+    // A dynamically generated Maths explanation may have no phoneme timing track.
+    // It must still animate from audio energy and resume from saved PCM samples.
+    omitTimedCues=true;
+    await page.evaluate(()=>window.eval('stopTeacherAudio()'));
+    // This resets test state after the first example; the example shortcut is
+    // hidden while a lesson is open, so dispatch its handler directly in QA.
+    await page.evaluate(()=>document.getElementById('simpleEquationsExample').click());
+    await page.locator('#nextLessonStep').click();
+    assert.equal(await page.locator('#canvasAnswer').innerText(),originalStep);
+    await page.locator('#readAnswer').click();
+    await page.waitForFunction(()=>window.eval(
+      'teacherStreamComplete && activeMathsNarration && activeMathsNarration.chunks.length>0'
+    ));
+    assert.equal(await page.evaluate(()=>window.eval('activeMathsNarration.cues')),null);
+    assert.equal(await page.locator('#teacherPanel').getAttribute('data-mouth-cue'),null);
+    await page.waitForFunction(()=>
+      Number(document.getElementById('teacherPanel').style.getPropertyValue('--mouth-open'))>.07
+    );
+    await page.evaluate(()=>window.eval(`handsFreeBargeIn([{transcript:'Robo-Teacher, why do we add to both sides?'}])`));
+    await page.waitForFunction(()=>window.eval('teacherSpeechPaused && teacherAudioContext.state==="suspended"'));
+    assert.equal(await mouth(),0,'Avatar mouth should close during interruption');
+    await page.evaluate(()=>window.eval(`handleHandsFreePhrase('Robo-Teacher, why do we add to both sides?',.99)`));
+    await page.waitForFunction(()=>window.eval('Boolean(handsFree.resumeOffer)'));
+    const uncuedOffset=await page.evaluate(()=>window.eval(
+      'mathsNarrationCheckpoints.get(handsFree.resumeOffer.interruptedLesson).chunks[0].offset'
+    ));
+    assert.ok(uncuedOffset>.2&&uncuedOffset<duration,'Save the uncued explanation playback position');
+    await page.waitForFunction(expected=>
+      document.querySelector('#canvasAnswer')?.textContent.trim()===expected,followUp);
+    await page.evaluate(()=>window.eval("handleHandsFreePhrase('Continue',.99)"));
+    await page.waitForFunction(()=>window.eval(
+      'activeMathsNarration?.chunks[0]?.offset>0 && teacherPanel.classList.contains("speaking")'
+    ));
+    assert.equal(await page.evaluate(()=>window.eval('activeMathsNarration.chunks[0].offset')),uncuedOffset);
+    assert.equal(await page.locator('#teacherPanel').getAttribute('data-mouth-cue'),null);
+    await page.waitForFunction(()=>
+      Number(document.getElementById('teacherPanel').style.getPropertyValue('--mouth-open'))>.07
+    );
+    assert.deepEqual(speechRequests,[originalStep,followUp,originalStep,followUp],
+      'Resuming uncued Maths audio must not request speech again');
+    console.log('Maths uncued speech audio-energy animation and interruption/resume: PASS');
     console.log('App PCM stream browser test: PASS');
   } finally { await browser.close(); }
 })().catch(err=>{console.error(err);process.exitCode=1});
