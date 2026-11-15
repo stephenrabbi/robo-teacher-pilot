@@ -172,7 +172,13 @@ const { gunzipSync } = require('node:zlib');
     await page.evaluate(()=>document.getElementById('simpleEquationsExample').click());
     await page.locator('#nextLessonStep').click();
     assert.equal(await page.locator('#canvasAnswer').innerText(),originalStep);
+    // Simulate the first dynamic Maths lesson, without the shortcut's preload.
+    await page.evaluate(()=>window.eval('mathsMouthImages.clear()'));
+    assert.equal(await page.evaluate(()=>window.eval('mathsMouthImages.size')),0);
     await page.locator('#readAnswer').click();
+    await page.waitForFunction(()=>window.eval(
+      'mathsMouthImages.size===6 && Array.from(mathsMouthImages.values()).every(image=>image.naturalWidth>0)'
+    ));
     await page.waitForFunction(()=>window.eval(
       'teacherStreamComplete && activeMathsNarration && activeMathsNarration.chunks.length>0'
     ));
