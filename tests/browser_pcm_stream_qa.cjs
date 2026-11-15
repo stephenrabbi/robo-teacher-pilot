@@ -122,6 +122,8 @@ const { gunzipSync } = require('node:zlib');
     await page.waitForFunction(()=>window.eval(
       'teacherStreamComplete && activeMathsNarration && teacherAudioContext.currentTime-activeMathsNarration.chunks[0].start>.2'
     ));
+    assert.equal(await page.locator('#canvasWork').evaluate(el=>el.classList.contains('teacher-pointing-step')),true,
+      'Speaking a Maths lesson should point to its current step');
     await page.waitForFunction(()=>{
       const cue=document.getElementById('teacherPanel').dataset.mouthCue;
       return cue&&cue!=='X';
@@ -134,6 +136,8 @@ const { gunzipSync } = require('node:zlib');
     assert.equal(await page.locator('#teacherPanel .maths-mouth-cue').isVisible(),true);
     await page.evaluate(()=>window.eval(`handsFreeBargeIn([{transcript:'Robo-Teacher, why do we add to both sides?'}])`));
     await page.waitForFunction(()=>window.eval('teacherSpeechPaused && teacherAudioContext.state==="suspended"'));
+    assert.equal(await page.locator('#canvasWork').evaluate(el=>el.classList.contains('teacher-pointing-step')),false,
+      'Interruption must clear the current-step pointing cue');
     assert.equal(await page.locator('#teacherPanel').getAttribute('data-mouth-cue'),null);
     await page.evaluate(()=>window.eval(`handleHandsFreePhrase('Robo-Teacher, why do we add to both sides?',.99)`));
     await page.waitForFunction(()=>window.eval('Boolean(handsFree.resumeOffer)'));
@@ -154,6 +158,8 @@ const { gunzipSync } = require('node:zlib');
     ));
     assert.equal(await page.evaluate(()=>window.eval('activeMathsNarration.chunks[0].offset')),offset);
     assert.equal(await page.locator('#canvasAnswer').innerText(),originalStep);
+    assert.equal(await page.locator('#canvasWork').evaluate(el=>el.classList.contains('teacher-pointing-step')),true,
+      'Returning to Maths narration must restore the step pointer');
     await page.waitForFunction(cues=>window.eval(`(()=>{
       const chunk=activeMathsNarration?.chunks[0];
       if(!chunk)return false;
