@@ -159,13 +159,39 @@ def _fractions(level):
 def _algebra(level):
     x = _int(2, 15)
     if level == "Easy":
-        c = _int(2, 12); total=x+c
-        return (f"Solve x + {c} = {total}.", f"Subtract {c} from both sides.", str(x), f"Step 1: Subtract {c} from both sides.\nStep 2: x = {total} - {c}.\nTherefore, x = {x}.")
+        c = _int(2, 12)
+        total = x + c
+        return (
+            f"Solve x + {c} = {total}.",
+            f"Subtract {c} from both sides.",
+            str(x),
+            f"Step 1: Subtract {c} from both sides: x = {total} - {c} = {x}.\n"
+            f"Step 2: Check by substituting x = {x}: {x} + {c} = {total}.\n"
+            f"Both sides are equal, so x = {x}.",
+        )
     if level == "Medium":
-        a,c=_int(2,7),_int(2,15); total=a*x+c
-        return (f"Solve {a}x + {c} = {total}.", f"Subtract {c}, then divide by {a}.", str(x), f"Step 1: Subtract {c}: {a}x = {a*x}.\nStep 2: Divide by {a}.\nTherefore, x = {x}.")
-    a,c=_int(2,6),_int(2,10); total=a*(x+c)
-    return (f"Solve {a}(x + {c}) = {total}.", f"Divide by {a}, then subtract {c}.", str(x), f"Step 1: Divide by {a}: x + {c} = {x+c}.\nStep 2: Subtract {c}.\nTherefore, x = {x}.")
+        a, c = _int(2, 7), _int(2, 15)
+        total = a * x + c
+        return (
+            f"Solve {a}x + {c} = {total}.",
+            f"Subtract {c}, then divide by {a}.",
+            str(x),
+            f"Step 1: Subtract {c} from both sides: {a}x = {total} - {c} = {a*x}.\n"
+            f"Step 2: Divide both sides by {a}: x = {a*x} ÷ {a} = {x}.\n"
+            f"Step 3: Check: {a}({x}) + {c} = {a*x} + {c} = {total}.\n"
+            f"Both sides are equal, so x = {x}.",
+        )
+    a, c = _int(2, 6), _int(2, 10)
+    total = a * (x + c)
+    return (
+        f"Solve {a}(x + {c}) = {total}.",
+        f"Divide by {a}, then subtract {c}.",
+        str(x),
+        f"Step 1: Divide both sides by {a}: x + {c} = {total} ÷ {a} = {x+c}.\n"
+        f"Step 2: Subtract {c} from both sides: x = {x+c} - {c} = {x}.\n"
+        f"Step 3: Check: {a}({x} + {c}) = {a} × {x+c} = {total}.\n"
+        f"Both sides are equal, so x = {x}.",
+    )
 
 
 def _ratio_percentage(level):
