@@ -118,6 +118,7 @@ const { gunzipSync } = require('node:zlib');
     assert.deepEqual(speechRequests,[]);
     await page.locator('#nextLessonStep').click();
     assert.equal(await page.locator('#canvasAnswer').innerText(),originalStep);
+    const originalStepLabel=await page.locator('#lessonStepLabel').innerText();
     await page.locator('#readAnswer').click();
     await page.waitForFunction(()=>window.eval(
       'teacherStreamComplete && activeMathsNarration && teacherAudioContext.currentTime-activeMathsNarration.chunks[0].start>.2'
@@ -192,7 +193,7 @@ const { gunzipSync } = require('node:zlib');
     ));
     assert.equal(await page.evaluate(()=>window.eval('activeMathsNarration.chunks[0].offset')),offset);
     assert.equal(await page.locator('#canvasAnswer').innerText(),originalStep);
-    assert.equal(await page.locator('#lessonStepLabel').innerText(),'Step 2 of 4');
+    assert.equal(await page.locator('#lessonStepLabel').innerText(),originalStepLabel);
     assert.equal(await page.locator('#teacherPanel').evaluate(el=>el.classList.contains('minimized')),false,
       'Returning to a spoken Maths lesson should reopen the teacher portrait');
     assert.equal(await page.locator('#teacherPanel .teacher-portrait').isVisible(),true);
