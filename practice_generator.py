@@ -334,16 +334,65 @@ def _statistics_probability(level):
     return (f"The mean of {a}, {b}, {c} and x is {mean}. Find x.", "Total = mean × number of values.", str(x), f"Step 1: Required total = {mean} × 4 = {mean*4}.\nStep 2: Known total = {a+b+c}.\nStep 3: x = {mean*4} - {a+b+c} = {x}.")
 
 
+def _binary_division_steps(value: int) -> str:
+    """Show repeated division by two, including the final zero quotient."""
+    dividend = value
+    steps = []
+    while dividend:
+        quotient, remainder = divmod(dividend, 2)
+        steps.append(f"{dividend} ÷ 2 = {quotient} remainder {remainder}")
+        dividend = quotient
+    return "; ".join(steps)
+
+
+def _binary_place_value_steps(binary: str) -> str:
+    """Expand occupied binary place values from the most significant bit."""
+    terms = [
+        f"2^{position} ({2 ** position})"
+        for position, digit in reversed(list(enumerate(reversed(binary))))
+        if digit == "1"
+    ]
+    return " + ".join(terms)
+
+
 def _number_bases(level):
     if level == "Easy":
         value = _int(4, 31)
         answer = format(value, "b")
-        return (f"Write {value} in base two.", "Divide repeatedly by 2 and read the remainders upwards.", answer, f"Step 1: Express {value} as powers of 2.\nStep 2: Put 1 under each power used and 0 under the others.\nTherefore, {value}₁₀ = {answer}₂.")
+        return (
+            f"Write {value} in base two.",
+            "Divide repeatedly by 2 and read the remainders upwards.",
+            answer,
+            f"Step 1: Divide by 2 and record each remainder: "
+            f"{_binary_division_steps(value)}.\n"
+            f"Step 2: Read the remainders from the last division to the first: {answer}.\n"
+            f"Therefore, {value}₁₀ = {answer}₂.",
+        )
     if level == "Medium":
-        value = _int(8, 63); binary = format(value, "b")
-        return (f"Convert {binary}₂ to base ten.", "Multiply each digit by its place value, a power of 2.", str(value), f"Step 1: Expand {binary}₂ using powers of 2.\nStep 2: Add the occupied place values.\nTherefore, {binary}₂ = {value}₁₀.")
-    a, b = _int(3, 15), _int(2, 12); result = a + b
-    return (f"Calculate {format(a, 'b')}₂ + {format(b, 'b')}₂. Give your answer in base two.", "You may convert to base ten, add, then convert back.", format(result, "b"), f"Step 1: Convert: {format(a, 'b')}₂ = {a} and {format(b, 'b')}₂ = {b}.\nStep 2: Add: {a} + {b} = {result}.\nStep 3: Convert back. Therefore, the answer is {format(result, 'b')}₂.")
+        value = _int(8, 63)
+        binary = format(value, "b")
+        return (
+            f"Convert {binary}₂ to base ten.",
+            "Multiply each digit by its place value, a power of 2.",
+            str(value),
+            f"Step 1: Count the binary positions from right to left, starting at 2^0.\n"
+            f"Step 2: Add the place values under the 1 digits: "
+            f"{_binary_place_value_steps(binary)} = {value}.\n"
+            f"Therefore, {binary}₂ = {value}₁₀.",
+        )
+    a, b = _int(3, 15), _int(2, 12)
+    result = a + b
+    return (
+        f"Calculate {format(a, 'b')}₂ + {format(b, 'b')}₂. Give your answer in base two.",
+        "You may convert to base ten, add, then convert back.",
+        format(result, "b"),
+        f"Step 1: Convert to base ten: {format(a, 'b')}₂ = {a} and "
+        f"{format(b, 'b')}₂ = {b}.\n"
+        f"Step 2: Add: {a} + {b} = {result}.\n"
+        f"Step 3: Divide {result} repeatedly by 2: {_binary_division_steps(result)}.\n"
+        f"Step 4: Read the remainders upwards: {format(result, 'b')}₂.\n"
+        f"Therefore, the answer is {format(result, 'b')}₂." ,
+    )
 
 
 def _algebraic_expressions(level):
