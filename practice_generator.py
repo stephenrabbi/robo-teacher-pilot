@@ -158,8 +158,23 @@ def _directed(level):
     if level == "Medium":
         a,b=-_int(2,12),_int(2,12); answer=a*b
         return (f"Calculate ({a}) × {b}.", "A negative times a positive is negative.", str(answer), f"Step 1: Multiply the values: {abs(a)} × {b} = {abs(answer)}.\nStep 2: Different signs give a negative result.\nTherefore, the answer is {answer}.")
-    a,b,c=-_int(2,10),_int(2,12),_int(3,15); inside=b-c; answer=a*inside
-    return (f"Calculate {a} × ({b} - {c}).", "Work inside the brackets first.", str(answer), f"Step 1: {b} - {c} = {inside}.\nStep 2: {a} × {inside} = {answer}.\nTherefore, the answer is {answer}.")
+    a, b, c = -_int(2, 10), _int(2, 12), _int(3, 15)
+    inside = b - c
+    answer = a * inside
+    if inside < 0:
+        reason = "Two negative factors give a positive product."
+    elif inside > 0:
+        reason = "Factors with different signs give a negative product."
+    else:
+        reason = "Any number multiplied by zero gives zero."
+    return (
+        f"Calculate {a} × ({b} - {c}).",
+        "Work inside the brackets first.",
+        str(answer),
+        f"Step 1: {b} - {c} = {inside}.\n"
+        f"Step 2: {reason} {a} × ({inside}) = {answer}.\n"
+        f"Therefore, the answer is {answer}.",
+    )
 
 
 def _commercial(level):
