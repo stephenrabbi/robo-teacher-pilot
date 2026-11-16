@@ -1,6 +1,6 @@
 // Responsive browser check without real learner records or paid browser automation.
 // Runs from repository root against the static classroom shell.
-const { chromium } = require('playwright');
+const { chromium, devices } = require('playwright');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -94,6 +94,71 @@ const path = require('node:path');
         else if (info.left < -4 || info.right > width + 4) failures.push(width + 'px: ' + id + ' exceeds viewport (' + info.left + '..' + info.right + ')');
       }
       await page.close();
+    }
+
+    // These are Chromium mobile device emulations, NOT physical phone or
+    // Safari/WebKit acceptance tests. No microphones or cloud APIs are used.
+    for (const name of ['Pixel 7', 'iPhone 13']) {
+      const context = await browser.newContext({
+        ...devices[name],
+        permissions: [],
+      });
+      const page = await context.newPage();
+      try {
+        await page.goto('http://127.0.0.1:8765/classroom/index.html', { waitUntil: 'domcontentloaded' });
+        await page.evaluate(() => {
+          const banner = document.getElementById('privacyConsentBanner');
+          if (banner) banner.style.display = 'none';
+          window.eval(`learnerNickname.value='Synthetic Mobile QA';
+            learnerCode.value='TEST-MOBILE-QA';
+            enterClassroomView();
+            lessonChoreography.enabled=false;
+            startLessonDirector('Solve x + 5 = 12.',1,
+              ['Identify the equation.', 'Subtract 5 from both sides.', 'Check the answer.']);`);
+        });
+        const label = await page.locator('#lessonStepLabel').innerText();
+        assert.equal(label, 'Step 2 of 3', name + ': wrong active lesson step');
+        assert.equal(await page.locator('#teacherPanel .teacher-portrait').isVisible(),true,
+          name + ': original teacher portrait missing');
+        // Touch the actual minimize control, then restore the portrait.
+        await page.locator('#toggleTeacher').tap();
+        assert.equal(await page.locator('#teacherPanel').evaluate(e=>e.classList.contains('minimized')),true,
+          name + ': touch minimize did not work');
+        await page.locator('#toggleTeacher').tap();
+        assert.equal(await page.locator('#teacherPanel').evaluate(e=>e.classList.contains('minimized')),false,
+          name + ': touch restore did not work');
+        assert.equal(await page.locator('#lessonStepLabel').innerText(),label,
+          name + ': minimizing the teacher changed the lesson');
+        // Verify the actual pause/continue button without synthetic microphone
+        // input: the existing PCM browser test covers audio sample offsets.
+        await page.evaluate(() => window.eval(`teacherAudioContext = {
+          state:'running',
+          suspend:async function(){this.state='suspended';},
+          resume:async function(){this.state='running';}
+        };
+        teacherSpeechPaused=false;
+        teacherPanel.classList.add('speaking');
+        readAnswerButton.disabled=false;`));
+        await page.locator('#readAnswer').tap();
+        assert.equal(await page.locator('#readAnswer').getAttribute('aria-label'),
+          'Continue reading the answer',name+': pause control incorrect');
+        await page.locator('#readAnswer').tap();
+        assert.equal(await page.locator('#readAnswer').getAttribute('aria-label'),
+          'Pause reading the answer',name+': continue control incorrect');
+        assert.equal(await page.locator('#lessonStepLabel').innerText(),label,
+          name + ': pause/continue changed the lesson step');
+        const view = await page.evaluate(() => ({
+          width:innerWidth,
+          documentWidth:document.documentElement.scrollWidth,
+          portraitVisible:!!document.querySelector('#teacherPanel .teacher-portrait')?.getBoundingClientRect().height,
+        }));
+        assert.ok(view.documentWidth<=view.width+3,
+          name+': mobile classroom overflow '+JSON.stringify(view));
+        assert.equal(view.portraitVisible,true,name+': teacher portrait hidden after resume');
+        console.log(name+': Chromium touch emulation, teacher minimize/restore and pause/continue PASS');
+      } finally {
+        await context.close();
+      }
     }
   } finally { await browser.close(); }
   assert.equal(failures.length, 0, failures.join('; '));
