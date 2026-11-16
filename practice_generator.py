@@ -556,17 +556,42 @@ def _simultaneous(level):
         coefficient = _int(2, 5)
         total = x + y
         weighted_total = coefficient * x + y
+        difference = weighted_total - total
         return (
             f"Solve x + y = {total} and {coefficient}x + y = {weighted_total}.",
             "Subtract the first equation from the second to eliminate y.",
             f"x={x},y={y}",
-            f"Step 1: Subtract: {coefficient - 1}x = {weighted_total} − {total} = {(coefficient - 1) * x}.\n"
-            f"Step 2: Divide by {coefficient - 1} to get x = {x}.\n"
-            f"Step 3: Substitute into x + y = {total}. Then y = {total} − {x} = {y}.\n"
-            f"Therefore, x = {x}, y = {y}.",
+            f"Step 1: Label the equations: (1) x + y = {total}; "
+            f"(2) {coefficient}x + y = {weighted_total}.\n"
+            f"Step 2: Subtract (1) from (2): ({coefficient}x - x) + "
+            f"(y - y) = {weighted_total} - {total}, so "
+            f"{coefficient - 1}x = {difference}.\n"
+            f"Step 3: Divide both sides by {coefficient - 1}: "
+            f"x = {difference} ÷ {coefficient - 1} = {x}.\n"
+            f"Step 4: Substitute into (1): {x} + y = {total}, so "
+            f"y = {total} - {x} = {y}.\n"
+            f"Step 5: Check (1): {x} + {y} = {total}. "
+            f"Check (2): {coefficient}({x}) + {y} = "
+            f"{coefficient*x} + {y} = {weighted_total}.\n"
+            f"Both equations hold; therefore, x = {x}, y = {y}.",
         )
-    x, y = _int(1, 15), _int(1, 15); total=x+y; difference=x-y
-    return (f"Solve x + y = {total} and x - y = {difference}.", "Add the equations to eliminate y.", f"x={x},y={y}", f"Step 1: Add the equations: 2x = {total+difference}.\nStep 2: x = {x}. Substitute into x + y = {total}.\nStep 3: y = {y}. Therefore, x = {x}, y = {y}.")
+    x, y = _int(1, 15), _int(1, 15)
+    total, difference = x + y, x - y
+    return (
+        f"Solve x + y = {total} and x - y = {difference}.",
+        "Add the equations to eliminate y.",
+        f"x={x},y={y}",
+        f"Step 1: Label the equations: (1) x + y = {total}; "
+        f"(2) x - y = {difference}.\n"
+        f"Step 2: Add (1) and (2): (x + x) + (y - y) = "
+        f"{total} + ({difference}), so 2x = {total+difference}.\n"
+        f"Step 3: Divide by 2: x = {total+difference} ÷ 2 = {x}.\n"
+        f"Step 4: Substitute into (1): {x} + y = {total}; "
+        f"y = {total} - {x} = {y}.\n"
+        f"Step 5: Check (1): {x} + {y} = {total}. "
+        f"Check (2): {x} - {y} = {difference}.\n"
+        f"Both equations hold; therefore, x = {x}, y = {y}.",
+    )
 
 
 def _similar_shapes(level):
