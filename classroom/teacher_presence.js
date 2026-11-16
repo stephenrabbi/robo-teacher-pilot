@@ -2,9 +2,11 @@
 (function(root){
  'use strict';
  function teacherPresence({activity='',stage='lesson',speaking=false,paused=false,listening=false,wakeListening=false}={}){
+  // The teacher can have paused narration while the microphone is active.
+  // Listening must win in that case, rather than misleadingly saying "Paused".
+  if(listening)return {state:'listening',icon:'◉',label:'Listening to your question'};
   if(paused)return {state:'paused',icon:'Ⅱ',label:'Paused — continue when you are ready'};
   if(speaking)return {state:'speaking',icon:'●',label:'Explaining this step'};
-  if(listening)return {state:'listening',icon:'◉',label:'Listening to your question'};
   if(activity==='thinking')return {state:'thinking',icon:'◌',label:'Preparing your explanation'};
   if(activity==='attention')return {state:'attention',icon:'!',label:'Your teacher needs your attention'};
   if(activity==='paused')return {state:'paused',icon:'Ⅱ',label:'Take your time — ask your question'};
