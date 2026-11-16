@@ -125,6 +125,27 @@ const { gunzipSync } = require('node:zlib');
     assert.equal(await page.locator('#canvasWork').evaluate(el=>el.classList.contains('teacher-pointing-step')),true,
       'Speaking a Maths lesson should point to its current step');
     assert.equal(await page.locator('#teacherPanel').getAttribute('data-teaching-gesture'),'pointing');
+    assert.equal(await page.locator('#teacherPanel').getAttribute('data-gesture-topic'),'calculation');
+    // Check graph/shape gestures while narration is active, without changing
+    // the saved PCM offset or the original worked-step content.
+    await page.evaluate(()=>window.eval(`(()=>{
+      window.__qaMathsTopic=currentLesson.text;
+      currentLesson.text='Plot the coordinate on the graph';
+      syncMathsStepPointing();
+    })()`));
+    assert.equal(await page.locator('#teacherPanel').getAttribute('data-gesture-topic'),'graph');
+    assert.equal(await page.locator('#teacherPanel .presenter-arm').evaluate(el=>getComputedStyle(el).animationName),'presenter-graph-gesture');
+    await page.evaluate(()=>window.eval(`(()=>{
+      currentLesson.text='Draw a triangle and measure the angle';
+      syncMathsStepPointing();
+    })()`));
+    assert.equal(await page.locator('#teacherPanel').getAttribute('data-gesture-topic'),'geometry');
+    assert.equal(await page.locator('#teacherPanel .presenter-arm').evaluate(el=>getComputedStyle(el).animationName),'presenter-shape-gesture');
+    await page.evaluate(()=>window.eval(`(()=>{
+      currentLesson.text=window.__qaMathsTopic;
+      syncMathsStepPointing();
+    })()`));
+    assert.equal(await page.locator('#teacherPanel').getAttribute('data-gesture-topic'),'calculation');
     assert.equal(await page.locator('#teacherPanel .teacher-presenting-pose').isVisible(),true,
       'The presenting arm should appear alongside the speaking portrait');
     assert.equal(await page.locator('#teacherPanel .teacher-portrait').isVisible(),true,
@@ -144,6 +165,7 @@ const { gunzipSync } = require('node:zlib');
     assert.equal(await page.locator('#canvasWork').evaluate(el=>el.classList.contains('teacher-pointing-step')),false,
       'Interruption must clear the current-step pointing cue');
     assert.equal(await page.locator('#teacherPanel').getAttribute('data-teaching-gesture'),'idle');
+    assert.equal(await page.locator('#teacherPanel').getAttribute('data-gesture-topic'),'idle');
     assert.equal(await page.locator('#teacherPanel .teacher-presenting-pose').isVisible(),false,
       'The animated arm must disappear on interruption');
     assert.equal(await page.locator('#teacherPanel').getAttribute('data-mouth-cue'),null);

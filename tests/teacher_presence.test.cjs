@@ -1,6 +1,6 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
-const {teacherPresence,renderTeacherPresence,initGestureMotion}=require('../classroom/teacher_presence.js');
+const {teacherPresence,renderTeacherPresence,initGestureMotion,mathsGestureTopic}=require('../classroom/teacher_presence.js');
 test('speech and pause take precedence over lesson focus',()=>{
  assert.equal(teacherPresence({stage:'visual',speaking:true}).state,'speaking');
  assert.equal(teacherPresence({speaking:true,paused:true}).state,'paused');
@@ -82,4 +82,15 @@ test('gesture motion respects manual choice and device preference changes',()=>{
  button.click();assert.equal(panel.dataset.gestureMotion,'on');
  preference.matches=true;preference.change();assert.equal(panel.dataset.gestureMotion,'off');
  assert.doesNotThrow(()=>initGestureMotion(null,null,null));
+});
+
+test('Maths gesture selection follows lesson content and avoids generic words',()=>{
+ assert.equal(mathsGestureTopic('Solve 3x + 5 = 20 by subtraction'),'calculation');
+ assert.equal(mathsGestureTopic('Plot the coordinate (2, 3) on the graph'),'graph');
+ assert.equal(mathsGestureTopic('Find the gradient of the line'),'graph');
+ assert.equal(mathsGestureTopic('Draw a triangle and measure its angle'),'geometry');
+ assert.equal(mathsGestureTopic('Find the circumference of a circle'),'geometry');
+ assert.equal(mathsGestureTopic('Find the area under the graph'),'graph');
+ assert.equal(mathsGestureTopic('Compare 7 and 12'),'calculation');
+ assert.equal(mathsGestureTopic(null),'calculation');
 });

@@ -946,6 +946,14 @@ function syncMathsStepPointing(){
   // The compact presenter is independent of the talking portrait, so mouth
   // synchronisation remains visible while the teaching arm gestures.
   teacherPanel.dataset.teachingGesture=guiding?'pointing':'idle';
+  // Select a presenter-arm motion appropriate to the Maths lesson content.
+  // Keep the talking portrait and the existing interruption/resume logic.
+  const lessonText=currentLesson
+    ?[currentLesson.text||'',currentLesson.steps?.[currentLesson.index]||''].join(' ')
+    :'';
+  teacherPanel.dataset.gestureTopic=guiding
+    ?(window.RoboTeacherPresence?.mathsGestureTopic?.(lessonText)||'calculation')
+    :'idle';
 }
 
 function setTeacherSpeaking(speaking){

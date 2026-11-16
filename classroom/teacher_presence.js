@@ -16,6 +16,14 @@
   if(wakeListening)return {state:'listening',icon:'◉',label:'Listening for Robo-Teacher'};
   return {state:'ready',icon:'●',label:'Ready to guide you step by step'};
  }
+ function mathsGestureTopic(text=''){
+  // The classroom uses the lesson's own topic/step, not microphone text,
+  // to choose a gentle presenting-arm motion during Maths narration.
+  const words=String(text).toLowerCase();
+  if(/\b(?:coordinate|gradient|slope|plot|graph|axis|axes|x-axis|y-axis|line graph|number line)\b/u.test(words))return 'graph';
+  if(/\b(?:triangle|rectangle|square|circle|radius|diameter|circumference|polygon|angle|geometry|shape|perimeter|area|volume|cuboid|prism|construction|protractor|pythagoras)\b/u.test(words))return 'geometry';
+  return 'calculation';
+ }
  function renderTeacherPresence(panel,cue,options){
   if(!panel||!cue)return;
   const value=teacherPresence(options);panel.dataset.teachingState=value.state;cue.dataset.state=value.state;
@@ -36,6 +44,6 @@
   button.addEventListener('click',()=>{enabled=!enabled;render();});
   preference.addEventListener('change',render);render();
  }
- if(typeof module==='object'&&module.exports)module.exports={teacherPresence,renderTeacherPresence,initGestureMotion};
- else root.RoboTeacherPresence={teacherPresence,renderTeacherPresence,initGestureMotion};
+ if(typeof module==='object'&&module.exports)module.exports={teacherPresence,renderTeacherPresence,initGestureMotion,mathsGestureTopic};
+ else root.RoboTeacherPresence={teacherPresence,renderTeacherPresence,initGestureMotion,mathsGestureTopic};
 })(typeof window==='undefined'?globalThis:window);
