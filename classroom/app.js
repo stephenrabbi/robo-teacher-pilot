@@ -560,6 +560,8 @@ function handsFreeBargeIn(result){
   const wake=alternatives.find(transcript=>new RegExp(`(?:^|\\s)(?:hey\\s+)?(?:robo|robot|robotic)[\\s-]*${wakePattern}(?=\\s|[,.:;-]|$)`,'iu').test(transcript));
   if(!command&&!wake)return false;
   handsFree.bargeInAt=Date.now();clearHandsFreePhraseBuffer();void pauseTeacherAudio();handsFree.armedUntil=Date.now()+7000;
+  // Refresh after arming the microphone, not only when the audio pauses.
+  syncTeacherPresence();
   if(command){
     const interpreted=normalizeSpokenIntent(command.toLowerCase().replace(new RegExp(`^(?:(?:hey\\s+)?(?:robo|robot|robotic)[\\s-]*${wakePattern}[\\s,.:;-]*)?(?:please\\s+)?`,'iu'),''));
     handsFree.pending='';handsFree.ignorePauseUntil=Date.now()+1800;openHandsFreeFollowUpWindow();showHandsFreeHeard(`Heard: “${command}” · Teacher paused. Ask your follow-up within 15 seconds, or say “Continue”.`);return true;

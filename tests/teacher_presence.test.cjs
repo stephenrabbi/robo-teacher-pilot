@@ -6,6 +6,21 @@ test('speech and pause take precedence over lesson focus',()=>{
  assert.equal(teacherPresence({speaking:true,paused:true}).state,'paused');
  assert.equal(teacherPresence({activity:'speaking',speaking:false}).state,'ready');
 });
+test('voice interruption shows listening instead of paused while microphone is active',()=>{
+ const state=teacherPresence({paused:true,listening:true,stage:'lesson'});
+ assert.equal(state.state,'listening');
+ assert.match(state.label,/Listening to your question/);
+ assert.equal(teacherPresence({paused:true,listening:false}).state,'paused');
+ const doc={createElement(){return {setAttribute(){}}}};
+ const panel={dataset:{}},cue={dataset:{},ownerDocument:doc,replaceChildren(...nodes){this.children=nodes}};
+ renderTeacherPresence(panel,cue,{paused:true,listening:true});
+ assert.equal(panel.dataset.teachingState,'listening');
+ assert.equal(panel.dataset.pose,'portrait');
+ assert.match(cue.children[1].textContent,/Listening/);
+ renderTeacherPresence(panel,cue,{speaking:true,listening:false,paused:false});
+ assert.equal(panel.dataset.teachingState,'speaking');
+});
+
 test('listening requires an active microphone state rather than a label alone',()=>{
  assert.equal(teacherPresence({activity:'listening'}).state,'ready');
  assert.equal(teacherPresence({activity:'listening',listening:true}).state,'listening');
