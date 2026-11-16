@@ -96,9 +96,29 @@ def _fractions(level):
         d = _pick((4, 5, 6, 8, 10, 12)); a, b = _int(1, d//2), _int(1, d//2); result = Fraction(a+b, d)
         return (f"Calculate {a}/{d} + {b}/{d}. Give the simplest fraction.", "Keep the common denominator and add the numerators.", _fraction(result), f"Step 1: The denominators are both {d}.\nStep 2: Add the numerators: {a} + {b} = {a+b}.\nStep 3: Simplify {a+b}/{d}. Therefore, the answer is {_fraction(result)}.")
     if level == "Medium":
-        d1, d2 = _pick((2, 3, 4, 5, 6)), _pick((4, 6, 8, 10, 12)); a, b = _int(1, d1-1), _int(1, d2-1); result = Fraction(a,d1)+Fraction(b,d2)
-        common = math.lcm(d1,d2)
-        return (f"Calculate {a}/{d1} + {b}/{d2}. Give the simplest fraction.", f"Use {common} as a common denominator.", _fraction(result), f"Step 1: Use the common denominator {common}.\nStep 2: Convert both fractions and add their numerators.\nStep 3: Simplify the result. Therefore, the answer is {_fraction(result)}.")
+        d1, d2 = _pick((2, 3, 4, 5, 6)), _pick((4, 6, 8, 10, 12))
+        a, b = _int(1, d1 - 1), _int(1, d2 - 1)
+        common = math.lcm(d1, d2)
+        scaled_a, scaled_b = a * (common // d1), b * (common // d2)
+        numerator = scaled_a + scaled_b
+        result = Fraction(numerator, common)
+        divisor = math.gcd(numerator, common)
+        reduction = (
+            f"Divide the numerator and denominator by {divisor}: "
+            f"{numerator} ÷ {divisor}/{common} ÷ {divisor} = {_fraction(result)}."
+            if divisor > 1 else f"{numerator}/{common} is already in simplest form."
+        )
+        return (
+            f"Calculate {a}/{d1} + {b}/{d2}. Give the simplest fraction.",
+            f"Use {common} as a common denominator.",
+            _fraction(result),
+            f"Step 1: Find the LCM of {d1} and {d2}: {common}.\n"
+            f"Step 2: Convert: {a}/{d1} = {scaled_a}/{common} and "
+            f"{b}/{d2} = {scaled_b}/{common}.\n"
+            f"Step 3: Add: ({scaled_a} + {scaled_b})/{common} = {numerator}/{common}.\n"
+            f"Step 4: {reduction}\n"
+            f"Therefore, the answer is {_fraction(result)}.",
+        )
     a,b,c,d = _int(2,9),_int(3,10),_int(2,9),_int(3,10); result=Fraction(a,b)*Fraction(c,d)
     return (f"Calculate {a}/{b} × {c}/{d}. Give the simplest fraction.", "Multiply the numerators and denominators, then simplify.", _fraction(result), f"Step 1: Multiply: ({a} × {c})/({b} × {d}) = {a*c}/{b*d}.\nStep 2: Simplify the fraction.\nTherefore, the answer is {_fraction(result)}.")
 
