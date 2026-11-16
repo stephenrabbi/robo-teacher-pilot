@@ -2,11 +2,12 @@
 (function(root){
  'use strict';
  function teacherPresence({activity='',stage='lesson',speaking=false,paused=false,listening=false,wakeListening=false}={}){
-  // The teacher can have paused narration while the microphone is active.
-  // Listening must win in that case, rather than misleadingly saying "Paused".
+  // Speech recognition may stay active during teacher narration. Show the
+  // speaking avatar while audio plays; when speech is paused for a learner
+  // interruption, the active microphone takes precedence over the pause cue.
+  if(speaking&&!paused)return {state:'speaking',icon:'●',label:'Explaining this step'};
   if(listening)return {state:'listening',icon:'◉',label:'Listening to your question'};
   if(paused)return {state:'paused',icon:'Ⅱ',label:'Paused — continue when you are ready'};
-  if(speaking)return {state:'speaking',icon:'●',label:'Explaining this step'};
   if(activity==='thinking')return {state:'thinking',icon:'◌',label:'Preparing your explanation'};
   if(activity==='attention')return {state:'attention',icon:'!',label:'Your teacher needs your attention'};
   if(activity==='paused')return {state:'paused',icon:'Ⅱ',label:'Take your time — ask your question'};
