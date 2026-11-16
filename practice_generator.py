@@ -93,8 +93,26 @@ def _whole_numbers(level):
 
 def _fractions(level):
     if level == "Easy":
-        d = _pick((4, 5, 6, 8, 10, 12)); a, b = _int(1, d//2), _int(1, d//2); result = Fraction(a+b, d)
-        return (f"Calculate {a}/{d} + {b}/{d}. Give the simplest fraction.", "Keep the common denominator and add the numerators.", _fraction(result), f"Step 1: The denominators are both {d}.\nStep 2: Add the numerators: {a} + {b} = {a+b}.\nStep 3: Simplify {a+b}/{d}. Therefore, the answer is {_fraction(result)}.")
+        d = _pick((4, 5, 6, 8, 10, 12))
+        a, b = _int(1, d // 2), _int(1, d // 2)
+        numerator = a + b
+        result = Fraction(numerator, d)
+        divisor = math.gcd(numerator, d)
+        reduction = (
+            f"Divide both parts by {divisor}: ({numerator} ÷ {divisor})/"
+            f"({d} ÷ {divisor}) = {_fraction(result)}."
+            if divisor > 1 else f"{numerator}/{d} is already in simplest form."
+        )
+        return (
+            f"Calculate {a}/{d} + {b}/{d}. Give the simplest fraction.",
+            "Keep the common denominator and add the numerators.",
+            _fraction(result),
+            f"Step 1: The denominators are both {d}.\n"
+            f"Step 2: Add the numerators: {a} + {b} = {numerator}, "
+            f"giving {numerator}/{d}.\n"
+            f"Step 3: {reduction}\n"
+            f"Therefore, the answer is {_fraction(result)}.",
+        )
     if level == "Medium":
         d1, d2 = _pick((2, 3, 4, 5, 6)), _pick((4, 6, 8, 10, 12))
         a, b = _int(1, d1 - 1), _int(1, d2 - 1)
@@ -119,8 +137,23 @@ def _fractions(level):
             f"Step 4: {reduction}\n"
             f"Therefore, the answer is {_fraction(result)}.",
         )
-    a,b,c,d = _int(2,9),_int(3,10),_int(2,9),_int(3,10); result=Fraction(a,b)*Fraction(c,d)
-    return (f"Calculate {a}/{b} × {c}/{d}. Give the simplest fraction.", "Multiply the numerators and denominators, then simplify.", _fraction(result), f"Step 1: Multiply: ({a} × {c})/({b} × {d}) = {a*c}/{b*d}.\nStep 2: Simplify the fraction.\nTherefore, the answer is {_fraction(result)}.")
+    a, b, c, d = _int(2, 9), _int(3, 10), _int(2, 9), _int(3, 10)
+    numerator, denominator = a * c, b * d
+    result = Fraction(numerator, denominator)
+    divisor = math.gcd(numerator, denominator)
+    reduction = (
+        f"Divide numerator and denominator by {divisor}: "
+        f"({numerator} ÷ {divisor})/({denominator} ÷ {divisor}) = {_fraction(result)}."
+        if divisor > 1 else f"{numerator}/{denominator} is already in simplest form."
+    )
+    return (
+        f"Calculate {a}/{b} × {c}/{d}. Give the simplest fraction.",
+        "Multiply the numerators and denominators, then simplify.",
+        _fraction(result),
+        f"Step 1: Multiply: ({a} × {c})/({b} × {d}) = {numerator}/{denominator}.\n"
+        f"Step 2: {reduction}\n"
+        f"Therefore, the answer is {_fraction(result)}.",
+    )
 
 
 def _algebra(level):
