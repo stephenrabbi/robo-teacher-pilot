@@ -508,3 +508,23 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 @media(prefers-reduced-motion:reduce){
   #classroom #teacherPanel[data-teaching-gesture=pointing] .presenter-arm{animation:none!important;transform:none!important}
 }
+
+/* Match the small Maths presenter-arm motion to the lesson subject.
+   These are illustrative gestures, not geometric hand tracking. */
+#classroom #teacherPanel[data-teaching-gesture=pointing][data-gesture-topic=graph][data-gesture-motion=on] .presenter-arm{
+  animation-name:presenter-graph-gesture
+}
+#classroom #teacherPanel[data-teaching-gesture=pointing][data-gesture-topic=geometry][data-gesture-motion=on] .presenter-arm{
+  animation-name:presenter-shape-gesture
+}
+@keyframes presenter-graph-gesture{
+  0%,100%{transform:rotate(0deg)}
+  35%,65%{transform:rotate(-7deg)}
+}
+@keyframes presenter-shape-gesture{
+  0%,100%{transform:rotate(0deg)}
+  40%,70%{transform:rotate(6deg)}
+}
+@media(prefers-reduced-motion:reduce){
+  #classroom #teacherPanel[data-gesture-topic] .presenter-arm{animation:none!important;transform:none!important}
+}
