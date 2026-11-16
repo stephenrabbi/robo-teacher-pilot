@@ -6,6 +6,27 @@ test('speech and pause take precedence over lesson focus',()=>{
  assert.equal(teacherPresence({speaking:true,paused:true}).state,'paused');
  assert.equal(teacherPresence({activity:'speaking',speaking:false}).state,'ready');
 });
+test('active narration keeps speaking avatar even while wake microphone listens',()=>{
+ const state=teacherPresence({speaking:true,listening:true,wakeListening:true,paused:false});
+ assert.equal(state.state,'speaking');
+ assert.match(state.label,/Explaining this step/);
+ const doc={createElement(){return {setAttribute(){}}}};
+ const panel={dataset:{}},cue={dataset:{},ownerDocument:doc,replaceChildren(...nodes){this.children=nodes}};
+ renderTeacherPresence(panel,cue,{speaking:true,listening:true,paused:false});
+ assert.equal(panel.dataset.teachingState,'speaking');
+ assert.equal(panel.dataset.pose,'portrait');
+ assert.match(cue.children[1].textContent,/Explaining/);
+ // During barge-in, narration pauses and the microphone remains active.
+ renderTeacherPresence(panel,cue,{speaking:false,listening:true,paused:true});
+ assert.equal(panel.dataset.teachingState,'listening');
+ // Once microphone listening ends, remain visibly paused, not listening.
+ renderTeacherPresence(panel,cue,{speaking:false,listening:false,paused:true});
+ assert.equal(panel.dataset.teachingState,'paused');
+ // On resume, display the talking face again even if wake listening persists.
+ renderTeacherPresence(panel,cue,{speaking:true,listening:true,paused:false});
+ assert.equal(panel.dataset.teachingState,'speaking');
+});
+
 test('voice interruption shows listening instead of paused while microphone is active',()=>{
  const state=teacherPresence({paused:true,listening:true,stage:'lesson'});
  assert.equal(state.state,'listening');
