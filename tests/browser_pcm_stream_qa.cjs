@@ -182,12 +182,20 @@ const { gunzipSync } = require('node:zlib');
     assert.equal(await page.locator('#canvasAnswer').innerText(), followUp);
     assert.equal(await page.locator('#teacherPanel').getAttribute('data-mouth-cue'), null,
       'A follow-up answer without a cue track must not reuse the saved lesson cues');
+    // The learner may hide the teacher during a follow-up. Resuming Maths
+    // should reveal the speaking portrait without resetting the PCM offset.
+    await page.evaluate(()=>window.eval('setTeacherPanelMinimized(true)'));
+    assert.equal(await page.locator('#teacherPanel').evaluate(el=>el.classList.contains('minimized')),true);
     await page.evaluate(()=>window.eval("handleHandsFreePhrase('Continue',.99)"));
     await page.waitForFunction(()=>window.eval(
       'activeMathsNarration?.chunks[0]?.offset>0 && teacherPanel.classList.contains("speaking")'
     ));
     assert.equal(await page.evaluate(()=>window.eval('activeMathsNarration.chunks[0].offset')),offset);
     assert.equal(await page.locator('#canvasAnswer').innerText(),originalStep);
+    assert.equal(await page.locator('#lessonStepLabel').innerText(),'Step 2 of 4');
+    assert.equal(await page.locator('#teacherPanel').evaluate(el=>el.classList.contains('minimized')),false,
+      'Returning to a spoken Maths lesson should reopen the teacher portrait');
+    assert.equal(await page.locator('#teacherPanel .teacher-portrait').isVisible(),true);
     assert.equal(await page.locator('#canvasWork').evaluate(el=>el.classList.contains('teacher-pointing-step')),true,
       'Returning to Maths narration must restore the step pointer');
     assert.equal(await page.locator('#teacherPanel').getAttribute('data-teaching-gesture'),'pointing');
