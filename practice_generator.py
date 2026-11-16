@@ -105,7 +105,7 @@ def _fractions(level):
         divisor = math.gcd(numerator, common)
         reduction = (
             f"Divide the numerator and denominator by {divisor}: "
-            f"{numerator} ÷ {divisor}/{common} ÷ {divisor} = {_fraction(result)}."
+            f"({numerator} ÷ {divisor})/({common} ÷ {divisor}) = {_fraction(result)}."
             if divisor > 1 else f"{numerator}/{common} is already in simplest form."
         )
         return (
