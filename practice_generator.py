@@ -142,8 +142,25 @@ def _factors_roots(level):
 
 def _decimals(level):
     if level == "Easy":
-        a,b=_int(10,99),_int(10,99); answer=(a+b)/10
-        return (f"Calculate {a/10:.1f} + {b/10:.1f}.", "Align the decimal points.", f"{answer:g}", f"Step 1: Align the decimal points.\nStep 2: Add the tenths and whole numbers.\nTherefore, the answer is {answer:g}.")
+        a, b = _int(10, 99), _int(10, 99)
+        tenths = a % 10 + b % 10
+        carry, remaining_tenths = divmod(tenths, 10)
+        whole = a // 10 + b // 10
+        answer = f"{whole + carry}.{remaining_tenths}"
+        display_answer = answer.removesuffix(".0")
+        regroup = (
+            f"Regroup {tenths} tenths as 1 whole and {remaining_tenths} tenths. "
+            if carry else ""
+        )
+        return (
+            f"Calculate {a/10:.1f} + {b/10:.1f}.",
+            "Align the decimal points.",
+            display_answer,
+            f"Step 1: Align the decimal points. Add the tenths: {a % 10} + {b % 10} = {tenths} tenths.\n"
+            f"Step 2: {regroup}Add the whole numbers: {a // 10} + {b // 10}"
+            f"{' + 1' if carry else ''} = {whole + carry}.\n"
+            f"Therefore, the answer is {display_answer}.",
+        )
     if level == "Medium":
         whole=_int(2,30); hundredths=_int(10,99); value=whole+hundredths/1000; answer=round(value,2)
         return (f"Round {value:.3f} to 2 decimal places.", "Check the third decimal digit.", f"{answer:.2f}", f"Step 1: Look at the third decimal digit in {value:.3f}.\nStep 2: Round the second decimal digit correctly.\nTherefore, the answer is {answer:.2f}.")
