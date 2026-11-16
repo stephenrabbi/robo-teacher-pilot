@@ -609,6 +609,9 @@ function resumeBookmarkedLessonByVoice(){
   else if(lessonHistory.length){
     const lesson=lessonHistory.pop();restoreLessonCheckpoint(lesson);canvasStatus.textContent='Previous lesson resumed';setLearningStatus(`Returned to lesson step ${lesson.index+1}`);
   }else if(currentLesson)renderCurrentLessonStep();
+  // After a voice follow-up, make the speaking Maths teacher visible again.
+  // Preserve the intentionally minimised layout for visual/video stages.
+  if(currentLesson&&teachingStage.mode==='lesson')restoreTeacherPanel();
   if(readCurrentWorkedExample(true))return;
   const step=currentLesson?.steps[currentLesson.index];
   if(step&&typeof resumeMathsNarration==='function'&&mathsNarrationCheckpoints.has(narrationCheckpoint))void resumeMathsNarration(narrationCheckpoint,step);
