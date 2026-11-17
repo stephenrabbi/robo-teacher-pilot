@@ -1651,11 +1651,11 @@ function pauseLessonForQuestion(source='text'){
   lessonPauseNotice.classList.remove('hidden');askLessonQuestion.textContent='Continue this step';lessonDirector.classList.add('lesson-paused');
   setLearningStatus('Lesson paused for your question','paused');saveClassroomSnapshot();
 }
-askLessonQuestion.addEventListener('click',()=>{
-  if(lessonInterruption){const checkpoint=lessonInterruption;lessonInterruption=null;lessonDirector.classList.remove('lesson-paused');if(checkpoint.example||checkpoint.video)restoreLessonCheckpoint(checkpoint);else renderCurrentLessonStep();setLearningStatus('Paused explanation resumed');return}
+askLessonQuestion.addEventListener('click',event=>{
+  if(lessonInterruption){const checkpoint=lessonInterruption;lessonInterruption=null;lessonDirector.classList.remove('lesson-paused');if(checkpoint.example||checkpoint.video)restoreLessonCheckpoint(checkpoint);else renderCurrentLessonStep();setLearningStatus('Paused explanation resumed');if(event.detail===0&&teachingStage.mode==='lesson')canvasAnswer.focus({preventScroll:true});return}
   pauseLessonForQuestion();question.placeholder='Ask a question about this step…';question.focus();
 });
-returnToLesson.addEventListener('click',()=>{if(!lessonHistory.length)return;stopTeacherAudio();lessonInterruption=null;lessonDirector.classList.remove('lesson-paused');const lesson=lessonHistory.pop();restoreLessonCheckpoint(lesson);canvasStatus.textContent='Previous lesson resumed';setLearningStatus('Returned to your lesson')});
+returnToLesson.addEventListener('click',event=>{if(!lessonHistory.length)return;stopTeacherAudio();lessonInterruption=null;lessonDirector.classList.remove('lesson-paused');const lesson=lessonHistory.pop();restoreLessonCheckpoint(lesson);canvasStatus.textContent='Previous lesson resumed';setLearningStatus('Returned to your lesson');if(event.detail===0&&teachingStage.mode==='lesson')canvasAnswer.focus({preventScroll:true})});
 endLesson.addEventListener('click',event=>{stopTeacherAudio();currentLesson=null;lessonInterruption=null;lessonHistory.length=0;clearClassroomSnapshot();lessonDirector.classList.add('hidden');lessonDirector.classList.remove('lesson-paused');canvasWork.classList.add('hidden');canvasEmpty.classList.remove('hidden');canvasAnswer.replaceChildren();readAnswerButton.disabled=true;question.placeholder='Ask your teacher a question…';setLearningStatus('Lesson ended');if(event.detail===0)question.focus()});
 
 window.addEventListener('pagehide',saveClassroomSnapshot);
