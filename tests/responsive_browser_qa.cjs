@@ -139,11 +139,15 @@ const path = require('node:path');
         await page.route('**/api/classroom/speech', route => route.fulfill({
           headers:{'Content-Type':'audio/L16','X-Audio-Sample-Rate':'24000'},body:pcm,
         }));
+        const openMouth = () => page.waitForFunction(() =>
+          Number(document.getElementById('teacherPanel').style.getPropertyValue('--mouth-open')) > .1
+        );
         const clock = () => page.evaluate(() => window.eval('teacherAudioContext.currentTime'));
         await page.locator('#readAnswer').tap();
         await page.waitForFunction(() => window.eval(
           'teacherStreamComplete && teacherAudioSources.size > 0 && teacherPanel.classList.contains("speaking")'
         ));
+        await openMouth();
         await page.locator('#readAnswer').tap();
         await page.waitForFunction(() => window.eval('teacherSpeechPaused && teacherAudioContext.state === "suspended"'));
         assert.equal(await page.locator('#readAnswer').getAttribute('aria-label'),
@@ -151,8 +155,13 @@ const path = require('node:path');
         const pausedAt = await clock();
         await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
         assert.equal(await clock(), pausedAt, name + ': audio advanced while paused');
+        const mouth = await page.locator('#teacherPanel').evaluate(panel =>
+          Number(panel.style.getPropertyValue('--mouth-open'))
+        );
+        assert.equal(mouth, 0, name + ': avatar mouth stayed open during pause');
         await page.locator('#readAnswer').tap();
         await page.waitForFunction(position => window.eval('teacherAudioContext.currentTime') > position + .05, pausedAt);
+        await openMouth();
         assert.equal(await page.locator('#readAnswer').getAttribute('aria-label'),
           'Pause reading the answer', name + ': continue control incorrect');
         assert.equal(await page.locator('#lessonStepLabel').innerText(), label,
