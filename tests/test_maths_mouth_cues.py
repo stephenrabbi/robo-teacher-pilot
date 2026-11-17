@@ -14,6 +14,20 @@ class TestMathsMouthCues(unittest.TestCase):
         self.assertGreater(len(json.loads(header)), 1)
         self.assertLessEqual(json.loads(header)[-1]["end"], len(pcm) / 48_000)
 
+    def test_simple_equations_intro_and_check_match_their_recordings(self):
+        steps = (
+            ("Solve x − 2 = 5. The goal is to get x on its own.", "simple-equations-intro", 37),
+            ("Simplify to get x = 7. Check : 7 − 2 = 5.", "simple-equations-check", 43),
+        )
+        for text, name, cue_count in steps:
+            with self.subTest(step=name):
+                pcm, header = prepared_maths_narration(text, "English", "female", "normal")
+                self.assertEqual(pcm, gzip.decompress((_NARRATION_DIR / f"{name}.pcm.gz").read_bytes()))
+                self.assertEqual(len(json.loads(header)), cue_count)
+                self.assertLessEqual(json.loads(header)[-1]["end"], len(pcm) / 48_000)
+                if name.endswith("check"):
+                    self.assertGreater(len(pcm) / 48_000, 8)
+
     def test_settings_and_text_must_match_the_recording(self):
         text = "Add two to both sides of the equation."
         for request in (

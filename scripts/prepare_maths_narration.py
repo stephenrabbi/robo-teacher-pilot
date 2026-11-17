@@ -9,7 +9,7 @@ import json
 from pathlib import Path
 import wave
 
-from maths_mouth_cues import _SAMPLE_RATE, _validated_header
+from maths_mouth_cues import _MAX_DURATION_SECONDS, _SAMPLE_RATE, _validated_header
 
 
 def package_narration(recording: Path, cue_file: Path, output: Path) -> None:
@@ -17,8 +17,8 @@ def package_narration(recording: Path, cue_file: Path, output: Path) -> None:
         if (audio.getframerate(), audio.getnchannels(), audio.getsampwidth()) != (_SAMPLE_RATE, 1, 2):
             raise ValueError("Expected a 24 kHz mono 16-bit PCM WAV")
         frames = audio.getnframes()
-        if not 0 < frames <= 8 * _SAMPLE_RATE:
-            raise ValueError("Expected a recording between zero and eight seconds")
+        if not 0 < frames <= _MAX_DURATION_SECONDS * _SAMPLE_RATE:
+            raise ValueError(f"Expected a non-empty recording of at most {_MAX_DURATION_SECONDS} seconds")
         pcm = audio.readframes(frames)
     if len(pcm) != frames * 2:
         raise ValueError("The WAV contains fewer samples than its header declares")
