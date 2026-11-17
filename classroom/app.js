@@ -1618,6 +1618,7 @@ function renderCurrentLessonStep(){
   returnToLesson.classList.toggle('hidden',!lessonHistory.length);
   lessonPauseNotice.classList.toggle('hidden',!lessonInterruption);
   askLessonQuestion.textContent=lessonInterruption?'Continue this step':'Ask about this step';
+  if(!lessonInterruption)question.placeholder='Ask your teacher a question…';
   readAnswerButton.disabled=!steps[index].trim();
   canvasAnswer.scrollIntoView({block:'nearest',behavior:'smooth'});
   saveClassroomSnapshot();
