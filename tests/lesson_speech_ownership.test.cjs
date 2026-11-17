@@ -179,3 +179,29 @@ test('a failed Pause restores speaking only for the narration that requested it'
   assert.equal(ctx.teacherSpeechPaused,replaced);
  }
 });
+
+test('Read answer checks playback ownership after the audio context is ready',async()=>{
+ for(const change of ['none','request','workspace','answer']){
+  let click,finishPreparation;
+  let subjectOpen=false;
+  const spoken=[];
+  const ctx={
+   teacherSpeechRequest:1,teacherSpeechPaused:false,
+   teacherPanel:{classList:{contains:()=>false}},
+   readAnswerButton:{addEventListener(_event,handler){click=handler;}},
+   subjectClassroom:{isOpen:()=>subjectOpen,getAnswer:()=>'English explanation'},
+   canvasAnswer:{textContent:'Original Maths step'},
+   prepareTeacherAudio:()=>new Promise(resolve=>{finishPreparation=resolve;}),
+   speakText(...args){spoken.push(args);},
+  };
+  vm.createContext(ctx);
+  vm.runInContext(src.slice(src.indexOf("readAnswerButton.addEventListener('click'"),src.indexOf('teacherSpeed.value=teacherSpeechPace;',src.indexOf("readAnswerButton.addEventListener('click'"))),ctx);
+  const pending=click();
+  if(change==='request')ctx.teacherSpeechRequest++;
+  if(change==='workspace')subjectOpen=true;
+  if(change==='answer')ctx.canvasAnswer.textContent='Different Maths step';
+  finishPreparation();
+  await pending;
+  assert.deepEqual(spoken,change==='none'?[['Original Maths step',false,true,true]]:[]);
+ }
+});
