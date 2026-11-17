@@ -1740,7 +1740,7 @@ language.addEventListener('change',async()=>{
 });
 languageButton.addEventListener('click',()=>language.focus());
 chatButton.addEventListener('click',openChat);
-document.getElementById('simpleEquationsExample').addEventListener('click',()=>{
+document.getElementById('simpleEquationsExample').addEventListener('click',event=>{
   if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches)prepareMathsMouthImages();
   openChat();
   showCanvasAnswer([
@@ -1748,6 +1748,7 @@ document.getElementById('simpleEquationsExample').addEventListener('click',()=>{
     'Add two to both sides of the equation.',
     'Simplify to get x = 7. Check: 7 − 2 = 5.',
   ].join('\n\n'),'Simple Equations');
+  if(event.detail===0)canvasAnswer.focus({preventScroll:true});
 });
 practiceButton.addEventListener('click',openPractice);
 startPracticeButton.addEventListener('click',startPracticeSession);
