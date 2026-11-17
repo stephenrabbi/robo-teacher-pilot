@@ -124,6 +124,7 @@ const path = require('node:path');
         const toggle = page.locator('#toggleTeacher');
         const portrait = page.locator('#teacherPortrait');
         assert.equal(await toggle.getAttribute('aria-controls'), 'teacherPortrait');
+        assert.equal(await page.getByRole('button',{name:'Hide teacher',exact:true}).count(),1);
         assert.equal(await toggle.getAttribute('aria-expanded'), 'true');
         assert.equal(await page.locator('#teacherVoiceStatus').getAttribute('role'), 'status');
         // Touch the actual minimize control, then restore the portrait.
@@ -132,11 +133,13 @@ const path = require('node:path');
           name + ': touch minimize did not work');
         assert.equal(await toggle.getAttribute('aria-expanded'), 'false');
         assert.equal(await portrait.isVisible(), false);
+        assert.equal(await page.getByRole('button',{name:'Show teacher',exact:true}).count(),1);
         await page.locator('#toggleTeacher').tap();
         assert.equal(await page.locator('#teacherPanel').evaluate(e=>e.classList.contains('minimized')),false,
           name + ': touch restore did not work');
         assert.equal(await toggle.getAttribute('aria-expanded'), 'true');
         assert.equal(await portrait.isVisible(), true);
+        assert.equal(await page.getByRole('button',{name:'Hide teacher',exact:true}).count(),1);
         assert.equal(await page.locator('#lessonStepLabel').innerText(),label,
           name + ': minimizing the teacher changed the lesson');
         const pcm = Buffer.alloc(24000 * 2 * 6);
