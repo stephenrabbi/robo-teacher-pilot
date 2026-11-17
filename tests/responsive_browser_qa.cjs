@@ -1,17 +1,19 @@
 // Responsive browser check without real learner records or paid browser automation.
 // Runs from repository root against the static classroom shell.
-const { chromium, devices } = require('playwright');
+const { chromium, webkit, devices } = require('playwright');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
 (async () => {
-  const browser = await chromium.launch({ headless: true });
+  const webkitMode = process.argv.includes('--webkit');
+  const engine = webkitMode ? webkit : chromium;
+  const browser = await engine.launch({ headless: true });
   const output = path.join(process.cwd(), 'responsive-qa');
   fs.mkdirSync(output, { recursive: true });
   let failures = [];
   try {
-    for (const width of [375, 768, 1280]) {
+    for (const width of webkitMode ? [] : [375, 768, 1280]) {
       const page = await browser.newPage({ viewport: { width, height: 850 }, deviceScaleFactor: 1 });
       await page.goto('http://127.0.0.1:8765/classroom/index.html', { waitUntil: 'domcontentloaded' });
       // Top navigation must reveal the login panel, not merely scroll to onboarding.
@@ -96,9 +98,8 @@ const path = require('node:path');
       await page.close();
     }
 
-    // These are Chromium mobile device emulations, NOT physical phone or
-    // Safari/WebKit acceptance tests. No microphones or cloud APIs are used.
-    for (const name of ['Pixel 7', 'iPhone 13']) {
+    // Mobile touch emulation uses locally generated PCM.
+    for (const name of webkitMode ? ['iPhone 13'] : ['Pixel 7', 'iPhone 13']) {
       const context = await browser.newContext({
         ...devices[name],
         permissions: [],
@@ -164,7 +165,7 @@ const path = require('node:path');
         assert.ok(view.documentWidth<=view.width+3,
           name+': mobile classroom overflow '+JSON.stringify(view));
         assert.equal(view.portraitVisible,true,name+': teacher portrait hidden after resume');
-        console.log(name+': Chromium touch emulation, teacher minimize/restore and pause/continue PASS');
+        console.log(name+': '+engine.name()+' touch emulation, teacher minimize/restore and pause/continue PASS');
       } finally {
         await context.close();
       }
