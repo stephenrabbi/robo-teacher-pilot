@@ -1656,7 +1656,7 @@ askLessonQuestion.addEventListener('click',()=>{
   pauseLessonForQuestion();question.placeholder='Ask a question about this step…';question.focus();
 });
 returnToLesson.addEventListener('click',()=>{if(!lessonHistory.length)return;stopTeacherAudio();lessonInterruption=null;lessonDirector.classList.remove('lesson-paused');const lesson=lessonHistory.pop();restoreLessonCheckpoint(lesson);canvasStatus.textContent='Previous lesson resumed';setLearningStatus('Returned to your lesson')});
-endLesson.addEventListener('click',()=>{stopTeacherAudio();currentLesson=null;lessonInterruption=null;lessonHistory.length=0;clearClassroomSnapshot();lessonDirector.classList.add('hidden');lessonDirector.classList.remove('lesson-paused');canvasWork.classList.add('hidden');canvasEmpty.classList.remove('hidden');canvasAnswer.replaceChildren();readAnswerButton.disabled=true;question.placeholder='Ask your teacher a question…';setLearningStatus('Lesson ended')});
+endLesson.addEventListener('click',event=>{stopTeacherAudio();currentLesson=null;lessonInterruption=null;lessonHistory.length=0;clearClassroomSnapshot();lessonDirector.classList.add('hidden');lessonDirector.classList.remove('lesson-paused');canvasWork.classList.add('hidden');canvasEmpty.classList.remove('hidden');canvasAnswer.replaceChildren();readAnswerButton.disabled=true;question.placeholder='Ask your teacher a question…';setLearningStatus('Lesson ended');if(event.detail===0)question.focus()});
 
 window.addEventListener('pagehide',saveClassroomSnapshot);
 
