@@ -86,3 +86,21 @@ test('mouth cues follow buffered audio offsets and stay closed in playback gaps'
  assert.equal(ctx.mathsMouthCueAt(narration,21.5),'X');
  assert.equal(ctx.mathsMouthCueAt({chunks:[]},20),null);
 });
+
+test('a failed mouth image can be retried on the next narration',()=>{
+ const images=[];
+ class FakeImage {
+  constructor(){images.push(this);}
+  addEventListener(event,handler){assert.equal(event,'error');this.fail=handler;}
+ }
+ const ctx={Image:FakeImage};
+ vm.createContext(ctx);
+ vm.runInContext(src.slice(src.indexOf('const mathsMouthShapes='),src.indexOf('function renderMathsMouthCue(')),ctx);
+ ctx.prepareMathsMouthImages([{value:'B'},{value:'G'}]);
+ assert.equal(images.length,1);
+ images[0].fail();
+ ctx.prepareMathsMouthImages([{value:'B'}]);
+ ctx.prepareMathsMouthImages([{value:'B'}]);
+ assert.equal(images.length,2);
+ assert.equal(images[1].src,images[0].src);
+});

@@ -1036,8 +1036,9 @@ function prepareMathsMouthImages(cues=Object.keys(mathsMouthShapes).map(value=>(
     const shape=mathsMouthShapes[value];
     if(mathsMouthImages.has(shape))continue;
     const image=new Image();
-    image.src=`/classroom/assets/maths-mouth-${shape}.webp`;
     mathsMouthImages.set(shape,image);
+    image.addEventListener('error',()=>mathsMouthImages.delete(shape),{once:true});
+    image.src=`/classroom/assets/maths-mouth-${shape}.webp`;
   }
 }
 
