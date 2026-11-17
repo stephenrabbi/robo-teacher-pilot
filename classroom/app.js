@@ -975,6 +975,7 @@ function setTeacherSpeaking(speaking){
 
 async function pauseTeacherAudio(){
   if(!teacherAudioContext||teacherSpeechPaused)return;
+  const requestId=teacherSpeechRequest;
   // Lock the state before suspension so a final streamed chunk cannot close
   // the audio context while the learner is pausing it.
   lessonController.begin('paused');
@@ -986,7 +987,10 @@ async function pauseTeacherAudio(){
   stopAvatarMotion(teacherPanel);
   readAnswerButton.innerHTML='<span>Continue</span>';readAnswerButton.setAttribute('aria-label','Continue reading the answer');setLearningStatus('Audio paused','paused');
   try{await teacherAudioContext.suspend()}
-  catch(_error){teacherSpeechPaused=false;setTeacherSpeaking(true)}
+  catch(_error){
+    if(requestId!==teacherSpeechRequest||!teacherSpeechPaused)return;
+    teacherSpeechPaused=false;setTeacherSpeaking(true);
+  }
 }
 
 async function resumeTeacherAudio(){
