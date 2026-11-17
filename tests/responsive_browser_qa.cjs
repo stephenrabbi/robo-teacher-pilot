@@ -114,6 +114,8 @@ const path = require('node:path');
             learnerCode.value='TEST-MOBILE-QA';
             enterClassroomView();
             lessonChoreography.enabled=false;
+            canvasEmpty.classList.add('hidden');
+            canvasWork.classList.remove('hidden');
             startLessonDirector('Solve x + 5 = 12.',1,
               ['Identify the equation.', 'Subtract 5 from both sides.', 'Check the answer.']);`);
         });
