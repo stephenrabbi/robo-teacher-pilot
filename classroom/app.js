@@ -1335,8 +1335,13 @@ async function speakText(text,preserveAudioUnlock=false,displayCanvasAvatar=true
 readAnswerButton.addEventListener('click',async()=>{
   if(teacherSpeechPaused){await resumeTeacherAudio();return;}
   if(teacherPanel.classList.contains('speaking')){await pauseTeacherAudio();return;}
+  const requestId=teacherSpeechRequest;
+  const isSubjectOpen=Boolean(subjectClassroom?.isOpen());
+  const readText=()=>isSubjectOpen?subjectClassroom.getAnswer():canvasAnswer.textContent;
+  const text=readText();
   try{await prepareTeacherAudio()}catch(_error){return}
-  void speakText(subjectClassroom?.isOpen()?subjectClassroom.getAnswer():canvasAnswer.textContent,false,!subjectClassroom?.isOpen(),true);
+  if(requestId!==teacherSpeechRequest||isSubjectOpen!==Boolean(subjectClassroom?.isOpen())||text!==readText())return;
+  void speakText(text,false,!isSubjectOpen,true);
 });
 teacherSpeed.value=teacherSpeechPace;
 teacherSpeed.addEventListener('change',()=>setTeacherSpeechPace(teacherSpeed.value,teacherPanel.classList.contains('speaking')||teacherSpeechPaused));
