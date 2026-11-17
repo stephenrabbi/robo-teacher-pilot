@@ -136,9 +136,13 @@ const path = require('node:path');
         }
         await page.route('http://127.0.0.1:8765/', route => route.fulfill({json:{status:'ready'}}));
         await page.route('**/api/classroom/session', route => route.fulfill({json:{session_token:'synthetic-mobile-audio'}}));
-        await page.route('**/api/classroom/speech', route => route.fulfill({
-          headers:{'Content-Type':'audio/L16','X-Audio-Sample-Rate':'24000'},body:pcm,
-        }));
+        let speechRequests = 0;
+        await page.route('**/api/classroom/speech', route => {
+          speechRequests++;
+          return route.fulfill({
+            headers:{'Content-Type':'audio/L16','X-Audio-Sample-Rate':'24000'},body:pcm,
+          });
+        });
         const openMouth = () => page.waitForFunction(() =>
           Number(document.getElementById('teacherPanel').style.getPropertyValue('--mouth-open')) > .1
         );
@@ -166,6 +170,23 @@ const path = require('node:path');
           'Pause reading the answer', name + ': continue control incorrect');
         assert.equal(await page.locator('#lessonStepLabel').innerText(), label,
           name + ': pause/continue changed the lesson step');
+        await page.locator('#readAnswer').tap();
+        await page.waitForFunction(() => window.eval('teacherSpeechPaused && teacherAudioContext.state === "suspended"'));
+        const offset = await page.evaluate(() => window.eval(
+          'teacherAudioContext.currentTime - activeMathsNarration.chunks[0].start'
+        ));
+        assert.ok(offset > 0, name + ': expected playback before closure');
+        await page.evaluate(() => window.eval('teacherAudioContext.close()'));
+        await page.locator('#readAnswer').tap();
+        await page.waitForFunction(() => window.eval(
+          'teacherAudioContext.state === "running" && activeMathsNarration?.chunks[0]?.offset > 0'
+        ));
+        await openMouth();
+        const resumedOffset = await page.evaluate(() => window.eval('activeMathsNarration.chunks[0].offset'));
+        assert.ok(Math.abs(resumedOffset - offset) < .02, name + ': audio resumed at the wrong position');
+        assert.equal(speechRequests, 1, name + ': recovery repeated the speech request');
+        assert.equal(await page.locator('#lessonStepLabel').innerText(), label,
+          name + ': audio recovery changed the lesson step');
         const view = await page.evaluate(() => ({
           width:innerWidth,
           documentWidth:document.documentElement.scrollWidth,
