@@ -1009,7 +1009,7 @@ function stopAudioKeepAlive(){
 }
 
 function ensureAvatarAnalyser(context){
-  if(teacherAudioAnalyser)return teacherAudioAnalyser;
+  if(teacherAudioAnalyser?.context===context)return teacherAudioAnalyser;
   teacherAudioAnalyser=context.createAnalyser();teacherAudioAnalyser.fftSize=256;teacherAudioAnalyser.smoothingTimeConstant=.38;teacherAudioGain=context.createGain();teacherAudioGain.gain.value=teacherVolumeValue(teacherVolumeLevel);teacherAudioAnalyser.connect(teacherAudioGain);teacherAudioGain.connect(context.destination);return teacherAudioAnalyser;
 }
 
