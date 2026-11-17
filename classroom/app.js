@@ -991,6 +991,14 @@ async function pauseTeacherAudio(){
 
 async function resumeTeacherAudio(){
   if(!teacherAudioContext||!teacherSpeechPaused)return;
+  const narration=activeMathsNarration;
+  if(teacherAudioContext.state==='closed'&&narration&&narration.lesson===currentLesson&&narration.index===currentLesson.index&&teachingStage.mode==='lesson'){
+    const checkpoint={};
+    const step=currentLesson.steps[currentLesson.index];
+    rememberMathsNarration(checkpoint);
+    stopTeacherAudio();
+    return resumeMathsNarration(checkpoint,step);
+  }
   try{
     await teacherAudioContext.resume();
     if(teacherAudioContext.state!=='running')throw new Error('audio context did not resume');

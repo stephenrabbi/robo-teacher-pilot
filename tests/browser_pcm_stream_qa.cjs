@@ -271,6 +271,15 @@ const { gunzipSync } = require('node:zlib');
     await page.waitForFunction(()=>
       Number(document.getElementById('teacherPanel').style.getPropertyValue('--mouth-open'))>.07
     );
+    await page.waitForFunction(()=>window.eval('teacherStreamComplete && activeMathsNarration && teacherAudioContext.currentTime-activeMathsNarration.chunks[0].start>.2'));
+    await page.locator('#readAnswer').click();
+    await page.waitForFunction(()=>window.eval('teacherAudioContext.state==="suspended" && teacherSpeechPaused'));
+    const requestsBeforeRecovery=speechRequests.length;
+    await page.evaluate(()=>window.eval('teacherAudioContext.close()'));
+    await page.locator('#readAnswer').click();
+    await page.waitForFunction(()=>window.eval('teacherAudioContext.state==="running" && activeMathsNarration?.chunks[0]?.offset>.2'));
+    assert.equal(await page.locator('#canvasAnswer').innerText(),originalStep);
+    assert.equal(speechRequests.length,requestsBeforeRecovery,'Buffered Continue should reuse the recording');
     console.log('App PCM stream browser test: PASS');
   } finally { await browser.close(); }
 })().catch(err=>{console.error(err);process.exitCode=1});
