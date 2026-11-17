@@ -111,7 +111,9 @@ const { gunzipSync } = require('node:zlib');
       lessonChoreography.enabled=false;
       handsFree.enabled=true;
     })()`));
-    await page.locator('#simpleEquationsExample').click();
+    await page.locator('#simpleEquationsExample').press('Enter');
+    assert.equal(await page.evaluate(()=>document.activeElement?.id),'canvasAnswer');
+    assert.equal(await page.locator('#lessonStepLabel').innerText(),'Step 1 of 3');
     await page.waitForFunction(()=>window.eval(
       'mathsMouthImages.size===6 && Array.from(mathsMouthImages.values()).every(image=>image.naturalWidth>0)'
     ));
