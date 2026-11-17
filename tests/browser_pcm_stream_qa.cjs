@@ -258,6 +258,19 @@ const { gunzipSync } = require('node:zlib');
     assert.deepEqual(speechRequests,[originalStep,followUp,originalStep,followUp],
       'Resuming uncued Maths audio must not request speech again');
     console.log('Maths uncued speech audio-energy animation and interruption/resume: PASS');
+    await page.evaluate(()=>window.eval(`(async()=>{
+      stopTeacherAudio();
+      const closedContext=teacherAudioContext;
+      await closedContext.close();
+      const nextContext=await prepareTeacherAudio();
+      if(nextContext===closedContext || teacherAudioAnalyser.context!==nextContext || teacherAudioGain.context!==nextContext){
+        throw new Error('Replacement audio context did not get a new avatar audio graph');
+      }
+    })()`));
+    await page.locator('#readAnswer').click();
+    await page.waitForFunction(()=>
+      Number(document.getElementById('teacherPanel').style.getPropertyValue('--mouth-open'))>.07
+    );
     console.log('App PCM stream browser test: PASS');
   } finally { await browser.close(); }
 })().catch(err=>{console.error(err);process.exitCode=1});
