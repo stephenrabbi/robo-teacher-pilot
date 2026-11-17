@@ -155,3 +155,27 @@ test('an old Continue request cannot change the new lesson audio state',async()=
   assert.equal(ctx.teacherSpeechPaused,true);
  }
 });
+
+test('a failed Pause restores speaking only for the narration that requested it',async()=>{
+ for(const replaced of [false,true]){
+  let failPause;
+  const speaking=[];
+  const ctx={
+   teacherSpeechRequest:1,teacherSpeechPaused:false,
+   teacherAudioContext:{suspend:()=>new Promise((_,reject)=>{failPause=reject;})},
+   lessonController:{begin(){}},teacherPanel:{classList:{add(){},remove(){}}},
+   teacherVoiceStatus:{},syncMathsStepPointing(){},showVoiceAnswerAvatar:false,
+   stopAvatarMotion(){},readAnswerButton:{setAttribute(){}},setLearningStatus(){},
+   setTeacherSpeaking(value){speaking.push(value);},
+  };
+  vm.createContext(ctx);
+  vm.runInContext(src.slice(src.indexOf('async function pauseTeacherAudio('),src.indexOf('async function resumeTeacherAudio(')),ctx);
+  const pending=ctx.pauseTeacherAudio();
+  assert.equal(ctx.teacherSpeechPaused,true);
+  if(replaced)ctx.teacherSpeechRequest++;
+  failPause(new Error('Audio suspend failed'));
+  await pending;
+  assert.deepEqual(speaking,replaced?[]:[true]);
+  assert.equal(ctx.teacherSpeechPaused,replaced);
+ }
+});
