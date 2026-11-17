@@ -33,6 +33,10 @@ jobs:
           exit 1
       - name: Verify classroom at mobile, tablet, and desktop sizes
         run: node tests/responsive_browser_qa.cjs
+      - name: Install WebKit for iPhone touch emulation
+        run: npx playwright install --with-deps webkit
+      - name: Verify iPhone teacher controls and Web Audio in WebKit
+        run: node tests/responsive_browser_qa.cjs --webkit
       - name: Verify interrupted lesson and reload journey
         run: node tests/lesson_journey_browser_qa.cjs
       - name: Verify guided coordinate graphs and lesson return
