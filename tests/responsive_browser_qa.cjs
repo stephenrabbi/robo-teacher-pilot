@@ -225,6 +225,10 @@ const path = require('node:path');
         assert.ok(view.documentWidth<=view.width+3,
           name+': mobile classroom overflow '+JSON.stringify(view));
         assert.equal(view.portraitVisible,true,name+': teacher portrait hidden after resume');
+        await page.locator('#endLesson').press('Enter');
+        assert.equal(await page.locator('#lessonDirector').isVisible(), false);
+        assert.equal(await page.evaluate(() => document.activeElement?.id), 'question');
+        assert.equal(await page.locator('#learningStatus').innerText(), 'Lesson ended');
         console.log(name+': '+engine.name()+' touch emulation, teacher minimize/restore and pause/continue PASS');
       } finally {
         await context.close();
