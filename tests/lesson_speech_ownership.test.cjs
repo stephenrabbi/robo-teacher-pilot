@@ -128,3 +128,30 @@ test('Continue replays the same Maths step when a closed context held an incompl
  assert.equal(ctx.teacherSpeechPaused,false);
  assert.equal(ctx.mathsNarrationCheckpoints.size,0);
 });
+
+test('an old Continue request cannot change the new lesson audio state',async()=>{
+ for(const fails of [false,true]){
+  let finishResume;
+  const changes=[];
+  const ctx={
+   activeMathsNarration:null,
+   teacherSpeechRequest:1,
+   teacherSpeechPaused:true,
+   teacherAudioContext:{state:'running',resume:()=>new Promise((resolve,reject)=>{
+    finishResume=()=>fails?reject(new Error('Old audio failed')):resolve();
+   })},
+   lessonController:{begin(){changes.push('begin');}},
+   setTeacherSpeaking(){changes.push('speaking');},
+   stopTeacherAudio(){changes.push('stop');},
+   addMessage(){changes.push('error');},
+  };
+  vm.createContext(ctx);
+  vm.runInContext(src.slice(src.indexOf('async function resumeTeacherAudio('),src.indexOf('function stopAudioKeepAlive(')),ctx);
+  const pending=ctx.resumeTeacherAudio();
+  ctx.teacherSpeechRequest++;
+  finishResume();
+  await pending;
+  assert.deepEqual(changes,[]);
+  assert.equal(ctx.teacherSpeechPaused,true);
+ }
+});
