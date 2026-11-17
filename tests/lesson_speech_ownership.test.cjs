@@ -104,3 +104,27 @@ test('a failed mouth image can be retried on the next narration',()=>{
  assert.equal(images.length,2);
  assert.equal(images[1].src,images[0].src);
 });
+
+test('Continue replays the same Maths step when a closed context held an incomplete stream',async()=>{
+ const lesson={index:1,steps:['Identify the equation.','Add two to both sides.']};
+ const requests=[];
+ const ctx={
+  currentLesson:lesson,
+  activeMathsNarration:{lesson,index:1,chunks:[{buffer:{duration:1},start:0,offset:0}]},
+  teacherAudioContext:{state:'closed',currentTime:.25},
+  teacherSpeechPaused:true,
+  teacherStreamComplete:false,
+  teachingStage:{mode:'lesson'},
+  mathsNarrationCheckpoints:new Map(),
+  stopTeacherAudio(){ctx.teacherSpeechPaused=false;ctx.activeMathsNarration=null;},
+  speakText:async (...args)=>requests.push(args),
+ };
+ vm.createContext(ctx);
+ vm.runInContext(src.slice(src.indexOf('async function resumeTeacherAudio('),src.indexOf('function stopAudioKeepAlive(')),ctx);
+ vm.runInContext(src.slice(src.indexOf('function rememberMathsNarration('),src.indexOf('async function playPcmStream(')),ctx);
+ await ctx.resumeTeacherAudio();
+ assert.deepEqual(requests,[['Add two to both sides.',true,true]]);
+ assert.equal(lesson.index,1);
+ assert.equal(ctx.teacherSpeechPaused,false);
+ assert.equal(ctx.mathsNarrationCheckpoints.size,0);
+});
