@@ -5,8 +5,14 @@ from functools import lru_cache
 from pathlib import Path
 
 _SAMPLE_RATE = 24_000
+_MAX_DURATION_SECONDS = 10
+_MAX_PCM_BYTES = _SAMPLE_RATE * 2 * _MAX_DURATION_SECONDS
 _NARRATION_DIR = Path(__file__).with_name("classroom_narration")
-_PREPARED = {("Add two to both sides of the equation.", "English", "female", "normal"): "add-two-both-sides"}
+_PREPARED = {
+    ("Solve x − 2 = 5. The goal is to get x on its own.", "English", "female", "normal"): "simple-equations-intro",
+    ("Add two to both sides of the equation.", "English", "female", "normal"): "add-two-both-sides",
+    ("Simplify to get x = 7. Check : 7 − 2 = 5.", "English", "female", "normal"): "simple-equations-check",
+}
 
 
 def prepared_maths_narration(text, language, voice_gender, pace):
@@ -18,11 +24,11 @@ def prepared_maths_narration(text, language, voice_gender, pace):
 def _load_prepared(key):
     try:
         with gzip.open(_NARRATION_DIR / f"{key}.pcm.gz", "rb") as audio:
-            pcm = audio.read(_SAMPLE_RATE * 2 * 8 + 1)
+            pcm = audio.read(_MAX_PCM_BYTES + 1)
         cues = json.loads((_NARRATION_DIR / f"{key}.cues.json").read_text(encoding="utf-8"))
     except (OSError, EOFError, ValueError):
         return None
-    if not pcm or len(pcm) % 2 or len(pcm) > _SAMPLE_RATE * 2 * 8:
+    if not pcm or len(pcm) % 2 or len(pcm) > _MAX_PCM_BYTES:
         return None
     header = _validated_header({"mouthCues": cues}, len(pcm) / (_SAMPLE_RATE * 2))
     return (pcm, header) if header else None

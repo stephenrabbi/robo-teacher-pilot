@@ -83,6 +83,10 @@ const { gunzipSync } = require('node:zlib');
     const preparedAudio=gunzipSync(readFileSync(join(recordings,'add-two-both-sides.pcm.gz')));
     const preparedCues=JSON.parse(readFileSync(join(recordings,'add-two-both-sides.cues.json'),'utf8'));
     const duration=preparedAudio.length/(24000*2);
+    const extraPreparedSteps=new Map([
+      ['Solve x − 2 = 5. The goal is to get x on its own.','simple-equations-intro'],
+      ['Simplify to get x = 7. Check : 7 − 2 = 5.','simple-equations-check'],
+    ]);
     const speechRequests=[];
     let omitTimedCues=false;
     await page.route('**/*',route=>{
@@ -98,6 +102,11 @@ const { gunzipSync } = require('node:zlib');
         if(text===originalStep&&mouth_cues){
           if(!omitTimedCues)headers['X-Robo-Mouth-Cues']=JSON.stringify(preparedCues);
           return route.fulfill({headers,body:preparedAudio});
+        }
+        const stem=extraPreparedSteps.get(text);
+        if(stem&&mouth_cues){
+          headers['X-Robo-Mouth-Cues']=readFileSync(join(recordings,stem+'.cues.json'),'utf8').trim();
+          return route.fulfill({headers,body:gunzipSync(readFileSync(join(recordings,stem+'.pcm.gz')))});
         }
         return route.fulfill({headers,body:Buffer.alloc(24000)});
       }
@@ -282,6 +291,18 @@ const { gunzipSync } = require('node:zlib');
     await page.waitForFunction(()=>window.eval('teacherAudioContext.state==="running" && activeMathsNarration?.chunks[0]?.offset>.2'));
     assert.equal(await page.locator('#canvasAnswer').innerText(),originalStep);
     assert.equal(speechRequests.length,requestsBeforeRecovery,'Buffered Continue should reuse the recording');
+    const verifyTimedStep=async expectedText=>{
+      await page.locator('#readAnswer').click();
+      await page.waitForFunction(()=>document.getElementById('teacherPanel').dataset.mouthCue==='B');
+      assert.equal(speechRequests.at(-1),expectedText);
+    };
+    const [intro,check]=extraPreparedSteps.keys();
+    await page.locator('#previousLessonStep').click();
+    await verifyTimedStep(intro);
+    await page.locator('#nextLessonStep').click();
+    await page.locator('#nextLessonStep').click();
+    await verifyTimedStep(check);
+    console.log('All three Simple Equations steps play timed portrait cues: PASS');
     console.log('App PCM stream browser test: PASS');
   } finally { await browser.close(); }
 })().catch(err=>{console.error(err);process.exitCode=1});
