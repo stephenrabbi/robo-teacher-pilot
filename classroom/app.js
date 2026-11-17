@@ -999,12 +999,15 @@ async function resumeTeacherAudio(){
     stopTeacherAudio();
     return resumeMathsNarration(checkpoint,step);
   }
+  const requestId=teacherSpeechRequest;
   try{
     await teacherAudioContext.resume();
+    if(requestId!==teacherSpeechRequest||!teacherSpeechPaused)return;
     if(teacherAudioContext.state!=='running')throw new Error('audio context did not resume');
     teacherSpeechPaused=false;lessonController.begin('speech');setTeacherSpeaking(true);
     if(teacherStreamComplete&&!teacherAudioSources.size)stopTeacherAudio();
   }catch(_error){
+    if(requestId!==teacherSpeechRequest||!teacherSpeechPaused)return;
     teacherSpeechPaused=false;stopTeacherAudio();
     addMessage('I could not continue that audio. Please tap Read answer to try again.','teacher');
   }
