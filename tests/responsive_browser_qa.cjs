@@ -133,6 +133,7 @@ const path = require('node:path');
         for (let i = 0; i < pcm.length / 2; i++) {
           pcm.writeInt16LE(Math.round(6000 * Math.sin(2 * Math.PI * 220 * i / 24000)), i * 2);
         }
+        await page.route('http://127.0.0.1:8765/', route => route.fulfill({json:{status:'ready'}}));
         await page.route('**/api/classroom/session', route => route.fulfill({json:{session_token:'synthetic-mobile-audio'}}));
         await page.route('**/api/classroom/speech', route => route.fulfill({
           headers:{'Content-Type':'audio/L16','X-Audio-Sample-Rate':'24000'},body:pcm,
