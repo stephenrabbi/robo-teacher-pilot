@@ -1336,7 +1336,7 @@ def test_voice_status_is_in_toolbar_and_portrait_stays_fixed():
     script = (PROJECT_ROOT / 'classroom' / 'app.js').read_text()
     styles = (PROJECT_ROOT / 'classroom' / 'styles.css').read_text()
     actions = html.split('<div class="teacher-actions">', 1)[1].split('</div>', 1)[0]
-    portrait = html.split('<div class="teacher-portrait">', 1)[1].split('</div>', 2)[0]
+    portrait = html.split('id="teacherPortrait"', 1)[1].split('</div>', 2)[0]
     assert 'id="teacherVoiceStatus"' in actions
     assert 'id="teacherVoiceStatus"' not in portrait
     assert '.teacher-actions .teacher-voice-status{position:static' in styles
