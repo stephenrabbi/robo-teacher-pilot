@@ -35,6 +35,6 @@ test('interruption during session preparation avoids a visual request',async()=>
 test('automatic and manual panel transitions keep accessible labels consistent',()=>{
  const ctx={teacherPanel:{classList:classes()},classroom:{classList:classes()},toggle:{setAttribute(k,v){this[k]=v}}};vm.createContext(ctx);
  vm.runInContext(src.slice(src.indexOf('function setTeacherPanelMinimized('),src.indexOf('function prepareSpeechText(')),ctx);
- ctx.setTeacherPanelMinimized(true);assert.equal(ctx.toggle['aria-label'],'Maximize teacher');assert.equal(ctx.toggle['aria-expanded'],'false');assert.equal(ctx.classroom.classList.contains('teacher-min'),true);
- ctx.setTeacherPanelMinimized(false);assert.equal(ctx.toggle['aria-label'],'Minimize teacher');assert.equal(ctx.toggle['aria-expanded'],'true');assert.equal(ctx.teacherPanel.classList.contains('minimized'),false);
+ ctx.setTeacherPanelMinimized(true);assert.equal(ctx.toggle['aria-label'],'Show teacher');assert.equal(ctx.toggle['aria-expanded'],'false');assert.equal(ctx.classroom.classList.contains('teacher-min'),true);
+ ctx.setTeacherPanelMinimized(false);assert.equal(ctx.toggle['aria-label'],'Hide teacher');assert.equal(ctx.toggle['aria-expanded'],'true');assert.equal(ctx.teacherPanel.classList.contains('minimized'),false);
 });
