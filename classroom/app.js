@@ -925,7 +925,7 @@ function setTeacherPanelMinimized(minimized){
   teacherPanel.classList.toggle('minimized',minimized);
   classroom.classList.toggle('teacher-min',minimized);
   toggle.textContent=minimized?'Show':'Hide';
-  toggle.setAttribute('aria-label',minimized?'Maximize teacher':'Minimize teacher');
+  toggle.setAttribute('aria-label',minimized?'Show teacher':'Hide teacher');
   toggle.setAttribute('aria-expanded',String(!minimized));
 }
 
