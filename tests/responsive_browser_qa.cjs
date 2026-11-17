@@ -129,23 +129,32 @@ const path = require('node:path');
           name + ': touch restore did not work');
         assert.equal(await page.locator('#lessonStepLabel').innerText(),label,
           name + ': minimizing the teacher changed the lesson');
-        // Verify the actual pause/continue button without synthetic microphone
-        // input: the existing PCM browser test covers audio sample offsets.
-        await page.evaluate(() => window.eval(`teacherAudioContext = {
-          state:'running',
-          suspend:async function(){this.state='suspended';},
-          resume:async function(){this.state='running';}
-        };
-        teacherSpeechPaused=false;
-        teacherPanel.classList.add('speaking');
-        readAnswerButton.disabled=false;`));
+        const pcm = Buffer.alloc(24000 * 2 * 6);
+        for (let i = 0; i < pcm.length / 2; i++) {
+          pcm.writeInt16LE(Math.round(6000 * Math.sin(2 * Math.PI * 220 * i / 24000)), i * 2);
+        }
+        await page.route('http://127.0.0.1:8765/', route => route.fulfill({json:{status:'ready'}}));
+        await page.route('**/api/classroom/session', route => route.fulfill({json:{session_token:'synthetic-mobile-audio'}}));
+        await page.route('**/api/classroom/speech', route => route.fulfill({
+          headers:{'Content-Type':'audio/L16','X-Audio-Sample-Rate':'24000'},body:pcm,
+        }));
+        const clock = () => page.evaluate(() => window.eval('teacherAudioContext.currentTime'));
         await page.locator('#readAnswer').tap();
-        assert.equal(await page.locator('#readAnswer').getAttribute('aria-label'),
-          'Continue reading the answer',name+': pause control incorrect');
+        await page.waitForFunction(() => window.eval(
+          'teacherStreamComplete && teacherAudioSources.size > 0 && teacherPanel.classList.contains("speaking")'
+        ));
         await page.locator('#readAnswer').tap();
+        await page.waitForFunction(() => window.eval('teacherSpeechPaused && teacherAudioContext.state === "suspended"'));
         assert.equal(await page.locator('#readAnswer').getAttribute('aria-label'),
-          'Pause reading the answer',name+': continue control incorrect');
-        assert.equal(await page.locator('#lessonStepLabel').innerText(),label,
+          'Continue reading the answer', name + ': pause control incorrect');
+        const pausedAt = await clock();
+        await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+        assert.equal(await clock(), pausedAt, name + ': audio advanced while paused');
+        await page.locator('#readAnswer').tap();
+        await page.waitForFunction(position => window.eval('teacherAudioContext.currentTime') > position + .05, pausedAt);
+        assert.equal(await page.locator('#readAnswer').getAttribute('aria-label'),
+          'Pause reading the answer', name + ': continue control incorrect');
+        assert.equal(await page.locator('#lessonStepLabel').innerText(), label,
           name + ': pause/continue changed the lesson step');
         const view = await page.evaluate(() => ({
           width:innerWidth,
