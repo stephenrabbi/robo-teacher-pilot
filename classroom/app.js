@@ -1630,8 +1630,13 @@ function moveLessonStep(direction){
   renderCurrentLessonStep();setLearningStatus(`Lesson step ${currentLesson.index+1} ready`);
 }
 
-previousLessonStep.addEventListener('click',()=>moveLessonStep(-1));
-nextLessonStep.addEventListener('click',()=>moveLessonStep(1));
+for(const [button,direction] of [[previousLessonStep,-1],[nextLessonStep,1]]){
+  button.addEventListener('click',event=>{
+    const keyboardActivation=event.detail===0;
+    moveLessonStep(direction);
+    if(keyboardActivation&&button.disabled)canvasAnswer.focus({preventScroll:true});
+  });
+}
 replayLessonStep.addEventListener('click',()=>{if(currentLesson){recordLearningSignal('replays');void speakText(currentLesson.steps[currentLesson.index])}});
 showStepVisual.addEventListener('click',showVisualExplanation);
 watchStepExample.addEventListener('click',openLessonMedia);
