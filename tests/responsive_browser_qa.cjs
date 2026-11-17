@@ -114,11 +114,18 @@ const path = require('node:path');
             learnerCode.value='TEST-MOBILE-QA';
             enterClassroomView();
             lessonChoreography.enabled=false;
+            canvasEmpty.classList.add('hidden');
+            canvasWork.classList.remove('hidden');
             startLessonDirector('Solve x + 5 = 12.',1,
               ['Identify the equation.', 'Subtract 5 from both sides.', 'Check the answer.']);`);
         });
         const label = await page.locator('#lessonStepLabel').innerText();
         assert.equal(label, 'Step 2 of 3', name + ': wrong active lesson step');
+        const stepStatus = page.getByRole('status').and(page.locator('#lessonStepLabel'));
+        await page.locator('#nextLessonStep').tap();
+        assert.equal(await stepStatus.innerText(), 'Step 3 of 3');
+        await page.locator('#previousLessonStep').tap();
+        assert.equal(await stepStatus.innerText(), label);
         assert.equal(await page.locator('#teacherPanel .teacher-portrait').isVisible(),true,
           name + ': original teacher portrait missing');
         const toggle = page.locator('#toggleTeacher');
