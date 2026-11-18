@@ -516,8 +516,24 @@ def _bearings(level):
 
 
 def _probability(level):
-    favourable, other = _int(1, 10), _int(2, 12); result = Fraction(favourable, favourable+other)
-    return (f"A bag contains {favourable} red and {other} blue counters. Find the probability of selecting red.", "Use favourable outcomes divided by total outcomes.", _fraction(result), f"Step 1: Total counters = {favourable} + {other} = {favourable+other}.\nStep 2: P(red) = {favourable}/{favourable+other}.\nStep 3: Simplify. Therefore, the answer is {_fraction(result)}.")
+    favourable, other = _int(1, 10), _int(2, 12)
+    total = favourable + other
+    result = Fraction(favourable, total)
+    divisor = math.gcd(favourable, total)
+    reduction = (
+        f"Divide numerator and denominator by {divisor}: "
+        f"({favourable} ÷ {divisor})/({total} ÷ {divisor}) = {_fraction(result)}."
+        if divisor > 1 else
+        "The numerator and denominator have no common factor greater than 1, so the fraction is already simplest."
+    )
+    return (
+        f"A bag contains {favourable} red and {other} blue counters. Find the probability of selecting red.",
+        "Use favourable outcomes divided by total outcomes.",
+        _fraction(result),
+        f"Step 1: Total counters = {favourable} + {other} = {total}.\n"
+        f"Step 2: P(red) = {favourable}/{total}.\n"
+        f"Step 3: {reduction}\nTherefore, the answer is {_fraction(result)}.",
+    )
 
 
 def _number_types(level):
