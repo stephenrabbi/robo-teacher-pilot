@@ -439,8 +439,21 @@ def _solid_mensuration(level):
         answer = length*width*height
         return (f"Find the volume of a cuboid {length} cm by {width} cm by {height} cm.", "Use length × width × height.", str(answer), f"Step 1: Volume = {length} × {width} × {height}.\nStep 2: Multiply the dimensions to get {answer}.\nTherefore, the volume is {answer} cm³.")
     if level == "Medium":
-        answer = 2*(length*width + length*height + width*height)
-        return (f"Find the total surface area of a cuboid {length} cm by {width} cm by {height} cm.", "Add the areas of the six rectangular faces.", str(answer), f"Step 1: Surface area = 2(lw + lh + wh).\nStep 2: Substitute {length}, {width} and {height}.\nTherefore, the surface area is {answer} cm².")
+        base_area = length * width
+        long_face = length * height
+        short_face = width * height
+        answer = 2 * (base_area + long_face + short_face)
+        return (
+            f"Find the total surface area of a cuboid {length} cm by {width} cm by {height} cm.",
+            "Add the areas of the six rectangular faces.",
+            str(answer),
+            f"Step 1: The three different face areas are {length} × {width} = {base_area} cm², "
+            f"{length} × {height} = {long_face} cm² and {width} × {height} = {short_face} cm².\n"
+            "Step 2: Each face has an equal opposite face, so double their sum.\n"
+            f"Step 3: Surface area = 2 × ({base_area} + {long_face} + {short_face}) "
+            f"= 2 × {base_area + long_face + short_face} = {answer} cm².\n"
+            f"Therefore, the surface area is {answer} cm².",
+        )
     radius, h = _pick((7, 14, 21)), _int(3, 15); answer = 22*radius*radius*h//7
     return (f"Find the volume of a cylinder of radius {radius} cm and height {h} cm. Use π = 22/7.", "Use V = πr²h.", str(answer), f"Step 1: V = 22/7 × {radius}² × {h}.\nStep 2: Simplify and multiply.\nTherefore, the volume is {answer} cm³.")
 
