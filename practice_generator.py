@@ -339,8 +339,10 @@ def _pythagoras(level, *, find_shorter_side=True):
             f"side of {a} cm. Find the other shorter side in cm.",
             "Subtract the square of the known shorter side from the square of the hypotenuse.",
             str(b),
-            f"Step 1: The missing side squared is {c}² − {a}² = {b*b}.\n"
-            f"Step 2: Take the positive square root. The missing side is {b} cm.",
+            f"Step 1: The missing side squared is {c}² − {a}² = {c*c} − {a*a} = {b*b}.\n"
+            f"Step 2: Take the positive square root: √{b*b} = {b} cm.\n"
+            f"Step 3: Check: {a}² + {b}² = {a*a} + {b*b} = {c*c} = {c}².\n"
+            f"Therefore, the missing shorter side is {b} cm.",
         )
     return (f"A right-angled triangle has shorter sides {a} cm and {b} cm. Find the hypotenuse.", "Use c² = a² + b².", str(c), f"Step 1: c² = {a}² + {b}² = {a*a+b*b}.\nStep 2: c = √{a*a+b*b}.\nTherefore, the hypotenuse is {c} cm.")
 
