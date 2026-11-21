@@ -604,7 +604,17 @@ def _trigonometry(level):
     ratio = _pick(("sin", "cos", "tan"))
     values = {"sin": Fraction(opposite,hypotenuse), "cos": Fraction(adjacent,hypotenuse), "tan": Fraction(opposite,adjacent)}
     names = {"sin":"opposite/hypotenuse", "cos":"adjacent/hypotenuse", "tan":"opposite/adjacent"}
-    return (f"In a right-angled triangle, opposite = {opposite} cm, adjacent = {adjacent} cm and hypotenuse = {hypotenuse} cm. Find {ratio} θ.", f"Use {ratio} θ = {names[ratio]}.", _fraction(values[ratio]), f"Step 1: {ratio} θ = {names[ratio]}.\nStep 2: Substitute the given sides and simplify.\nTherefore, {ratio} θ = {_fraction(values[ratio])}.")
+    numerator, denominator = {
+        "sin": (opposite, hypotenuse),
+        "cos": (adjacent, hypotenuse),
+        "tan": (opposite, adjacent),
+    }[ratio]
+    divisor = math.gcd(numerator, denominator)
+    reduction = (
+        f"Divide both by {divisor}: ({numerator} ÷ {divisor})/({denominator} ÷ {divisor}) = {_fraction(values[ratio])}."
+        if divisor > 1 else "The fraction is already in simplest form."
+    )
+    return (f"In a right-angled triangle, opposite = {opposite} cm, adjacent = {adjacent} cm and hypotenuse = {hypotenuse} cm. Find {ratio} θ.", f"Use {ratio} θ = {names[ratio]}.", _fraction(values[ratio]), f"Step 1: {ratio} θ = {names[ratio]}.\nStep 2: Substitute: {ratio} θ = {numerator}/{denominator}.\nStep 3: {reduction}\nTherefore, {ratio} θ = {_fraction(values[ratio])}.")
 
 
 def _pie_charts(level):
