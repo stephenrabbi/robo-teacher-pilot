@@ -199,8 +199,25 @@ def _ratio_percentage(level):
         percent=_pick((10,20,25,50)); base=_pick((40,60,80,100,120,200)); answer=base*percent//100
         return (f"What is {percent}% of {base}?", "Write the percentage over 100, then multiply.", str(answer), f"Step 1: {percent}% = {percent}/100.\nStep 2: {percent}/100 × {base} = {answer}.\nTherefore, the answer is {answer}.")
     if level == "Medium":
-        a,b=_int(2,6),_int(3,8); unit=_int(5,20); total=(a+b)*unit; larger=max(a,b)*unit
-        return (f"Share {total} in the ratio {a}:{b}. What is the larger share?", f"There are {a+b} parts altogether.", str(larger), f"Step 1: Total parts = {a} + {b} = {a+b}.\nStep 2: One part = {total} ÷ {a+b} = {unit}.\nStep 3: The larger share is {max(a,b)} × {unit} = {larger}.")
+        a, b = _int(2, 6), _int(3, 8)
+        unit = _int(5, 20)
+        parts = a + b
+        total = parts * unit
+        share = max(a, b) * unit
+        if a == b:
+            prompt = "What is each share?"
+            conclusion = f"Both shares are equal: each is {a} × {unit} = {share}."
+        else:
+            prompt = "What is the larger share?"
+            conclusion = f"The larger share is {max(a, b)} × {unit} = {share}."
+        return (
+            f"Share {total} in the ratio {a}:{b}. {prompt}",
+            f"There are {parts} parts altogether.",
+            str(share),
+            f"Step 1: Total parts = {a} + {b} = {parts}.\n"
+            f"Step 2: One part = {total} ÷ {parts} = {unit}.\n"
+            f"Step 3: {conclusion}",
+        )
     old=_pick((120,160,200,240,300,400)); percent=_pick((10,15,20,25)); increase=old*percent//100; new=old+increase
     return (f"A quantity rises from {old} to {new}. What is the percentage increase?", "Find the increase, divide by the original, then multiply by 100.", str(percent), f"Step 1: Increase = {new} - {old} = {increase}.\nStep 2: {increase} ÷ {old} × 100 = {percent}%.\nTherefore, the increase is {percent}%. ")
 
