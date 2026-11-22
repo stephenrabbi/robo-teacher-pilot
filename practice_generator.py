@@ -451,7 +451,7 @@ def _angles(level):
         return (f"Two angles on a straight line are {angle}° and x°. Find x.", "Angles on a straight line add to 180°.", str(answer), f"Step 1: x + {angle} = 180°.\nStep 2: x = 180° - {angle}° = {answer}°.\nTherefore, x = {answer}°.")
     sides = _int(4, 30); total = (sides-2)*180
     if level == "Medium":
-        return (f"Find the sum of the interior angles of a {sides}-sided polygon.", "Use (n - 2) × 180°.", str(total), f"Step 1: Draw diagonals from one vertex inside the polygon to divide it into n − 2 triangles. Here, {sides} − 2 = {sides-2} triangles.\nStep 2: Each triangle has angle sum 180°, so ({sides} − 2) × 180° = {sides-2} × 180° = {total}°.\nTherefore, the sum is {total}°.")
+        return (f"Find the sum of the interior angles of a convex {sides}-sided polygon.", "Use (n - 2) × 180°.", str(total), f"Step 1: Draw diagonals from one vertex inside the polygon to divide it into n − 2 triangles. Here, {sides} − 2 = {sides-2} triangles.\nStep 2: Each triangle has angle sum 180°, so ({sides} − 2) × 180° = {sides-2} × 180° = {total}°.\nTherefore, the sum is {total}°.")
     return (f"The interior angles of a polygon add to {total}°. How many sides does it have?", "Use (n - 2) × 180° and solve for n.", str(sides), f"Step 1: n - 2 = {total} ÷ 180 = {sides-2}.\nStep 2: Add 2, so n = {sides}.\nTherefore, it has {sides} sides.")
 
 
