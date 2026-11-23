@@ -430,7 +430,7 @@ def _algebraic_expressions(level):
     if level == "Medium":
         return (f"Simplify {a}x + {c}x + {b}.", "Combine the like terms containing x.", f"{coefficient}x+{b}", f"Step 1: {a}x and {c}x are like terms.\nStep 2: Add their coefficients: {a} + {c} = {coefficient}.\nTherefore, the expression is {coefficient}x + {b}.")
     d = _int(2, 7); constant = a*d
-    return (f"Expand {a}(x + {d}).", "Multiply every term inside the bracket by the number outside.", f"{a}x+{constant}", f"Step 1: {a} × x = {a}x.\nStep 2: {a} × {d} = {constant}.\nTherefore, the expansion is {a}x + {constant}.")
+    return (f"Expand {a}(x + {d}).", "Multiply every term inside the bracket by the number outside.", f"{a}x+{constant}", f"Step 1: {a} × x = {a}x.\nStep 2: {a} × {d} = {constant}.\nStep 3: Check at x = {x}: the original gives {a}({x} + {d}) = {a*(x+d)}, and the expansion gives {a} × {x} + {constant} = {a*x+constant}. Both agree.\nTherefore, the expansion is {a}x + {constant}.")
 
 
 def _solid_mensuration(level):
