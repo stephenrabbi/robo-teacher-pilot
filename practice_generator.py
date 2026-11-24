@@ -530,7 +530,7 @@ def _number_types(level):
 
 def _variation(level):
     x1, y1, x2 = _int(2, 8), _int(3, 12), _int(9, 20); answer = Fraction(y1*x2, x1)
-    return (f"y varies directly as x. If y = {y1} when x = {x1}, find y when x = {x2}.", "For direct variation, y/x is constant.", _fraction(answer), f"Step 1: k = y/x = {y1}/{x1}.\nStep 2: y = kx = {y1}/{x1} × {x2}.\nTherefore, y = {_fraction(answer)}.")
+    return (f"y varies directly as x. If y = {y1} when x = {x1}, find y when x = {x2}.", "For direct variation, y/x is constant.", _fraction(answer), f"Step 1: k = y/x = {y1}/{x1} = {_fraction(Fraction(y1,x1))}.\nStep 2: y = kx = ({y1}/{x1}) × {x2} = {_fraction(answer)}.\nStep 3: Check the ratio: ({_fraction(answer)}) ÷ {x2} = {_fraction(answer / x2)}, equal to the original y/x.\nTherefore, y = {_fraction(answer)}.")
 
 
 def _quadratics(level):
