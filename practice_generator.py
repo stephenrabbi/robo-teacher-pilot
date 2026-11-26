@@ -547,7 +547,7 @@ def _formulae(level):
 
 def _fraction_equations(level):
     denominator, x = _int(2, 9), _int(2, 20); constant = _int(1, 10); total = x + constant
-    return (f"Solve x/{denominator} + {constant} = {total}.", f"Subtract {constant}, then multiply by {denominator}.", str(x*denominator), f"Step 1: x/{denominator} = {total} - {constant} = {x}.\nStep 2: Multiply both sides by {denominator}.\nTherefore, x = {x*denominator}.")
+    return (f"Solve x/{denominator} + {constant} = {total}.", f"Subtract {constant}, then multiply by {denominator}.", str(x*denominator), f"Step 1: x/{denominator} = {total} - {constant} = {x}.\nStep 2: Multiply both sides by {denominator}: x = {x} × {denominator} = {x*denominator}.\nStep 3: Check: {x*denominator}/{denominator} + {constant} = {x} + {constant} = {total}. Both sides are equal.\nTherefore, x = {x*denominator}.")
 
 
 def _simultaneous(level):
