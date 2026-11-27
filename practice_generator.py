@@ -542,7 +542,7 @@ def _quadratics(level):
 
 def _formulae(level):
     length, width = _int(4, 20), _int(2, 15); perimeter=2*(length+width)
-    return (f"Make l the subject of P = 2(l + w), then find l when P = {perimeter} and w = {width}.", "Divide by 2, then subtract w.", str(length), f"Step 1: P/2 = l + w, so l = P/2 - w.\nStep 2: l = {perimeter}/2 - {width} = {length}.\nTherefore, l = {length}.")
+    return (f"Make l the subject of P = 2(l + w), then find l when P = {perimeter} and w = {width}.", "Divide by 2, then subtract w.", str(length), f"Step 1: P/2 = l + w, so l = P/2 - w.\nStep 2: l = {perimeter}/2 - {width} = {perimeter//2} - {width} = {length}.\nStep 3: Check in the original formula: P = 2({length} + {width}) = 2 × {length+width} = {perimeter}. This matches the given perimeter.\nTherefore, l = {length}.")
 
 
 def _fraction_equations(level):
